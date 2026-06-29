@@ -1,0 +1,122 @@
+using Microsoft.EntityFrameworkCore;
+using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
+using Sipitex.Infrastructure.Persistence;
+
+namespace Sipitex.Infrastructure.Data;
+
+public static class DbInitializer
+{
+    public static async Task InitializeAsync(SipitexDbContext context)
+    {
+        await context.Database.EnsureCreatedAsync();
+        if (await context.Materials.AnyAsync()) return;
+
+        var mat1 = new Material { Code = "mat1", Name = "Tela Jersey", Unit = MaterialUnit.Metros, Stock = 280, MinStock = 80, Status = MaterialStatus.Bueno };
+        var mat2 = new Material { Code = "mat2", Name = "Hilo Poliéster", Unit = MaterialUnit.Metros, Stock = 3200, MinStock = 500, Status = MaterialStatus.Bueno };
+        var mat3 = new Material { Code = "mat3", Name = "Cremallera invisible", Unit = MaterialUnit.Unidades, Stock = 95, MinStock = 40, Status = MaterialStatus.Bueno };
+        var mat4 = new Material { Code = "mat4", Name = "Forro Satín", Unit = MaterialUnit.Metros, Stock = 120, MinStock = 50, Status = MaterialStatus.Bueno };
+
+        context.Materials.AddRange(mat1, mat2, mat3, mat4);
+        await context.SaveChangesAsync();
+
+        context.BomItems.AddRange(
+            new BomItem { ProductName = "Camisa", MaterialId = mat1.Id, QuantityPerUnit = 1.6m, Unit = MaterialUnit.Metros },
+            new BomItem { ProductName = "Camisa", MaterialId = mat2.Id, QuantityPerUnit = 18m, Unit = MaterialUnit.Metros },
+            new BomItem { ProductName = "Camisa", MaterialId = mat3.Id, QuantityPerUnit = 1m, Unit = MaterialUnit.Unidades },
+            new BomItem { ProductName = "Pantalón", MaterialId = mat1.Id, QuantityPerUnit = 2.2m, Unit = MaterialUnit.Metros },
+            new BomItem { ProductName = "Pantalón", MaterialId = mat2.Id, QuantityPerUnit = 22m, Unit = MaterialUnit.Metros },
+            new BomItem { ProductName = "Pantalón", MaterialId = mat4.Id, QuantityPerUnit = 0.8m, Unit = MaterialUnit.Metros });
+
+        var op1 = new ProductionOrder
+        {
+            OrderNumber = "OP-001",
+            ProductName = "Camisa",
+            TotalQuantity = 120,
+            ProducedQuantity = 45,
+            Status = OrderStatus.EnProceso,
+            Deadline = new DateOnly(2025, 4, 15)
+        };
+        var op2 = new ProductionOrder
+        {
+            OrderNumber = "OP-002",
+            ProductName = "Pantalón",
+            TotalQuantity = 80,
+            ProducedQuantity = 20,
+            Status = OrderStatus.EnProceso,
+            Deadline = new DateOnly(2025, 4, 20)
+        };
+        context.ProductionOrders.AddRange(op1, op2);
+        await context.SaveChangesAsync();
+
+        context.Fichas.AddRange(
+            new Ficha { FichaCode = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", ProductionOrderId = op1.Id },
+            new Ficha { FichaCode = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", ProductionOrderId = op1.Id },
+            new Ficha { FichaCode = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", ProductionOrderId = op2.Id });
+
+        SeedRequirements(context);
+        await context.SaveChangesAsync();
+    }
+
+    private static void SeedRequirements(SipitexDbContext context)
+    {
+        var rf = new[]
+        {
+            ("RF01", "Crear, editar y desactivar usuarios por rol.", "Usuarios", ComplianceStatus.Ausente, "Sin backend de usuarios, rol hardcoded."),
+            ("RF02", "Autenticación con credenciales propias por rol.", "Usuarios", ComplianceStatus.Ausente, "No hay login ni JWT."),
+            ("RF03", "Registrar entradas con fecha, cantidad y unidad.", "Inventario", ComplianceStatus.Parcial, "Falta fecha en registro."),
+            ("RF04", "Consultar stock disponible en tiempo real.", "Inventario", ComplianceStatus.Cumple, "Actualización reactiva."),
+            ("RF05", "Bodeguero registra estado del material (Bueno/Regular/Deteriorado).", "Inventario", ComplianceStatus.Parcial, "Estado existe pero sin UI para cambiarlo."),
+            ("RF06", "Instructor solicita materiales (orden, producto, cantidad).", "Salida", ComplianceStatus.Cumple, "Formulario de solicitud."),
+            ("RF07", "Bodeguero aprueba / rechaza y registra entrega.", "Salida", ComplianceStatus.Cumple, "Aprobación implementada."),
+            ("RF08", "Salida trazada por orden y producto.", "Salida", ComplianceStatus.Parcial, "Se guarda orderId pero no historial visible."),
+            ("RF09", "Admin crea órdenes con producto, cantidad y fecha.", "Órdenes", ComplianceStatus.Cumple, "Formulario completo."),
+            ("RF10", "Estados: Pendiente, En Proceso, Finalizada, Cancelada.", "Órdenes", ComplianceStatus.Parcial, "Solo 'En Proceso' y 'Finalizada'."),
+            ("RF11", "Cálculo MRP automático por prenda y talla.", "Órdenes", ComplianceStatus.Cumple, "BOM hardcoded, falta diferenciación por talla."),
+            ("RF12", "Fichas asociadas a un proceso de la línea.", "Fichas", ComplianceStatus.Cumple, "Cada ficha tiene proceso."),
+            ("RF13", "Un instructor puede tener múltiples fichas.", "Fichas", ComplianceStatus.Parcial, "Estructuralmente posible, sin UI asignación."),
+            ("RF14", "Instructor registra sesión diaria: ficha, unidades, observaciones.", "Producción", ComplianceStatus.Parcial, "Falta campo observaciones."),
+            ("RF15", "Mostrar avance acumulado vs meta de la orden.", "Producción", ComplianceStatus.Cumple, "Tabla de órdenes muestra avance."),
+            ("RF16", "Criterios diferenciales por tipo de prenda.", "Calidad", ComplianceStatus.Ausente, "Solo aprobado/reproceso genérico."),
+            ("RF17", "Prendas en reproceso con trazabilidad de motivo y responsable.", "Calidad", ComplianceStatus.Ausente, "No se registra motivo ni responsable."),
+            ("RF18", "Reportes de producción por período, instructor y orden.", "Estadísticas", ComplianceStatus.Parcial, "Por orden, falta filtro por período/instructor."),
+            ("RF19", "Estadísticas de consumo de materiales por producto.", "Estadísticas", ComplianceStatus.Cumple, "Cálculo vía BOM+MRP."),
+            ("RF20", "Dashboard con KPIs: unidades, calidad, eficiencia.", "Estadísticas", ComplianceStatus.Cumple, "KPIs y gráfico.")
+        };
+
+        foreach (var (code, desc, module, status, obs) in rf)
+        {
+            context.FunctionalRequirements.Add(new FunctionalRequirement
+            {
+                Code = code,
+                Description = desc,
+                Module = module,
+                Status = status,
+                Observation = obs
+            });
+        }
+
+        var rnf = new[]
+        {
+            ("RNF01", "Carga rápida en intranet (<2s)", ComplianceStatus.Cumple, "HTML estático liviano."),
+            ("RNF02", "Autenticación JWT con expiración", ComplianceStatus.Ausente, "No implementado en demo."),
+            ("RNF03", "Control de acceso por rol", ComplianceStatus.Ausente, "Sin backend ni permisos reales."),
+            ("RNF04", "Disponible desde cualquier PC de la intranet", ComplianceStatus.Parcial, "Requiere servidor HTTP."),
+            ("RNF05", "Interfaz responsiva e intuitiva", ComplianceStatus.Cumple, "Layout adaptable."),
+            ("RNF06", "Código modular y documentado", ComplianceStatus.Parcial, "Arquitectura por capas."),
+            ("RNF07", "Despliegue con Docker Compose", ComplianceStatus.Ausente, "No aplica en demo frontend."),
+            ("RNF08", "Integridad transaccional", ComplianceStatus.Parcial, "SQLite con EF Core.")
+        };
+
+        foreach (var (code, desc, status, obs) in rnf)
+        {
+            context.NonFunctionalRequirements.Add(new NonFunctionalRequirement
+            {
+                Code = code,
+                Description = desc,
+                Status = status,
+                Observation = obs
+            });
+        }
+    }
+}

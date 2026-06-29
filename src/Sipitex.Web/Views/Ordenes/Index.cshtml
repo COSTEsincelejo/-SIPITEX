@@ -1,0 +1,88 @@
+@model OrdenesIndexViewModel
+@{
+    ViewData["Title"] = "Órdenes de producción";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Órdenes de producción";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Órdenes de producción</h2>
+        <div class="sub">Crea órdenes y genera el cálculo MRP automático</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
+        <i class="fas @(Model.IsSuccess ? "fa-circle-check" : "fa-triangle-exclamation")"></i>
+        @Model.Message
+    </div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-clipboard-list"></i> Crear orden de producción</div>
+    <div class="grid-2col">
+        <div>
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="form-row">
+                    <div class="field" style="flex:1;">
+                        <label class="field-label">Producto</label>
+                        <input asp-for="CreateOrder.ProductName" list="productos" placeholder="Camisa / Pantalón" style="width:100%" required />
+                        <datalist id="productos">
+                            <option value="Camisa"></option>
+                            <option value="Pantalón"></option>
+                        </datalist>
+                    </div>
+                    <div class="field" style="width:140px;">
+                        <label class="field-label">Cantidad total</label>
+                        <input asp-for="CreateOrder.TotalQuantity" type="number" min="1" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="field">
+                        <label class="field-label">Fecha límite</label>
+                        <input asp-for="CreateOrder.Deadline" type="date" required />
+                    </div>
+                    <button type="submit" class="primary"><i class="fas fa-bolt"></i> Generar orden + MRP</button>
+                </div>
+            </form>
+        </div>
+        <div class="alert alert-info" style="margin:0;align-self:flex-start;">
+            <i class="fas fa-microchip"></i> El sistema calcula automáticamente los materiales requeridos (BOM) según la ficha técnica del producto.
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Orden</th><th>Producto</th><th>Cantidad</th><th>Producido</th><th>Avance</th><th>Estado</th><th>MRP sugerido</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var order in Model.Orders)
+            {
+                <tr>
+                    <td><strong>@order.OrderNumber</strong></td>
+                    <td>@order.ProductName</td>
+                    <td>@order.TotalQuantity</td>
+                    <td>@order.ProducedQuantity</td>
+                    <td style="min-width:120px;">
+                        <div class="progress-track"><div class="progress-fill" style="width:@order.ProgressPercent%"></div></div>
+                        <div style="font-size:11px;color:var(--text-mut);margin-top:4px;">@order.ProgressPercent%</div>
+                    </td>
+                    <td><span class="badge @DisplayHelper.BadgeClass(order.Status)">@DisplayHelper.StatusText(order.Status)</span></td>
+                    <td><small style="color:var(--text-mut);">@order.MrpHint</small></td>
+                    <td>
+                        @if (order.Status != OrderStatus.Finalizada)
+                        {
+                            <form asp-action="AddProduction" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@order.Id" />
+                                <button type="submit" class="small ghost">+ 10u</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

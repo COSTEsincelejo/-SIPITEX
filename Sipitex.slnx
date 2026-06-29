@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sipitex.Application/Sipitex.Application.csproj" />
+    <Project Path="src/Sipitex.Domain/Sipitex.Domain.csproj" />
+    <Project Path="src/Sipitex.Infrastructure/Sipitex.Infrastructure.csproj" />
+    <Project Path="src/Sipitex.Web/Sipitex.Web.csproj" />
+  </Folder>
+</Solution>

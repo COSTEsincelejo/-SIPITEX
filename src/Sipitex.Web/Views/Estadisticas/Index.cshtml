@@ -1,0 +1,69 @@
+@model EstadisticasIndexViewModel
+@{
+    ViewData["Title"] = "Estadísticas";
+    ViewData["Breadcrumb"] = "SIPITEX / Análisis / Estadísticas";
+    Layout = "_Layout";
+    var d = Model.Dashboard;
+}
+
+<div class="page-header">
+    <div>
+        <h2>Estadísticas y KPIs</h2>
+        <div class="sub">Visión general de producción, calidad e inventario</div>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-label">Prendas producidas</div>
+        <div class="kpi-value">@d.TotalProduced</div>
+        <div class="kpi-trend">Total acumulado</div>
+    </div>
+    <div class="kpi-card teal">
+        <div class="kpi-label">Tasa de calidad</div>
+        <div class="kpi-value">@d.QualityRate%</div>
+        <div class="kpi-trend">Inspecciones aprobadas</div>
+    </div>
+    <div class="kpi-card amber">
+        <div class="kpi-label">Órdenes activas</div>
+        <div class="kpi-value">@d.ActiveOrders</div>
+        <div class="kpi-trend">En proceso</div>
+    </div>
+    <div class="kpi-card red">
+        <div class="kpi-label">Materiales bajo mínimo</div>
+        <div class="kpi-value">@d.LowStockCount</div>
+        <div class="kpi-trend">Requieren reposición</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-chart-column"></i> Consumo vs eficiencia</div>
+    <canvas id="productionChart" width="400" height="200" style="max-width:100%;height:auto;"></canvas>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.ChartData.Select(c => c.Label)));
+        const produced = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.ChartData.Select(c => c.Produced)));
+        const target = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.ChartData.Select(c => c.Target)));
+        new Chart(document.getElementById('productionChart'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Producido', data: produced, backgroundColor: '#0B6FE0', borderRadius: 4 },
+                    { label: 'Meta', data: target, backgroundColor: '#D8DEE7', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { labels: { font: { family: 'Inter' } } } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { grid: { color: '#F0F2F5' } }
+                }
+            }
+        });
+    </script>
+}

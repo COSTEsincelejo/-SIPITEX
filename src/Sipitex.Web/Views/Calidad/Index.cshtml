@@ -1,0 +1,57 @@
+@model CalidadIndexViewModel
+@{
+    ViewData["Title"] = "Control de calidad";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Control de calidad";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Control de calidad</h2>
+        <div class="sub">Registra inspecciones por orden y resultado</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
+        <i class="fas @(Model.IsSuccess ? "fa-circle-check" : "fa-triangle-exclamation")"></i>
+        @Model.Message
+    </div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-clipboard-check"></i> Evaluación de prendas</div>
+    <form asp-action="Create" method="post" class="form-row">
+        @Html.AntiForgeryToken()
+        <div class="field">
+            <label class="field-label">Orden</label>
+            <select asp-for="Create.ProductionOrderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber"))"></select>
+        </div>
+        <div class="field" style="width:160px;">
+            <label class="field-label">Unidades revisadas</label>
+            <input asp-for="Create.Units" type="number" min="1" required />
+        </div>
+        <div class="field">
+            <label class="field-label">Resultado</label>
+            <select asp-for="Create.Result" asp-items="Html.GetEnumSelectList<QualityResult>()"></select>
+        </div>
+        <button type="submit" class="primary"><i class="fas fa-plus"></i> Registrar inspección</button>
+    </form>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Orden</th><th>Unidades</th><th>Resultado</th><th>Fecha</th></tr></thead>
+            <tbody>
+            @foreach (var record in Model.Records)
+            {
+                <tr>
+                    <td>@record.OrderNumber</td>
+                    <td>@record.Units</td>
+                    <td><span class="badge @DisplayHelper.BadgeClass(record.Result)">@record.Result</span></td>
+                    <td>@record.Date.ToString("yyyy-MM-dd")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

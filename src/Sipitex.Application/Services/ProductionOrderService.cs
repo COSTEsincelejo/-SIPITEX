@@ -1,0 +1,106 @@
+using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
+using Sipitex.Application.Interfaces;
+using Sipitex.Application.Interfaces.Repositories;
+using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
+
+namespace Sipitex.Application.Services;
+
+public class ProductionOrderService : IProductionOrderService
+{
+    private readonly IProductionOrderRepository _orderRepository;
+    private readonly IBomRepository _bomRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ProductionConsumptionService _consumptionService;
+
+    public ProductionOrderService(
+        IProductionOrderRepository orderRepository,
+        IBomRepository bomRepository,
+        IUnitOfWork unitOfWork,
+        ProductionConsumptionService consumptionService)
+    {
+        _orderRepository = orderRepository;
+        _bomRepository = bomRepository;
+        _unitOfWork = unitOfWork;
+        _consumptionService = consumptionService;
+    }
+
+    public async Task<IReadOnlyList<ProductionOrderDto>> GetOrdersAsync(CancellationToken cancellationToken = default)
+    {
+        var orders = await _orderRepository.GetAllAsync(cancellationToken);
+        var result = new List<ProductionOrderDto>();
+
+        foreach (var order in orders)
+        {
+            var bom = await _bomRepository.GetByProductAsync(order.ProductName, cancellationToken);
+            var hint = bom.Count > 0
+                ? string.Join(", ", bom.Select(b => $"{b.Material.Name}: {b.QuantityPerUnit} {UnitHelper.ToDisplay(b.Unit)}"))
+                : "N/A";
+
+            var pct = order.TotalQuantity > 0
+                ? Math.Min(100, (int)Math.Round(order.ProducedQuantity * 100m / order.TotalQuantity))
+                : 0;
+
+            result.Add(new ProductionOrderDto(
+                order.Id,
+                order.OrderNumber,
+                order.ProductName,
+                order.TotalQuantity,
+                order.ProducedQuantity,
+                pct,
+                order.Status,
+                order.Deadline,
+                hint));
+        }
+
+        return result;
+    }
+
+    public async Task<ServiceResult> CreateOrderAsync(CreateProductionOrderDto dto, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(dto.ProductName) || dto.TotalQuantity <= 0)
+            return ServiceResult.Fail("Producto y cantidad son obligatorios.");
+
+        var bom = await _bomRepository.GetByProductAsync(dto.ProductName, cancellationToken);
+        if (bom.Count == 0)
+            return ServiceResult.Fail("Producto no válido. Usa Camisa o Pantalón.");
+
+        var count = await _orderRepository.CountAsync(cancellationToken);
+        var orderNumber = $"OP-{(count + 101):D3}";
+
+        await _orderRepository.AddAsync(new ProductionOrder
+        {
+            OrderNumber = orderNumber,
+            ProductName = dto.ProductName.Trim(),
+            TotalQuantity = dto.TotalQuantity,
+            ProducedQuantity = 0,
+            Status = OrderStatus.EnProceso,
+            Deadline = dto.Deadline
+        }, cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok($"Orden {orderNumber} creada.");
+    }
+
+    public async Task<ServiceResult> RegisterProductionAsync(int orderId, int units, CancellationToken cancellationToken = default)
+    {
+        if (units <= 0) return ServiceResult.Fail("Cantidad inválida.");
+
+        var order = await _orderRepository.GetByIdAsync(orderId, cancellationToken);
+        if (order is null || order.Status == OrderStatus.Finalizada)
+            return ServiceResult.Fail("Orden finalizada o inválida.");
+
+        var toAdd = Math.Min(units, order.TotalQuantity - order.ProducedQuantity);
+        if (toAdd <= 0) return ServiceResult.Fail("La orden ya alcanzó su meta.");
+
+        if (!await _consumptionService.ConsumeAsync(order.ProductName, toAdd, cancellationToken))
+            return ServiceResult.Fail("Consumo fallido: materiales insuficientes.");
+
+        ProductionConsumptionService.UpdateOrderProgress(order, toAdd);
+        _orderRepository.Update(order);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok($"Se registraron {toAdd} unidades.");
+    }
+}

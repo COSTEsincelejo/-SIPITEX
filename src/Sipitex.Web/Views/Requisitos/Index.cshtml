@@ -1,0 +1,69 @@
+@model RequisitosIndexViewModel
+@{
+    ViewData["Title"] = "Cumplimiento RF/RNF";
+    ViewData["Breadcrumb"] = "SIPITEX / Análisis / Cumplimiento RF/RNF";
+    Layout = "_Layout";
+    var rf = Model.Requirements;
+}
+
+<div class="page-header">
+    <div>
+        <h2>Cumplimiento de requisitos</h2>
+        <div class="sub">Verificación de requisitos funcionales (RF01–RF20) y no funcionales (RNF01–RNF08)</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-list-check"></i> Requisitos funcionales</div>
+    <div class="req-summary">
+        <div class="summary-card"><div class="summary-number" style="color:var(--teal)">@rf.FunctionalSummary.Cumple</div><div class="summary-label">Cumple</div></div>
+        <div class="summary-card"><div class="summary-number" style="color:var(--amber)">@rf.FunctionalSummary.Parcial</div><div class="summary-label">Parcial</div></div>
+        <div class="summary-card"><div class="summary-number" style="color:var(--red)">@rf.FunctionalSummary.Ausente</div><div class="summary-label">Ausente</div></div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>ID</th><th>Descripción del requisito funcional</th><th>Módulo</th><th>Estado</th><th>Observación</th></tr></thead>
+            <tbody>
+            @foreach (var item in rf.Functional)
+            {
+                <tr>
+                    <td><strong>@item.Code</strong></td>
+                    <td>@item.Description</td>
+                    <td>@item.Module</td>
+                    <td><span class="badge @DisplayHelper.BadgeClass(item.Status)">@item.Status</span></td>
+                    <td>@item.Observation</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-microchip"></i> Requisitos no funcionales</div>
+    <div class="req-summary">
+        <div class="summary-card"><div class="summary-number" style="color:var(--teal)">@rf.NonFunctionalSummary.Cumple</div><div class="summary-label">Cumple</div></div>
+        <div class="summary-card"><div class="summary-number" style="color:var(--amber)">@rf.NonFunctionalSummary.Parcial</div><div class="summary-label">Parcial</div></div>
+        <div class="summary-card"><div class="summary-number" style="color:var(--red)">@rf.NonFunctionalSummary.Ausente</div><div class="summary-label">Ausente</div></div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>ID</th><th>Descripción</th><th>Estado</th><th>Comentario</th></tr></thead>
+            <tbody>
+            @foreach (var item in rf.NonFunctional)
+            {
+                <tr>
+                    <td><strong>@item.Code</strong></td>
+                    <td>@item.Description</td>
+                    <td><span class="badge @DisplayHelper.BadgeClass(item.Status)">@item.Status</span></td>
+                    <td>@item.Observation</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <i class="fas fa-circle-info"></i> Evaluación basada en la implementación .NET por capas. Los criterios reflejan el grado de implementación funcional del sistema.
+</div>

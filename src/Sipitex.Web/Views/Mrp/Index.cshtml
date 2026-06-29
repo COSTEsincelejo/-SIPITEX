@@ -1,0 +1,77 @@
+@model MrpIndexViewModel
+@{
+    ViewData["Title"] = "MRP / Materiales";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / MRP";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>MRP / Materiales</h2>
+        <div class="sub">Lista de materiales (BOM) y simulación de requerimiento neto</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-chart-pie"></i> Lista de materiales por producto (BOM)</div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Producto</th><th>Material</th><th>Cantidad por unidad</th><th>Unidad</th></tr></thead>
+            <tbody>
+            @foreach (var item in Model.Bom)
+            {
+                <tr>
+                    <td><strong>@item.ProductName</strong></td>
+                    <td>@item.MaterialName</td>
+                    <td>@item.QuantityPerUnit</td>
+                    <td>@item.UnitDisplay</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-calculator"></i> Simulación de requerimiento neto</div>
+    <form asp-action="Simulate" method="post" class="form-row">
+        @Html.AntiForgeryToken()
+        <div class="field">
+            <label class="field-label">Producto</label>
+            <select asp-for="Simulation.ProductName">
+                <option value="Camisa">Camisa</option>
+                <option value="Pantalón">Pantalón</option>
+            </select>
+        </div>
+        <div class="field" style="width:160px;">
+            <label class="field-label">Cantidad a fabricar</label>
+            <input asp-for="Simulation.Quantity" type="number" step="1" min="1" />
+        </div>
+        <button type="submit" class="primary"><i class="fas fa-play"></i> Calcular MRP y alerta stock</button>
+    </form>
+    @if (Model.Result is not null)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-chart-pie"></i>
+            <div>
+                <strong>MRP para @Model.Result.ProductName (@Model.Result.Quantity uds):</strong><br />
+                @foreach (var line in Model.Result.Lines)
+                {
+                    <text>
+                        <strong>@line.MaterialName:</strong> necesita @line.Required.ToString("0.0") @line.UnitDisplay,
+                        disponible @line.Available.ToString("0.0") →
+                        @if (line.IsOk)
+                        {
+                            <span style="color:var(--teal);font-weight:600;">OK</span>
+                        }
+                        else
+                        {
+                            <span style="color:var(--red);font-weight:600;">Déficit @line.Deficit.ToString("0.0")</span>
+                        }
+                        <br />
+                    </text>
+                }
+            </div>
+        </div>
+    }
+</div>

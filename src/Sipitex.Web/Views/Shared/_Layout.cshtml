@@ -1,0 +1,73 @@
+﻿@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    string NavClass(string name) => controller.Equals(name, StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item";
+    var title = ViewData["Title"]?.ToString() ?? "SIPITEX";
+    var breadcrumb = ViewData["Breadcrumb"]?.ToString() ?? "SIPITEX";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>SIPITEX · @title</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="~/css/sipitex.css" asp-append-version="true" />
+</head>
+<body>
+<div class="shell">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="mark">
+                <div class="mark-icon">SX</div>
+                <div><h1>SIPITEX</h1></div>
+            </div>
+            <p>Sistema Integrado de Producción<br>e Inventario Textil · CMTC SENA</p>
+        </div>
+        <nav class="nav-group">
+            <div class="nav-group-label">Operación</div>
+            <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
+            <a class="@NavClass("Ordenes")" asp-controller="Ordenes" asp-action="Index"><i class="fas fa-clipboard-list"></i> Órdenes de producción</a>
+            <a class="@NavClass("Mrp")" asp-controller="Mrp" asp-action="Index"><i class="fas fa-diagram-project"></i> MRP / Materiales</a>
+            <a class="@NavClass("Fichas")" asp-controller="Fichas" asp-action="Index"><i class="fas fa-people-group"></i> Fichas & producción</a>
+            <a class="@NavClass("Calidad")" asp-controller="Calidad" asp-action="Index"><i class="fas fa-clipboard-check"></i> Control de calidad</a>
+        </nav>
+        <nav class="nav-group">
+            <div class="nav-group-label">Análisis</div>
+            <a class="@NavClass("Estadisticas")" asp-controller="Estadisticas" asp-action="Index"><i class="fas fa-chart-line"></i> Estadísticas</a>
+            <a class="@NavClass("Requisitos")" asp-controller="Requisitos" asp-action="Index"><i class="fas fa-list-check"></i> Cumplimiento RF/RNF</a>
+        </nav>
+        <div class="sidebar-foot">SIPITEX v1.0 · .NET MVC<br>CMTC · SENA · ADSO</div>
+    </aside>
+    <div class="main">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button type="button" class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+                <div>
+                    <h2>@title</h2>
+                    <div class="breadcrumb">@breadcrumb</div>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <button type="button" class="icon-btn"><i class="fas fa-bell"></i></button>
+                <button type="button" class="icon-btn"><i class="fas fa-gear"></i></button>
+                <div class="role-chip">
+                    <div class="avatar">A</div>
+                    <span class="role-text">Administrador</span>
+                </div>
+            </div>
+        </header>
+        <main class="content">
+            @RenderBody()
+            <footer class="site-footer">SIPITEX — Sistema Integrado de Producción e Inventario Textil · CMTC · SENA ADSO</footer>
+        </main>
+    </div>
+</div>
+<script>
+    document.getElementById('menuToggle')?.addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('open');
+    });
+</script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

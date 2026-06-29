@@ -1,0 +1,74 @@
+@model FichasIndexViewModel
+@{
+    ViewData["Title"] = "Fichas & producción";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Fichas & producción";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Fichas & producción</h2>
+        <div class="sub">Asigna procesos a fichas y registra la producción diaria</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
+        <i class="fas @(Model.IsSuccess ? "fa-circle-check" : "fa-triangle-exclamation")"></i>
+        @Model.Message
+    </div>
+}
+
+<div class="card">
+    <div class="card-title teal"><i class="fas fa-chalkboard-user"></i> Fichas de aprendices / procesos</div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructor</th><th>Orden asignada</th><th>Unidades hoy</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var ficha in Model.Fichas)
+            {
+                <tr>
+                    <td><strong>@ficha.FichaCode</strong></td>
+                    <td>@ficha.ProcessName</td>
+                    <td>@ficha.InstructorName</td>
+                    <td>@(ficha.AssignedOrderNumber ?? "—")</td>
+                    <td>
+                        <form asp-action="QuickRegister" method="post" style="display:flex;gap:6px;align-items:center;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="fichaId" value="@ficha.Id" />
+                            <input type="number" name="units" min="1" placeholder="0" style="width:80px" required />
+                            <button type="submit" class="small ghost">Registrar hoy</button>
+                        </form>
+                    </td>
+                    <td></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <form asp-action="Register" method="post" class="form-row" style="margin-top:18px;">
+        @Html.AntiForgeryToken()
+        <div class="field">
+            <label class="field-label">Orden</label>
+            <select asp-for="Register.ProductionOrderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber"))"></select>
+        </div>
+        <div class="field">
+            <label class="field-label">Ficha</label>
+            <select asp-for="Register.FichaId">
+                @foreach (var f in Model.Fichas)
+                {
+                    <option value="@f.Id">@f.FichaCode - @f.ProcessName</option>
+                }
+            </select>
+        </div>
+        <div class="field" style="width:160px;">
+            <label class="field-label">Unidades producidas</label>
+            <input asp-for="Register.Units" type="number" min="1" required />
+        </div>
+        <button type="submit" class="primary"><i class="fas fa-save"></i> Registrar sesión diaria</button>
+    </form>
+    <div class="alert alert-info" style="margin-top:6px;">
+        <i class="fas fa-circle-info"></i> Cada registro consume materiales según el BOM y actualiza el avance de la orden.
+    </div>
+</div>
