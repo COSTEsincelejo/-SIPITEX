@@ -5,6 +5,7 @@ namespace Sipitex.Web;
 
 public static class ApplicationServiceExtensions
 {
+    // Aquí se registran los servicios de la capa de aplicación para que puedan ser usados por los controladores.
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<ProductionConsumptionService>();
@@ -14,7 +15,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IFichaService, FichaService>();
         services.AddScoped<IQualityService, QualityService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
-        services.AddScoped<IRequirementService, RequirementService>();
+        services.AddScoped<IUserAccountService, UserAccountService>();
         return services;
     }
 }

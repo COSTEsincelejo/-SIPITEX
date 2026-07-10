@@ -3,6 +3,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Web.Models;
 
+// Aquí están los modelos usados por las vistas para mostrar datos al usuario.
 public class InventarioIndexViewModel
 {
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
@@ -99,11 +100,3 @@ public class EstadisticasIndexViewModel
     public DashboardKpiDto Dashboard { get; set; } = new(0, 0, 0, 0, []);
 }
 
-public class RequisitosIndexViewModel
-{
-    public RequirementsViewDto Requirements { get; set; } = new(
-        new RequirementSummaryDto(0, 0, 0),
-        new RequirementSummaryDto(0, 0, 0),
-        [],
-        []);
-}

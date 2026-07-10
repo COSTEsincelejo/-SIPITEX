@@ -6,6 +6,7 @@ namespace Sipitex.Web.Controllers;
 
 public class EstadisticasController : Controller
 {
+    // Aquí se muestran los datos del dashboard y métricas del sistema.
     private readonly IStatisticsService _statisticsService;
 
     public EstadisticasController(IStatisticsService statisticsService) => _statisticsService = statisticsService;

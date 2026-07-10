@@ -1,0 +1,62 @@
+@model UserEditViewModel
+@{
+    ViewData["Title"] = "Editar usuario";
+    ViewData["Breadcrumb"] = "SIPITEX / Administración / Editar usuario";
+    Layout = "_Layout";
+    var fichas = ViewBag.Fichas as IEnumerable<Ficha> ?? Array.Empty<Ficha>();
+}
+
+<div class="page-header">
+    <div>
+        <h2>Editar usuario</h2>
+        <div class="sub">Actualice la información del usuario</div>
+    </div>
+</div>
+
+<div class="card" style="max-width:700px;">
+    <form asp-action="EditUser" method="post">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="field">
+            <label class="field-label">Nombre</label>
+            <input asp-for="Nombre" required />
+        </div>
+        <div class="field">
+            <label class="field-label">Correo</label>
+            <input asp-for="Email" type="email" required />
+        </div>
+        <div class="field">
+            <label class="field-label">Nueva contraseña</label>
+            <input asp-for="Password" type="password" />
+        </div>
+        <div class="field">
+            <label class="field-label">Rol</label>
+            <select asp-for="Rol">
+                <option value="Administrador">Administrador</option>
+                <option value="Instructor">Instructor</option>
+                <option value="Bodeguero">Bodeguero</option>
+            </select>
+        </div>
+        <div class="field">
+            <label class="field-label">Ficha asignada</label>
+            <select asp-for="FichaAsignadaId">
+                <option value="">Sin asignar</option>
+                @foreach (var ficha in fichas)
+                {
+                    <option value="@ficha.Id">@ficha.FichaCode - @ficha.ProcessName</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label class="field-label">Permisos extendidos</label>
+            <input asp-for="PermisosExtendidos" placeholder="VerReportes, AprobarSolicitudes" />
+        </div>
+        <div class="field">
+            <label class="field-label">Activo</label>
+            <input asp-for="IsActive" type="checkbox" />
+        </div>
+        <button type="submit" class="primary">Guardar cambios</button>
+        <a asp-action="Users" class="small ghost">Cancelar</a>
+    </form>
+</div>

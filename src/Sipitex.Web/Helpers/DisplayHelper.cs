@@ -2,6 +2,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Web.Helpers;
 
+// Esta clase ayuda a mostrar etiquetas visuales en la interfaz, como colores de estado.
 public static class DisplayHelper
 {
     public static string BadgeClass(MaterialStatus status) => status switch

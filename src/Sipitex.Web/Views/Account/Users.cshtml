@@ -1,0 +1,57 @@
+@model IEnumerable<User>
+@{
+    ViewData["Title"] = "Usuarios";
+    ViewData["Breadcrumb"] = "SIPITEX / Administración / Usuarios";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Gestión de usuarios</h2>
+        <div class="sub">Crear, editar y desactivar usuarios del sistema</div>
+    </div>
+    <a asp-action="CreateUser" class="primary"><i class="fas fa-user-plus"></i> Crear usuario</a>
+</div>
+
+@if (TempData["Message"] is string msg)
+{
+    <div class="alert alert-success"><i class="fas fa-circle-check"></i> @msg</div>
+}
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Rol</th>
+                    <th>Ficha</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model)
+                {
+                    <tr>
+                        <td>@u.Nombre</td>
+                        <td>@u.Email</td>
+                        <td>@u.Rol</td>
+                        <td>@(u.FichaAsignada?.FichaCode ?? "-")</td>
+                        <td>@(u.IsActive ? "Activo" : "Inactivo")</td>
+                        <td>
+                            <a asp-action="EditUser" asp-route-id="@u.Id" class="small ghost">Editar</a>
+                            <form asp-action="ToggleUserStatus" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@u.Id" />
+                                <input type="hidden" name="isActive" value="@(!u.IsActive)" />
+                                <button type="submit" class="small ghost">@(u.IsActive ? "Desactivar" : "Activar")</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

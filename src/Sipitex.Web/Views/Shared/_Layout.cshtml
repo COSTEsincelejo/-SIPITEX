@@ -1,8 +1,12 @@
-﻿@{
+﻿@using System.Security.Claims
+@{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     string NavClass(string name) => controller.Equals(name, StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item";
     var title = ViewData["Title"]?.ToString() ?? "SIPITEX";
     var breadcrumb = ViewData["Breadcrumb"]?.ToString() ?? "SIPITEX";
+    var user = User.Identity?.IsAuthenticated == true ? User : null;
+    var role = user?.FindFirstValue(ClaimTypes.Role) ?? "Invitado";
+    var name = user?.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -35,7 +39,10 @@
         <nav class="nav-group">
             <div class="nav-group-label">Análisis</div>
             <a class="@NavClass("Estadisticas")" asp-controller="Estadisticas" asp-action="Index"><i class="fas fa-chart-line"></i> Estadísticas</a>
-            <a class="@NavClass("Requisitos")" asp-controller="Requisitos" asp-action="Index"><i class="fas fa-list-check"></i> Cumplimiento RF/RNF</a>
+            @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Administrador"))
+            {
+                <a class="@NavClass("Account")" asp-controller="Account" asp-action="Users"><i class="fas fa-users-gear"></i> Usuarios</a>
+            }
         </nav>
         <div class="sidebar-foot">SIPITEX v1.0 · .NET MVC<br>CMTC · SENA · ADSO</div>
     </aside>
@@ -52,8 +59,8 @@
                 <button type="button" class="icon-btn"><i class="fas fa-bell"></i></button>
                 <button type="button" class="icon-btn"><i class="fas fa-gear"></i></button>
                 <div class="role-chip">
-                    <div class="avatar">A</div>
-                    <span class="role-text">Administrador</span>
+                    <div class="avatar">@name.Substring(0, 1).ToUpper()</div>
+                    <span class="role-text">@role</span>
                 </div>
             </div>
         </header>

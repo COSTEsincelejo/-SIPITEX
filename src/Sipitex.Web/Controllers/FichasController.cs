@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
@@ -5,8 +6,10 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+[Authorize]
 public class FichasController : Controller
 {
+    // Aquí se administran las fichas y el registro de producción por ficha.
     private readonly IFichaService _fichaService;
     private readonly IProductionOrderService _orderService;
 

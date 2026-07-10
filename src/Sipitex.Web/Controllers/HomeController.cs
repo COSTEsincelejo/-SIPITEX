@@ -6,6 +6,7 @@ namespace Sipitex.Web.Controllers;
 
 public class HomeController : Controller
 {
+    // Este controlador maneja la página principal y los errores generales del sistema.
     public IActionResult Index()
     {
         return View();

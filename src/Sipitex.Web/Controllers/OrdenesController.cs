@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
@@ -5,8 +6,10 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+[Authorize]
 public class OrdenesController : Controller
 {
+    // Aquí se crean y manejan las órdenes de producción desde la vista.
     private readonly IProductionOrderService _orderService;
 
     public OrdenesController(IProductionOrderService orderService) => _orderService = orderService;

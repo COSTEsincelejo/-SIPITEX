@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
@@ -5,8 +6,10 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+[Authorize]
 public class InventarioController : Controller
 {
+    // Este controlador muestra y maneja todo lo del inventario desde la interfaz web.
     private readonly IInventoryService _inventoryService;
     private readonly IProductionOrderService _orderService;
 

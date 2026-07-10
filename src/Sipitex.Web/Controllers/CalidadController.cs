@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
@@ -5,8 +6,10 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+[Authorize]
 public class CalidadController : Controller
 {
+    // Este controlador permite ver y registrar la calidad de la producción.
     private readonly IQualityService _qualityService;
     private readonly IProductionOrderService _orderService;
 
