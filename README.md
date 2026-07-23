@@ -1,4 +1,4 @@
-# SIPITEX — Sistema Integrado de Producción e Inventario Textil
+# SIPITEX — Sistema Integrado de Aprendizaje, Producción e Inventario Textil
 
 Proyecto .NET 10 con **arquitectura por capas** y desarrollo guiado por **metodología cascada** (CMTC · SENA · ADSO).
 

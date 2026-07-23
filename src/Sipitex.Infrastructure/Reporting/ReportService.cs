@@ -329,7 +329,7 @@ public class ReportService : IReportService
                         }
                     }
                 });
-                page.Footer().AlignCenter().Text("CMTC · SENA · ADSO").FontSize(8).FontColor(Colors.Grey.Medium);
+                page.Footer().AlignCenter().Text("SENA CMTC · ADSO").FontSize(8).FontColor(Colors.Grey.Medium);
             });
         }).GeneratePdf();
 

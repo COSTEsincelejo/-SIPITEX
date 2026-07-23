@@ -3,8 +3,8 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Proyecto** | SIPITEX — Sistema Integrado de Producción e Inventario Textil |
-| **Institución** | CMTC · SENA · ADSO |
+| **Proyecto** | SIPITEX — Sistema Integrado de Aprendizaje, Producción e Inventario Textil |
+| **Institución** | SENA CMTC · ADSO |
 | **Versión** | 2.0 |
 | **Fecha** | 2026-07-23 |
 | **Estado** | Alineado con la implementación actual (ASP.NET Core MVC + EF Core + SQLite) |
