@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
@@ -12,11 +13,16 @@ public class ReportesController : Controller
     public ReportesController(IReportService reportService) => _reportService = reportService;
 
     [HttpGet]
-    public IActionResult Index()
+    public IActionResult Index(int? year, int? month)
     {
         ViewData["Title"] = "Reportes";
         ViewData["Breadcrumb"] = "SIPITEX / Análisis / Reportes";
-        return View();
+        var today = DateTime.Today;
+        return View(new ReportesIndexViewModel
+        {
+            Year = year ?? today.Year,
+            Month = month ?? today.Month
+        });
     }
 
     [HttpGet]
@@ -34,6 +40,10 @@ public class ReportesController : Controller
     [HttpGet]
     public async Task<IActionResult> Dashboard(string format = "pdf", CancellationToken cancellationToken = default) =>
         FileResult(await _reportService.ExportDashboardAsync(format, cancellationToken));
+
+    [HttpGet]
+    public async Task<IActionResult> Mensual(int year, int month, string format = "pdf", CancellationToken cancellationToken = default) =>
+        FileResult(await _reportService.ExportMonthlyAsync(year, month, format, cancellationToken));
 
     private FileContentResult FileResult(Application.DTOs.ReportFileDto file) =>
         File(file.Content, file.ContentType, file.FileName);

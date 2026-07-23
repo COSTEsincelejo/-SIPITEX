@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
+using Sipitex.Web.Helpers;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
@@ -41,6 +42,7 @@ public class AccountController : Controller
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Role, user.Rol)
         };
+        claims.AddRange(PermissionHelper.BuildPermissionClaims(user.PermisosExtendidos));
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = true });
@@ -79,7 +81,7 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) { ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
-        var permisos = model.PermisosExtendidos?.Split(',').Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList() ?? [];
+        var permisos = ResolvePermissions(model);
         var result = await _userAccountService.CreateUserAsync(model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, permisos, cancellationToken);
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
@@ -102,6 +104,7 @@ public class AccountController : Controller
             Rol = user.Rol,
             FichaAsignadaId = user.FichaAsignadaId,
             PermisosExtendidos = user.PermisosExtendidos,
+            SelectedPermissions = UserPermissions.Parse(user.PermisosExtendidos).ToList(),
             IsActive = user.IsActive
         });
     }
@@ -113,7 +116,7 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) { ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
-        var permisos = model.PermisosExtendidos?.Split(',').Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList() ?? [];
+        var permisos = ResolvePermissions(model);
         var result = await _userAccountService.UpdateUserAsync(model.Id, model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, permisos, model.IsActive, cancellationToken);
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
@@ -140,5 +143,12 @@ public class AccountController : Controller
         var fichaService = HttpContext.RequestServices.GetService<IFichaService>();
         var fichas = await fichaService!.GetFichasAsync(cancellationToken);
         return fichas.Select(f => new Ficha { Id = f.Id, FichaCode = f.FichaCode, ProcessName = f.ProcessName }).ToList();
+    }
+
+    private static List<string> ResolvePermissions(UserEditViewModel model)
+    {
+        if (model.SelectedPermissions?.Count > 0)
+            return model.SelectedPermissions.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        return UserPermissions.Parse(model.PermisosExtendidos).ToList();
     }
 }

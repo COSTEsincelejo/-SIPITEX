@@ -166,7 +166,7 @@ public static class DbInitializer
                 Email = "admin@sipitex.test",
                 PasswordHash = PasswordHasher.Hash("Admin123!"),
                 Rol = UserRoles.Administrador,
-                PermisosExtendidos = "GestionUsuarios, VerReportes",
+                PermisosExtendidos = "FuncionesAdministrador, GestionUsuarios, VerReportes",
                 IsActive = true
             },
             new User

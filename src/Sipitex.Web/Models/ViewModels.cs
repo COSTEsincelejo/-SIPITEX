@@ -7,10 +7,17 @@ namespace Sipitex.Web.Models;
 public class InventarioIndexViewModel
 {
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public IReadOnlyList<MaterialDto> FilteredMaterials { get; set; } = [];
     public IReadOnlyList<MaterialRequestDto> Requests { get; set; } = [];
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public CreateMaterialForm CreateMaterial { get; set; } = new();
     public CreateRequestForm CreateRequest { get; set; } = new();
+    public string Filter { get; set; } = "todos";
+    public int DepletedCount { get; set; }
+    public int LowStockCount { get; set; }
+    public int NormalCount { get; set; }
+    public bool CanRegister { get; set; }
+    public bool CanManage { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -19,7 +26,14 @@ public class CreateMaterialForm
 {
     public string Name { get; set; } = string.Empty;
     public decimal Stock { get; set; }
+    public decimal MinStock { get; set; } = 10;
     public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
+}
+
+public class ReportesIndexViewModel
+{
+    public int Year { get; set; }
+    public int Month { get; set; }
 }
 
 public class CreateRequestForm

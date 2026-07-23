@@ -33,5 +33,6 @@ public class UserEditViewModel
 
     public int? FichaAsignadaId { get; set; }
     public string? PermisosExtendidos { get; set; }
+    public List<string> SelectedPermissions { get; set; } = [];
     public bool IsActive { get; set; } = true;
 }

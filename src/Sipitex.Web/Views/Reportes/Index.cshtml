@@ -1,21 +1,58 @@
+@model ReportesIndexViewModel
 @{
     ViewData["Title"] = "Reportes";
     ViewData["Breadcrumb"] = "SIPITEX / Análisis / Reportes";
     Layout = "_Layout";
+    var months = Enumerable.Range(1, 12)
+        .Select(m => new { Value = m, Text = new DateTime(2000, m, 1).ToString("MMMM", new System.Globalization.CultureInfo("es-CO")) })
+        .ToList();
 }
 
 <div class="page-header">
     <div>
         <h2>Reportes</h2>
-        <div class="sub">Descargue reportes operativos en PDF o Excel</div>
+        <div class="sub">Descargue reportes operativos y el consolidado mensual en PDF o Excel</div>
     </div>
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-calendar-days"></i> Reporte mensual</div>
+    <p class="sub" style="margin-bottom:14px;">Incluye resumen de stock (agotados / por agotarse / normal), lista de productos, producción y calidad del mes.</p>
+    <form method="get" class="form-row" id="monthlyReportForm">
+        <div class="field" style="width:140px;">
+            <label class="field-label">Año</label>
+            <input type="number" name="year" value="@Model.Year" min="2020" max="2100" required />
+        </div>
+        <div class="field" style="width:180px;">
+            <label class="field-label">Mes</label>
+            <select name="month">
+                @foreach (var m in months)
+                {
+                    if (m.Value == Model.Month)
+                    {
+                        <option value="@m.Value" selected>@m.Text</option>
+                    }
+                    else
+                    {
+                        <option value="@m.Value">@m.Text</option>
+                    }
+                }
+            </select>
+        </div>
+        <button type="submit" formaction="@Url.Action("Mensual")" formmethod="get" name="format" value="pdf" class="primary js-download">
+            <i class="fas fa-file-pdf"></i> PDF mensual
+        </button>
+        <button type="submit" formaction="@Url.Action("Mensual")" formmethod="get" name="format" value="excel" class="ghost js-download">
+            <i class="fas fa-file-excel"></i> Excel mensual
+        </button>
+    </form>
 </div>
 
 <div class="module-grid">
     <div class="module-link report-card">
         <i class="fas fa-boxes-stacked"></i>
         <h3>Inventario</h3>
-        <p>Stock, estado, mínimos y última entrada.</p>
+        <p>Stock, nivel (agotado / por agotarse / normal), estado y última entrada.</p>
         <div class="report-actions">
             <a class="btn primary small js-download" asp-action="Inventario" asp-route-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
             <a class="btn ghost small js-download" asp-action="Inventario" asp-route-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
