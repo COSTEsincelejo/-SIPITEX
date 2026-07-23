@@ -17,6 +17,8 @@ public class SipitexDbContext : DbContext
     public DbSet<NonFunctionalRequirement> NonFunctionalRequirements => Set<NonFunctionalRequirement>();
     public DbSet<User> Users => Set<User>();
     public DbSet<ProductionSession> ProductionSessions => Set<ProductionSession>();
+    public DbSet<AlertPreference> AlertPreferences => Set<AlertPreference>();
+    public DbSet<AlertDelivery> AlertDeliveries => Set<AlertDelivery>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -103,6 +105,22 @@ public class SipitexDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(u => u.FichaAsignadaId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AlertPreference>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.HasIndex(a => new { a.UserId, a.AlertType }).IsUnique();
+            e.HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AlertDelivery>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Subject).HasMaxLength(200).IsRequired();
+            e.Property(a => a.Body).HasMaxLength(4000).IsRequired();
+            e.Property(a => a.Channel).HasMaxLength(40).IsRequired();
+            e.HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

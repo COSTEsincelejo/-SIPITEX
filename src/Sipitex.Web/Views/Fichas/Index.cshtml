@@ -14,10 +14,7 @@
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
-        <i class="fas @(Model.IsSuccess ? "fa-circle-check" : "fa-triangle-exclamation")"></i>
-        @Model.Message
-    </div>
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
 <div class="card">
@@ -34,11 +31,11 @@
                     <td>@ficha.InstructorName</td>
                     <td>@(ficha.AssignedOrderNumber ?? "—")</td>
                     <td>
-                        <form asp-action="QuickRegister" method="post" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <form asp-action="QuickRegister" method="post" class="row-actions">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="fichaId" value="@ficha.Id" />
-                            <input type="number" name="units" min="1" placeholder="uds" style="width:80px" required />
-                            <input type="text" name="observations" placeholder="Observación" style="width:160px" />
+                            <input type="number" name="units" min="1" placeholder="uds" style="width:80px" required aria-label="Unidades" />
+                            <input type="text" name="observations" placeholder="Observación" style="width:160px" aria-label="Observación" />
                             <button type="submit" class="small ghost">Registrar hoy</button>
                         </form>
                     </td>
@@ -77,10 +74,14 @@
     </div>
 </div>
 
-@if (Model.Sessions.Any())
-{
-    <div class="card">
-        <div class="card-title amber"><i class="fas fa-clock-rotate-left"></i> Sesiones recientes</div>
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-clock-rotate-left"></i> Sesiones recientes</div>
+    @if (!Model.Sessions.Any())
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-clock-rotate-left", Title = "Sin sesiones registradas", Text = "Las sesiones diarias con observaciones aparecerán aquí.", ActionText = "Registre una sesión con el formulario superior." }' />
+    }
+    else
+    {
         <div class="table-wrap">
             <table>
                 <thead><tr><th>Fecha</th><th>Ficha</th><th>Orden</th><th>Unidades</th><th>Observaciones</th></tr></thead>
@@ -98,5 +99,5 @@
                 </tbody>
             </table>
         </div>
-    </div>
-}
+    }
+</div>

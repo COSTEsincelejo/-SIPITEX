@@ -18,6 +18,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
     });
 builder.Services.AddAuthorization();
+builder.Services.AddHostedService<Sipitex.Web.Hosting.AlertEvaluationHostedService>();
 
 var app = builder.Build();
 

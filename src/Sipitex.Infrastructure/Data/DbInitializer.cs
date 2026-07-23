@@ -63,6 +63,7 @@ public static class DbInitializer
         }
 
         await SeedUsersAsync(context);
+        await SeedAlertPreferencesAsync(context);
     }
 
     private static async Task EnsureSchemaAsync(SipitexDbContext context)
@@ -85,6 +86,31 @@ public static class DbInitializer
         await EnsureColumnAsync(context, "Materials", "LastEntryDate", """ALTER TABLE "Materials" ADD COLUMN "LastEntryDate" TEXT NOT NULL DEFAULT '2026-01-01';""");
         await EnsureColumnAsync(context, "QualityRecords", "MotivoReproceso", """ALTER TABLE "QualityRecords" ADD COLUMN "MotivoReproceso" TEXT NULL;""");
         await EnsureColumnAsync(context, "QualityRecords", "Responsable", """ALTER TABLE "QualityRecords" ADD COLUMN "Responsable" TEXT NULL;""");
+
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "AlertPreferences" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_AlertPreferences" PRIMARY KEY AUTOINCREMENT,
+                "UserId" INTEGER NOT NULL,
+                "AlertType" INTEGER NOT NULL,
+                "Enabled" INTEGER NOT NULL,
+                CONSTRAINT "FK_AlertPreferences_Users_UserId" FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") ON DELETE CASCADE
+            );
+            """);
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_AlertPreferences_UserId_AlertType" ON "AlertPreferences" ("UserId", "AlertType");
+            """);
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "AlertDeliveries" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_AlertDeliveries" PRIMARY KEY AUTOINCREMENT,
+                "UserId" INTEGER NOT NULL,
+                "AlertType" INTEGER NOT NULL,
+                "Subject" TEXT NOT NULL,
+                "Body" TEXT NOT NULL,
+                "SentAt" TEXT NOT NULL,
+                "Channel" TEXT NOT NULL,
+                CONSTRAINT "FK_AlertDeliveries_Users_UserId" FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") ON DELETE CASCADE
+            );
+            """);
     }
 
     private static async Task EnsureColumnAsync(SipitexDbContext context, string table, string column, string alterSql)
@@ -161,6 +187,31 @@ public static class DbInitializer
                 PermisosExtendidos = "AprobarSolicitudes",
                 IsActive = true
             });
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedAlertPreferencesAsync(SipitexDbContext context)
+    {
+        var users = await context.Users.ToListAsync();
+        foreach (var user in users)
+        {
+            var existing = await context.AlertPreferences
+                .Where(p => p.UserId == user.Id)
+                .Select(p => p.AlertType)
+                .ToListAsync();
+
+            foreach (var item in Application.DTOs.AlertCatalog.All)
+            {
+                if (existing.Contains(item.Type)) continue;
+                context.AlertPreferences.Add(new AlertPreference
+                {
+                    UserId = user.Id,
+                    AlertType = item.Type,
+                    Enabled = item.Roles.Contains(user.Rol)
+                });
+            }
+        }
 
         await context.SaveChangesAsync();
     }

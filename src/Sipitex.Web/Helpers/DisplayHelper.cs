@@ -44,7 +44,19 @@ public static class DisplayHelper
 
     public static string StatusText(Enum value) => value switch
     {
-        OrderStatus.EnProceso => "En Proceso",
+        OrderStatus.EnProceso => "En proceso",
+        OrderStatus.Pendiente => "Pendiente",
+        OrderStatus.Finalizada => "Finalizada",
+        OrderStatus.Cancelada => "Cancelada",
+        RequestStatus.Pendiente => "Pendiente",
+        RequestStatus.Aprobada => "Aprobada",
+        RequestStatus.Rechazada => "Rechazada",
+        MaterialStatus.Bueno => "Bueno",
+        MaterialStatus.Regular => "Regular",
+        MaterialStatus.Deteriorado => "Deteriorado",
+        QualityResult.Aprobada => "Aprobada",
+        QualityResult.Reproceso => "Reproceso",
+        QualityResult.Rechazada => "Rechazada",
         _ => value.ToString()
     };
 }

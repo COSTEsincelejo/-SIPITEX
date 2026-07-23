@@ -9,6 +9,9 @@ obj/
 *.db-shm
 *.db-wal
 
+# Email outbox (demo sin SMTP)
+email-outbox/
+
 # IDE
 .vs/
 .idea/

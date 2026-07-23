@@ -66,6 +66,8 @@ Abrir `http://localhost:8080`. La base de datos persiste en el volumen `sipitex-
 | Fichas | `/Fichas` | Registro de producción por ficha |
 | Calidad | `/Calidad` | Inspecciones de calidad |
 | Estadísticas | `/Estadisticas` | KPIs y gráficos |
+| Reportes | `/Reportes` | Exportación PDF / Excel |
+| Alertas | `/Alertas` | Preferencias de correo por actor |
 | Usuarios | `/Account/Users` | CRUD de usuarios (Administrador) |
 
 ## Metodología cascada
