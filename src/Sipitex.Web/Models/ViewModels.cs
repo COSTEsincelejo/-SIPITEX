@@ -67,6 +67,7 @@ public class FichasIndexViewModel
 {
     public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<ProductionSessionDto> Sessions { get; set; } = [];
     public RegisterProductionForm Register { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
@@ -77,6 +78,7 @@ public class RegisterProductionForm
     public int ProductionOrderId { get; set; }
     public int FichaId { get; set; }
     public int Units { get; set; }
+    public string? Observations { get; set; }
 }
 
 public class CalidadIndexViewModel
@@ -93,6 +95,8 @@ public class CreateQualityForm
     public int ProductionOrderId { get; set; }
     public int Units { get; set; }
     public QualityResult Result { get; set; } = QualityResult.Aprobada;
+    public string? MotivoReproceso { get; set; }
+    public string? Responsable { get; set; }
 }
 
 public class EstadisticasIndexViewModel

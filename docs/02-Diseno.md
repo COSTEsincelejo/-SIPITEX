@@ -37,6 +37,7 @@ erDiagram
     ProductionOrder ||--o{ QualityRecord : inspecciona
     ProductionOrder ||--o{ Ficha : asigna
     BomItem }o--|| Material : usa
+    User }o--o| Ficha : asignada
 ```
 
 ## 2.3 Servicios de aplicación
@@ -49,7 +50,7 @@ erDiagram
 | `IFichaService` | Registro producción por ficha |
 | `IQualityService` | Inspecciones |
 | `IStatisticsService` | KPIs y gráficos |
-| `IRequirementService` | Matriz RF/RNF |
+| `IUserAccountService` | Autenticación y CRUD de usuarios |
 
 ## 2.4 Patrones aplicados
 

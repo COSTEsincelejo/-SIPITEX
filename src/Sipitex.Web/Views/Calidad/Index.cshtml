@@ -22,7 +22,7 @@
 
 <div class="card">
     <div class="card-title"><i class="fas fa-clipboard-check"></i> Evaluación de prendas</div>
-    <form asp-action="Create" method="post" class="form-row">
+    <form asp-action="Create" method="post" class="form-row" id="qualityForm">
         @Html.AntiForgeryToken()
         <div class="field">
             <label class="field-label">Orden</label>
@@ -34,13 +34,21 @@
         </div>
         <div class="field">
             <label class="field-label">Resultado</label>
-            <select asp-for="Create.Result" asp-items="Html.GetEnumSelectList<QualityResult>()"></select>
+            <select asp-for="Create.Result" asp-items="Html.GetEnumSelectList<QualityResult>()" id="qualityResult"></select>
+        </div>
+        <div class="field reprocess-fields" style="flex:1;min-width:180px;">
+            <label class="field-label">Motivo reproceso</label>
+            <input asp-for="Create.MotivoReproceso" placeholder="Ej. costura irregular" />
+        </div>
+        <div class="field reprocess-fields" style="min-width:160px;">
+            <label class="field-label">Responsable</label>
+            <input asp-for="Create.Responsable" placeholder="Nombre" />
         </div>
         <button type="submit" class="primary"><i class="fas fa-plus"></i> Registrar inspección</button>
     </form>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Orden</th><th>Unidades</th><th>Resultado</th><th>Fecha</th></tr></thead>
+            <thead><tr><th>Orden</th><th>Unidades</th><th>Resultado</th><th>Motivo</th><th>Responsable</th><th>Fecha</th></tr></thead>
             <tbody>
             @foreach (var record in Model.Records)
             {
@@ -48,6 +56,8 @@
                     <td>@record.OrderNumber</td>
                     <td>@record.Units</td>
                     <td><span class="badge @DisplayHelper.BadgeClass(record.Result)">@record.Result</span></td>
+                    <td>@(record.MotivoReproceso ?? "—")</td>
+                    <td>@(record.Responsable ?? "—")</td>
                     <td>@record.Date.ToString("yyyy-MM-dd")</td>
                 </tr>
             }
@@ -55,3 +65,18 @@
         </table>
     </div>
 </div>
+
+@section Scripts {
+<script>
+    (function () {
+        const select = document.getElementById('qualityResult');
+        const fields = document.querySelectorAll('.reprocess-fields');
+        function sync() {
+            const show = select && select.value === 'Reproceso';
+            fields.forEach(el => el.style.display = show ? '' : 'none');
+        }
+        select?.addEventListener('change', sync);
+        sync();
+    })();
+</script>
+}

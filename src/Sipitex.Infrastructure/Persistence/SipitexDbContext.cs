@@ -15,6 +15,8 @@ public class SipitexDbContext : DbContext
     public DbSet<QualityRecord> QualityRecords => Set<QualityRecord>();
     public DbSet<FunctionalRequirement> FunctionalRequirements => Set<FunctionalRequirement>();
     public DbSet<NonFunctionalRequirement> NonFunctionalRequirements => Set<NonFunctionalRequirement>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<ProductionSession> ProductionSessions => Set<ProductionSession>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -61,7 +63,17 @@ public class SipitexDbContext : DbContext
         modelBuilder.Entity<QualityRecord>(e =>
         {
             e.HasKey(q => q.Id);
+            e.Property(q => q.MotivoReproceso).HasMaxLength(300);
+            e.Property(q => q.Responsable).HasMaxLength(120);
             e.HasOne(q => q.ProductionOrder).WithMany(o => o.QualityRecords).HasForeignKey(q => q.ProductionOrderId);
+        });
+
+        modelBuilder.Entity<ProductionSession>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Observations).HasMaxLength(500);
+            e.HasOne(s => s.Ficha).WithMany().HasForeignKey(s => s.FichaId);
+            e.HasOne(s => s.ProductionOrder).WithMany().HasForeignKey(s => s.ProductionOrderId);
         });
 
         modelBuilder.Entity<FunctionalRequirement>(e =>
@@ -76,6 +88,21 @@ public class SipitexDbContext : DbContext
             e.HasKey(r => r.Id);
             e.Property(r => r.Code).HasMaxLength(10).IsRequired();
             e.HasIndex(r => r.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<User>(e =>
+        {
+            e.HasKey(u => u.Id);
+            e.Property(u => u.Nombre).HasMaxLength(120).IsRequired();
+            e.Property(u => u.Email).HasMaxLength(160).IsRequired();
+            e.Property(u => u.PasswordHash).HasMaxLength(256).IsRequired();
+            e.Property(u => u.Rol).HasMaxLength(40).IsRequired();
+            e.Property(u => u.PermisosExtendidos).HasMaxLength(500);
+            e.HasIndex(u => u.Email).IsUnique();
+            e.HasOne(u => u.FichaAsignada)
+                .WithMany()
+                .HasForeignKey(u => u.FichaAsignadaId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

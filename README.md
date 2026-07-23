@@ -12,6 +12,8 @@ Sipitex/
 │   ├── Sipitex.Application/       # Servicios, DTOs, contratos (lógica de negocio)
 │   ├── Sipitex.Infrastructure/    # EF Core, SQLite, repositorios (acceso a datos)
 │   └── Sipitex.Web/               # ASP.NET Core MVC (presentación)
+├── Dockerfile
+├── docker-compose.yml
 └── Sipitex.slnx
 ```
 
@@ -25,17 +27,34 @@ Web → Infrastructure → Application → Domain
 ## Requisitos
 
 - [.NET SDK 10](https://dotnet.microsoft.com/download) o superior
+- Docker (opcional, para RNF07)
 
-## Ejecución
+## Ejecución local
 
 ```powershell
 cd src/Sipitex.Web
 dotnet run
 ```
 
-Abrir `https://localhost:5xxx` (el puerto se muestra en consola). La ruta por defecto es **Inventario**.
+Abrir `https://localhost:5xxx` (el puerto se muestra en consola). La ruta por defecto es **Inventario** (requiere autenticación).
 
 La base de datos SQLite (`sipitex.db`) se crea automáticamente con datos de demostración al iniciar.
+
+### Usuarios demo
+
+| Correo | Contraseña | Rol |
+|--------|------------|-----|
+| `admin@sipitex.test` | `Admin123!` | Administrador |
+| `instructor@sipitex.test` | `Instructor123!` | Instructor |
+| `bodega@sipitex.test` | `Bodega123!` | Bodeguero |
+
+## Docker Compose
+
+```bash
+docker compose up --build
+```
+
+Abrir `http://localhost:8080`. La base de datos persiste en el volumen `sipitex-data`.
 
 ## Módulos
 
@@ -47,7 +66,7 @@ La base de datos SQLite (`sipitex.db`) se crea automáticamente con datos de dem
 | Fichas | `/Fichas` | Registro de producción por ficha |
 | Calidad | `/Calidad` | Inspecciones de calidad |
 | Estadísticas | `/Estadisticas` | KPIs y gráficos |
-| Requisitos | `/Requisitos` | Matriz RF/RNF |
+| Usuarios | `/Account/Users` | CRUD de usuarios (Administrador) |
 
 ## Metodología cascada
 
@@ -57,11 +76,13 @@ Ver carpeta [`docs/`](docs/) para el ciclo completo:
 2. **Diseño** — Arquitectura por capas, ER, contratos  
 3. **Implementación** — Código en `src/`  
 4. **Pruebas** — Plan de pruebas funcionales  
-5. **Despliegue** — Guía de publicación intranet  
+5. **Despliegue** — Guía de publicación intranet / Docker  
 
 ## Tecnologías
 
 - ASP.NET Core MVC  
+- Cookie Authentication + roles  
 - Entity Framework Core + SQLite  
 - Chart.js (estadísticas)  
-- Font Awesome + Inter (UI)
+- Font Awesome + Inter (UI)  
+- Docker Compose  

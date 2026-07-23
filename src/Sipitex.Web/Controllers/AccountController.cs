@@ -101,7 +101,7 @@ public class AccountController : Controller
             Email = user.Email,
             Rol = user.Rol,
             FichaAsignadaId = user.FichaAsignadaId,
-            PermisosExtendidos = string.Join(", ", user.PermisosExtendidos),
+            PermisosExtendidos = user.PermisosExtendidos,
             IsActive = user.IsActive
         });
     }

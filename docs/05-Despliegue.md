@@ -39,13 +39,20 @@ Para producción, usar ruta absoluta a la BD en el servidor.
 | Revisión logs | Semanal |
 | Actualización paquetes NuGet | Mensual |
 
-## 5.5 Roadmap post-MVP
+## 5.5 Docker Compose (RNF07)
 
-- Autenticación JWT y roles (RF01–RF03, RNF02–RNF03)  
+```bash
+docker compose up --build
+```
+
+La aplicación queda en `http://localhost:8080` con SQLite persistente en el volumen `sipitex-data`.
+
+## 5.6 Roadmap post-MVP
+
 - Migraciones EF Core formales  
-- Docker Compose (RNF07)  
 - API REST para integraciones  
+- Autenticación JWT para clientes externos  
 
-## 5.6 Entregable de fase
+## 5.7 Entregable de fase
 
 Sistema operativo en intranet + manual de operación.

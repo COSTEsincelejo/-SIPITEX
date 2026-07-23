@@ -1,0 +1,10 @@
+**/.git
+**/bin
+**/obj
+**/.vs
+**/.idea
+**/publish
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/node_modules

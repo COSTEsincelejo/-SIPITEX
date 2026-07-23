@@ -11,6 +11,7 @@ public class Material
     public decimal Stock { get; set; }
     public decimal MinStock { get; set; }
     public MaterialStatus Status { get; set; } = MaterialStatus.Bueno;
+    public DateOnly LastEntryDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
     public ICollection<BomItem> BomItems { get; set; } = [];
     public ICollection<MaterialRequest> Requests { get; set; } = [];
