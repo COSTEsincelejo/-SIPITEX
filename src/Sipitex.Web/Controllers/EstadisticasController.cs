@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+[Authorize]
 public class EstadisticasController : Controller
 {
     // Aquí se muestran los datos del dashboard y métricas del sistema.

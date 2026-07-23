@@ -1,29 +1,26 @@
 @model LoginViewModel
 @{
     ViewData["Title"] = "Iniciar sesión";
-    Layout = "_Layout";
+    Layout = "_LoginLayout";
 }
 
-<div class="page-header">
-    <div>
-        <h2>Acceso al sistema</h2>
-        <div class="sub">Ingrese sus credenciales para continuar</div>
-    </div>
-</div>
-
-<div class="card" style="max-width:520px; margin:24px auto;">
+<div class="card auth-card">
     <div class="card-title"><i class="fas fa-right-to-bracket"></i> Inicio de sesión</div>
+    <p class="auth-hint">Use las credenciales de demostración o las asignadas por el administrador.</p>
     <form asp-action="Login" method="post">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
         <div class="field">
-            <label class="field-label">Correo</label>
-            <input asp-for="Email" type="email" placeholder="admin@sipitex.test" required />
+            <label class="field-label" asp-for="Email">Correo</label>
+            <input asp-for="Email" type="email" placeholder="admin@sipitex.test" autocomplete="username" required />
         </div>
         <div class="field">
-            <label class="field-label">Contraseña</label>
-            <input asp-for="Password" type="password" placeholder="Admin123!" required />
+            <label class="field-label" asp-for="Password">Contraseña</label>
+            <input asp-for="Password" type="password" placeholder="Admin123!" autocomplete="current-password" required />
         </div>
-        <button type="submit" class="primary"><i class="fas fa-sign-in-alt"></i> Entrar</button>
+        <button type="submit" class="primary auth-submit"><i class="fas fa-sign-in-alt"></i> Entrar</button>
     </form>
+    <div class="auth-demo">
+        <strong>Demo:</strong> admin@sipitex.test / Admin123!
+    </div>
 </div>

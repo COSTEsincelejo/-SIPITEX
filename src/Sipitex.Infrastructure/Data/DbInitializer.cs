@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Sipitex.Application.Helpers;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 using Sipitex.Infrastructure.Persistence;
@@ -10,51 +11,113 @@ public static class DbInitializer
     public static async Task InitializeAsync(SipitexDbContext context)
     {
         await context.Database.EnsureCreatedAsync();
-        if (await context.Materials.AnyAsync()) return;
+        await EnsureUsersTableAsync(context);
 
-        var mat1 = new Material { Code = "mat1", Name = "Tela Jersey", Unit = MaterialUnit.Metros, Stock = 280, MinStock = 80, Status = MaterialStatus.Bueno };
-        var mat2 = new Material { Code = "mat2", Name = "Hilo Poliéster", Unit = MaterialUnit.Metros, Stock = 3200, MinStock = 500, Status = MaterialStatus.Bueno };
-        var mat3 = new Material { Code = "mat3", Name = "Cremallera invisible", Unit = MaterialUnit.Unidades, Stock = 95, MinStock = 40, Status = MaterialStatus.Bueno };
-        var mat4 = new Material { Code = "mat4", Name = "Forro Satín", Unit = MaterialUnit.Metros, Stock = 120, MinStock = 50, Status = MaterialStatus.Bueno };
-
-        context.Materials.AddRange(mat1, mat2, mat3, mat4);
-        await context.SaveChangesAsync();
-
-        context.BomItems.AddRange(
-            new BomItem { ProductName = "Camisa", MaterialId = mat1.Id, QuantityPerUnit = 1.6m, Unit = MaterialUnit.Metros },
-            new BomItem { ProductName = "Camisa", MaterialId = mat2.Id, QuantityPerUnit = 18m, Unit = MaterialUnit.Metros },
-            new BomItem { ProductName = "Camisa", MaterialId = mat3.Id, QuantityPerUnit = 1m, Unit = MaterialUnit.Unidades },
-            new BomItem { ProductName = "Pantalón", MaterialId = mat1.Id, QuantityPerUnit = 2.2m, Unit = MaterialUnit.Metros },
-            new BomItem { ProductName = "Pantalón", MaterialId = mat2.Id, QuantityPerUnit = 22m, Unit = MaterialUnit.Metros },
-            new BomItem { ProductName = "Pantalón", MaterialId = mat4.Id, QuantityPerUnit = 0.8m, Unit = MaterialUnit.Metros });
-
-        var op1 = new ProductionOrder
+        if (!await context.Materials.AnyAsync())
         {
-            OrderNumber = "OP-001",
-            ProductName = "Camisa",
-            TotalQuantity = 120,
-            ProducedQuantity = 45,
-            Status = OrderStatus.EnProceso,
-            Deadline = new DateOnly(2025, 4, 15)
-        };
-        var op2 = new ProductionOrder
-        {
-            OrderNumber = "OP-002",
-            ProductName = "Pantalón",
-            TotalQuantity = 80,
-            ProducedQuantity = 20,
-            Status = OrderStatus.EnProceso,
-            Deadline = new DateOnly(2025, 4, 20)
-        };
-        context.ProductionOrders.AddRange(op1, op2);
-        await context.SaveChangesAsync();
+            var mat1 = new Material { Code = "mat1", Name = "Tela Jersey", Unit = MaterialUnit.Metros, Stock = 280, MinStock = 80, Status = MaterialStatus.Bueno };
+            var mat2 = new Material { Code = "mat2", Name = "Hilo Poliéster", Unit = MaterialUnit.Metros, Stock = 3200, MinStock = 500, Status = MaterialStatus.Bueno };
+            var mat3 = new Material { Code = "mat3", Name = "Cremallera invisible", Unit = MaterialUnit.Unidades, Stock = 95, MinStock = 40, Status = MaterialStatus.Bueno };
+            var mat4 = new Material { Code = "mat4", Name = "Forro Satín", Unit = MaterialUnit.Metros, Stock = 120, MinStock = 50, Status = MaterialStatus.Bueno };
 
-        context.Fichas.AddRange(
-            new Ficha { FichaCode = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", ProductionOrderId = op1.Id },
-            new Ficha { FichaCode = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", ProductionOrderId = op1.Id },
-            new Ficha { FichaCode = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", ProductionOrderId = op2.Id });
+            context.Materials.AddRange(mat1, mat2, mat3, mat4);
+            await context.SaveChangesAsync();
 
-        SeedRequirements(context);
+            context.BomItems.AddRange(
+                new BomItem { ProductName = "Camisa", MaterialId = mat1.Id, QuantityPerUnit = 1.6m, Unit = MaterialUnit.Metros },
+                new BomItem { ProductName = "Camisa", MaterialId = mat2.Id, QuantityPerUnit = 18m, Unit = MaterialUnit.Metros },
+                new BomItem { ProductName = "Camisa", MaterialId = mat3.Id, QuantityPerUnit = 1m, Unit = MaterialUnit.Unidades },
+                new BomItem { ProductName = "Pantalón", MaterialId = mat1.Id, QuantityPerUnit = 2.2m, Unit = MaterialUnit.Metros },
+                new BomItem { ProductName = "Pantalón", MaterialId = mat2.Id, QuantityPerUnit = 22m, Unit = MaterialUnit.Metros },
+                new BomItem { ProductName = "Pantalón", MaterialId = mat4.Id, QuantityPerUnit = 0.8m, Unit = MaterialUnit.Metros });
+
+            var op1 = new ProductionOrder
+            {
+                OrderNumber = "OP-001",
+                ProductName = "Camisa",
+                TotalQuantity = 120,
+                ProducedQuantity = 45,
+                Status = OrderStatus.EnProceso,
+                Deadline = new DateOnly(2025, 4, 15)
+            };
+            var op2 = new ProductionOrder
+            {
+                OrderNumber = "OP-002",
+                ProductName = "Pantalón",
+                TotalQuantity = 80,
+                ProducedQuantity = 20,
+                Status = OrderStatus.EnProceso,
+                Deadline = new DateOnly(2025, 4, 20)
+            };
+            context.ProductionOrders.AddRange(op1, op2);
+            await context.SaveChangesAsync();
+
+            context.Fichas.AddRange(
+                new Ficha { FichaCode = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", ProductionOrderId = op1.Id },
+                new Ficha { FichaCode = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", ProductionOrderId = op1.Id },
+                new Ficha { FichaCode = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", ProductionOrderId = op2.Id });
+
+            SeedRequirements(context);
+            await context.SaveChangesAsync();
+        }
+
+        await SeedUsersAsync(context);
+    }
+
+    private static async Task EnsureUsersTableAsync(SipitexDbContext context)
+    {
+        // Compatible con BD SQLite creada antes de la tabla Users.
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "Users" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT,
+                "Nombre" TEXT NOT NULL,
+                "Email" TEXT NOT NULL,
+                "PasswordHash" TEXT NOT NULL,
+                "Rol" TEXT NOT NULL,
+                "FichaAsignadaId" INTEGER NULL,
+                "PermisosExtendidos" TEXT NOT NULL,
+                "IsActive" INTEGER NOT NULL,
+                CONSTRAINT "FK_Users_Fichas_FichaAsignadaId" FOREIGN KEY ("FichaAsignadaId") REFERENCES "Fichas" ("Id") ON DELETE SET NULL
+            );
+            """);
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users" ("Email");
+            """);
+    }
+
+    private static async Task SeedUsersAsync(SipitexDbContext context)
+    {
+        if (await context.Users.AnyAsync()) return;
+
+        context.Users.AddRange(
+            new User
+            {
+                Nombre = "Administrador SIPITEX",
+                Email = "admin@sipitex.test",
+                PasswordHash = PasswordHasher.Hash("Admin123!"),
+                Rol = UserRoles.Administrador,
+                PermisosExtendidos = "GestionUsuarios, VerReportes",
+                IsActive = true
+            },
+            new User
+            {
+                Nombre = "Laura Gómez",
+                Email = "instructor@sipitex.test",
+                PasswordHash = PasswordHasher.Hash("Instructor123!"),
+                Rol = UserRoles.Instructor,
+                PermisosExtendidos = "RegistrarProduccion",
+                IsActive = true
+            },
+            new User
+            {
+                Nombre = "Pedro Bodega",
+                Email = "bodega@sipitex.test",
+                PasswordHash = PasswordHasher.Hash("Bodega123!"),
+                Rol = UserRoles.Bodeguero,
+                PermisosExtendidos = "AprobarSolicitudes",
+                IsActive = true
+            });
+
         await context.SaveChangesAsync();
     }
 
@@ -62,8 +125,8 @@ public static class DbInitializer
     {
         var rf = new[]
         {
-            ("RF01", "Crear, editar y desactivar usuarios por rol.", "Usuarios", ComplianceStatus.Ausente, "Sin backend de usuarios, rol hardcoded."),
-            ("RF02", "Autenticación con credenciales propias por rol.", "Usuarios", ComplianceStatus.Ausente, "No hay login ni JWT."),
+            ("RF01", "Crear, editar y desactivar usuarios por rol.", "Usuarios", ComplianceStatus.Cumple, "CRUD de usuarios con roles."),
+            ("RF02", "Autenticación con credenciales propias por rol.", "Usuarios", ComplianceStatus.Cumple, "Login con cookies de autenticación."),
             ("RF03", "Registrar entradas con fecha, cantidad y unidad.", "Inventario", ComplianceStatus.Parcial, "Falta fecha en registro."),
             ("RF04", "Consultar stock disponible en tiempo real.", "Inventario", ComplianceStatus.Cumple, "Actualización reactiva."),
             ("RF05", "Bodeguero registra estado del material (Bueno/Regular/Deteriorado).", "Inventario", ComplianceStatus.Parcial, "Estado existe pero sin UI para cambiarlo."),
@@ -99,12 +162,12 @@ public static class DbInitializer
         var rnf = new[]
         {
             ("RNF01", "Carga rápida en intranet (<2s)", ComplianceStatus.Cumple, "HTML estático liviano."),
-            ("RNF02", "Autenticación JWT con expiración", ComplianceStatus.Ausente, "No implementado en demo."),
-            ("RNF03", "Control de acceso por rol", ComplianceStatus.Ausente, "Sin backend ni permisos reales."),
+            ("RNF02", "Autenticación con sesión y expiración", ComplianceStatus.Cumple, "Cookies con expiración de 8 horas."),
+            ("RNF03", "Control de acceso por rol", ComplianceStatus.Cumple, "Authorize por rol en controladores."),
             ("RNF04", "Disponible desde cualquier PC de la intranet", ComplianceStatus.Parcial, "Requiere servidor HTTP."),
             ("RNF05", "Interfaz responsiva e intuitiva", ComplianceStatus.Cumple, "Layout adaptable."),
             ("RNF06", "Código modular y documentado", ComplianceStatus.Parcial, "Arquitectura por capas."),
-            ("RNF07", "Despliegue con Docker Compose", ComplianceStatus.Ausente, "No aplica en demo frontend."),
+            ("RNF07", "Despliegue con Docker Compose", ComplianceStatus.Cumple, "Dockerfile + docker-compose.yml."),
             ("RNF08", "Integridad transaccional", ComplianceStatus.Parcial, "SQLite con EF Core.")
         };
 

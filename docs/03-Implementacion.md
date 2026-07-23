@@ -10,7 +10,7 @@
 | Fichas | `FichasController` | `FichaService` |
 | Calidad | `CalidadController` | `QualityService` |
 | Estadísticas | `EstadisticasController` | `StatisticsService` |
-| Requisitos | `RequisitosController` | `RequirementService` |
+| Usuarios | `AccountController` | `UserAccountService` |
 
 ## 3.2 Reglas de negocio implementadas
 
@@ -22,7 +22,7 @@
 
 ## 3.3 Seed de datos
 
-`DbInitializer` carga materiales, BOM (Camisa/Pantalón), órdenes OP-001/OP-002, fichas y matriz RF/RNF.
+`DbInitializer` carga materiales, BOM (Camisa/Pantalón), órdenes OP-001/OP-002, fichas, usuarios demo y matriz RF/RNF.
 
 ## 3.4 Entregable de fase
 

@@ -15,6 +15,7 @@ public class SipitexDbContext : DbContext
     public DbSet<QualityRecord> QualityRecords => Set<QualityRecord>();
     public DbSet<FunctionalRequirement> FunctionalRequirements => Set<FunctionalRequirement>();
     public DbSet<NonFunctionalRequirement> NonFunctionalRequirements => Set<NonFunctionalRequirement>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,6 +77,21 @@ public class SipitexDbContext : DbContext
             e.HasKey(r => r.Id);
             e.Property(r => r.Code).HasMaxLength(10).IsRequired();
             e.HasIndex(r => r.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<User>(e =>
+        {
+            e.HasKey(u => u.Id);
+            e.Property(u => u.Nombre).HasMaxLength(120).IsRequired();
+            e.Property(u => u.Email).HasMaxLength(160).IsRequired();
+            e.Property(u => u.PasswordHash).HasMaxLength(256).IsRequired();
+            e.Property(u => u.Rol).HasMaxLength(40).IsRequired();
+            e.Property(u => u.PermisosExtendidos).HasMaxLength(500);
+            e.HasIndex(u => u.Email).IsUnique();
+            e.HasOne(u => u.FichaAsignada)
+                .WithMany()
+                .HasForeignKey(u => u.FichaAsignadaId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

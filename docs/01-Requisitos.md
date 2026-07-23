@@ -58,4 +58,4 @@ Gestionar la producción textil del centro: inventario de materias primas, órde
 
 Documento de requisitos aprobado → base para diseño (Fase 2).
 
-La matriz de cumplimiento en vivo está en `/Requisitos` dentro de la aplicación.
+La matriz de cumplimiento RF/RNF se documenta en este archivo y se siembra en la base de datos para referencia del proyecto.

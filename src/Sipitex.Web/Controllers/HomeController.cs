@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Web.Models;
 
@@ -7,8 +8,11 @@ namespace Sipitex.Web.Controllers;
 public class HomeController : Controller
 {
     // Este controlador maneja la página principal y los errores generales del sistema.
+    [Authorize]
     public IActionResult Index()
     {
+        ViewData["Title"] = "Inicio";
+        ViewData["Breadcrumb"] = "SIPITEX / Inicio";
         return View();
     }
 

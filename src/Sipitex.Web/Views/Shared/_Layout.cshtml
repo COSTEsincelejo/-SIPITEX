@@ -56,12 +56,21 @@
                 </div>
             </div>
             <div class="topbar-right">
-                <button type="button" class="icon-btn"><i class="fas fa-bell"></i></button>
-                <button type="button" class="icon-btn"><i class="fas fa-gear"></i></button>
-                <div class="role-chip">
-                    <div class="avatar">@name.Substring(0, 1).ToUpper()</div>
-                    <span class="role-text">@role</span>
-                </div>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="role-chip">
+                        <div class="avatar">@name.Substring(0, 1).ToUpper()</div>
+                        <span class="role-text">@name · @role</span>
+                    </div>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="ghost small"><i class="fas fa-right-from-bracket"></i> Salir</button>
+                    </form>
+                }
+                else
+                {
+                    <a class="btn primary small" asp-controller="Account" asp-action="Login"><i class="fas fa-right-to-bracket"></i> Entrar</a>
+                }
             </div>
         </header>
         <main class="content">

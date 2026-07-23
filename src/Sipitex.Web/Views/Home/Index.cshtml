@@ -1,8 +1,44 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Inicio";
+    ViewData["Breadcrumb"] = "SIPITEX / Inicio";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="page-header">
+    <div>
+        <h2>Panel SIPITEX</h2>
+        <div class="sub">Seleccione un módulo operativo para continuar</div>
+    </div>
+</div>
+
+<div class="module-grid">
+    <a class="module-link" asp-controller="Inventario" asp-action="Index">
+        <i class="fas fa-boxes-stacked"></i>
+        <h3>Inventario</h3>
+        <p>Materiales, stock y solicitudes de bodega.</p>
+    </a>
+    <a class="module-link" asp-controller="Ordenes" asp-action="Index">
+        <i class="fas fa-clipboard-list"></i>
+        <h3>Órdenes</h3>
+        <p>Órdenes de producción y avance.</p>
+    </a>
+    <a class="module-link" asp-controller="Mrp" asp-action="Index">
+        <i class="fas fa-diagram-project"></i>
+        <h3>MRP</h3>
+        <p>BOM y simulación de requerimientos.</p>
+    </a>
+    <a class="module-link" asp-controller="Fichas" asp-action="Index">
+        <i class="fas fa-people-group"></i>
+        <h3>Fichas</h3>
+        <p>Registro de producción por ficha.</p>
+    </a>
+    <a class="module-link" asp-controller="Calidad" asp-action="Index">
+        <i class="fas fa-clipboard-check"></i>
+        <h3>Calidad</h3>
+        <p>Inspecciones y resultados.</p>
+    </a>
+    <a class="module-link" asp-controller="Estadisticas" asp-action="Index">
+        <i class="fas fa-chart-line"></i>
+        <h3>Estadísticas</h3>
+        <p>KPIs y métricas del centro.</p>
+    </a>
 </div>
