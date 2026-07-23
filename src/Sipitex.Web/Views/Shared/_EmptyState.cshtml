@@ -1,0 +1,27 @@
+@*
+  Empty state reutilizable.
+  Uso:
+  <partial name="_EmptyState" model='new EmptyStateModel { Icon="fa-inbox", Title="...", Text="...", ActionText="...", ActionUrl="..." }' />
+*@
+@model Sipitex.Web.Models.EmptyStateModel
+@{
+    var icon = Model?.Icon ?? "fa-inbox";
+    var title = Model?.Title ?? "Sin registros";
+    var text = Model?.Text ?? "Todavía no hay información para mostrar.";
+}
+<div class="empty-state">
+    <div class="empty-icon"><i class="fas @icon"></i></div>
+    <h3>@title</h3>
+    <p>@text</p>
+    @if (!string.IsNullOrWhiteSpace(Model?.ActionText))
+    {
+        if (!string.IsNullOrWhiteSpace(Model.ActionHref))
+        {
+            <a class="btn primary small" href="@Model.ActionHref">@Model.ActionText</a>
+        }
+        else
+        {
+            <span class="empty-hint">@Model.ActionText</span>
+        }
+    }
+</div>

@@ -14,10 +14,7 @@
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
-        <i class="fas @(Model.IsSuccess ? "fa-circle-check" : "fa-triangle-exclamation")"></i>
-        @Model.Message
-    </div>
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
 <div class="card">
@@ -46,24 +43,32 @@
         </div>
         <button type="submit" class="primary"><i class="fas fa-plus"></i> Registrar inspección</button>
     </form>
-    <div class="table-wrap">
-        <table>
-            <thead><tr><th>Orden</th><th>Unidades</th><th>Resultado</th><th>Motivo</th><th>Responsable</th><th>Fecha</th></tr></thead>
-            <tbody>
-            @foreach (var record in Model.Records)
-            {
-                <tr>
-                    <td>@record.OrderNumber</td>
-                    <td>@record.Units</td>
-                    <td><span class="badge @DisplayHelper.BadgeClass(record.Result)">@record.Result</span></td>
-                    <td>@(record.MotivoReproceso ?? "—")</td>
-                    <td>@(record.Responsable ?? "—")</td>
-                    <td>@record.Date.ToString("yyyy-MM-dd")</td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
+
+    @if (!Model.Records.Any())
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-clipboard-check", Title = "Sin inspecciones", Text = "Aún no se han registrado evaluaciones de calidad.", ActionText = "Complete el formulario para registrar la primera inspección." }' />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Orden</th><th>Unidades</th><th>Resultado</th><th>Motivo</th><th>Responsable</th><th>Fecha</th></tr></thead>
+                <tbody>
+                @foreach (var record in Model.Records)
+                {
+                    <tr>
+                        <td>@record.OrderNumber</td>
+                        <td>@record.Units</td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(record.Result)">@DisplayHelper.StatusText(record.Result)</span></td>
+                        <td>@(record.MotivoReproceso ?? "—")</td>
+                        <td>@(record.Responsable ?? "—")</td>
+                        <td>@record.Date.ToString("yyyy-MM-dd")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
 @section Scripts {

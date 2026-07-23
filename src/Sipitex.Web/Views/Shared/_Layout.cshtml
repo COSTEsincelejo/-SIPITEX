@@ -7,6 +7,8 @@
     var user = User.Identity?.IsAuthenticated == true ? User : null;
     var role = user?.FindFirstValue(ClaimTypes.Role) ?? "Invitado";
     var name = user?.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
+    var toastMessage = TempData["Message"] as string;
+    var toastSuccess = TempData["IsSuccess"] as bool?;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -14,7 +16,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>SIPITEX · @title</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="~/css/sipitex.css" asp-append-version="true" />
 </head>
@@ -23,7 +26,9 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
             <div class="mark">
-                <div class="mark-icon">SX</div>
+                <div class="mark-icon">
+                    <img src="~/img/logo-mark.svg" asp-append-version="true" alt="SIPITEX" />
+                </div>
                 <div><h1>SIPITEX</h1></div>
             </div>
             <p>Sistema Integrado de Producción<br>e Inventario Textil · CMTC SENA</p>
@@ -51,7 +56,7 @@
     <div class="main">
         <header class="topbar">
             <div class="topbar-left">
-                <button type="button" class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+                <button type="button" class="menu-toggle" id="menuToggle" aria-label="Menú"><i class="fas fa-bars"></i></button>
                 <div>
                     <h2>@title</h2>
                     <div class="breadcrumb">@breadcrumb</div>
@@ -60,6 +65,9 @@
             <div class="topbar-right">
                 @if (User.Identity?.IsAuthenticated == true)
                 {
+                    <a class="icon-btn" asp-controller="Alertas" asp-action="Index" title="Alertas" aria-label="Alertas">
+                        <i class="fas fa-bell"></i>
+                    </a>
                     <div class="role-chip">
                         <div class="avatar">@name.Substring(0, 1).ToUpper()</div>
                         <span class="role-text">@name · @role</span>
@@ -76,16 +84,17 @@
             </div>
         </header>
         <main class="content">
+            @if (!string.IsNullOrWhiteSpace(toastMessage))
+            {
+                <div data-toast data-toast-type="@(toastSuccess == false ? "danger" : "success")" class="visually-hidden" style="position:absolute;left:-9999px;">@toastMessage</div>
+            }
             @RenderBody()
             <footer class="site-footer">SIPITEX — Sistema Integrado de Producción e Inventario Textil · CMTC · SENA ADSO</footer>
         </main>
     </div>
 </div>
-<script>
-    document.getElementById('menuToggle')?.addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('open');
-    });
-</script>
+<div id="toastHost" class="toast-host" aria-live="polite"></div>
+<script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

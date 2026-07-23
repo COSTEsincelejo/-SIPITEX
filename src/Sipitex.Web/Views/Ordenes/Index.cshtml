@@ -14,10 +14,7 @@
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
-        <i class="fas @(Model.IsSuccess ? "fa-circle-check" : "fa-triangle-exclamation")"></i>
-        @Model.Message
-    </div>
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
 <div class="card">

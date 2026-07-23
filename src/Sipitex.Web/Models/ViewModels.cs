@@ -118,3 +118,12 @@ public class AlertPreferencesForm
     public List<string> EnabledTypes { get; set; } = [];
 }
 
+public class EmptyStateModel
+{
+    public string Icon { get; set; } = "fa-inbox";
+    public string Title { get; set; } = "Sin registros";
+    public string Text { get; set; } = "Todavía no hay información para mostrar.";
+    public string? ActionText { get; set; }
+    public string? ActionHref { get; set; }
+}
+
