@@ -34,12 +34,19 @@ public class ReportesIndexViewModel
 {
     public int Year { get; set; }
     public int Month { get; set; }
+    public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+    public string Period { get; set; } = "mes";
+    public string? Instructor { get; set; }
+    public int? FichaId { get; set; }
+    public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
+    public IReadOnlyList<string> Instructors { get; set; } = [];
 }
 
 public class CreateRequestForm
 {
     public int ProductionOrderId { get; set; }
-    public int MaterialId { get; set; }
+    public int? MaterialId { get; set; }
+    public string MaterialName { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
 }
 
@@ -86,8 +93,9 @@ public class MrpSimulationForm
 public class AddBomItemForm
 {
     public string ProductName { get; set; } = string.Empty;
-    public int MaterialId { get; set; }
+    public string MaterialName { get; set; } = string.Empty;
     public decimal QuantityPerUnit { get; set; } = 1;
+    public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
 }
 
 public class FichasIndexViewModel

@@ -79,7 +79,7 @@ public class InventarioController : Controller
             return Forbid();
 
         var result = await _inventoryService.CreateRequestAsync(
-            new CreateMaterialRequestDto(form.ProductionOrderId, form.MaterialId, form.Quantity), cancellationToken);
+            new CreateMaterialRequestDto(form.ProductionOrderId, form.Quantity, form.MaterialId, form.MaterialName), cancellationToken);
 
         TempData["Message"] = result.Message ?? (result.Success ? "Solicitud creada." : "Error al crear solicitud.");
         TempData["IsSuccess"] = result.Success;

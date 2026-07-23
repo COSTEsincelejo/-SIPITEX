@@ -4,6 +4,7 @@ using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
@@ -78,31 +79,46 @@ public class MrpService : IMrpService
             .ToList();
     }
 
-    public async Task<ServiceResult> AddBomItemAsync(string productName, int materialId, decimal quantityPerUnit, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult> AddBomItemAsync(string productName, string materialName, decimal quantityPerUnit, MaterialUnit unit = MaterialUnit.Metros, CancellationToken cancellationToken = default)
     {
         var name = (productName ?? string.Empty).Trim();
+        var matName = (materialName ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(name))
             return ServiceResult.Fail("Indique el nombre del producto.");
-        if (name.Length > 80)
-            return ServiceResult.Fail("El nombre del producto no puede superar 80 caracteres.");
+        if (string.IsNullOrWhiteSpace(matName))
+            return ServiceResult.Fail("Indique el material que necesita (puede escribir cualquiera).");
+        if (name.Length > 80 || matName.Length > 80)
+            return ServiceResult.Fail("Nombre demasiado largo (máx. 80).");
         if (quantityPerUnit <= 0)
             return ServiceResult.Fail("La cantidad por unidad debe ser mayor que cero.");
 
-        var material = await _materialRepository.GetByIdAsync(materialId, cancellationToken);
+        var material = await _materialRepository.GetByNameAsync(matName, cancellationToken);
         if (material is null)
-            return ServiceResult.Fail("Material no encontrado.");
+        {
+            material = new Material
+            {
+                Code = $"mat{DateTime.UtcNow.Ticks}",
+                Name = matName,
+                Unit = unit,
+                Stock = 0,
+                MinStock = 10,
+                Status = MaterialStatus.Bueno,
+                LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
+            };
+            await _materialRepository.AddAsync(material, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
 
         var existing = await _bomRepository.GetByProductAsync(name, cancellationToken);
-        if (existing.Any(b => b.MaterialId == materialId))
+        if (existing.Any(b => b.MaterialId == material.Id))
             return ServiceResult.Fail($"El material «{material.Name}» ya está en la ficha de «{name}».");
 
-        // Conserva mayúsculas/minúsculas del primer registro existente si ya hay BOM.
         var canonicalName = existing.FirstOrDefault()?.ProductName ?? name;
 
         await _bomRepository.AddAsync(new BomItem
         {
             ProductName = canonicalName,
-            MaterialId = materialId,
+            MaterialId = material.Id,
             QuantityPerUnit = quantityPerUnit,
             Unit = material.Unit
         }, cancellationToken);

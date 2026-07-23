@@ -17,6 +17,15 @@ public class MaterialRepository : IMaterialRepository
     public Task<Material?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _context.Materials.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
 
+    public Task<Material?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        var key = (name ?? string.Empty).Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(key))
+            return Task.FromResult<Material?>(null);
+
+        return _context.Materials.FirstOrDefaultAsync(m => m.Name.ToLower() == key, cancellationToken);
+    }
+
     public async Task AddAsync(Material material, CancellationToken cancellationToken = default) =>
         await _context.Materials.AddAsync(material, cancellationToken);
 

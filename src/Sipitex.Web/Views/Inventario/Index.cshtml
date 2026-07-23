@@ -157,12 +157,19 @@
             </div>
             <div class="field">
                 <label class="field-label">Material</label>
-                <select asp-for="CreateRequest.MaterialId">
+                <input asp-for="CreateRequest.MaterialName"
+                       list="materiales-solicitud"
+                       placeholder="Escriba cualquier material…"
+                       style="width:100%"
+                       maxlength="80"
+                       required />
+                <datalist id="materiales-solicitud">
                     @foreach (var m in Model.Materials)
                     {
-                        <option value="@m.Id">@m.Name (stock: @m.Stock.ToString("0.0") · @m.StockLevel)</option>
+                        <option value="@m.Name"></option>
                     }
-                </select>
+                </datalist>
+                <small class="field-hint">Puede pedir un material existente o escribir uno nuevo.</small>
             </div>
             <div class="field" style="width:120px;">
                 <label class="field-label">Cantidad</label>

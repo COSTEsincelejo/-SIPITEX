@@ -28,7 +28,11 @@ public record MaterialRequestDto(
     string OrderNumber,
     RequestStatus Status);
 
-public record CreateMaterialRequestDto(int ProductionOrderId, int MaterialId, decimal Quantity);
+public record CreateMaterialRequestDto(
+    int ProductionOrderId,
+    decimal Quantity,
+    int? MaterialId = null,
+    string? MaterialName = null);
 
 public record ProductionOrderDto(
     int Id,

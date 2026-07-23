@@ -22,7 +22,7 @@
 {
     <div class="card">
         <div class="card-title"><i class="fas fa-plus"></i> Agregar material a un producto</div>
-        <p class="sub" style="margin-bottom:12px;">Escriba el nombre de la prenda (nueva o existente) y asocie un material con la cantidad por unidad.</p>
+        <p class="sub" style="margin-bottom:12px;">Escriba el producto y el material que necesita (existente o nuevo). Si el material no existe, se registra automáticamente.</p>
         <form asp-action="AddBomItem" method="post" class="form-row">
             @Html.AntiForgeryToken()
             <div class="field" style="flex:1;min-width:180px;">
@@ -37,12 +37,22 @@
             </div>
             <div class="field" style="flex:1;min-width:180px;">
                 <label class="field-label">Material</label>
-                <select asp-for="AddBom.MaterialId">
+                <input asp-for="AddBom.MaterialName"
+                       list="mrp-materiales"
+                       placeholder="Escriba el material que necesita…"
+                       maxlength="80"
+                       required
+                       style="width:100%" />
+                <datalist id="mrp-materiales">
                     @foreach (var m in Model.Materials)
                     {
-                        <option value="@m.Id">@m.Name (@m.UnitDisplay)</option>
+                        <option value="@m.Name"></option>
                     }
-                </select>
+                </datalist>
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Unidad (si es nuevo)</label>
+                <select asp-for="AddBom.Unit" asp-items="Html.GetEnumSelectList<MaterialUnit>()"></select>
             </div>
             <div class="field" style="width:140px;">
                 <label class="field-label">Cant. por unidad</label>

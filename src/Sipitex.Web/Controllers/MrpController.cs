@@ -44,7 +44,7 @@ public class MrpController : Controller
         if (!PermissionHelper.CanManageInventory(User))
             return Forbid();
 
-        var result = await _mrpService.AddBomItemAsync(form.ProductName, form.MaterialId, form.QuantityPerUnit, cancellationToken);
+        var result = await _mrpService.AddBomItemAsync(form.ProductName, form.MaterialName, form.QuantityPerUnit, form.Unit, cancellationToken);
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
@@ -65,8 +65,7 @@ public class MrpController : Controller
             },
             AddBom = new AddBomItemForm
             {
-                ProductName = products.FirstOrDefault() ?? string.Empty,
-                MaterialId = materials.FirstOrDefault()?.Id ?? 0
+                ProductName = products.FirstOrDefault() ?? string.Empty
             },
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false

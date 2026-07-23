@@ -16,6 +16,7 @@ public class ReportService : IReportService
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IQualityRepository _qualityRepository;
     private readonly IProductionSessionRepository _sessionRepository;
+    private readonly IFichaRepository _fichaRepository;
     private readonly IStatisticsService _statisticsService;
 
     static ReportService()
@@ -28,12 +29,14 @@ public class ReportService : IReportService
         IProductionOrderRepository orderRepository,
         IQualityRepository qualityRepository,
         IProductionSessionRepository sessionRepository,
+        IFichaRepository fichaRepository,
         IStatisticsService statisticsService)
     {
         _materialRepository = materialRepository;
         _orderRepository = orderRepository;
         _qualityRepository = qualityRepository;
         _sessionRepository = sessionRepository;
+        _fichaRepository = fichaRepository;
         _statisticsService = statisticsService;
     }
 
@@ -112,42 +115,62 @@ public class ReportService : IReportService
         return Build("Dashboard", "Reporte KPI SIPITEX", headers, rows, format);
     }
 
-    public async Task<ReportFileDto> ExportMonthlyAsync(int year, int month, string format, CancellationToken cancellationToken = default)
-    {
-        if (month is < 1 or > 12) month = DateTime.Today.Month;
-        if (year < 2000 || year > 2100) year = DateTime.Today.Year;
+    public Task<ReportFileDto> ExportMonthlyAsync(int year, int month, string format, CancellationToken cancellationToken = default) =>
+        ExportFilteredAsync(new ReportFilterDto("mes", Year: year, Month: month, Format: format), cancellationToken);
 
-        var from = new DateTime(year, month, 1);
-        var to = from.AddMonths(1);
+    public async Task<ReportFileDto> ExportFilteredAsync(ReportFilterDto filter, CancellationToken cancellationToken = default)
+    {
+        var (from, to, periodLabel, fileTag) = ResolvePeriod(filter);
         var fromDate = DateOnly.FromDateTime(from);
         var toDate = DateOnly.FromDateTime(to);
-        var periodLabel = from.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-CO"));
 
         var materials = await _materialRepository.GetAllAsync(cancellationToken);
         var orders = await _orderRepository.GetAllAsync(cancellationToken);
         var quality = await _qualityRepository.GetAllAsync(cancellationToken);
-        var sessions = await _sessionRepository.GetInDateRangeAsync(from, to, cancellationToken);
+        var sessions = (await _sessionRepository.GetInDateRangeAsync(from, to, cancellationToken)).ToList();
+        var fichas = await _fichaRepository.GetAllAsync(cancellationToken);
+
+        if (filter.FichaId is > 0)
+            sessions = sessions.Where(s => s.FichaId == filter.FichaId.Value).ToList();
+
+        if (!string.IsNullOrWhiteSpace(filter.Instructor))
+        {
+            var instructor = filter.Instructor.Trim();
+            sessions = sessions
+                .Where(s => string.Equals(s.Ficha?.InstructorName, instructor, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
 
         var depleted = materials.Where(m => m.Stock <= 0).ToList();
         var low = materials.Where(m => m.Stock > 0 && m.Stock < m.MinStock).ToList();
         var ok = materials.Where(m => m.Stock >= m.MinStock).ToList();
-        var entriesThisMonth = materials.Where(m => m.LastEntryDate >= fromDate && m.LastEntryDate < toDate).ToList();
-        var qualityMonth = quality.Where(q => q.InspectionDate >= fromDate && q.InspectionDate < toDate).ToList();
+        var entriesPeriod = materials.Where(m => m.LastEntryDate >= fromDate && m.LastEntryDate < toDate).ToList();
+        var qualityPeriod = quality.Where(q => q.InspectionDate >= fromDate && q.InspectionDate < toDate).ToList();
         var ordersDue = orders.Where(o => o.Deadline >= fromDate && o.Deadline < toDate).ToList();
+
+        var filterDesc = periodLabel;
+        if (!string.IsNullOrWhiteSpace(filter.Instructor))
+            filterDesc += $" · Instructor: {filter.Instructor}";
+        if (filter.FichaId is > 0)
+        {
+            var ficha = fichas.FirstOrDefault(f => f.Id == filter.FichaId.Value);
+            filterDesc += $" · Ficha: {ficha?.FichaCode ?? filter.FichaId.ToString()}";
+        }
 
         var rows = new List<string[]>
         {
-            new[] { "RESUMEN", periodLabel, "", "", "", "" },
+            new[] { "FILTROS", filterDesc, "", "", "", "" },
+            new[] { "Período", $"{from:yyyy-MM-dd} → {to.AddDays(-1):yyyy-MM-dd}", "", "", "", "" },
             new[] { "Total materiales", materials.Count.ToString(), "", "", "", "" },
             new[] { "Agotados", depleted.Count.ToString(), "", "", "", "" },
             new[] { "Por agotarse", low.Count.ToString(), "", "", "", "" },
             new[] { "Stock normal", ok.Count.ToString(), "", "", "", "" },
-            new[] { "Entradas del mes", entriesThisMonth.Count.ToString(), "", "", "", "" },
+            new[] { "Entradas en el período", entriesPeriod.Count.ToString(), "", "", "", "" },
             new[] { "Sesiones de producción", sessions.Count.ToString(), sessions.Sum(s => s.Units).ToString() + " uds", "", "", "" },
-            new[] { "Inspecciones de calidad", qualityMonth.Count.ToString(), "", "", "", "" },
-            new[] { "Órdenes con fecha límite en el mes", ordersDue.Count.ToString(), "", "", "", "" },
+            new[] { "Inspecciones de calidad", qualityPeriod.Count.ToString(), "", "", "", "" },
+            new[] { "Órdenes con fecha límite en período", ordersDue.Count.ToString(), "", "", "", "" },
             new[] { "", "", "", "", "", "" },
-            new[] { "LISTA DE PRODUCTOS / MATERIALES", "Nivel", "Stock", "Mínimo", "Estado físico", "Última entrada" }
+            new[] { "LISTA DE MATERIALES", "Nivel", "Stock", "Mínimo", "Estado físico", "Última entrada" }
         };
 
         foreach (var m in materials.OrderBy(x => StockLevel(x.Stock, x.MinStock) == "Agotado" ? 0 : StockLevel(x.Stock, x.MinStock) == "Por agotarse" ? 1 : 2).ThenBy(x => x.Name))
@@ -164,26 +187,26 @@ public class ReportService : IReportService
         }
 
         rows.Add(new[] { "", "", "", "", "", "" });
-        rows.Add(new[] { "PRODUCCIÓN DEL MES", "Ficha", "Orden", "Unidades", "Fecha", "Observaciones" });
-        foreach (var s in sessions)
+        rows.Add(new[] { "PRODUCCIÓN", "Ficha", "Instructor", "Orden", "Unidades", "Fecha" });
+        foreach (var s in sessions.OrderByDescending(x => x.SessionDate))
         {
             rows.Add(new[]
             {
                 s.Ficha?.FichaCode ?? "",
+                s.Ficha?.InstructorName ?? "",
                 s.ProductionOrder?.OrderNumber ?? "",
                 s.Units.ToString(),
-                s.SessionDate.ToString("yyyy-MM-dd"),
-                s.Observations ?? "",
-                ""
+                s.SessionDate.ToString("yyyy-MM-dd HH:mm"),
+                s.Observations ?? ""
             });
         }
 
         if (!sessions.Any())
-            rows.Add(new[] { "(Sin sesiones registradas en el período)", "", "", "", "", "" });
+            rows.Add(new[] { "(Sin sesiones en el período / filtros)", "", "", "", "", "" });
 
         rows.Add(new[] { "", "", "", "", "", "" });
-        rows.Add(new[] { "CALIDAD DEL MES", "Orden", "Unidades", "Resultado", "Motivo", "Responsable" });
-        foreach (var q in qualityMonth.OrderByDescending(x => x.InspectionDate))
+        rows.Add(new[] { "CALIDAD", "Orden", "Unidades", "Resultado", "Motivo", "Responsable" });
+        foreach (var q in qualityPeriod.OrderByDescending(x => x.InspectionDate))
         {
             rows.Add(new[]
             {
@@ -196,11 +219,57 @@ public class ReportService : IReportService
             });
         }
 
-        if (!qualityMonth.Any())
+        if (!qualityPeriod.Any())
             rows.Add(new[] { "(Sin inspecciones en el período)", "", "", "", "", "" });
 
-        var headers = new[] { "Sección / Material", "Detalle", "Valor", "Extra", "Campo", "Campo 2" };
-        return Build($"Mensual_{year:0000}{month:00}", $"Reporte mensual SIPITEX · {periodLabel}", headers, rows, format);
+        var headers = new[] { "Sección / Concepto", "Detalle", "Valor", "Extra", "Campo", "Campo 2" };
+        return Build(fileTag, $"Reporte SIPITEX · {filterDesc}", headers, rows, filter.Format);
+    }
+
+    private static (DateTime From, DateTime To, string Label, string FileTag) ResolvePeriod(ReportFilterDto filter)
+    {
+        var today = DateTime.Today;
+        var period = (filter.Period ?? "mes").Trim().ToLowerInvariant();
+        var culture = new System.Globalization.CultureInfo("es-CO");
+
+        return period switch
+        {
+            "dia" or "diario" => ResolveDay(filter.Date ?? DateOnly.FromDateTime(today), culture),
+            "semana" or "semanal" => ResolveWeek(filter.Date ?? DateOnly.FromDateTime(today), culture),
+            "anio" or "año" or "anual" => ResolveYear(filter.Year ?? today.Year, culture),
+            _ => ResolveMonth(filter.Year ?? today.Year, filter.Month ?? today.Month, culture)
+        };
+    }
+
+    private static (DateTime From, DateTime To, string Label, string FileTag) ResolveDay(DateOnly date, System.Globalization.CultureInfo culture)
+    {
+        var from = date.ToDateTime(TimeOnly.MinValue);
+        return (from, from.AddDays(1), $"Diario {date:yyyy-MM-dd}", $"Diario_{date:yyyyMMdd}");
+    }
+
+    private static (DateTime From, DateTime To, string Label, string FileTag) ResolveWeek(DateOnly date, System.Globalization.CultureInfo culture)
+    {
+        var dt = date.ToDateTime(TimeOnly.MinValue);
+        var diff = ((int)dt.DayOfWeek + 6) % 7; // lunes = inicio
+        var from = dt.AddDays(-diff);
+        var to = from.AddDays(7);
+        return (from, to, $"Semanal {from:yyyy-MM-dd} a {to.AddDays(-1):yyyy-MM-dd}", $"Semanal_{from:yyyyMMdd}");
+    }
+
+    private static (DateTime From, DateTime To, string Label, string FileTag) ResolveMonth(int year, int month, System.Globalization.CultureInfo culture)
+    {
+        if (month is < 1 or > 12) month = DateTime.Today.Month;
+        if (year < 2000 || year > 2100) year = DateTime.Today.Year;
+        var from = new DateTime(year, month, 1);
+        var label = from.ToString("MMMM yyyy", culture);
+        return (from, from.AddMonths(1), $"Mensual {label}", $"Mensual_{year:0000}{month:00}");
+    }
+
+    private static (DateTime From, DateTime To, string Label, string FileTag) ResolveYear(int year, System.Globalization.CultureInfo culture)
+    {
+        if (year < 2000 || year > 2100) year = DateTime.Today.Year;
+        var from = new DateTime(year, 1, 1);
+        return (from, from.AddYears(1), $"Anual {year}", $"Anual_{year}");
     }
 
     private static string StockLevel(decimal stock, decimal minStock) =>
