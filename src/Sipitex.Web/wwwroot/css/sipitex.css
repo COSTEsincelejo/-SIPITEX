@@ -103,6 +103,9 @@ label.field-label{font-size:11px;font-weight:600;text-transform:uppercase;letter
 .module-link i{width:34px;height:34px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;}
 .module-link h3{font-size:15px;font-weight:700;margin-bottom:4px;}
 .module-link p{font-size:12.5px;color:var(--text-mut);}
+.report-card{cursor:default;}
+.report-card:hover{transform:none;}
+.report-actions{display:flex;gap:8px;margin-top:14px;}
 @media (max-width:980px){
   .sidebar{transform:translateX(-100%);}
   .sidebar.open{transform:translateX(0);box-shadow:6px 0 24px rgba(0,0,0,0.2);}

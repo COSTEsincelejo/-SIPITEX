@@ -1,0 +1,106 @@
+@model AlertasIndexViewModel
+@{
+    ViewData["Title"] = "Alertas";
+    ViewData["Breadcrumb"] = "SIPITEX / Análisis / Alertas";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Alertas por correo</h2>
+        <div class="sub">Cada actor elige qué notificaciones desea recibir según su rol</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
+        <i class="fas @(Model.IsSuccess ? "fa-circle-check" : "fa-triangle-exclamation")"></i>
+        @Model.Message
+    </div>
+}
+
+<div class="alert @(Model.SmtpConfigured ? "alert-success" : "alert-info")">
+    <i class="fas fa-envelope"></i>
+    @if (Model.SmtpConfigured)
+    {
+        <text>SMTP activo: los correos se enviarán al servidor configurado en <code>Email</code>.</text>
+    }
+    else
+    {
+        <text>Modo demo: sin SMTP. Los correos se guardan en la carpeta <code>email-outbox/</code>.</text>
+    }
+</div>
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-bell"></i> Mis preferencias de alerta</div>
+    <form asp-action="SavePreferences" method="post">
+        @Html.AntiForgeryToken()
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Activar</th>
+                        <th>Alerta</th>
+                        <th>Descripción</th>
+                        <th>Roles sugeridos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var pref in Model.Preferences)
+                {
+                    <tr>
+                        <td>
+                            <input type="checkbox"
+                                   name="EnabledTypes"
+                                   value="@pref.AlertType"
+                                   @(pref.Enabled ? "checked" : null) />
+                        </td>
+                        <td><strong>@pref.Title</strong></td>
+                        <td>@pref.Description</td>
+                        <td>@string.Join(", ", pref.SuggestedRoles)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top:14px;">
+            <button type="submit" class="primary"><i class="fas fa-save"></i> Guardar preferencias</button>
+        </div>
+    </form>
+</div>
+
+@if (User.IsInRole("Administrador"))
+{
+    <div class="card">
+        <div class="card-title amber"><i class="fas fa-paper-plane"></i> Evaluar y enviar ahora</div>
+        <p class="sub" style="margin-bottom:12px;">Revisa stock bajo, solicitudes pendientes, órdenes por vencer/atrasadas y reprocesos, y notifica a quienes las tengan activas.</p>
+        <form asp-action="Evaluar" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="primary"><i class="fas fa-bolt"></i> Evaluar alertas</button>
+        </form>
+    </div>
+}
+
+@if (Model.Deliveries.Any())
+{
+    <div class="card">
+        <div class="card-title teal"><i class="fas fa-inbox"></i> Envíos recientes</div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Fecha</th><th>Tipo</th><th>Asunto</th><th>Canal</th></tr></thead>
+                <tbody>
+                @foreach (var d in Model.Deliveries)
+                {
+                    <tr>
+                        <td>@d.SentAt.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@d.AlertType</td>
+                        <td>@d.Subject</td>
+                        <td>@d.Channel</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

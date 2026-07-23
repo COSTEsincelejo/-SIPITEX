@@ -104,3 +104,17 @@ public class EstadisticasIndexViewModel
     public DashboardKpiDto Dashboard { get; set; } = new(0, 0, 0, 0, []);
 }
 
+public class AlertasIndexViewModel
+{
+    public IReadOnlyList<AlertPreferenceDto> Preferences { get; set; } = [];
+    public IReadOnlyList<AlertDeliveryDto> Deliveries { get; set; } = [];
+    public bool SmtpConfigured { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class AlertPreferencesForm
+{
+    public List<string> EnabledTypes { get; set; } = [];
+}
+

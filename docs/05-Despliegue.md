@@ -47,12 +47,19 @@ docker compose up --build
 
 La aplicación queda en `http://localhost:8080` con SQLite persistente en el volumen `sipitex-data`.
 
-## 5.6 Roadmap post-MVP
+## 5.6 Reportes y alertas
+
+- **Reportes** (`/Reportes`): PDF (QuestPDF) y Excel (ClosedXML) de Inventario, Órdenes, Calidad y Dashboard.
+- **Alertas** (`/Alertas`): cada actor activa/desactiva notificaciones (stock bajo, solicitudes pendientes, órdenes por vencer/atrasadas, reprocesos).
+- Sin SMTP (`Email:Enabled=false`) los correos se guardan en `email-outbox/`.
+- Con SMTP, configure `Email` en `appsettings.json` (`Host`, `User`, `Password`, `From`).
+
+## 5.7 Roadmap post-MVP
 
 - Migraciones EF Core formales  
 - API REST para integraciones  
 - Autenticación JWT para clientes externos  
 
-## 5.7 Entregable de fase
+## 5.8 Entregable de fase
 
 Sistema operativo en intranet + manual de operación.

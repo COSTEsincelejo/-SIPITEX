@@ -1,0 +1,51 @@
+@{
+    ViewData["Title"] = "Reportes";
+    ViewData["Breadcrumb"] = "SIPITEX / Análisis / Reportes";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Reportes</h2>
+        <div class="sub">Descargue reportes operativos en PDF o Excel</div>
+    </div>
+</div>
+
+<div class="module-grid">
+    <div class="module-link report-card">
+        <i class="fas fa-boxes-stacked"></i>
+        <h3>Inventario</h3>
+        <p>Stock, estado, mínimos y última entrada.</p>
+        <div class="report-actions">
+            <a class="btn primary small" asp-action="Inventario" asp-route-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn ghost small" asp-action="Inventario" asp-route-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
+        </div>
+    </div>
+    <div class="module-link report-card">
+        <i class="fas fa-clipboard-list"></i>
+        <h3>Órdenes</h3>
+        <p>Avance, meta, estado y fechas límite.</p>
+        <div class="report-actions">
+            <a class="btn primary small" asp-action="Ordenes" asp-route-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn ghost small" asp-action="Ordenes" asp-route-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
+        </div>
+    </div>
+    <div class="module-link report-card">
+        <i class="fas fa-clipboard-check"></i>
+        <h3>Calidad</h3>
+        <p>Inspecciones, reprocesos, motivo y responsable.</p>
+        <div class="report-actions">
+            <a class="btn primary small" asp-action="Calidad" asp-route-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn ghost small" asp-action="Calidad" asp-route-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
+        </div>
+    </div>
+    <div class="module-link report-card">
+        <i class="fas fa-chart-line"></i>
+        <h3>Dashboard KPI</h3>
+        <p>Indicadores globales de producción y calidad.</p>
+        <div class="report-actions">
+            <a class="btn primary small" asp-action="Dashboard" asp-route-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn ghost small" asp-action="Dashboard" asp-route-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
+        </div>
+    </div>
+</div>
