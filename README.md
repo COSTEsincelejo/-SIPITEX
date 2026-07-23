@@ -80,6 +80,8 @@ Ver carpeta [`docs/`](docs/) para el ciclo completo:
 4. **Pruebas** — Plan de pruebas funcionales  
 5. **Despliegue** — Guía de publicación intranet / Docker  
 
+**SRS IEEE 830** (casos de uso, clases, secuencias, ER): [`docs/08-IEEE830-Especificacion.md`](docs/08-IEEE830-Especificacion.md) · Índice: [`docs/00-INDICE.md`](docs/00-INDICE.md)
+
 ## Tecnologías
 
 - ASP.NET Core MVC  
