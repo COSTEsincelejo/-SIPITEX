@@ -52,6 +52,7 @@ public class AdjustStockForm
 public class OrdenesIndexViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<string> KnownProducts { get; set; } = [];
     public CreateOrderForm CreateOrder { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
@@ -67,14 +68,26 @@ public class CreateOrderForm
 public class MrpIndexViewModel
 {
     public IReadOnlyList<BomItemDto> Bom { get; set; } = [];
+    public IReadOnlyList<string> KnownProducts { get; set; } = [];
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
     public MrpSimulationForm Simulation { get; set; } = new();
+    public AddBomItemForm AddBom { get; set; } = new();
     public MrpSimulationResultDto? Result { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
 }
 
 public class MrpSimulationForm
 {
-    public string ProductName { get; set; } = "Camisa";
+    public string ProductName { get; set; } = string.Empty;
     public decimal Quantity { get; set; } = 50;
+}
+
+public class AddBomItemForm
+{
+    public string ProductName { get; set; } = string.Empty;
+    public int MaterialId { get; set; }
+    public decimal QuantityPerUnit { get; set; } = 1;
 }
 
 public class FichasIndexViewModel

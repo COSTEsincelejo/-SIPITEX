@@ -10,4 +10,5 @@ public interface IProductionOrderRepository
     Task AddAsync(ProductionOrder order, CancellationToken cancellationToken = default);
     void Update(ProductionOrder order);
     Task<int> CountAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<string>> GetDistinctProductNamesAsync(CancellationToken cancellationToken = default);
 }

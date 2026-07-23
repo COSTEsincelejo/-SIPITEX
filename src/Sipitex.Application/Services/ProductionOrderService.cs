@@ -37,7 +37,7 @@ public class ProductionOrderService : IProductionOrderService
             var bom = await _bomRepository.GetByProductAsync(order.ProductName, cancellationToken);
             var hint = bom.Count > 0
                 ? string.Join(", ", bom.Select(b => $"{b.Material.Name}: {b.QuantityPerUnit} {UnitHelper.ToDisplay(b.Unit)}"))
-                : "N/A";
+                : "Sin ficha BOM · puede producir sin descuento automático";
 
             var pct = order.TotalQuantity > 0
                 ? Math.Min(100, (int)Math.Round(order.ProducedQuantity * 100m / order.TotalQuantity))
@@ -60,20 +60,21 @@ public class ProductionOrderService : IProductionOrderService
 
     public async Task<ServiceResult> CreateOrderAsync(CreateProductionOrderDto dto, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(dto.ProductName) || dto.TotalQuantity <= 0)
+        var productName = (dto.ProductName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(productName) || dto.TotalQuantity <= 0)
             return ServiceResult.Fail("Producto y cantidad son obligatorios.");
 
-        var bom = await _bomRepository.GetByProductAsync(dto.ProductName, cancellationToken);
-        if (bom.Count == 0)
-            return ServiceResult.Fail("Producto no válido. Usa Camisa o Pantalón.");
+        if (productName.Length > 80)
+            return ServiceResult.Fail("El nombre del producto no puede superar 80 caracteres.");
 
+        var bom = await _bomRepository.GetByProductAsync(productName, cancellationToken);
         var count = await _orderRepository.CountAsync(cancellationToken);
         var orderNumber = $"OP-{(count + 101):D3}";
 
         await _orderRepository.AddAsync(new ProductionOrder
         {
             OrderNumber = orderNumber,
-            ProductName = dto.ProductName.Trim(),
+            ProductName = productName,
             TotalQuantity = dto.TotalQuantity,
             ProducedQuantity = 0,
             Status = OrderStatus.EnProceso,
@@ -81,7 +82,12 @@ public class ProductionOrderService : IProductionOrderService
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok($"Orden {orderNumber} creada.");
+
+        var extra = bom.Count == 0
+            ? " (sin BOM aún: defina materiales en MRP si desea descontar stock)."
+            : " (MRP calculado con ficha técnica existente).";
+
+        return ServiceResult.Ok($"Orden {orderNumber} creada para «{productName}».{extra}");
     }
 
     public async Task<ServiceResult> RegisterProductionAsync(int orderId, int units, CancellationToken cancellationToken = default)
@@ -96,11 +102,22 @@ public class ProductionOrderService : IProductionOrderService
         if (toAdd <= 0) return ServiceResult.Fail("La orden ya alcanzó su meta.");
 
         if (!await _consumptionService.ConsumeAsync(order.ProductName, toAdd, cancellationToken))
-            return ServiceResult.Fail("Consumo fallido: materiales insuficientes.");
+            return ServiceResult.Fail("Consumo fallido: materiales insuficientes según la ficha BOM.");
 
         ProductionConsumptionService.UpdateOrderProgress(order, toAdd);
         _orderRepository.Update(order);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok($"Se registraron {toAdd} unidades.");
+    }
+
+    public async Task<IReadOnlyList<string>> GetKnownProductNamesAsync(CancellationToken cancellationToken = default)
+    {
+        var fromBom = await _bomRepository.GetDistinctProductNamesAsync(cancellationToken);
+        var fromOrders = await _orderRepository.GetDistinctProductNamesAsync(cancellationToken);
+        return fromBom
+            .Concat(fromOrders)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 }
