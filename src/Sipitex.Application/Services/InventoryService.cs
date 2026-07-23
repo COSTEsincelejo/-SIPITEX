@@ -45,12 +45,13 @@ public class InventoryService : IInventoryService
             Unit = dto.Unit,
             Stock = dto.Stock,
             MinStock = 10,
-            Status = MaterialStatus.Bueno
+            Status = MaterialStatus.Bueno,
+            LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
         };
 
         await _materialRepository.AddAsync(material, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok();
+        return ServiceResult.Ok("Material agregado.");
     }
 
     public async Task<ServiceResult> AdjustStockAsync(AdjustStockDto dto, CancellationToken cancellationToken = default)
@@ -59,9 +60,21 @@ public class InventoryService : IInventoryService
         if (material is null) return ServiceResult.Fail("Material no encontrado.");
 
         material.Stock = Math.Max(0, dto.NewStock);
+        material.LastEntryDate = DateOnly.FromDateTime(DateTime.Today);
         _materialRepository.Update(material);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok();
+        return ServiceResult.Ok("Stock actualizado.");
+    }
+
+    public async Task<ServiceResult> UpdateStatusAsync(UpdateMaterialStatusDto dto, CancellationToken cancellationToken = default)
+    {
+        var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
+        if (material is null) return ServiceResult.Fail("Material no encontrado.");
+
+        material.Status = dto.Status;
+        _materialRepository.Update(material);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok($"Estado actualizado a {dto.Status}.");
     }
 
     public async Task<IReadOnlyList<MaterialRequestDto>> GetRequestsAsync(CancellationToken cancellationToken = default)
@@ -91,7 +104,7 @@ public class InventoryService : IInventoryService
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok();
+        return ServiceResult.Ok("Solicitud creada.");
     }
 
     public async Task<ServiceResult> ApproveRequestAsync(int requestId, CancellationToken cancellationToken = default)
@@ -108,7 +121,19 @@ public class InventoryService : IInventoryService
         _materialRepository.Update(request.Material);
         _requestRepository.Update(request);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok();
+        return ServiceResult.Ok("Solicitud aprobada.");
+    }
+
+    public async Task<ServiceResult> RejectRequestAsync(int requestId, CancellationToken cancellationToken = default)
+    {
+        var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
+        if (request is null || request.Status != RequestStatus.Pendiente)
+            return ServiceResult.Fail("Solicitud no válida.");
+
+        request.Status = RequestStatus.Rechazada;
+        _requestRepository.Update(request);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok("Solicitud rechazada.");
     }
 
     private static MaterialDto MapMaterial(Material m) => new(
@@ -118,5 +143,6 @@ public class InventoryService : IInventoryService
         m.Stock,
         m.Status,
         m.MinStock,
-        m.Stock < m.MinStock);
+        m.Stock < m.MinStock,
+        m.LastEntryDate);
 }

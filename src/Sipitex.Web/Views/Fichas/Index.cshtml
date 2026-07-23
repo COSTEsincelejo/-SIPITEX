@@ -24,7 +24,7 @@
     <div class="card-title teal"><i class="fas fa-chalkboard-user"></i> Fichas de aprendices / procesos</div>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructor</th><th>Orden asignada</th><th>Unidades hoy</th><th></th></tr></thead>
+            <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructor</th><th>Orden asignada</th><th>Registro rápido</th></tr></thead>
             <tbody>
             @foreach (var ficha in Model.Fichas)
             {
@@ -34,14 +34,14 @@
                     <td>@ficha.InstructorName</td>
                     <td>@(ficha.AssignedOrderNumber ?? "—")</td>
                     <td>
-                        <form asp-action="QuickRegister" method="post" style="display:flex;gap:6px;align-items:center;">
+                        <form asp-action="QuickRegister" method="post" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="fichaId" value="@ficha.Id" />
-                            <input type="number" name="units" min="1" placeholder="0" style="width:80px" required />
+                            <input type="number" name="units" min="1" placeholder="uds" style="width:80px" required />
+                            <input type="text" name="observations" placeholder="Observación" style="width:160px" />
                             <button type="submit" class="small ghost">Registrar hoy</button>
                         </form>
                     </td>
-                    <td></td>
                 </tr>
             }
             </tbody>
@@ -66,9 +66,37 @@
             <label class="field-label">Unidades producidas</label>
             <input asp-for="Register.Units" type="number" min="1" required />
         </div>
+        <div class="field" style="flex:1;min-width:220px;">
+            <label class="field-label">Observaciones</label>
+            <input asp-for="Register.Observations" placeholder="Notas de la sesión diaria" />
+        </div>
         <button type="submit" class="primary"><i class="fas fa-save"></i> Registrar sesión diaria</button>
     </form>
     <div class="alert alert-info" style="margin-top:6px;">
-        <i class="fas fa-circle-info"></i> Cada registro consume materiales según el BOM y actualiza el avance de la orden.
+        <i class="fas fa-circle-info"></i> Cada registro consume materiales según el BOM, actualiza el avance y guarda observaciones.
     </div>
 </div>
+
+@if (Model.Sessions.Any())
+{
+    <div class="card">
+        <div class="card-title amber"><i class="fas fa-clock-rotate-left"></i> Sesiones recientes</div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Fecha</th><th>Ficha</th><th>Orden</th><th>Unidades</th><th>Observaciones</th></tr></thead>
+                <tbody>
+                @foreach (var s in Model.Sessions)
+                {
+                    <tr>
+                        <td>@s.SessionDate.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@s.FichaCode</td>
+                        <td>@s.OrderNumber</td>
+                        <td>@s.Units</td>
+                        <td>@(string.IsNullOrWhiteSpace(s.Observations) ? "—" : s.Observations)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
@@ -25,6 +27,7 @@ public class InventarioController : Controller
         return View(await BuildViewModel(cancellationToken));
     }
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddMaterial(CreateMaterialForm form, CancellationToken cancellationToken)
@@ -38,6 +41,7 @@ public class InventarioController : Controller
         return View("Index", vm);
     }
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AdjustStock(AdjustStockForm form, CancellationToken cancellationToken)
@@ -50,6 +54,20 @@ public class InventarioController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateStatus(int MaterialId, MaterialStatus Status, CancellationToken cancellationToken)
+    {
+        var result = await _inventoryService.UpdateStatusAsync(
+            new UpdateMaterialStatusDto(MaterialId, Status), cancellationToken);
+
+        TempData["Message"] = result.Message ?? (result.Success ? "Estado actualizado." : "Error al actualizar estado.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index));
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateRequest(CreateRequestForm form, CancellationToken cancellationToken)
@@ -63,12 +81,24 @@ public class InventarioController : Controller
         return View("Index", vm);
     }
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveRequest(int id, CancellationToken cancellationToken)
     {
         var result = await _inventoryService.ApproveRequestAsync(id, cancellationToken);
         TempData["Message"] = result.Message ?? (result.Success ? "Solicitud aprobada." : "No se pudo aprobar.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index));
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RejectRequest(int id, CancellationToken cancellationToken)
+    {
+        var result = await _inventoryService.RejectRequestAsync(id, cancellationToken);
+        TempData["Message"] = result.Message ?? (result.Success ? "Solicitud rechazada." : "No se pudo rechazar.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
     }

@@ -9,11 +9,14 @@ public record MaterialDto(
     decimal Stock,
     MaterialStatus Status,
     decimal MinStock,
-    bool IsLowStock);
+    bool IsLowStock,
+    DateOnly LastEntryDate);
 
 public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit);
 
 public record AdjustStockDto(int MaterialId, decimal NewStock);
+
+public record UpdateMaterialStatusDto(int MaterialId, MaterialStatus Status);
 
 public record MaterialRequestDto(
     int Id,
@@ -59,15 +62,30 @@ public record FichaDto(
     string InstructorName,
     string? AssignedOrderNumber);
 
-public record RegisterProductionDto(int ProductionOrderId, int FichaId, int Units);
+public record ProductionSessionDto(
+    int Id,
+    string FichaCode,
+    string OrderNumber,
+    int Units,
+    string Observations,
+    DateTime SessionDate);
+
+public record RegisterProductionDto(int ProductionOrderId, int FichaId, int Units, string? Observations = null);
 
 public record QualityRecordDto(
     string OrderNumber,
     int Units,
     QualityResult Result,
-    DateOnly Date);
+    DateOnly Date,
+    string? MotivoReproceso,
+    string? Responsable);
 
-public record CreateQualityRecordDto(int ProductionOrderId, int Units, QualityResult Result);
+public record CreateQualityRecordDto(
+    int ProductionOrderId,
+    int Units,
+    QualityResult Result,
+    string? MotivoReproceso = null,
+    string? Responsable = null);
 
 public record DashboardKpiDto(
     int TotalProduced,

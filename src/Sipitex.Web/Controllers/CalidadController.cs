@@ -38,7 +38,13 @@ public class CalidadController : Controller
     public async Task<IActionResult> Create(CreateQualityForm form, CancellationToken cancellationToken)
     {
         var result = await _qualityService.AddRecordAsync(
-            new CreateQualityRecordDto(form.ProductionOrderId, form.Units, form.Result), cancellationToken);
+            new CreateQualityRecordDto(
+                form.ProductionOrderId,
+                form.Units,
+                form.Result,
+                form.MotivoReproceso,
+                form.Responsable),
+            cancellationToken);
 
         TempData["Message"] = result.Message ?? (result.Success ? "Inspección registrada." : "Error al registrar.");
         TempData["IsSuccess"] = result.Success;

@@ -29,6 +29,7 @@ public class FichasController : Controller
         {
             Fichas = fichas,
             Orders = orders,
+            Sessions = await _fichaService.GetRecentSessionsAsync(cancellationToken),
             Register = new RegisterProductionForm
             {
                 ProductionOrderId = orders.FirstOrDefault()?.Id ?? 0,
@@ -44,7 +45,7 @@ public class FichasController : Controller
     public async Task<IActionResult> Register(RegisterProductionForm form, CancellationToken cancellationToken)
     {
         var result = await _fichaService.RegisterSessionAsync(
-            new RegisterProductionDto(form.ProductionOrderId, form.FichaId, form.Units), cancellationToken);
+            new RegisterProductionDto(form.ProductionOrderId, form.FichaId, form.Units, form.Observations), cancellationToken);
 
         TempData["Message"] = result.Message ?? (result.Success ? "Sesión registrada." : "Error al registrar.");
         TempData["IsSuccess"] = result.Success;
@@ -53,9 +54,9 @@ public class FichasController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> QuickRegister(int fichaId, int units, CancellationToken cancellationToken)
+    public async Task<IActionResult> QuickRegister(int fichaId, int units, string? observations, CancellationToken cancellationToken)
     {
-        var result = await _fichaService.QuickRegisterAsync(fichaId, units, cancellationToken);
+        var result = await _fichaService.QuickRegisterAsync(fichaId, units, observations, cancellationToken);
         TempData["Message"] = result.Message ?? (result.Success ? "Registro exitoso." : "Error al registrar.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));

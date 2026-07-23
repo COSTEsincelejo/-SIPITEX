@@ -24,6 +24,7 @@ public static class DisplayHelper
     {
         RequestStatus.Pendiente => "badge-warning",
         RequestStatus.Aprobada => "badge-success",
+        RequestStatus.Rechazada => "badge-danger",
         _ => "badge-info"
     };
 

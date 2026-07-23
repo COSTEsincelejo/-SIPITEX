@@ -16,6 +16,7 @@ public class SipitexDbContext : DbContext
     public DbSet<FunctionalRequirement> FunctionalRequirements => Set<FunctionalRequirement>();
     public DbSet<NonFunctionalRequirement> NonFunctionalRequirements => Set<NonFunctionalRequirement>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<ProductionSession> ProductionSessions => Set<ProductionSession>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,7 +63,17 @@ public class SipitexDbContext : DbContext
         modelBuilder.Entity<QualityRecord>(e =>
         {
             e.HasKey(q => q.Id);
+            e.Property(q => q.MotivoReproceso).HasMaxLength(300);
+            e.Property(q => q.Responsable).HasMaxLength(120);
             e.HasOne(q => q.ProductionOrder).WithMany(o => o.QualityRecords).HasForeignKey(q => q.ProductionOrderId);
+        });
+
+        modelBuilder.Entity<ProductionSession>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Observations).HasMaxLength(500);
+            e.HasOne(s => s.Ficha).WithMany().HasForeignKey(s => s.FichaId);
+            e.HasOne(s => s.ProductionOrder).WithMany().HasForeignKey(s => s.ProductionOrderId);
         });
 
         modelBuilder.Entity<FunctionalRequirement>(e =>
