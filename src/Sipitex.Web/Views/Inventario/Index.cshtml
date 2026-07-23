@@ -3,116 +3,145 @@
     ViewData["Title"] = "Inventario";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Inventario";
     Layout = "_Layout";
-    var lowStock = Model.Materials.Where(m => m.IsLowStock).Select(m => m.Name).ToList();
-    var canManageStock = User.IsInRole("Administrador") || User.IsInRole("Bodeguero");
     var canRequest = User.IsInRole("Administrador") || User.IsInRole("Instructor");
+    var canRegister = Model.CanRegister;
+    var canManage = Model.CanManage;
+    string FilterClass(string key) => Model.Filter == key ? "filter-chip active" : "filter-chip";
 }
 
 <div class="page-header">
     <div>
-        <h2>Inventario de materias primas</h2>
-        <div class="sub">Controla niveles de stock, mínimos y solicitudes de bodega</div>
+        <h2>Inventario de productos</h2>
+        <div class="sub">Lista organizada del stock: agotados, por agotarse y estado general de cada material</div>
     </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" class="visually-hidden">@Model.Message</div>
 }
 
+<div class="stock-summary">
+    <a class="stock-stat" asp-action="Index" asp-route-filtro="todos">
+        <span class="stock-stat-label">Total</span>
+        <span class="stock-stat-value">@Model.Materials.Count</span>
+    </a>
+    <a class="stock-stat danger" asp-action="Index" asp-route-filtro="agotados">
+        <span class="stock-stat-label">Agotados</span>
+        <span class="stock-stat-value">@Model.DepletedCount</span>
+    </a>
+    <a class="stock-stat warning" asp-action="Index" asp-route-filtro="por-agotarse">
+        <span class="stock-stat-label">Por agotarse</span>
+        <span class="stock-stat-value">@Model.LowStockCount</span>
+    </a>
+    <a class="stock-stat success" asp-action="Index" asp-route-filtro="normal">
+        <span class="stock-stat-label">Normal</span>
+        <span class="stock-stat-value">@Model.NormalCount</span>
+    </a>
+</div>
+
 <div class="card">
-    <div class="card-title"><i class="fas fa-warehouse"></i> Materias primas e insumos</div>
-    @if (canManageStock)
+    <div class="card-title"><i class="fas fa-list"></i> Lista de productos</div>
+
+    <div class="filter-bar">
+        <a class="@FilterClass("todos")" asp-action="Index" asp-route-filtro="todos">Todos</a>
+        <a class="@FilterClass("agotados")" asp-action="Index" asp-route-filtro="agotados">Agotados</a>
+        <a class="@FilterClass("por-agotarse")" asp-action="Index" asp-route-filtro="por-agotarse">Por agotarse</a>
+        <a class="@FilterClass("normal")" asp-action="Index" asp-route-filtro="normal">Normal</a>
+    </div>
+
+    @if (canRegister)
     {
-        <form asp-action="AddMaterial" method="post" class="form-row">
-            @Html.AntiForgeryToken()
-            <div class="field" style="flex:2;min-width:200px;">
-                <label class="field-label">Material</label>
-                <input asp-for="CreateMaterial.Name" placeholder="ej. Tela jersey" style="width:100%" required />
-            </div>
-            <div class="field" style="width:120px;">
-                <label class="field-label">Stock inicial</label>
-                <input asp-for="CreateMaterial.Stock" type="number" step="0.1" min="0" required />
-            </div>
-            <div class="field" style="width:120px;">
-                <label class="field-label">Unidad</label>
-                <select asp-for="CreateMaterial.Unit" asp-items="Html.GetEnumSelectList<MaterialUnit>()"></select>
-            </div>
-            <button type="submit" class="primary"><i class="fas fa-plus"></i> Agregar material</button>
-        </form>
+        <div class="register-panel">
+            <h3 class="register-title">Registrar producto</h3>
+            <p class="register-hint">Solo bodeguero, administrador o instructor con permiso otorgado por el administrador.</p>
+            <form asp-action="AddMaterial" method="post" class="form-row">
+                @Html.AntiForgeryToken()
+                <div class="field" style="flex:2;min-width:200px;">
+                    <label class="field-label">Producto / material</label>
+                    <input asp-for="CreateMaterial.Name" placeholder="ej. Tela jersey" style="width:100%" required />
+                </div>
+                <div class="field" style="width:120px;">
+                    <label class="field-label">Stock inicial</label>
+                    <input asp-for="CreateMaterial.Stock" type="number" step="0.1" min="0" required />
+                </div>
+                <div class="field" style="width:120px;">
+                    <label class="field-label">Mínimo</label>
+                    <input asp-for="CreateMaterial.MinStock" type="number" step="0.1" min="0.1" required />
+                </div>
+                <div class="field" style="width:120px;">
+                    <label class="field-label">Unidad</label>
+                    <select asp-for="CreateMaterial.Unit" asp-items="Html.GetEnumSelectList<MaterialUnit>()"></select>
+                </div>
+                <button type="submit" class="primary"><i class="fas fa-plus"></i> Registrar</button>
+            </form>
+        </div>
     }
-    @if (!Model.Materials.Any())
+
+    @if (!Model.FilteredMaterials.Any())
     {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin materiales", Text = "Todavía no hay materias primas registradas.", ActionText = canManageStock ? "Use el formulario superior para agregar el primero." : null }' />
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin productos en este filtro", Text = "No hay materiales que coincidan con la vista seleccionada.", ActionText = canRegister ? "Registre un producto con el formulario de arriba." : null }' />
     }
     else
     {
-        <div class="table-wrap">
-            <table>
-                <thead><tr><th>Material</th><th>Unidad</th><th>Stock</th><th>Estado</th><th>Última entrada</th><th>Mínimo</th><th></th></tr></thead>
-                <tbody>
-                @foreach (var mat in Model.Materials)
-                {
-                    <tr>
-                        <td><strong>@mat.Name</strong></td>
-                        <td>@mat.UnitDisplay</td>
-                        <td>@mat.Stock.ToString("0.0")</td>
-                        <td>
-                            @if (canManageStock)
-                            {
-                                <form asp-action="UpdateStatus" method="post" class="row-actions">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="MaterialId" value="@mat.Id" />
-                                    <select name="Status" onchange="this.form.submit()" aria-label="Estado del material">
-                                        @foreach (MaterialStatus st in Enum.GetValues<MaterialStatus>())
+        <div class="product-list">
+            @foreach (var mat in Model.FilteredMaterials)
+            {
+                <article class="product-row">
+                    <div class="product-main">
+                        <div class="product-name">@mat.Name</div>
+                        <div class="product-meta">
+                            <span>@mat.UnitDisplay</span>
+                            <span>·</span>
+                            <span>Mín. @mat.MinStock.ToString("0.##")</span>
+                            <span>·</span>
+                            <span>Última entrada @mat.LastEntryDate.ToString("yyyy-MM-dd")</span>
+                        </div>
+                    </div>
+                    <div class="product-stock">
+                        <div class="product-stock-value">@mat.Stock.ToString("0.##")</div>
+                        <span class="badge @mat.StockLevelBadge">@mat.StockLevel</span>
+                    </div>
+                    <div class="product-condition">
+                        @if (canManage)
+                        {
+                            <form asp-action="UpdateStatus" method="post" class="row-actions">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="MaterialId" value="@mat.Id" />
+                                <select name="Status" onchange="this.form.submit()" aria-label="Estado físico">
+                                    @foreach (MaterialStatus st in Enum.GetValues<MaterialStatus>())
+                                    {
+                                        if (st == mat.Status)
                                         {
-                                            if (st == mat.Status)
-                                            {
-                                                <option value="@st" selected>@DisplayHelper.StatusText(st)</option>
-                                            }
-                                            else
-                                            {
-                                                <option value="@st">@DisplayHelper.StatusText(st)</option>
-                                            }
+                                            <option value="@st" selected>@DisplayHelper.StatusText(st)</option>
                                         }
-                                    </select>
-                                </form>
-                            }
-                            else
-                            {
-                                <span class="badge @DisplayHelper.BadgeClass(mat.Status)">@DisplayHelper.StatusText(mat.Status)</span>
-                            }
-                        </td>
-                        <td>@mat.LastEntryDate.ToString("yyyy-MM-dd")</td>
-                        <td>@mat.MinStock</td>
-                        <td>
-                            @if (canManageStock)
-                            {
-                                <form asp-action="AdjustStock" method="post" class="row-actions">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="MaterialId" value="@mat.Id" />
-                                    <input type="number" name="NewStock" value="@mat.Stock.ToString("0.##")" step="0.1" min="0" style="width:88px" aria-label="Nuevo stock" />
-                                    <button type="submit" class="small ghost"><i class="fas fa-pen"></i> Ajustar</button>
-                                </form>
-                            }
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+                                        else
+                                        {
+                                            <option value="@st">@DisplayHelper.StatusText(st)</option>
+                                        }
+                                    }
+                                </select>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="badge @DisplayHelper.BadgeClass(mat.Status)">@DisplayHelper.StatusText(mat.Status)</span>
+                        }
+                    </div>
+                    <div class="product-actions">
+                        @if (canManage)
+                        {
+                            <form asp-action="AdjustStock" method="post" class="row-actions">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="MaterialId" value="@mat.Id" />
+                                <input type="number" name="NewStock" value="@mat.Stock.ToString("0.##")" step="0.1" min="0" style="width:88px" aria-label="Nuevo stock" />
+                                <button type="submit" class="small ghost"><i class="fas fa-pen"></i> Ajustar</button>
+                            </form>
+                        }
+                    </div>
+                </article>
+            }
         </div>
-        @if (lowStock.Any())
-        {
-            <div class="alert alert-warning" style="margin-top:14px;">
-                <i class="fas fa-triangle-exclamation"></i> Alertas de stock mínimo: @string.Join(", ", lowStock)
-            </div>
-        }
-        else
-        {
-            <div class="alert alert-success" style="margin-top:14px;">
-                <i class="fas fa-circle-check"></i> Stock dentro de los niveles normales
-            </div>
-        }
     }
 </div>
 
@@ -128,12 +157,19 @@
             </div>
             <div class="field">
                 <label class="field-label">Material</label>
-                <select asp-for="CreateRequest.MaterialId">
+                <input asp-for="CreateRequest.MaterialName"
+                       list="materiales-solicitud"
+                       placeholder="Escriba cualquier material…"
+                       style="width:100%"
+                       maxlength="80"
+                       required />
+                <datalist id="materiales-solicitud">
                     @foreach (var m in Model.Materials)
                     {
-                        <option value="@m.Id">@m.Name (stock: @m.Stock.ToString("0.0"))</option>
+                        <option value="@m.Name"></option>
                     }
-                </select>
+                </datalist>
+                <small class="field-hint">Puede pedir un material existente o escribir uno nuevo.</small>
             </div>
             <div class="field" style="width:120px;">
                 <label class="field-label">Cantidad</label>
@@ -161,7 +197,7 @@
                         <td><span class="badge @DisplayHelper.BadgeClass(req.Status)">@DisplayHelper.StatusText(req.Status)</span></td>
                         <td>
                             <div class="row-actions">
-                            @if (req.Status == RequestStatus.Pendiente && canManageStock)
+                            @if (req.Status == RequestStatus.Pendiente && canManage)
                             {
                                 <form asp-action="ApproveRequest" method="post" data-confirm="¿Aprobar esta solicitud y descontar stock?">
                                     @Html.AntiForgeryToken()
@@ -191,6 +227,6 @@
         </div>
     }
     <div class="alert alert-info" style="margin-top:14px;">
-        <i class="fas fa-circle-info"></i> Instructor solicita · Bodeguero aprueba o rechaza. Al aprobar, el stock se descuenta automáticamente.
+        <i class="fas fa-circle-info"></i> Instructor solicita · Bodeguero/Admin aprueba. Registrar productos: bodeguero, administrador o instructor con permiso del administrador.
     </div>
 </div>

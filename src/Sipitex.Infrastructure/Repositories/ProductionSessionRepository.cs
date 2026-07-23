@@ -19,6 +19,14 @@ public class ProductionSessionRepository : IProductionSessionRepository
             .Take(take)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<ProductionSession>> GetInDateRangeAsync(DateTime fromInclusive, DateTime toExclusive, CancellationToken cancellationToken = default) =>
+        await _context.ProductionSessions
+            .Include(s => s.Ficha)
+            .Include(s => s.ProductionOrder)
+            .Where(s => s.SessionDate >= fromInclusive && s.SessionDate < toExclusive)
+            .OrderByDescending(s => s.SessionDate)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(ProductionSession session, CancellationToken cancellationToken = default) =>
         await _context.ProductionSessions.AddAsync(session, cancellationToken);
 }

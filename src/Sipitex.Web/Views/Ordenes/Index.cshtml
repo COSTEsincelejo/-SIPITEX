@@ -8,13 +8,13 @@
 <div class="page-header">
     <div>
         <h2>Órdenes de producción</h2>
-        <div class="sub">Crea órdenes y genera el cálculo MRP automático</div>
+        <div class="sub">Cree órdenes para cualquier producto: escriba el nombre libremente (no solo Camisa o Pantalón)</div>
     </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" class="visually-hidden">@Model.Message</div>
 }
 
 <div class="card">
@@ -26,11 +26,19 @@
                 <div class="form-row">
                     <div class="field" style="flex:1;">
                         <label class="field-label">Producto</label>
-                        <input asp-for="CreateOrder.ProductName" list="productos" placeholder="Camisa / Pantalón" style="width:100%" required />
-                        <datalist id="productos">
-                            <option value="Camisa"></option>
-                            <option value="Pantalón"></option>
+                        <input asp-for="CreateOrder.ProductName"
+                               list="productos-conocidos"
+                               placeholder="Ej. Vestido, Chaqueta, Falda, Uniforme…"
+                               style="width:100%"
+                               maxlength="80"
+                               required />
+                        <datalist id="productos-conocidos">
+                            @foreach (var name in Model.KnownProducts)
+                            {
+                                <option value="@name"></option>
+                            }
                         </datalist>
+                        <small class="field-hint">Puede escribir cualquier prenda. Las sugerencias son opcionales.</small>
                     </div>
                     <div class="field" style="width:140px;">
                         <label class="field-label">Cantidad total</label>
@@ -42,12 +50,14 @@
                         <label class="field-label">Fecha límite</label>
                         <input asp-for="CreateOrder.Deadline" type="date" required />
                     </div>
-                    <button type="submit" class="primary"><i class="fas fa-bolt"></i> Generar orden + MRP</button>
+                    <button type="submit" class="primary"><i class="fas fa-bolt"></i> Generar orden</button>
                 </div>
             </form>
         </div>
         <div class="alert alert-info" style="margin:0;align-self:flex-start;">
-            <i class="fas fa-microchip"></i> El sistema calcula automáticamente los materiales requeridos (BOM) según la ficha técnica del producto.
+            <i class="fas fa-microchip"></i>
+            Si el producto ya tiene ficha BOM en MRP, se calcula el material automáticamente.
+            Si es nuevo, cree la orden igual y luego agregue materiales en <strong>MRP / Materiales</strong>.
         </div>
     </div>
     <div class="table-wrap">

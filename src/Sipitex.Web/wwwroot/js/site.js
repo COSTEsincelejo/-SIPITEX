@@ -37,12 +37,50 @@
     return loader;
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('menuToggle')?.addEventListener('click', () => {
-      document.getElementById('sidebar')?.classList.toggle('open');
+  function setupSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('menuToggle');
+    const closeBtn = document.getElementById('sidebarClose');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (!sidebar || !toggle) return;
+
+    const setOpen = (open) => {
+      sidebar.classList.toggle('open', open);
+      document.body.classList.toggle('nav-open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+      if (backdrop) {
+        backdrop.hidden = !open;
+        backdrop.classList.toggle('show', open);
+      }
+    };
+
+    const close = () => setOpen(false);
+    const open = () => setOpen(true);
+    const toggleMenu = () => setOpen(!sidebar.classList.contains('open'));
+
+    toggle.addEventListener('click', toggleMenu);
+    closeBtn?.addEventListener('click', close);
+    backdrop?.addEventListener('click', close);
+
+    sidebar.querySelectorAll('a.nav-item').forEach((link) => {
+      link.addEventListener('click', () => {
+        if (window.matchMedia('(max-width: 980px)').matches) close();
+      });
     });
 
-    // Convert server flash alerts into toasts (keep inline for accessibility if needed)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && sidebar.classList.contains('open')) close();
+    });
+
+    window.addEventListener('resize', () => {
+      if (!window.matchMedia('(max-width: 980px)').matches) close();
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setupSidebar();
+
     document.querySelectorAll('[data-toast]').forEach((node) => {
       const type = node.getAttribute('data-toast-type') || 'info';
       const msg = node.textContent?.trim();
@@ -50,7 +88,6 @@
       node.remove();
     });
 
-    // Confirm destructive / sensitive actions
     document.querySelectorAll('form[data-confirm]').forEach((form) => {
       form.addEventListener('submit', (e) => {
         const message = form.getAttribute('data-confirm') || '¿Confirmar acción?';
@@ -58,9 +95,8 @@
       });
     });
 
-    // Report download loading indicator
-    document.querySelectorAll('a.js-download').forEach((link) => {
-      link.addEventListener('click', () => {
+    document.querySelectorAll('a.js-download, button.js-download').forEach((el) => {
+      el.addEventListener('click', () => {
         const loader = ensureLoader();
         loader.classList.add('show');
         setTimeout(() => loader.classList.remove('show'), 1800);

@@ -5,6 +5,15 @@ namespace Sipitex.Application.DTOs;
 
 public record ReportFileDto(byte[] Content, string ContentType, string FileName);
 
+public record ReportFilterDto(
+    string Period,
+    DateOnly? Date = null,
+    int? Year = null,
+    int? Month = null,
+    string? Instructor = null,
+    int? FichaId = null,
+    string Format = "pdf");
+
 public record AlertPreferenceDto(AlertType AlertType, string Title, string Description, bool Enabled, IReadOnlyList<string> SuggestedRoles);
 
 public record AlertDeliveryDto(AlertType AlertType, string Subject, DateTime SentAt, string Channel);

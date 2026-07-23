@@ -9,11 +9,11 @@
 <div class="page-header">
     <div>
         <h2>Editar usuario</h2>
-        <div class="sub">Actualice la información del usuario</div>
+        <div class="sub">Actualice rol y permisos. Un instructor solo registra materiales si usted se lo otorga.</div>
     </div>
 </div>
 
-<div class="card" style="max-width:700px;">
+<div class="card" style="max-width:760px;">
     <form asp-action="EditUser" method="post">
         @Html.AntiForgeryToken()
         <input asp-for="Id" type="hidden" />
@@ -49,8 +49,20 @@
             </select>
         </div>
         <div class="field">
-            <label class="field-label">Permisos extendidos</label>
-            <input asp-for="PermisosExtendidos" placeholder="VerReportes, AprobarSolicitudes" />
+            <label class="field-label">Permisos otorgados por el administrador</label>
+            <div class="permission-grid">
+                @foreach (var perm in UserPermissions.Catalog)
+                {
+                    <label class="permission-item">
+                        <input type="checkbox" name="SelectedPermissions" value="@perm.Code"
+                               @(Model.SelectedPermissions.Contains(perm.Code) ? "checked" : null) />
+                        <span>
+                            <strong>@perm.Label</strong>
+                            <small>@perm.Hint</small>
+                        </span>
+                    </label>
+                }
+            </div>
         </div>
         <div class="field">
             <label class="field-label">Activo</label>

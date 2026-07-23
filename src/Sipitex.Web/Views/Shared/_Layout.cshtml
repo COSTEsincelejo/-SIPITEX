@@ -7,6 +7,7 @@
     var user = User.Identity?.IsAuthenticated == true ? User : null;
     var role = user?.FindFirstValue(ClaimTypes.Role) ?? "Invitado";
     var name = user?.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
+    var photo = user?.FindFirstValue("photo");
     var toastMessage = TempData["Message"] as string;
     var toastSuccess = TempData["IsSuccess"] as bool?;
 }
@@ -14,7 +15,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>SIPITEX · @title</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -23,7 +24,8 @@
 </head>
 <body>
 <div class="shell">
-    <aside class="sidebar" id="sidebar">
+    <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+    <aside class="sidebar" id="sidebar" aria-label="Navegación principal">
         <div class="sidebar-brand">
             <div class="mark">
                 <div class="mark-icon">
@@ -31,7 +33,10 @@
                 </div>
                 <div><h1>SIPITEX</h1></div>
             </div>
-            <p>Sistema Integrado de Producción<br>e Inventario Textil · CMTC SENA</p>
+            <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Cerrar menú">
+                <i class="fas fa-xmark"></i>
+            </button>
+            <p>Sistema Integrado de Aprendizaje, Producción<br>e Inventario Textil · SENA CMTC</p>
         </div>
         <nav class="nav-group">
             <div class="nav-group-label">Operación</div>
@@ -51,13 +56,12 @@
                 <a class="@NavClass("Account")" asp-controller="Account" asp-action="Users"><i class="fas fa-users-gear"></i> Usuarios</a>
             }
         </nav>
-        <div class="sidebar-foot">SIPITEX v1.0 · .NET MVC<br>CMTC · SENA · ADSO</div>
     </aside>
     <div class="main">
         <header class="topbar">
             <div class="topbar-left">
-                <button type="button" class="menu-toggle" id="menuToggle" aria-label="Menú"><i class="fas fa-bars"></i></button>
-                <div>
+                <button type="button" class="menu-toggle" id="menuToggle" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false"><i class="fas fa-bars"></i></button>
+                <div class="topbar-title">
                     <h2>@title</h2>
                     <div class="breadcrumb">@breadcrumb</div>
                 </div>
@@ -68,13 +72,20 @@
                     <a class="icon-btn" asp-controller="Alertas" asp-action="Index" title="Alertas" aria-label="Alertas">
                         <i class="fas fa-bell"></i>
                     </a>
-                    <div class="role-chip">
-                        <div class="avatar">@name.Substring(0, 1).ToUpper()</div>
+                    <a class="role-chip role-chip-link" asp-controller="Account" asp-action="Profile" title="Mi perfil" aria-label="Ir a mi perfil">
+                        @if (!string.IsNullOrWhiteSpace(photo))
+                        {
+                            <img class="avatar avatar-img" src="@photo" alt="" />
+                        }
+                        else
+                        {
+                            <div class="avatar">@(string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1).ToUpper())</div>
+                        }
                         <span class="role-text">@name · @role</span>
-                    </div>
+                    </a>
                     <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="ghost small"><i class="fas fa-right-from-bracket"></i> Salir</button>
+                        <button type="submit" class="ghost small logout-btn"><i class="fas fa-right-from-bracket"></i> <span class="logout-label">Salir</span></button>
                     </form>
                 }
                 else
@@ -89,7 +100,7 @@
                 <div data-toast data-toast-type="@(toastSuccess == false ? "danger" : "success")" class="visually-hidden" style="position:absolute;left:-9999px;">@toastMessage</div>
             }
             @RenderBody()
-            <footer class="site-footer">SIPITEX — Sistema Integrado de Producción e Inventario Textil · CMTC · SENA ADSO</footer>
+            <footer class="site-footer">SIPITEX — Sistema Integrado de Aprendizaje, Producción e Inventario Textil · SENA CMTC</footer>
         </main>
     </div>
 </div>

@@ -1,4 +1,4 @@
-# SIPITEX — Sistema Integrado de Producción e Inventario Textil
+# SIPITEX — Sistema Integrado de Aprendizaje, Producción e Inventario Textil
 
 Proyecto .NET 10 con **arquitectura por capas** y desarrollo guiado por **metodología cascada** (CMTC · SENA · ADSO).
 
@@ -79,6 +79,8 @@ Ver carpeta [`docs/`](docs/) para el ciclo completo:
 3. **Implementación** — Código en `src/`  
 4. **Pruebas** — Plan de pruebas funcionales  
 5. **Despliegue** — Guía de publicación intranet / Docker  
+
+**SRS IEEE 830** (casos de uso, clases, secuencias, ER): [`docs/08-IEEE830-Especificacion.md`](docs/08-IEEE830-Especificacion.md) · Índice: [`docs/00-INDICE.md`](docs/00-INDICE.md)
 
 ## Tecnologías
 

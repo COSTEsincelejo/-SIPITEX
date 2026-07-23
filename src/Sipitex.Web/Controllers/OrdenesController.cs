@@ -9,7 +9,6 @@ namespace Sipitex.Web.Controllers;
 [Authorize]
 public class OrdenesController : Controller
 {
-    // Aquí se crean y manejan las órdenes de producción desde la vista.
     private readonly IProductionOrderService _orderService;
 
     public OrdenesController(IProductionOrderService orderService) => _orderService = orderService;
@@ -17,13 +16,7 @@ public class OrdenesController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        return View(new OrdenesIndexViewModel
-        {
-            Orders = await _orderService.GetOrdersAsync(cancellationToken),
-            CreateOrder = new CreateOrderForm(),
-            Message = TempData["Message"] as string,
-            IsSuccess = TempData["IsSuccess"] as bool? ?? false
-        });
+        return View(await BuildViewModel(cancellationToken));
     }
 
     [HttpPost]
@@ -47,4 +40,14 @@ public class OrdenesController : Controller
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
     }
+
+    private async Task<OrdenesIndexViewModel> BuildViewModel(CancellationToken cancellationToken) =>
+        new()
+        {
+            Orders = await _orderService.GetOrdersAsync(cancellationToken),
+            KnownProducts = await _orderService.GetKnownProductNamesAsync(cancellationToken),
+            CreateOrder = new CreateOrderForm(),
+            Message = TempData["Message"] as string,
+            IsSuccess = TempData["IsSuccess"] as bool? ?? false
+        };
 }

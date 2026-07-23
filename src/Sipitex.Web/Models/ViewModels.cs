@@ -7,10 +7,17 @@ namespace Sipitex.Web.Models;
 public class InventarioIndexViewModel
 {
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public IReadOnlyList<MaterialDto> FilteredMaterials { get; set; } = [];
     public IReadOnlyList<MaterialRequestDto> Requests { get; set; } = [];
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public CreateMaterialForm CreateMaterial { get; set; } = new();
     public CreateRequestForm CreateRequest { get; set; } = new();
+    public string Filter { get; set; } = "todos";
+    public int DepletedCount { get; set; }
+    public int LowStockCount { get; set; }
+    public int NormalCount { get; set; }
+    public bool CanRegister { get; set; }
+    public bool CanManage { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -19,13 +26,27 @@ public class CreateMaterialForm
 {
     public string Name { get; set; } = string.Empty;
     public decimal Stock { get; set; }
+    public decimal MinStock { get; set; } = 10;
     public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
+}
+
+public class ReportesIndexViewModel
+{
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+    public string Period { get; set; } = "mes";
+    public string? Instructor { get; set; }
+    public int? FichaId { get; set; }
+    public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
+    public IReadOnlyList<string> Instructors { get; set; } = [];
 }
 
 public class CreateRequestForm
 {
     public int ProductionOrderId { get; set; }
-    public int MaterialId { get; set; }
+    public int? MaterialId { get; set; }
+    public string MaterialName { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
 }
 
@@ -38,6 +59,7 @@ public class AdjustStockForm
 public class OrdenesIndexViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<string> KnownProducts { get; set; } = [];
     public CreateOrderForm CreateOrder { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
@@ -53,14 +75,27 @@ public class CreateOrderForm
 public class MrpIndexViewModel
 {
     public IReadOnlyList<BomItemDto> Bom { get; set; } = [];
+    public IReadOnlyList<string> KnownProducts { get; set; } = [];
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
     public MrpSimulationForm Simulation { get; set; } = new();
+    public AddBomItemForm AddBom { get; set; } = new();
     public MrpSimulationResultDto? Result { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
 }
 
 public class MrpSimulationForm
 {
-    public string ProductName { get; set; } = "Camisa";
+    public string ProductName { get; set; } = string.Empty;
     public decimal Quantity { get; set; } = 50;
+}
+
+public class AddBomItemForm
+{
+    public string ProductName { get; set; } = string.Empty;
+    public string MaterialName { get; set; } = string.Empty;
+    public decimal QuantityPerUnit { get; set; } = 1;
+    public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
 }
 
 public class FichasIndexViewModel

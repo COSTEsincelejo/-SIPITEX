@@ -8,4 +8,6 @@ public interface IReportService
     Task<ReportFileDto> ExportOrdersAsync(string format, CancellationToken cancellationToken = default);
     Task<ReportFileDto> ExportQualityAsync(string format, CancellationToken cancellationToken = default);
     Task<ReportFileDto> ExportDashboardAsync(string format, CancellationToken cancellationToken = default);
+    Task<ReportFileDto> ExportMonthlyAsync(int year, int month, string format, CancellationToken cancellationToken = default);
+    Task<ReportFileDto> ExportFilteredAsync(ReportFilterDto filter, CancellationToken cancellationToken = default);
 }

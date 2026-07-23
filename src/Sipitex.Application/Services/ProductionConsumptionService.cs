@@ -18,19 +18,23 @@ public class ProductionConsumptionService
     public async Task<bool> CanConsumeAsync(string productName, int units, CancellationToken cancellationToken = default)
     {
         var recipe = await _bomRepository.GetByProductAsync(productName, cancellationToken);
+        // Sin ficha BOM: se permite producir (sin descontar materiales).
+        if (recipe.Count == 0) return true;
+
         foreach (var item in recipe)
         {
             var material = await _materialRepository.GetByIdAsync(item.MaterialId, cancellationToken);
             if (material is null || material.Stock < item.QuantityPerUnit * units)
                 return false;
         }
-        return recipe.Count > 0;
+        return true;
     }
 
     public async Task<bool> ConsumeAsync(string productName, int units, CancellationToken cancellationToken = default)
     {
         var recipe = await _bomRepository.GetByProductAsync(productName, cancellationToken);
-        if (recipe.Count == 0) return false;
+        // Producto libre sin BOM: no descuenta stock, pero la producción sí se registra.
+        if (recipe.Count == 0) return true;
 
         foreach (var item in recipe)
         {

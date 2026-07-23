@@ -27,7 +27,9 @@ flowchart TB
     EF --> DB
 ```
 
-## 2.2 Modelo de datos (ER simplificado)
+## 2.2 Modelo de datos (ER)
+
+Ver diagrama ER completo y actualizado en [`08-IEEE830-Especificacion.md`](08-IEEE830-Especificacion.md) §4.4.
 
 ```mermaid
 erDiagram
@@ -36,8 +38,11 @@ erDiagram
     ProductionOrder ||--o{ MaterialRequest : origina
     ProductionOrder ||--o{ QualityRecord : inspecciona
     ProductionOrder ||--o{ Ficha : asigna
-    BomItem }o--|| Material : usa
+    ProductionOrder ||--o{ ProductionSession : avanza
+    Ficha ||--o{ ProductionSession : registra
     User }o--o| Ficha : asignada
+    User ||--o{ AlertPreference : configura
+    User ||--o{ AlertDelivery : recibe
 ```
 
 ## 2.3 Servicios de aplicación

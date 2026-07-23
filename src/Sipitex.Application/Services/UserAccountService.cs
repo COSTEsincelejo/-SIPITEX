@@ -112,6 +112,43 @@ public class UserAccountService : IUserAccountService
         return ServiceResult.Ok(isActive ? "Usuario activado." : "Usuario desactivado.");
     }
 
+    public async Task<ServiceResult> UpdateProfileAsync(
+        int id,
+        string nombre,
+        string email,
+        string? newPassword,
+        string? photoPath,
+        bool removePhoto,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(email))
+            return ServiceResult.Fail("Nombre y correo son obligatorios.");
+
+        if (!string.IsNullOrWhiteSpace(newPassword) && newPassword.Length < 6)
+            return ServiceResult.Fail("La contraseña debe tener al menos 6 caracteres.");
+
+        var user = await _userRepository.GetByIdAsync(id, cancellationToken);
+        if (user is null) return ServiceResult.Fail("Usuario no encontrado.");
+
+        if (await _userRepository.EmailExistsAsync(email.Trim(), id, cancellationToken))
+            return ServiceResult.Fail("Ya existe un usuario con ese correo.");
+
+        user.Nombre = nombre.Trim();
+        user.Email = email.Trim().ToLowerInvariant();
+
+        if (!string.IsNullOrWhiteSpace(newPassword))
+            user.PasswordHash = PasswordHasher.Hash(newPassword);
+
+        if (removePhoto)
+            user.PhotoPath = null;
+        else if (!string.IsNullOrWhiteSpace(photoPath))
+            user.PhotoPath = photoPath;
+
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok("Perfil actualizado correctamente.");
+    }
+
     private static ServiceResult? Validate(string nombre, string email, string password, string rol, bool requirePassword)
     {
         if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(email))

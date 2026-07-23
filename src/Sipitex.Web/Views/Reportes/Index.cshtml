@@ -1,13 +1,115 @@
+@model ReportesIndexViewModel
 @{
     ViewData["Title"] = "Reportes";
     ViewData["Breadcrumb"] = "SIPITEX / Análisis / Reportes";
     Layout = "_Layout";
+    var months = Enumerable.Range(1, 12)
+        .Select(m => new { Value = m, Text = new DateTime(2000, m, 1).ToString("MMMM", new System.Globalization.CultureInfo("es-CO")) })
+        .ToList();
 }
 
 <div class="page-header">
     <div>
         <h2>Reportes</h2>
-        <div class="sub">Descargue reportes operativos en PDF o Excel</div>
+        <div class="sub">Descargue PDF/Excel por día, semana, mes, año, instructor o ficha</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-filter"></i> Reporte filtrado (PDF / Excel)</div>
+    <p class="sub" style="margin-bottom:14px;">Combine período con instructor y/o ficha. Incluye materiales, producción y calidad del rango.</p>
+    <form method="get" asp-action="Filtrado" class="form-row" id="filteredReportForm">
+        <div class="field" style="width:160px;">
+            <label class="field-label">Período</label>
+            <select name="period" id="reportPeriod">
+                @if (Model.Period == "dia")
+                {
+                    <option value="dia" selected>Diario</option>
+                }
+                else
+                {
+                    <option value="dia">Diario</option>
+                }
+                @if (Model.Period == "semana")
+                {
+                    <option value="semana" selected>Semanal</option>
+                }
+                else
+                {
+                    <option value="semana">Semanal</option>
+                }
+                @if (Model.Period is "mes" or null or "")
+                {
+                    <option value="mes" selected>Mensual</option>
+                }
+                else
+                {
+                    <option value="mes">Mensual</option>
+                }
+                @if (Model.Period == "anio")
+                {
+                    <option value="anio" selected>Anual</option>
+                }
+                else
+                {
+                    <option value="anio">Anual</option>
+                }
+            </select>
+        </div>
+        <div class="field" style="width:160px;">
+            <label class="field-label">Fecha (día/semana)</label>
+            <input type="date" name="date" value="@Model.Date.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field" style="width:120px;">
+            <label class="field-label">Año</label>
+            <input type="number" name="year" value="@Model.Year" min="2020" max="2100" />
+        </div>
+        <div class="field" style="width:160px;">
+            <label class="field-label">Mes</label>
+            <select name="month">
+                @foreach (var m in months)
+                {
+                    if (m.Value == Model.Month)
+                    {
+                        <option value="@m.Value" selected>@m.Text</option>
+                    }
+                    else
+                    {
+                        <option value="@m.Value">@m.Text</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="field" style="min-width:180px;flex:1;">
+            <label class="field-label">Instructor</label>
+            <select name="instructor">
+                <option value="">Todos</option>
+                @foreach (var inst in Model.Instructors)
+                {
+                    <option value="@inst">@inst</option>
+                }
+            </select>
+        </div>
+        <div class="field" style="min-width:180px;flex:1;">
+            <label class="field-label">Ficha</label>
+            <select name="fichaId">
+                <option value="">Todas</option>
+                @foreach (var f in Model.Fichas)
+                {
+                    <option value="@f.Id">@f.FichaCode — @f.InstructorName</option>
+                }
+            </select>
+        </div>
+        <button type="submit" name="format" value="pdf" class="primary js-download">
+            <i class="fas fa-file-pdf"></i> PDF
+        </button>
+        <button type="submit" name="format" value="excel" class="ghost js-download">
+            <i class="fas fa-file-excel"></i> Excel
+        </button>
+    </form>
+    <div class="alert alert-info" style="margin-top:12px;margin-bottom:0;">
+        <i class="fas fa-circle-info"></i>
+        Diario/semanal usan la fecha. Mensual usa mes+año. Anual usa solo el año. Instructor y ficha filtran la producción del período.
     </div>
 </div>
 
@@ -15,7 +117,7 @@
     <div class="module-link report-card">
         <i class="fas fa-boxes-stacked"></i>
         <h3>Inventario</h3>
-        <p>Stock, estado, mínimos y última entrada.</p>
+        <p>Stock, nivel (agotado / por agotarse / normal), estado y última entrada.</p>
         <div class="report-actions">
             <a class="btn primary small js-download" asp-action="Inventario" asp-route-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
             <a class="btn ghost small js-download" asp-action="Inventario" asp-route-format="excel"><i class="fas fa-file-excel"></i> Excel</a>

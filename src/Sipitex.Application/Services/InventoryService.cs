@@ -44,7 +44,7 @@ public class InventoryService : IInventoryService
             Name = dto.Name.Trim(),
             Unit = dto.Unit,
             Stock = dto.Stock,
-            MinStock = 10,
+            MinStock = dto.MinStock > 0 ? dto.MinStock : 10,
             Status = MaterialStatus.Bueno,
             LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
         };
@@ -90,21 +90,50 @@ public class InventoryService : IInventoryService
 
     public async Task<ServiceResult> CreateRequestAsync(CreateMaterialRequestDto dto, CancellationToken cancellationToken = default)
     {
-        var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
+        if (dto.Quantity <= 0)
+            return ServiceResult.Fail("La cantidad debe ser mayor que cero.");
+
         var order = await _orderRepository.GetByIdAsync(dto.ProductionOrderId, cancellationToken);
-        if (material is null || order is null || dto.Quantity <= 0)
-            return ServiceResult.Fail("Datos inválidos.");
+        if (order is null)
+            return ServiceResult.Fail("Orden no válida.");
+
+        Material? material = null;
+        if (dto.MaterialId is > 0)
+            material = await _materialRepository.GetByIdAsync(dto.MaterialId.Value, cancellationToken);
+
+        if (material is null && !string.IsNullOrWhiteSpace(dto.MaterialName))
+        {
+            material = await _materialRepository.GetByNameAsync(dto.MaterialName, cancellationToken);
+            if (material is null)
+            {
+                material = new Material
+                {
+                    Code = $"mat{DateTime.UtcNow.Ticks}",
+                    Name = dto.MaterialName.Trim(),
+                    Unit = MaterialUnit.Unidades,
+                    Stock = 0,
+                    MinStock = 10,
+                    Status = MaterialStatus.Bueno,
+                    LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
+                };
+                await _materialRepository.AddAsync(material, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        if (material is null)
+            return ServiceResult.Fail("Indique un material existente o escriba el nombre del material a solicitar.");
 
         await _requestRepository.AddAsync(new MaterialRequest
         {
-            MaterialId = dto.MaterialId,
+            MaterialId = material.Id,
             ProductionOrderId = dto.ProductionOrderId,
             Quantity = dto.Quantity,
             Status = RequestStatus.Pendiente
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok("Solicitud creada.");
+        return ServiceResult.Ok($"Solicitud creada para «{material.Name}».");
     }
 
     public async Task<ServiceResult> ApproveRequestAsync(int requestId, CancellationToken cancellationToken = default)
@@ -136,13 +165,23 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok("Solicitud rechazada.");
     }
 
-    private static MaterialDto MapMaterial(Material m) => new(
-        m.Id,
-        m.Name,
-        UnitHelper.ToDisplay(m.Unit),
-        m.Stock,
-        m.Status,
-        m.MinStock,
-        m.Stock < m.MinStock,
-        m.LastEntryDate);
+    private static MaterialDto MapMaterial(Material m)
+    {
+        var depleted = m.Stock <= 0;
+        var low = !depleted && m.Stock < m.MinStock;
+        var level = depleted ? "Agotado" : low ? "Por agotarse" : "Normal";
+        var badge = depleted ? "badge-danger" : low ? "badge-warning" : "badge-success";
+        return new(
+            m.Id,
+            m.Name,
+            UnitHelper.ToDisplay(m.Unit),
+            m.Stock,
+            m.Status,
+            m.MinStock,
+            low, // por agotarse (no incluye agotados)
+            m.LastEntryDate,
+            depleted,
+            level,
+            badge);
+    }
 }

@@ -21,6 +21,11 @@ email-outbox/
 # Publish
 publish/
 
+# Uploads de perfiles (mantener carpeta)
+src/Sipitex.Web/wwwroot/uploads/profiles/*
+!src/Sipitex.Web/wwwroot/uploads/profiles/.gitkeep
+
 # OS
 Thumbs.db
 .DS_Store
+

@@ -21,7 +21,7 @@ Gestionar la producción textil del centro: inventario de materias primas, órde
 | ID | Módulo | Descripción | Prioridad |
 |----|--------|-------------|-----------|
 | RF01 | Usuarios | CRUD usuarios por rol | Alta |
-| RF02 | Usuarios | Autenticación JWT | Alta |
+| RF02 | Usuarios | Autenticación con cookies de sesión | Alta |
 | RF03 | Inventario | Registrar entradas con fecha | Media |
 | RF04 | Inventario | Consultar stock en tiempo real | Alta |
 | RF05 | Inventario | Estado del material | Media |
@@ -46,7 +46,7 @@ Gestionar la producción textil del centro: inventario de materias primas, órde
 | ID | Descripción |
 |----|-------------|
 | RNF01 | Carga < 2 s en intranet |
-| RNF02 | JWT con expiración |
+| RNF02 | Sesión autenticada con expiración |
 | RNF03 | Control de acceso por rol |
 | RNF04 | Acceso desde PCs de la red |
 | RNF05 | UI responsiva |

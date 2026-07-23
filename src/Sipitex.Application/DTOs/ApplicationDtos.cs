@@ -10,9 +10,12 @@ public record MaterialDto(
     MaterialStatus Status,
     decimal MinStock,
     bool IsLowStock,
-    DateOnly LastEntryDate);
+    DateOnly LastEntryDate,
+    bool IsDepleted,
+    string StockLevel,
+    string StockLevelBadge);
 
-public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit);
+public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit, decimal MinStock = 10);
 
 public record AdjustStockDto(int MaterialId, decimal NewStock);
 
@@ -25,7 +28,11 @@ public record MaterialRequestDto(
     string OrderNumber,
     RequestStatus Status);
 
-public record CreateMaterialRequestDto(int ProductionOrderId, int MaterialId, decimal Quantity);
+public record CreateMaterialRequestDto(
+    int ProductionOrderId,
+    decimal Quantity,
+    int? MaterialId = null,
+    string? MaterialName = null);
 
 public record ProductionOrderDto(
     int Id,

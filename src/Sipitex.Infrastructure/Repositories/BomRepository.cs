@@ -11,11 +11,16 @@ public class BomRepository : IBomRepository
 
     public BomRepository(SipitexDbContext context) => _context = context;
 
-    public async Task<IReadOnlyList<BomItem>> GetByProductAsync(string productName, CancellationToken cancellationToken = default) =>
-        await _context.BomItems
+    public async Task<IReadOnlyList<BomItem>> GetByProductAsync(string productName, CancellationToken cancellationToken = default)
+    {
+        var key = (productName ?? string.Empty).Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(key)) return [];
+
+        return await _context.BomItems
             .Include(b => b.Material)
-            .Where(b => b.ProductName == productName)
+            .Where(b => b.ProductName.ToLower() == key)
             .ToListAsync(cancellationToken);
+    }
 
     public async Task<IReadOnlyList<BomItem>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await _context.BomItems
@@ -23,4 +28,14 @@ public class BomRepository : IBomRepository
             .OrderBy(b => b.ProductName)
             .ThenBy(b => b.Material.Name)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<string>> GetDistinctProductNamesAsync(CancellationToken cancellationToken = default) =>
+        await _context.BomItems
+            .Select(b => b.ProductName)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToListAsync(cancellationToken);
+
+    public async Task AddAsync(BomItem item, CancellationToken cancellationToken = default) =>
+        await _context.BomItems.AddAsync(item, cancellationToken);
 }

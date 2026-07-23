@@ -33,5 +33,34 @@ public class UserEditViewModel
 
     public int? FichaAsignadaId { get; set; }
     public string? PermisosExtendidos { get; set; }
+    public List<string> SelectedPermissions { get; set; } = [];
     public bool IsActive { get; set; } = true;
+}
+
+public class ProfileViewModel
+{
+    public int Id { get; set; }
+
+    [Required(ErrorMessage = "El nombre es obligatorio")]
+    [StringLength(120)]
+    public string Nombre { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "El correo es obligatorio")]
+    [EmailAddress(ErrorMessage = "Correo no válido")]
+    [StringLength(160)]
+    public string Email { get; set; } = string.Empty;
+
+    public string Rol { get; set; } = string.Empty;
+
+    public string? PhotoPath { get; set; }
+
+    [DataType(DataType.Password)]
+    [StringLength(100)]
+    public string? NewPassword { get; set; }
+
+    [DataType(DataType.Password)]
+    [Compare(nameof(NewPassword), ErrorMessage = "Las contraseñas no coinciden")]
+    public string? ConfirmPassword { get; set; }
+
+    public bool RemovePhoto { get; set; }
 }

@@ -9,11 +9,11 @@
 <div class="page-header">
     <div>
         <h2>Crear usuario</h2>
-        <div class="sub">Registre un nuevo usuario del sistema</div>
+        <div class="sub">Registre un usuario y asígnele permisos (solo el administrador puede otorgarlos)</div>
     </div>
 </div>
 
-<div class="card" style="max-width:700px;">
+<div class="card" style="max-width:760px;">
     <form asp-action="CreateUser" method="post">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
@@ -48,8 +48,20 @@
             </select>
         </div>
         <div class="field">
-            <label class="field-label">Permisos extendidos</label>
-            <input asp-for="PermisosExtendidos" placeholder="VerReportes, AprobarSolicitudes" />
+            <label class="field-label">Permisos otorgados por el administrador</label>
+            <div class="permission-grid">
+                @foreach (var perm in UserPermissions.Catalog)
+                {
+                    <label class="permission-item">
+                        <input type="checkbox" name="SelectedPermissions" value="@perm.Code"
+                               @(Model.SelectedPermissions.Contains(perm.Code) ? "checked" : null) />
+                        <span>
+                            <strong>@perm.Label</strong>
+                            <small>@perm.Hint</small>
+                        </span>
+                    </label>
+                }
+            </div>
         </div>
         <button type="submit" class="primary">Guardar</button>
         <a asp-action="Users" class="small ghost">Cancelar</a>

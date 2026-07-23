@@ -27,4 +27,11 @@ public class ProductionOrderRepository : IProductionOrderRepository
 
     public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
         _context.ProductionOrders.CountAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<string>> GetDistinctProductNamesAsync(CancellationToken cancellationToken = default) =>
+        await _context.ProductionOrders
+            .Select(o => o.ProductName)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToListAsync(cancellationToken);
 }
