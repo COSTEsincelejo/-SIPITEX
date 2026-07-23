@@ -27,4 +27,12 @@ public interface IUserAccountService
         bool isActive,
         CancellationToken cancellationToken = default);
     Task<ServiceResult> ToggleUserStatusAsync(int id, bool isActive, CancellationToken cancellationToken = default);
+    Task<ServiceResult> UpdateProfileAsync(
+        int id,
+        string nombre,
+        string email,
+        string? newPassword,
+        string? photoPath,
+        bool removePhoto,
+        CancellationToken cancellationToken = default);
 }

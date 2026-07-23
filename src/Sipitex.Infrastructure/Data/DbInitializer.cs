@@ -69,6 +69,7 @@ public static class DbInitializer
     private static async Task EnsureSchemaAsync(SipitexDbContext context)
     {
         await EnsureUsersTableAsync(context);
+        await EnsureColumnAsync(context, "Users", "PhotoPath", """ALTER TABLE "Users" ADD COLUMN "PhotoPath" TEXT NULL;""");
 
         await context.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "ProductionSessions" (
@@ -146,6 +147,7 @@ public static class DbInitializer
                 "Rol" TEXT NOT NULL,
                 "FichaAsignadaId" INTEGER NULL,
                 "PermisosExtendidos" TEXT NOT NULL,
+                "PhotoPath" TEXT NULL,
                 "IsActive" INTEGER NOT NULL,
                 CONSTRAINT "FK_Users_Fichas_FichaAsignadaId" FOREIGN KEY ("FichaAsignadaId") REFERENCES "Fichas" ("Id") ON DELETE SET NULL
             );

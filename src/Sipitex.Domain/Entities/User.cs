@@ -10,6 +10,8 @@ public class User
     public int? FichaAsignadaId { get; set; }
     public Ficha? FichaAsignada { get; set; }
     public string PermisosExtendidos { get; set; } = string.Empty;
+    /// <summary>Ruta relativa de la foto de perfil (p. ej. /uploads/profiles/1.jpg).</summary>
+    public string? PhotoPath { get; set; }
     public bool IsActive { get; set; } = true;
 }
 

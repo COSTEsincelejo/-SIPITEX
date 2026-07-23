@@ -34,8 +34,21 @@
             <tbody>
                 @foreach (var u in Model)
                 {
+                    var initial = string.IsNullOrWhiteSpace(u.Nombre) ? "?" : u.Nombre.Substring(0, 1).ToUpperInvariant();
                     <tr>
-                        <td>@u.Nombre</td>
+                        <td>
+                            <div class="user-cell">
+                                @if (!string.IsNullOrWhiteSpace(u.PhotoPath))
+                                {
+                                    <img class="avatar-img" src="@u.PhotoPath" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="avatar">@initial</span>
+                                }
+                                <span>@u.Nombre</span>
+                            </div>
+                        </td>
                         <td>@u.Email</td>
                         <td>@u.Rol</td>
                         <td>@(u.FichaAsignada?.FichaCode ?? "-")</td>
