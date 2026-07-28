@@ -60,16 +60,21 @@ public class OrdenesIndexViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public IReadOnlyList<string> KnownProducts { get; set; } = [];
+    public IReadOnlyList<InstructorOption> Instructors { get; set; } = [];
     public CreateOrderForm CreateOrder { get; set; } = new();
+    public bool CurrentUserIsInstructor { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
+
+public record InstructorOption(int Id, string Nombre, string Email);
 
 public class CreateOrderForm
 {
     public string ProductName { get; set; } = string.Empty;
     public int TotalQuantity { get; set; }
     public DateOnly Deadline { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+    public int? InstructorId { get; set; }
 }
 
 public class MrpIndexViewModel

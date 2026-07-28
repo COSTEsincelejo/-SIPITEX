@@ -45,6 +45,10 @@ public class SipitexDbContext : DbContext
             e.Property(o => o.OrderNumber).HasMaxLength(20).IsRequired();
             e.Property(o => o.ProductName).HasMaxLength(80).IsRequired();
             e.HasIndex(o => o.OrderNumber).IsUnique();
+            e.HasOne(o => o.Instructor)
+                .WithMany()
+                .HasForeignKey(o => o.InstructorId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<MaterialRequest>(e =>

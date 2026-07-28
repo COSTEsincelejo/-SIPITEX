@@ -12,6 +12,10 @@ public class ProductionOrder
     public OrderStatus Status { get; set; } = OrderStatus.EnProceso;
     public DateOnly Deadline { get; set; }
 
+    /// <summary>Instructor responsable (usuario con rol Instructor). Opcional.</summary>
+    public int? InstructorId { get; set; }
+    public User? Instructor { get; set; }
+
     public ICollection<MaterialRequest> MaterialRequests { get; set; } = [];
     public ICollection<QualityRecord> QualityRecords { get; set; } = [];
     public ICollection<Ficha> Fichas { get; set; } = [];

@@ -12,7 +12,10 @@ public class ProductionOrderRepository : IProductionOrderRepository
     public ProductionOrderRepository(SipitexDbContext context) => _context = context;
 
     public async Task<IReadOnlyList<ProductionOrder>> GetAllAsync(CancellationToken cancellationToken = default) =>
-        await _context.ProductionOrders.OrderBy(o => o.OrderNumber).ToListAsync(cancellationToken);
+        await _context.ProductionOrders
+            .Include(o => o.Instructor)
+            .OrderBy(o => o.OrderNumber)
+            .ToListAsync(cancellationToken);
 
     public Task<ProductionOrder?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _context.ProductionOrders.FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
