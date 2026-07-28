@@ -99,8 +99,8 @@
                             <span class="role-hint">Mi perfil · clic aquí</span>
                         </span>
                     </a>
-                    <a class="btn primary small profile-topbar-btn" asp-controller="Account" asp-action="Profile">
-                        <i class="fas fa-user"></i> Mi perfil
+                    <a class="btn primary small profile-topbar-btn" asp-controller="Account" asp-action="Profile" title="Mi perfil">
+                        <i class="fas fa-user"></i> <span class="profile-topbar-label">Mi perfil</span>
                     </a>
                     <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
                         @Html.AntiForgeryToken()
