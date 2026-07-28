@@ -60,7 +60,8 @@ public record FichaDto(
     string FichaCode,
     string ProcessName,
     string InstructorName,
-    string? AssignedOrderNumber);
+    string? AssignedOrderNumber,
+    int? InstructorUserId = null);
 
 public record ProductionSessionDto(
     int Id,
@@ -68,7 +69,9 @@ public record ProductionSessionDto(
     string OrderNumber,
     int Units,
     string Observations,
-    DateTime SessionDate);
+    DateTime SessionDate,
+    string InstructorName,
+    int? RegisteredByUserId = null);
 
 public record RegisterProductionDto(int ProductionOrderId, int FichaId, int Units, string? Observations = null);
 

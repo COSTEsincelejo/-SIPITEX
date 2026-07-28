@@ -60,6 +60,10 @@ public class SipitexDbContext : DbContext
             e.HasKey(f => f.Id);
             e.Property(f => f.FichaCode).HasMaxLength(30).IsRequired();
             e.HasOne(f => f.ProductionOrder).WithMany(o => o.Fichas).HasForeignKey(f => f.ProductionOrderId);
+            e.HasOne(f => f.InstructorUser)
+                .WithMany()
+                .HasForeignKey(f => f.InstructorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<QualityRecord>(e =>
@@ -76,6 +80,10 @@ public class SipitexDbContext : DbContext
             e.Property(s => s.Observations).HasMaxLength(500);
             e.HasOne(s => s.Ficha).WithMany().HasForeignKey(s => s.FichaId);
             e.HasOne(s => s.ProductionOrder).WithMany().HasForeignKey(s => s.ProductionOrderId);
+            e.HasOne(s => s.RegisteredByUser)
+                .WithMany()
+                .HasForeignKey(s => s.RegisteredByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<FunctionalRequirement>(e =>

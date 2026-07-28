@@ -10,4 +10,8 @@ public class ProductionSession
     public int Units { get; set; }
     public string Observations { get; set; } = string.Empty;
     public DateTime SessionDate { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Usuario que registró la sesión (instructor o admin).</summary>
+    public int? RegisteredByUserId { get; set; }
+    public User? RegisteredByUser { get; set; }
 }

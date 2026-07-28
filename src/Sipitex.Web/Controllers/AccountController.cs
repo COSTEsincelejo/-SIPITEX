@@ -141,7 +141,7 @@ public class AccountController : Controller
     private async Task<IReadOnlyList<Ficha>> GetFichasAsync(CancellationToken cancellationToken)
     {
         var fichaService = HttpContext.RequestServices.GetService<IFichaService>();
-        var fichas = await fichaService!.GetFichasAsync(cancellationToken);
+        var fichas = await fichaService!.GetFichasAsync(cancellationToken: cancellationToken);
         return fichas.Select(f => new Ficha { Id = f.Id, FichaCode = f.FichaCode, ProcessName = f.ProcessName }).ToList();
     }
 }
