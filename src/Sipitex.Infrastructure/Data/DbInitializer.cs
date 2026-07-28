@@ -63,6 +63,7 @@ public static class DbInitializer
         }
 
         await SeedUsersAsync(context);
+        await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
     }
 
@@ -86,6 +87,8 @@ public static class DbInitializer
         await EnsureColumnAsync(context, "Materials", "LastEntryDate", """ALTER TABLE "Materials" ADD COLUMN "LastEntryDate" TEXT NOT NULL DEFAULT '2026-01-01';""");
         await EnsureColumnAsync(context, "QualityRecords", "MotivoReproceso", """ALTER TABLE "QualityRecords" ADD COLUMN "MotivoReproceso" TEXT NULL;""");
         await EnsureColumnAsync(context, "QualityRecords", "Responsable", """ALTER TABLE "QualityRecords" ADD COLUMN "Responsable" TEXT NULL;""");
+        await EnsureColumnAsync(context, "Fichas", "InstructorUserId", """ALTER TABLE "Fichas" ADD COLUMN "InstructorUserId" INTEGER NULL;""");
+        await EnsureColumnAsync(context, "ProductionSessions", "RegisteredByUserId", """ALTER TABLE "ProductionSessions" ADD COLUMN "RegisteredByUserId" INTEGER NULL;""");
 
         await context.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "AlertPreferences" (
@@ -189,6 +192,32 @@ public static class DbInitializer
             });
 
         await context.SaveChangesAsync();
+    }
+
+    private static async Task LinkFichasToInstructorUsersAsync(SipitexDbContext context)
+    {
+        var instructors = await context.Users
+            .Where(u => u.Rol == UserRoles.Instructor && u.IsActive)
+            .ToListAsync();
+        if (instructors.Count == 0) return;
+
+        var fichas = await context.Fichas.Where(f => f.InstructorUserId == null).ToListAsync();
+        var changed = false;
+        foreach (var ficha in fichas)
+        {
+            var match = instructors.FirstOrDefault(u =>
+                string.Equals(u.Nombre, ficha.InstructorName, StringComparison.OrdinalIgnoreCase));
+            if (match is null) continue;
+
+            ficha.InstructorUserId = match.Id;
+            ficha.InstructorName = match.Nombre;
+            if (match.FichaAsignadaId is null)
+                match.FichaAsignadaId = ficha.Id;
+            changed = true;
+        }
+
+        if (changed)
+            await context.SaveChangesAsync();
     }
 
     private static async Task SeedAlertPreferencesAsync(SipitexDbContext context)

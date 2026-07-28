@@ -69,6 +69,7 @@ public class FichasIndexViewModel
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public IReadOnlyList<ProductionSessionDto> Sessions { get; set; } = [];
     public RegisterProductionForm Register { get; set; } = new();
+    public bool IsAdministrator { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }

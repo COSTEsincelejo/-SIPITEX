@@ -10,11 +10,13 @@ namespace Sipitex.Application.Services;
 public class UserAccountService : IUserAccountService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IFichaRepository _fichaRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public UserAccountService(IUserRepository userRepository, IUnitOfWork unitOfWork)
+    public UserAccountService(IUserRepository userRepository, IFichaRepository fichaRepository, IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
+        _fichaRepository = fichaRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -63,6 +65,7 @@ public class UserAccountService : IUserAccountService
 
         _userRepository.Add(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await SyncFichaOwnershipAsync(user.Id, user.Nombre, user.Rol, fichaAsignadaId, cancellationToken);
         return ServiceResult.Ok("Usuario creado correctamente.");
     }
 
@@ -98,6 +101,7 @@ public class UserAccountService : IUserAccountService
 
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await SyncFichaOwnershipAsync(user.Id, user.Nombre, user.Rol, fichaAsignadaId, cancellationToken);
         return ServiceResult.Ok("Usuario actualizado correctamente.");
     }
 
@@ -127,5 +131,25 @@ public class UserAccountService : IUserAccountService
             return ServiceResult.Fail("Rol no válido.");
 
         return null;
+    }
+
+    private async Task SyncFichaOwnershipAsync(
+        int userId,
+        string nombre,
+        string rol,
+        int? fichaAsignadaId,
+        CancellationToken cancellationToken)
+    {
+        if (!string.Equals(rol, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase)
+            || fichaAsignadaId is not int fichaId)
+            return;
+
+        var ficha = await _fichaRepository.GetByIdAsync(fichaId, cancellationToken);
+        if (ficha is null) return;
+
+        ficha.InstructorUserId = userId;
+        ficha.InstructorName = nombre;
+        _fichaRepository.Update(ficha);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

@@ -10,9 +10,10 @@ namespace Sipitex.Tests;
 public class UserAccountServiceTests
 {
     private readonly Mock<IUserRepository> _userRepository = new();
+    private readonly Mock<IFichaRepository> _fichaRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
-    private UserAccountService CreateSut() => new(_userRepository.Object, _unitOfWork.Object);
+    private UserAccountService CreateSut() => new(_userRepository.Object, _fichaRepository.Object, _unitOfWork.Object);
 
     private static User CreateUser(string email, string password, bool isActive = true) => new()
     {

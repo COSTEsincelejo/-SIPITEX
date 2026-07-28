@@ -8,7 +8,9 @@
 <div class="page-header">
     <div>
         <h2>Fichas & producción</h2>
-        <div class="sub">Asigna procesos a fichas y registra la producción diaria</div>
+        <div class="sub">@(Model.IsAdministrator
+            ? "Vista global: todas las fichas y sesiones de todos los instructores"
+            : "Solo ve sus fichas y la producción que registró con ellas")</div>
     </div>
 </div>
 
@@ -19,78 +21,101 @@
 
 <div class="card">
     <div class="card-title teal"><i class="fas fa-chalkboard-user"></i> Fichas de aprendices / procesos</div>
-    <div class="table-wrap">
-        <table>
-            <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructor</th><th>Orden asignada</th><th>Registro rápido</th></tr></thead>
-            <tbody>
-            @foreach (var ficha in Model.Fichas)
-            {
-                <tr>
-                    <td><strong>@ficha.FichaCode</strong></td>
-                    <td>@ficha.ProcessName</td>
-                    <td>@ficha.InstructorName</td>
-                    <td>@(ficha.AssignedOrderNumber ?? "—")</td>
-                    <td>
-                        <form asp-action="QuickRegister" method="post" class="row-actions">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="fichaId" value="@ficha.Id" />
-                            <input type="number" name="units" min="1" placeholder="uds" style="width:80px" required aria-label="Unidades" />
-                            <input type="text" name="observations" placeholder="Observación" style="width:160px" aria-label="Observación" />
-                            <button type="submit" class="small ghost">Registrar hoy</button>
-                        </form>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
-    <form asp-action="Register" method="post" class="form-row" style="margin-top:18px;">
-        @Html.AntiForgeryToken()
-        <div class="field">
-            <label class="field-label">Orden</label>
-            <select asp-for="Register.ProductionOrderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber"))"></select>
-        </div>
-        <div class="field">
-            <label class="field-label">Ficha</label>
-            <select asp-for="Register.FichaId">
-                @foreach (var f in Model.Fichas)
-                {
-                    <option value="@f.Id">@f.FichaCode - @f.ProcessName</option>
-                }
-            </select>
-        </div>
-        <div class="field" style="width:160px;">
-            <label class="field-label">Unidades producidas</label>
-            <input asp-for="Register.Units" type="number" min="1" required />
-        </div>
-        <div class="field" style="flex:1;min-width:220px;">
-            <label class="field-label">Observaciones</label>
-            <input asp-for="Register.Observations" placeholder="Notas de la sesión diaria" />
-        </div>
-        <button type="submit" class="primary"><i class="fas fa-save"></i> Registrar sesión diaria</button>
-    </form>
-    <div class="alert alert-info" style="margin-top:6px;">
-        <i class="fas fa-circle-info"></i> Cada registro consume materiales según el BOM, actualiza el avance y guarda observaciones.
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-title amber"><i class="fas fa-clock-rotate-left"></i> Sesiones recientes</div>
-    @if (!Model.Sessions.Any())
+    @if (!Model.Fichas.Any())
     {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-clock-rotate-left", Title = "Sin sesiones registradas", Text = "Las sesiones diarias con observaciones aparecerán aquí.", ActionText = "Registre una sesión con el formulario superior." }' />
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-chalkboard-user", Title = "Sin fichas asignadas", Text = "No tiene fichas vinculadas a su cuenta de instructor.", ActionText = "Pida al administrador que le asigne una ficha en Usuarios." }' />
     }
     else
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Fecha</th><th>Ficha</th><th>Orden</th><th>Unidades</th><th>Observaciones</th></tr></thead>
+                <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructor</th><th>Orden asignada</th><th>Registro rápido</th></tr></thead>
+                <tbody>
+                @foreach (var ficha in Model.Fichas)
+                {
+                    <tr>
+                        <td><strong>@ficha.FichaCode</strong></td>
+                        <td>@ficha.ProcessName</td>
+                        <td>@ficha.InstructorName</td>
+                        <td>@(ficha.AssignedOrderNumber ?? "—")</td>
+                        <td>
+                            <form asp-action="QuickRegister" method="post" class="row-actions">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="fichaId" value="@ficha.Id" />
+                                <input type="number" name="units" min="1" placeholder="uds" style="width:80px" required aria-label="Unidades" />
+                                <input type="text" name="observations" placeholder="Observación" style="width:160px" aria-label="Observación" />
+                                <button type="submit" class="small ghost">Registrar hoy</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <form asp-action="Register" method="post" class="form-row" style="margin-top:18px;">
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label class="field-label">Orden</label>
+                <select asp-for="Register.ProductionOrderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber"))"></select>
+            </div>
+            <div class="field">
+                <label class="field-label">Ficha</label>
+                <select asp-for="Register.FichaId">
+                    @foreach (var f in Model.Fichas)
+                    {
+                        <option value="@f.Id">@f.FichaCode - @f.ProcessName</option>
+                    }
+                </select>
+            </div>
+            <div class="field" style="width:160px;">
+                <label class="field-label">Unidades producidas</label>
+                <input asp-for="Register.Units" type="number" min="1" required />
+            </div>
+            <div class="field" style="flex:1;min-width:220px;">
+                <label class="field-label">Observaciones</label>
+                <input asp-for="Register.Observations" placeholder="Notas de la sesión diaria" />
+            </div>
+            <button type="submit" class="primary"><i class="fas fa-save"></i> Registrar sesión diaria</button>
+        </form>
+        <div class="alert alert-info" style="margin-top:6px;">
+            <i class="fas fa-circle-info"></i> Cada registro consume materiales según el BOM, actualiza el avance y guarda observaciones.
+        </div>
+    }
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-clock-rotate-left"></i> @(Model.IsAdministrator ? "Sesiones recientes (todos los instructores)" : "Mis sesiones de producción")</div>
+    @if (!Model.Sessions.Any())
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-clock-rotate-left", Title = "Sin sesiones registradas", Text = "Las sesiones diarias con observaciones aparecerán aquí.", ActionText = Model.Fichas.Any() ? "Registre una sesión con el formulario superior." : null }' />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Ficha</th>
+                        @if (Model.IsAdministrator)
+                        {
+                            <th>Instructor</th>
+                        }
+                        <th>Orden</th>
+                        <th>Unidades</th>
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
                 <tbody>
                 @foreach (var s in Model.Sessions)
                 {
                     <tr>
                         <td>@s.SessionDate.ToString("yyyy-MM-dd HH:mm")</td>
                         <td>@s.FichaCode</td>
+                        @if (Model.IsAdministrator)
+                        {
+                            <td>@s.InstructorName</td>
+                        }
                         <td>@s.OrderNumber</td>
                         <td>@s.Units</td>
                         <td>@(string.IsNullOrWhiteSpace(s.Observations) ? "—" : s.Observations)</td>
