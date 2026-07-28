@@ -38,7 +38,7 @@ dotnet run
 
 Abrir `https://localhost:5xxx` (el puerto se muestra en consola). La ruta por defecto es **Inventario** (requiere autenticación).
 
-La base de datos SQLite (`sipitex.db`) se crea automáticamente con datos de demostración al iniciar.
+La base de datos SQLite (`sipitex.db`) se crea automáticamente al iniciar mediante **migraciones EF Core** (`MigrateAsync`), con datos de demostración.
 
 ### Usuarios demo
 
