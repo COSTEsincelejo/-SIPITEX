@@ -22,8 +22,12 @@ public class FichasController : Controller
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken) =>
-        View(await BuildViewModel(cancellationToken));
+    public async Task<IActionResult> Index(
+        string? fichaCode,
+        string? instructor,
+        string? turno,
+        CancellationToken cancellationToken) =>
+        View(await BuildViewModel(fichaCode, instructor, turno, cancellationToken));
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
@@ -80,11 +84,37 @@ public class FichasController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task<FichasIndexViewModel> BuildViewModel(CancellationToken cancellationToken)
+    private async Task<FichasIndexViewModel> BuildViewModel(
+        string? fichaCode,
+        string? instructor,
+        string? turno,
+        CancellationToken cancellationToken)
     {
         var (userId, role, name) = CurrentViewer();
         var orders = await _orderService.GetOrdersAsync(cancellationToken);
-        var fichas = await _fichaService.GetFichasAsync(userId, role, name, cancellationToken);
+        var fichas = (await _fichaService.GetFichasAsync(userId, role, name, cancellationToken)).AsEnumerable();
+        var sessions = (await _fichaService.GetRecentSessionsAsync(userId, role, name, cancellationToken)).AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(fichaCode))
+        {
+            fichas = fichas.Where(f => f.FichaCode.Contains(fichaCode, StringComparison.OrdinalIgnoreCase));
+            sessions = sessions.Where(s => s.FichaCode.Contains(fichaCode, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(instructor))
+        {
+            fichas = fichas.Where(f => f.InstructorName.Contains(instructor, StringComparison.OrdinalIgnoreCase));
+            sessions = sessions.Where(s => s.InstructorName.Contains(instructor, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(turno))
+        {
+            fichas = fichas.Where(f => string.Equals(f.Turno, turno, StringComparison.OrdinalIgnoreCase));
+            sessions = sessions.Where(s => string.Equals(s.Turno, turno, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var fichaList = fichas.ToList();
+        var sessionList = sessions.ToList();
 
         var create = new CreateFichaForm();
         if (User.IsInRole(UserRoles.Instructor) && !string.IsNullOrWhiteSpace(name))
@@ -92,16 +122,19 @@ public class FichasController : Controller
 
         return new FichasIndexViewModel
         {
-            Fichas = fichas,
+            Fichas = fichaList,
             Orders = orders,
-            Sessions = await _fichaService.GetRecentSessionsAsync(userId, role, name, cancellationToken),
+            Sessions = sessionList,
             IsAdministrator = User.IsInRole(UserRoles.Administrador),
             CreateFicha = create,
             Register = new RegisterProductionForm
             {
                 ProductionOrderId = orders.FirstOrDefault()?.Id ?? 0,
-                FichaId = fichas.FirstOrDefault()?.Id ?? 0
+                FichaId = fichaList.FirstOrDefault()?.Id ?? 0
             },
+            FichaCodeFilter = fichaCode,
+            InstructorFilter = instructor,
+            TurnoFilter = turno,
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         };

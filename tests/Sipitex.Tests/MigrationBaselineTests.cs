@@ -56,7 +56,7 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
             Assert.True(await TableExistsAsync(dbPath, "Users"));
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(2, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(3, await CountMigrationRowsAsync(dbPath));
         }
         finally
         {
@@ -70,11 +70,11 @@ public class MigrationBaselineTests
         var dbPath = NewTempDbPath();
         try
         {
-            // Crear esquema completo vía migración y luego quitar el historial
-            // (simula EnsureCreated / SQL manual sin __EFMigrationsHistory).
+            // Esquema legacy = hasta AddPasswordResetTokens (sin AddFichaTurno).
+            // Así el baseline marca las dos primeras y MigrateAsync aplica AddFichaTurno.
             await using (var context = CreateContext(dbPath))
             {
-                await context.Database.MigrateAsync();
+                await context.Database.MigrateAsync(MigrationBaseline.AddPasswordResetTokensMigrationId);
             }
 
             await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
@@ -91,11 +91,11 @@ public class MigrationBaselineTests
             await using (var context = CreateContext(dbPath))
             {
                 await MigrationBaseline.EnsureBaselineAsync(context);
-                await context.Database.MigrateAsync(); // no debe fallar
+                await context.Database.MigrateAsync(); // aplica AddFichaTurno
             }
 
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(2, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(3, await CountMigrationRowsAsync(dbPath));
 
             await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
             {
@@ -109,6 +109,7 @@ public class MigrationBaselineTests
                     ids.Add(reader.GetString(0));
                 Assert.Contains(MigrationBaseline.InitialCreateMigrationId, ids);
                 Assert.Contains(MigrationBaseline.AddPasswordResetTokensMigrationId, ids);
+                Assert.Contains(ids, id => id.Contains("AddFichaTurno", StringComparison.Ordinal));
             }
         }
         finally
@@ -129,7 +130,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(2, before);
+            Assert.Equal(3, before);
 
             await using (var context = CreateContext(dbPath))
             {

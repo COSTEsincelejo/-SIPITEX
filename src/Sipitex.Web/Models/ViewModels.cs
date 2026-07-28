@@ -71,6 +71,9 @@ public class FichasIndexViewModel
     public CreateFichaForm CreateFicha { get; set; } = new();
     public RegisterProductionForm Register { get; set; } = new();
     public bool IsAdministrator { get; set; }
+    public string? FichaCodeFilter { get; set; }
+    public string? InstructorFilter { get; set; }
+    public string? TurnoFilter { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }

@@ -48,7 +48,8 @@ public class FichaService : IFichaService
             f.ProcessName,
             f.InstructorName,
             f.ProductionOrder?.OrderNumber,
-            f.InstructorUserId)).ToList();
+            f.InstructorUserId,
+            f.Turno)).ToList();
     }
 
     public async Task<IReadOnlyList<ProductionSessionDto>> GetRecentSessionsAsync(
@@ -79,7 +80,8 @@ public class FichaService : IFichaService
             s.Observations,
             s.SessionDate,
             s.Ficha.InstructorName,
-            s.RegisteredByUserId)).ToList();
+            s.RegisteredByUserId,
+            s.Ficha.Turno)).ToList();
     }
 
     public async Task<ServiceResult> RegisterSessionAsync(
