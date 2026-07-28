@@ -118,12 +118,14 @@ public class UserAccountServiceTests
             1,
             "Instructor Actualizado",
             "instructor@sipitex.test",
+            "Registro de producción y seguimiento de fichas en turno mañana.",
             "NuevaClave1!",
             "/uploads/profiles/1.jpg",
             removePhoto: false);
 
         Assert.True(result.Success);
         Assert.Equal("Instructor Actualizado", user.Nombre);
+        Assert.Equal("Registro de producción y seguimiento de fichas en turno mañana.", user.FuncionDescripcion);
         Assert.Equal("/uploads/profiles/1.jpg", user.PhotoPath);
         Assert.True(PasswordHasher.Verify("NuevaClave1!", user.PasswordHash));
         _userRepository.Verify(r => r.Update(user), Times.Once);

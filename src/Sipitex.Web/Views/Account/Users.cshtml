@@ -26,6 +26,7 @@
                     <th>Nombre</th>
                     <th>Correo</th>
                     <th>Rol</th>
+                    <th>Funciones</th>
                     <th>Ficha</th>
                     <th>Estado</th>
                     <th></th>
@@ -35,9 +36,22 @@
                 @foreach (var u in Model)
                 {
                     <tr>
-                        <td>@u.Nombre</td>
+                        <td>
+                            <div class="user-cell">
+                                @if (!string.IsNullOrWhiteSpace(u.PhotoPath))
+                                {
+                                    <img class="avatar avatar-img" src="@u.PhotoPath" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="avatar">@(string.IsNullOrEmpty(u.Nombre) ? "?" : u.Nombre.Substring(0, 1).ToUpper())</span>
+                                }
+                                <span>@u.Nombre</span>
+                            </div>
+                        </td>
                         <td>@u.Email</td>
                         <td>@u.Rol</td>
+                        <td class="user-funcion">@(string.IsNullOrWhiteSpace(u.FuncionDescripcion) ? "—" : u.FuncionDescripcion)</td>
                         <td>@(u.FichaAsignada?.FichaCode ?? "-")</td>
                         <td>
                             <span class="badge @(u.IsActive ? "badge-success" : "badge-danger")">@(u.IsActive ? "Activo" : "Inactivo")</span>

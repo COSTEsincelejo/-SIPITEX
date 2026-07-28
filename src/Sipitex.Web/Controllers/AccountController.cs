@@ -168,6 +168,7 @@ public class AccountController : Controller
             user.Id,
             model.Nombre,
             model.Email,
+            model.FuncionDescripcion,
             model.NewPassword,
             newPhotoPath,
             model.RemovePhoto,
@@ -311,7 +312,8 @@ public class AccountController : Controller
         Nombre = user.Nombre,
         Email = user.Email,
         Rol = user.Rol,
-        PhotoPath = user.PhotoPath
+        PhotoPath = user.PhotoPath,
+        FuncionDescripcion = user.FuncionDescripcion
     };
 
     private async Task<(bool Success, string? Path, string? Error)> SaveProfilePhotoAsync(

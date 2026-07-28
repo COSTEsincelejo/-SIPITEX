@@ -131,6 +131,7 @@ public class UserAccountService : IUserAccountService
         int id,
         string nombre,
         string email,
+        string? funcionDescripcion,
         string? newPassword,
         string? photoPath,
         bool removePhoto,
@@ -138,6 +139,9 @@ public class UserAccountService : IUserAccountService
     {
         if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(email))
             return ServiceResult.Fail("Nombre y correo son obligatorios.");
+
+        if (funcionDescripcion is { Length: > 800 })
+            return ServiceResult.Fail("La descripción de funciones no puede superar 800 caracteres.");
 
         var passwordError = PasswordRules.Validate(newPassword, required: false);
         if (passwordError is not null)
@@ -151,6 +155,9 @@ public class UserAccountService : IUserAccountService
 
         user.Nombre = nombre.Trim();
         user.Email = email.Trim().ToLowerInvariant();
+        user.FuncionDescripcion = string.IsNullOrWhiteSpace(funcionDescripcion)
+            ? null
+            : funcionDescripcion.Trim();
 
         if (!string.IsNullOrWhiteSpace(newPassword))
             user.PasswordHash = PasswordHasher.Hash(newPassword);
