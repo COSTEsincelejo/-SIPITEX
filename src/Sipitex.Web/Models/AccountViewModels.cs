@@ -32,6 +32,9 @@ public class UserEditViewModel
     public string Rol { get; set; } = "Instructor";
 
     public int? FichaAsignadaId { get; set; }
-    public string? PermisosExtendidos { get; set; }
+
+    /// <summary>Permisos extendidos seleccionados (claves de <c>ExtendedPermissions</c>).</summary>
+    public List<string> SelectedPermissions { get; set; } = [];
+
     public bool IsActive { get; set; } = true;
 }

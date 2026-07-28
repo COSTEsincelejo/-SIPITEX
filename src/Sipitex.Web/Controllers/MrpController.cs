@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Sipitex.Application.Authorization;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
@@ -25,7 +26,7 @@ public class MrpController : Controller
         });
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeSimularMrp)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Simulate(MrpSimulationForm form, CancellationToken cancellationToken)

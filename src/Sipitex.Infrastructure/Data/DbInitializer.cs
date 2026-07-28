@@ -166,7 +166,7 @@ public static class DbInitializer
                 Email = "admin@sipitex.test",
                 PasswordHash = PasswordHasher.Hash("Admin123!"),
                 Rol = UserRoles.Administrador,
-                PermisosExtendidos = "GestionUsuarios, VerReportes",
+                PermisosExtendidos = string.Empty,
                 IsActive = true
             },
             new User
@@ -175,7 +175,7 @@ public static class DbInitializer
                 Email = "instructor@sipitex.test",
                 PasswordHash = PasswordHasher.Hash("Instructor123!"),
                 Rol = UserRoles.Instructor,
-                PermisosExtendidos = "RegistrarProduccion",
+                PermisosExtendidos = string.Empty,
                 IsActive = true
             },
             new User
@@ -184,7 +184,7 @@ public static class DbInitializer
                 Email = "bodega@sipitex.test",
                 PasswordHash = PasswordHasher.Hash("Bodega123!"),
                 Rol = UserRoles.Bodeguero,
-                PermisosExtendidos = "AprobarSolicitudes",
+                PermisosExtendidos = string.Empty,
                 IsActive = true
             });
 

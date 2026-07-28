@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Sipitex.Application.Authorization;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
@@ -48,7 +49,7 @@ public class AlertasController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    [Authorize(Roles = UserRoles.Administrador)]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeConfigurarAlertas)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Evaluar(CancellationToken cancellationToken)
