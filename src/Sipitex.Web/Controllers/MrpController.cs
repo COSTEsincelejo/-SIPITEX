@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
@@ -13,6 +14,7 @@ public class MrpController : Controller
 
     public MrpController(IMrpService mrpService) => _mrpService = mrpService;
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero},{UserRoles.Instructor}")]
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
@@ -23,6 +25,7 @@ public class MrpController : Controller
         });
     }
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Simulate(MrpSimulationForm form, CancellationToken cancellationToken)
