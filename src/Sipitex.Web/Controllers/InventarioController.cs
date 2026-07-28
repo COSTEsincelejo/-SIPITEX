@@ -28,7 +28,7 @@ public class InventarioController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddMaterial(CreateMaterialForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> AddMaterial([Bind(Prefix = "CreateMaterial")] CreateMaterialForm form, CancellationToken cancellationToken)
     {
         if (!PermissionHelper.CanRegisterMaterials(User))
             return Forbid();
@@ -73,7 +73,7 @@ public class InventarioController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateRequest(CreateRequestForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateRequest([Bind(Prefix = "CreateRequest")] CreateRequestForm form, CancellationToken cancellationToken)
     {
         if (!(User.IsInRole(Domain.Entities.UserRoles.Administrador) || User.IsInRole(Domain.Entities.UserRoles.Instructor)))
             return Forbid();

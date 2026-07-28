@@ -35,7 +35,7 @@ public class CalidadController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CreateQualityForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create([Bind(Prefix = "Create")] CreateQualityForm form, CancellationToken cancellationToken)
     {
         var result = await _qualityService.AddRecordAsync(
             new CreateQualityRecordDto(

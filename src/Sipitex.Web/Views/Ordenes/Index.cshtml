@@ -12,11 +12,6 @@
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(Model.Message))
-{
-    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" class="visually-hidden">@Model.Message</div>
-}
-
 <div class="card">
     <div class="card-title"><i class="fas fa-clipboard-list"></i> Crear orden de producción</div>
     <div class="grid-2col">

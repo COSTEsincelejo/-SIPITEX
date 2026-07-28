@@ -21,7 +21,7 @@ public class OrdenesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CreateOrderForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create([Bind(Prefix = "CreateOrder")] CreateOrderForm form, CancellationToken cancellationToken)
     {
         var result = await _orderService.CreateOrderAsync(
             new CreateProductionOrderDto(form.ProductName, form.TotalQuantity, form.Deadline), cancellationToken);
@@ -46,8 +46,7 @@ public class OrdenesController : Controller
         {
             Orders = await _orderService.GetOrdersAsync(cancellationToken),
             KnownProducts = await _orderService.GetKnownProductNamesAsync(cancellationToken),
-            CreateOrder = new CreateOrderForm(),
-            Message = TempData["Message"] as string,
-            IsSuccess = TempData["IsSuccess"] as bool? ?? false
+            CreateOrder = new CreateOrderForm()
+            // Los toasts de TempData los muestra _Layout (evita duplicados).
         };
 }

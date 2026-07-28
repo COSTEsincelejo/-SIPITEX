@@ -42,7 +42,7 @@ public class FichasController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(RegisterProductionForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> Register([Bind(Prefix = "Register")] RegisterProductionForm form, CancellationToken cancellationToken)
     {
         var result = await _fichaService.RegisterSessionAsync(
             new RegisterProductionDto(form.ProductionOrderId, form.FichaId, form.Units, form.Observations), cancellationToken);
