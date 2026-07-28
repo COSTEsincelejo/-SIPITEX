@@ -56,7 +56,7 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
             Assert.True(await TableExistsAsync(dbPath, "Users"));
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(1, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(2, await CountMigrationRowsAsync(dbPath));
         }
         finally
         {
@@ -95,16 +95,20 @@ public class MigrationBaselineTests
             }
 
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(1, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(2, await CountMigrationRowsAsync(dbPath));
 
             await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
             {
                 await conn.OpenAsync();
                 await using var cmd = conn.CreateCommand();
                 cmd.CommandText =
-                    """SELECT "MigrationId" FROM "__EFMigrationsHistory" LIMIT 1;""";
-                var id = (string?)await cmd.ExecuteScalarAsync();
-                Assert.Equal(MigrationBaseline.InitialCreateMigrationId, id);
+                    """SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId";""";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                var ids = new List<string>();
+                while (await reader.ReadAsync())
+                    ids.Add(reader.GetString(0));
+                Assert.Contains(MigrationBaseline.InitialCreateMigrationId, ids);
+                Assert.Contains(MigrationBaseline.AddPasswordResetTokensMigrationId, ids);
             }
         }
         finally
@@ -125,7 +129,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(1, before);
+            Assert.Equal(2, before);
 
             await using (var context = CreateContext(dbPath))
             {

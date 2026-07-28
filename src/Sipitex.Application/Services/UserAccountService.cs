@@ -117,11 +117,9 @@ public class UserAccountService : IUserAccountService
         if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(email))
             return ServiceResult.Fail("Nombre y correo son obligatorios.");
 
-        if (requirePassword && string.IsNullOrWhiteSpace(password))
-            return ServiceResult.Fail("La contraseña es obligatoria.");
-
-        if (!string.IsNullOrWhiteSpace(password) && password.Length < 6)
-            return ServiceResult.Fail("La contraseña debe tener al menos 6 caracteres.");
+        var passwordError = PasswordRules.Validate(password, required: requirePassword);
+        if (passwordError is not null)
+            return ServiceResult.Fail(passwordError);
 
         if (!UserRoles.All.Contains(rol))
             return ServiceResult.Fail("Rol no válido.");

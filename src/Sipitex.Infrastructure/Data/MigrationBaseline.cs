@@ -4,8 +4,8 @@ using Sipitex.Infrastructure.Persistence;
 namespace Sipitex.Infrastructure.Data;
 
 /// <summary>
-/// Marca <c>InitialCreate</c> como ya aplicada en BD legacy (EnsureCreated / SQL manual)
-/// que ya tienen el esquema completo pero no tienen <c>__EFMigrationsHistory</c>.
+/// Marca migraciones ya reflejadas en BD legacy (EnsureCreated / SQL manual)
+/// que tienen tablas de negocio pero no <c>__EFMigrationsHistory</c>.
 /// Solo operaciones aditivas (CREATE / INSERT). Nunca DROP ni DELETE.
 /// </summary>
 public static class MigrationBaseline
@@ -13,7 +13,10 @@ public static class MigrationBaseline
     /// <summary>MigrationId exacto de <c>20260728214130_InitialCreate.cs</c>.</summary>
     public const string InitialCreateMigrationId = "20260728214130_InitialCreate";
 
-    /// <summary>ProductVersion de EF Core usada al generar la migración.</summary>
+    /// <summary>MigrationId exacto de <c>20260728221016_AddPasswordResetTokens.cs</c>.</summary>
+    public const string AddPasswordResetTokensMigrationId = "20260728221016_AddPasswordResetTokens";
+
+    /// <summary>ProductVersion de EF Core usada al generar las migraciones.</summary>
     public const string EfProductVersion = "10.0.9";
 
     public static async Task EnsureBaselineAsync(
@@ -28,9 +31,9 @@ public static class MigrationBaseline
         if (!await TableExistsAsync(context, "Materials", cancellationToken))
             return;
 
-        // (c) BD legacy con tablas. Solo baseline si el esquema parece el actual;
+        // (c) BD legacy con tablas. Solo baseline de InitialCreate si el esquema base coincide;
         // si falta algo que InitialCreate asume, NO ocultar el desfase.
-        if (!await LooksLikeFullCurrentSchemaAsync(context, cancellationToken))
+        if (!await LooksLikeInitialCreateSchemaAsync(context, cancellationToken))
         {
             throw new InvalidOperationException(
                 "sipitex.db tiene tablas de negocio pero el esquema no coincide con InitialCreate " +
@@ -49,8 +52,20 @@ public static class MigrationBaseline
             """,
             cancellationToken);
 
-        // Idempotente: no insertar si ya quedó registrada (p. ej. carrera o reintento).
-        if (await MigrationRowExistsAsync(context, InitialCreateMigrationId, cancellationToken))
+        await StampMigrationAsync(context, InitialCreateMigrationId, cancellationToken);
+
+        // Si la tabla de la migración posterior ya existe, marcarla también
+        // (evita CREATE TABLE duplicado al correr MigrateAsync).
+        if (await TableExistsAsync(context, "PasswordResetTokens", cancellationToken))
+            await StampMigrationAsync(context, AddPasswordResetTokensMigrationId, cancellationToken);
+    }
+
+    private static async Task StampMigrationAsync(
+        SipitexDbContext context,
+        string migrationId,
+        CancellationToken cancellationToken)
+    {
+        if (await MigrationRowExistsAsync(context, migrationId, cancellationToken))
             return;
 
         await context.Database.ExecuteSqlRawAsync(
@@ -58,11 +73,11 @@ public static class MigrationBaseline
             INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
             VALUES ({0}, {1});
             """,
-            InitialCreateMigrationId,
+            migrationId,
             EfProductVersion);
     }
 
-    private static async Task<bool> LooksLikeFullCurrentSchemaAsync(
+    private static async Task<bool> LooksLikeInitialCreateSchemaAsync(
         SipitexDbContext context,
         CancellationToken cancellationToken)
     {
@@ -108,7 +123,6 @@ public static class MigrationBaseline
         var connection = context.Database.GetDbConnection();
         await context.Database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        // PRAGMA no acepta parámetros para el nombre de tabla; validamos identificador.
         if (!IsSafeSqliteIdentifier(tableName) || !IsSafeSqliteIdentifier(columnName))
             return false;
         command.CommandText = $"PRAGMA table_info(\"{tableName}\")";
