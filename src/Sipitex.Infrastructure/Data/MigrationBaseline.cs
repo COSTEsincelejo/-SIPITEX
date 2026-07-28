@@ -16,6 +16,12 @@ public static class MigrationBaseline
     /// <summary>MigrationId exacto de <c>20260728221016_AddPasswordResetTokens.cs</c>.</summary>
     public const string AddPasswordResetTokensMigrationId = "20260728221016_AddPasswordResetTokens";
 
+    /// <summary>MigrationId exacto de <c>20260728234022_AddUserPhotoPath.cs</c>.</summary>
+    public const string AddUserPhotoPathMigrationId = "20260728234022_AddUserPhotoPath";
+
+    /// <summary>MigrationId exacto de <c>20260728234936_AddUserFuncionDescripcion.cs</c>.</summary>
+    public const string AddUserFuncionDescripcionMigrationId = "20260728234936_AddUserFuncionDescripcion";
+
     /// <summary>ProductVersion de EF Core usada al generar las migraciones.</summary>
     public const string EfProductVersion = "10.0.9";
 

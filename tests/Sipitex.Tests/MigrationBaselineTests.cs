@@ -148,4 +148,69 @@ public class MigrationBaselineTests
             if (File.Exists(dbPath)) File.Delete(dbPath);
         }
     }
+
+    [Fact]
+    public async Task LegacyPhotoPathColumnWithoutHistory_Initialize_DoesNotFail()
+    {
+        var dbPath = NewTempDbPath();
+        try
+        {
+            // Esquema hasta AddFichaTurno, con PhotoPath ya presente (legacy) pero sin esas migraciones.
+            await using (var context = CreateContext(dbPath))
+            {
+                await context.Database.MigrateAsync("20260728231835_AddFichaTurno");
+            }
+
+            await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
+            {
+                await conn.OpenAsync();
+                await using (var alter = conn.CreateCommand())
+                {
+                    alter.CommandText = """ALTER TABLE "Users" ADD COLUMN "PhotoPath" TEXT NULL;""";
+                    await alter.ExecuteNonQueryAsync();
+                }
+
+                await using (var del = conn.CreateCommand())
+                {
+                    del.CommandText =
+                        """
+                        DELETE FROM "__EFMigrationsHistory"
+                        WHERE "MigrationId" IN ($p1, $p2);
+                        """;
+                    var p1 = del.CreateParameter();
+                    p1.ParameterName = "$p1";
+                    p1.Value = MigrationBaseline.AddUserPhotoPathMigrationId;
+                    del.Parameters.Add(p1);
+                    var p2 = del.CreateParameter();
+                    p2.ParameterName = "$p2";
+                    p2.Value = MigrationBaseline.AddUserFuncionDescripcionMigrationId;
+                    del.Parameters.Add(p2);
+                    await del.ExecuteNonQueryAsync();
+                }
+            }
+
+            await using (var context = CreateContext(dbPath))
+            {
+                await DbInitializer.InitializeAsync(context);
+            }
+
+            Assert.Equal(5, await CountMigrationRowsAsync(dbPath));
+            await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = """PRAGMA table_info("Users");""";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                while (await reader.ReadAsync())
+                    columns.Add(reader.GetString(1));
+                Assert.Contains("PhotoPath", columns);
+                Assert.Contains("FuncionDescripcion", columns);
+            }
+        }
+        finally
+        {
+            if (File.Exists(dbPath)) File.Delete(dbPath);
+        }
+    }
 }
