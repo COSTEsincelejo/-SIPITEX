@@ -59,12 +59,15 @@
                 <a class="@(IsAccountAction("Users", "CreateUser", "EditUser") ? "nav-item active" : "nav-item")"
                    asp-controller="Account" asp-action="Users"><i class="fas fa-users-gear"></i> Usuarios</a>
             }
-            @if (User.Identity?.IsAuthenticated == true)
-            {
-                <a class="@(IsAccountAction("Profile") ? "nav-item active" : "nav-item")"
-                   asp-controller="Account" asp-action="Profile"><i class="fas fa-user"></i> Mi perfil</a>
-            }
         </nav>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <nav class="nav-group">
+                <div class="nav-group-label">Cuenta</div>
+                <a class="@(IsAccountAction("Profile") ? "nav-item active" : "nav-item")"
+                   asp-controller="Account" asp-action="Profile"><i class="fas fa-id-card"></i> Mi perfil</a>
+            </nav>
+        }
         <div class="sidebar-foot">SIPITEX v1.0 · .NET MVC<br>CMTC · SENA · ADSO</div>
     </aside>
     <div class="main">
@@ -82,7 +85,7 @@
                     <a class="icon-btn" asp-controller="Alertas" asp-action="Index" title="Alertas" aria-label="Alertas">
                         <i class="fas fa-bell"></i>
                     </a>
-                    <a class="role-chip role-chip-link" asp-controller="Account" asp-action="Profile" title="Mi perfil" aria-label="Ir a mi perfil">
+                    <a class="role-chip role-chip-link" asp-controller="Account" asp-action="Profile" title="Abrir Mi perfil" aria-label="Ir a mi perfil">
                         @if (!string.IsNullOrWhiteSpace(photo))
                         {
                             <img class="avatar avatar-img" src="@photo" alt="" />
@@ -91,7 +94,13 @@
                         {
                             <div class="avatar">@(string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1).ToUpper())</div>
                         }
-                        <span class="role-text">@name · @role</span>
+                        <span class="role-meta">
+                            <span class="role-text">@name · @role</span>
+                            <span class="role-hint">Mi perfil · clic aquí</span>
+                        </span>
+                    </a>
+                    <a class="btn primary small profile-topbar-btn" asp-controller="Account" asp-action="Profile">
+                        <i class="fas fa-user"></i> Mi perfil
                     </a>
                     <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
                         @Html.AntiForgeryToken()
