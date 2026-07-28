@@ -63,6 +63,13 @@ public record FichaDto(
     string? AssignedOrderNumber,
     int? InstructorUserId = null);
 
+public record CreateFichaDto(
+    string FichaCode,
+    string ProcessName,
+    string InstructorName,
+    string Turno,
+    int? ProductionOrderId = null);
+
 public record ProductionSessionDto(
     int Id,
     string FichaCode,

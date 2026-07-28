@@ -19,6 +19,57 @@
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
+@if (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-plus-circle"></i> Registrar ficha</div>
+        <form asp-action="CreateFicha" method="post">
+            @Html.AntiForgeryToken()
+            <div class="form-row">
+                <div class="field" style="width:160px;">
+                    <label class="field-label">Código de ficha</label>
+                    <input asp-for="CreateFicha.FichaCode" placeholder="Ej. FICHA-T4" required maxlength="30" />
+                </div>
+                <div class="field" style="flex:1;min-width:180px;">
+                    <label class="field-label">Proceso</label>
+                    <input asp-for="CreateFicha.ProcessName" list="procesos-ficha" placeholder="Trazo, Corte…" required style="width:100%" />
+                    <datalist id="procesos-ficha">
+                        <option value="Trazo"></option>
+                        <option value="Corte"></option>
+                        <option value="Confección"></option>
+                        <option value="Calidad"></option>
+                        <option value="Terminado"></option>
+                    </datalist>
+                </div>
+                <div class="field" style="flex:1;min-width:180px;">
+                    <label class="field-label">Instructor</label>
+                    <input asp-for="CreateFicha.InstructorName" placeholder="Nombre del instructor" required style="width:100%" />
+                </div>
+                <div class="field" style="width:140px;">
+                    <label class="field-label">Turno</label>
+                    <input asp-for="CreateFicha.Turno" list="turnos-ficha" placeholder="Mañana" required maxlength="20" />
+                    <datalist id="turnos-ficha">
+                        <option value="Mañana"></option>
+                        <option value="Tarde"></option>
+                        <option value="Noche"></option>
+                    </datalist>
+                </div>
+                <div class="field" style="width:160px;">
+                    <label class="field-label">Orden asignada</label>
+                    <select asp-for="CreateFicha.ProductionOrderId">
+                        <option value="">— Opcional —</option>
+                        @foreach (var o in Model.Orders)
+                        {
+                            <option value="@o.Id">@o.OrderNumber</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="primary"><i class="fas fa-save"></i> Registrar ficha</button>
+            </div>
+        </form>
+    </div>
+}
+
 <div class="card">
     <div class="card-title teal"><i class="fas fa-chalkboard-user"></i> Fichas de aprendices / procesos</div>
     @if (!Model.Fichas.Any())

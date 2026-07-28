@@ -147,6 +147,53 @@ public class FichaService : IFichaService
             cancellationToken);
     }
 
+    public async Task<ServiceResult> CreateFichaAsync(
+        CreateFichaDto dto,
+        int? instructorUserId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var code = (dto.FichaCode ?? string.Empty).Trim();
+        var process = (dto.ProcessName ?? string.Empty).Trim();
+        var instructor = (dto.InstructorName ?? string.Empty).Trim();
+        var turno = (dto.Turno ?? string.Empty).Trim();
+
+        if (string.IsNullOrWhiteSpace(code))
+            return ServiceResult.Fail("El código de ficha es obligatorio.");
+        if (string.IsNullOrWhiteSpace(process))
+            return ServiceResult.Fail("El proceso es obligatorio.");
+        if (string.IsNullOrWhiteSpace(instructor))
+            return ServiceResult.Fail("El instructor es obligatorio.");
+        if (string.IsNullOrWhiteSpace(turno))
+            return ServiceResult.Fail("El turno es obligatorio.");
+        if (code.Length > 30)
+            return ServiceResult.Fail("El código de ficha no puede superar 30 caracteres.");
+        if (turno.Length > 20)
+            return ServiceResult.Fail("El turno no puede superar 20 caracteres.");
+
+        if (await _fichaRepository.ExistsByCodeAsync(code, cancellationToken))
+            return ServiceResult.Fail("Ya existe una ficha con ese código.");
+
+        if (dto.ProductionOrderId is int orderId)
+        {
+            var order = await _orderRepository.GetByIdAsync(orderId, cancellationToken);
+            if (order is null)
+                return ServiceResult.Fail("Orden de producción no encontrada.");
+        }
+
+        await _fichaRepository.AddAsync(new Ficha
+        {
+            FichaCode = code,
+            ProcessName = process,
+            InstructorName = instructor,
+            Turno = turno,
+            ProductionOrderId = dto.ProductionOrderId is > 0 ? dto.ProductionOrderId : null,
+            InstructorUserId = instructorUserId is > 0 ? instructorUserId : null
+        }, cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok($"Ficha {code} registrada.");
+    }
+
     private static bool IsInstructorViewer(string? viewerRole, int? viewerUserId) =>
         viewerUserId is > 0
         && string.Equals(viewerRole, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase);
