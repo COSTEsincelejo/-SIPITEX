@@ -12,8 +12,9 @@ public static class DbInitializer
     {
         await MigrationBaseline.EnsureBaselineAsync(context);
         // BD que ya tenían columnas vía EnsureColumnAsync (antes de migraciones EF):
-        // evita "duplicate column name" al aplicar AddFichaTurno.
+        // evita "duplicate column name" al aplicar AddFichaTurno / perfil.
         await EnsureAddFichaTurnoCompatibleAsync(context);
+        await EnsureUserProfileColumnsCompatibleAsync(context);
         await context.Database.MigrateAsync();
 
         if (!await context.Materials.AnyAsync())
@@ -100,6 +101,40 @@ public static class DbInitializer
             """CREATE INDEX IF NOT EXISTS "IX_ProductionSessions_RegisteredByUserId" ON "ProductionSessions" ("RegisteredByUserId");""");
         await context.Database.ExecuteSqlRawAsync(
             """CREATE INDEX IF NOT EXISTS "IX_Fichas_InstructorUserId" ON "Fichas" ("InstructorUserId");""");
+
+        await StampMigrationAsync(context, migrationId);
+    }
+
+    /// <summary>
+    /// Si la BD ya tiene PhotoPath / FuncionDescripcion (p. ej. rama ui-responsive legacy)
+    /// pero esas migraciones no están en el historial, las asegura y marca para
+    /// que MigrateAsync no intente ALTER TABLE duplicado.
+    /// </summary>
+    private static async Task EnsureUserProfileColumnsCompatibleAsync(SipitexDbContext context)
+    {
+        if (!await TableExistsAsync(context, "Users")
+            || !await TableExistsAsync(context, "__EFMigrationsHistory"))
+            return;
+
+        if (!await MigrationRowExistsAsync(context, MigrationBaseline.AddUserPhotoPathMigrationId))
+        {
+            await EnsureColumnAsync(context, "Users", "PhotoPath",
+                """ALTER TABLE "Users" ADD COLUMN "PhotoPath" TEXT NULL;""");
+            await StampMigrationAsync(context, MigrationBaseline.AddUserPhotoPathMigrationId);
+        }
+
+        if (!await MigrationRowExistsAsync(context, MigrationBaseline.AddUserFuncionDescripcionMigrationId))
+        {
+            await EnsureColumnAsync(context, "Users", "FuncionDescripcion",
+                """ALTER TABLE "Users" ADD COLUMN "FuncionDescripcion" TEXT NULL;""");
+            await StampMigrationAsync(context, MigrationBaseline.AddUserFuncionDescripcionMigrationId);
+        }
+    }
+
+    private static async Task StampMigrationAsync(SipitexDbContext context, string migrationId)
+    {
+        if (await MigrationRowExistsAsync(context, migrationId))
+            return;
 
         await context.Database.ExecuteSqlRawAsync(
             """
