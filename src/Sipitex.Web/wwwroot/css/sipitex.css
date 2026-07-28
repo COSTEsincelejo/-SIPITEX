@@ -43,12 +43,15 @@ body{
 .topbar-left .breadcrumb{font-size:12px;color:var(--text-mut);}
 .menu-toggle{display:none;background:none;border:none;font-size:18px;color:var(--text);cursor:pointer;padding:6px;}
 .topbar-right{display:flex;align-items:center;gap:12px;}
-.role-chip{display:flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:6px 14px 6px 8px;font-size:12px;font-weight:600;max-width:min(280px,42vw);}
-.role-chip-link{text-decoration:none;transition:background .15s ease,transform .15s ease;}
-.role-chip-link:hover{background:#d9efe0;transform:translateY(-1px);}
+.role-chip{display:flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:6px 14px 6px 8px;font-size:12px;font-weight:600;max-width:min(280px,42vw);cursor:pointer;}
+.role-chip-link{text-decoration:none;transition:background .15s ease,transform .15s ease,box-shadow .15s ease;border:1px solid transparent;}
+.role-chip-link:hover{background:#d9efe0;transform:translateY(-1px);border-color:#9ed0b2;box-shadow:0 2px 8px rgba(15,118,110,0.12);}
 .role-chip .avatar{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;object-fit:cover;}
 .role-chip .avatar-img{padding:0;background:transparent;}
+.role-chip .role-meta{display:flex;flex-direction:column;min-width:0;line-height:1.2;}
 .role-chip .role-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.role-chip .role-hint{font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.04em;}
+.profile-topbar-btn{white-space:nowrap;}
 .icon-btn{width:36px;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;color:var(--text-mut);cursor:pointer;font-size:13px;position:relative;text-decoration:none;transition:border-color .15s,color .15s,background .15s;}
 .icon-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
 .icon-btn .notif-dot{position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--red);border:2px solid #fff;}
@@ -181,9 +184,13 @@ label.field-label{font-size:11px;font-weight:700;text-transform:uppercase;letter
   .menu-toggle{display:flex;align-items:center;justify-content:center;}
   .content{padding:18px 16px 40px;}
 }
+@media (max-width:860px){
+  .role-chip .role-meta{display:none;}
+}
 @media (max-width:560px){
   .topbar{padding:0 14px;}
-  .role-chip span.role-text{display:none;}
+  .profile-topbar-label{display:none;}
+  .profile-topbar-btn{width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;}
   .page-header h2{font-size:22px;}
 }
 
