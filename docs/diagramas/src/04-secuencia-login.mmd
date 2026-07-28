@@ -1,0 +1,22 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'actorBkg': '#e8f1fb', 'actorBorder': '#2c5282', 'actorTextColor': '#1a2b3c', 'signalColor': '#2c5282', 'noteBkgColor': '#fff7ed', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+sequenceDiagram
+  actor U as Usuario
+  participant V as Account/Login
+  participant S as UserAccountService
+  participant R as UserRepository
+  participant DB as SQLite
+
+  U->>V: POST email + password
+  V->>S: AuthenticateAsync
+  S->>R: GetByEmailAsync
+  R->>DB: SELECT Users
+  DB-->>R: User
+  R-->>S: User
+  S->>S: Verificar PasswordHash
+  S-->>V: User / null
+  alt Credenciales válidas
+    V->>V: Emitir claims (rol + permisos)
+    V-->>U: Cookie + redirect Inventario
+  else Credenciales inválidas
+    V-->>U: Mensaje de error
+  end

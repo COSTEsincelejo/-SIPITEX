@@ -1,0 +1,20 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f1fb', 'primaryTextColor': '#1a2b3c', 'primaryBorderColor': '#2c5282', 'lineColor': '#2c5282', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+flowchart TB
+  subgraph presentacion ["1. Presentación"]
+    Web["Sipitex.Web<br/>MVC · Razor · Cookies"]
+  end
+  subgraph aplicacion ["2. Aplicación"]
+    Services["Servicios de negocio + DTOs"]
+  end
+  subgraph dominio ["3. Dominio"]
+    Entities["Entidades y enums"]
+  end
+  subgraph infra ["4. Infraestructura"]
+    Repo["Repositorios + EF Core"]
+    DB[("SQLite · sipitex.db")]
+  end
+
+  Web --> Services
+  Services --> Entities
+  Services --> Repo
+  Repo --> DB

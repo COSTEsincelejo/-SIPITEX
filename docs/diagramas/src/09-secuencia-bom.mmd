@@ -1,0 +1,20 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'actorBkg': '#e8f1fb', 'actorBorder': '#2c5282', 'actorTextColor': '#1a2b3c', 'signalColor': '#2c5282', 'noteBkgColor': '#fff7ed', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+sequenceDiagram
+  actor A as Admin/Bodega
+  participant V as MrpController
+  participant S as MrpService
+  participant MR as MaterialRepository
+  participant BR as BomRepository
+  participant DB as SQLite
+
+  A->>V: POST Producto, Material, Cantidad
+  V->>S: AddBomItemAsync
+  S->>MR: Buscar material
+  alt No existe
+    S->>MR: Crear material
+    MR->>DB: INSERT Materials
+  end
+  S->>BR: Agregar ítem BOM
+  BR->>DB: INSERT BomItems
+  S-->>V: Ok
+  V-->>A: Ficha técnica actualizada

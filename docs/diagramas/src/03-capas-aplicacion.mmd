@@ -1,0 +1,21 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f1fb', 'primaryTextColor': '#1a2b3c', 'primaryBorderColor': '#2c5282', 'lineColor': '#4a5568', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+classDiagram
+  direction LR
+  class InventarioController
+  class OrdenesController
+  class MrpController
+  class ReportesController
+  class IInventoryService
+  class IProductionOrderService
+  class IMrpService
+  class IReportService
+  class IMaterialRepository
+  class SipitexDbContext
+
+  InventarioController --> IInventoryService
+  OrdenesController --> IProductionOrderService
+  MrpController --> IMrpService
+  ReportesController --> IReportService
+  IInventoryService --> IMaterialRepository
+  IMrpService --> IMaterialRepository
+  IMaterialRepository --> SipitexDbContext

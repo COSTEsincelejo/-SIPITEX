@@ -1,0 +1,20 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'actorBkg': '#e8f1fb', 'actorBorder': '#2c5282', 'actorTextColor': '#1a2b3c', 'signalColor': '#2c5282', 'noteBkgColor': '#fff7ed', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+sequenceDiagram
+  actor I as Instructor
+  participant V as InventarioController
+  participant S as InventoryService
+  participant MR as MaterialRepository
+  participant RR as RequestRepository
+  participant DB as SQLite
+
+  I->>V: POST Material, Orden, Cantidad
+  V->>S: CreateRequestAsync
+  S->>MR: Buscar material por nombre
+  alt Material no existe
+    S->>MR: Crear material (stock 0)
+    MR->>DB: INSERT Materials
+  end
+  S->>RR: Crear solicitud Pendiente
+  RR->>DB: INSERT MaterialRequests
+  S-->>V: Ok
+  V-->>I: Solicitud creada
