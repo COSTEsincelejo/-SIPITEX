@@ -1,10 +1,13 @@
 @model InventarioIndexViewModel
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = "Inventario";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Inventario";
     Layout = "_Layout";
     var lowStock = Model.Materials.Where(m => m.IsLowStock).Select(m => m.Name).ToList();
     var canManageStock = User.IsInRole("Administrador") || User.IsInRole("Bodeguero");
+    var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
+    var canApproveRequests = (await AuthorizationService.AuthorizeAsync(User, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeAprobarSolicitudes)).Succeeded;
     var canRequest = User.IsInRole("Administrador") || User.IsInRole("Instructor");
 }
 
@@ -22,7 +25,7 @@
 
 <div class="card">
     <div class="card-title"><i class="fas fa-warehouse"></i> Materias primas e insumos</div>
-    @if (canManageStock)
+    @if (canRegisterMaterial)
     {
         <form asp-action="AddMaterial" method="post" class="form-row">
             @Html.AntiForgeryToken()
@@ -43,7 +46,7 @@
     }
     @if (!Model.Materials.Any())
     {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin materiales", Text = "Todavía no hay materias primas registradas.", ActionText = canManageStock ? "Use el formulario superior para agregar el primero." : null }' />
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin materiales", Text = "Todavía no hay materias primas registradas.", ActionText = canRegisterMaterial ? "Use el formulario superior para agregar el primero." : null }' />
     }
     else
     {
@@ -161,7 +164,7 @@
                         <td><span class="badge @DisplayHelper.BadgeClass(req.Status)">@DisplayHelper.StatusText(req.Status)</span></td>
                         <td>
                             <div class="row-actions">
-                            @if (req.Status == RequestStatus.Pendiente && canManageStock)
+                            @if (req.Status == RequestStatus.Pendiente && canApproveRequests)
                             {
                                 <form asp-action="ApproveRequest" method="post" data-confirm="¿Aprobar esta solicitud y descontar stock?">
                                     @Html.AntiForgeryToken()
