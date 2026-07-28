@@ -68,10 +68,23 @@ public class FichasIndexViewModel
     public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public IReadOnlyList<ProductionSessionDto> Sessions { get; set; } = [];
+    public CreateFichaForm CreateFicha { get; set; } = new();
     public RegisterProductionForm Register { get; set; } = new();
     public bool IsAdministrator { get; set; }
+    public string? FichaCodeFilter { get; set; }
+    public string? InstructorFilter { get; set; }
+    public string? TurnoFilter { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
+}
+
+public class CreateFichaForm
+{
+    public string FichaCode { get; set; } = string.Empty;
+    public string ProcessName { get; set; } = string.Empty;
+    public string InstructorName { get; set; } = string.Empty;
+    public string Turno { get; set; } = "Mañana";
+    public int? ProductionOrderId { get; set; }
 }
 
 public class RegisterProductionForm

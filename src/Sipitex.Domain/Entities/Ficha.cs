@@ -6,6 +6,7 @@ public class Ficha
     public string FichaCode { get; set; } = string.Empty;
     public string ProcessName { get; set; } = string.Empty;
     public string InstructorName { get; set; } = string.Empty;
+    public string Turno { get; set; } = string.Empty;
 
     /// <summary>Usuario con rol Instructor dueño de la ficha (opcional pero preferido frente al nombre).</summary>
     public int? InstructorUserId { get; set; }

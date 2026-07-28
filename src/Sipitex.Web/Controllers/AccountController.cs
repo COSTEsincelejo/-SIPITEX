@@ -13,12 +13,23 @@ namespace Sipitex.Web.Controllers;
 public class AccountController : Controller
 {
     private readonly IUserAccountService _userAccountService;
+    private readonly IPasswordResetService _passwordResetService;
 
-    public AccountController(IUserAccountService userAccountService) => _userAccountService = userAccountService;
+    public AccountController(
+        IUserAccountService userAccountService,
+        IPasswordResetService passwordResetService)
+    {
+        _userAccountService = userAccountService;
+        _passwordResetService = passwordResetService;
+    }
 
     [AllowAnonymous]
     [HttpGet]
-    public IActionResult Login() => View(new LoginViewModel());
+    public IActionResult Login()
+    {
+        ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;
+        return View(new LoginViewModel());
+    }
 
     [AllowAnonymous]
     [HttpPost]
@@ -49,6 +60,63 @@ public class AccountController : Controller
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = true });
 
         return RedirectToAction("Index", "Inventario");
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult ForgotPassword() => View(new ForgotPasswordViewModel());
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        var publicBaseUrl = $"{Request.Scheme}://{Request.Host}";
+        await _passwordResetService.RequestResetAsync(model.Email, publicBaseUrl, cancellationToken);
+        return RedirectToAction(nameof(ForgotPasswordConfirmation));
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult ForgotPasswordConfirmation() => View();
+
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult ResetPassword(string? token, string? email)
+    {
+        return View(new ResetPasswordViewModel
+        {
+            Token = token ?? string.Empty,
+            Email = email ?? string.Empty
+        });
+    }
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        if (!string.Equals(model.NewPassword, model.ConfirmPassword, StringComparison.Ordinal))
+        {
+            ModelState.AddModelError(string.Empty, "Las contraseñas no coinciden.");
+            return View(model);
+        }
+
+        var result = await _passwordResetService.ResetPasswordAsync(
+            model.Email, model.Token, model.NewPassword, cancellationToken);
+
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, result.Message ?? "Enlace inválido o expirado.");
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = result.Message ?? "Contraseña actualizada. Ya puede iniciar sesión.";
+        return RedirectToAction(nameof(Login));
     }
 
     [HttpPost]

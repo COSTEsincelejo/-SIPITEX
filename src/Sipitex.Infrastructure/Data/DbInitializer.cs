@@ -10,8 +10,8 @@ public static class DbInitializer
 {
     public static async Task InitializeAsync(SipitexDbContext context)
     {
-        await context.Database.EnsureCreatedAsync();
-        await EnsureSchemaAsync(context);
+        await MigrationBaseline.EnsureBaselineAsync(context);
+        await context.Database.MigrateAsync();
 
         if (!await context.Materials.AnyAsync())
         {
@@ -54,9 +54,9 @@ public static class DbInitializer
             await context.SaveChangesAsync();
 
             context.Fichas.AddRange(
-                new Ficha { FichaCode = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", ProductionOrderId = op1.Id },
-                new Ficha { FichaCode = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", ProductionOrderId = op1.Id },
-                new Ficha { FichaCode = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", ProductionOrderId = op2.Id });
+                new Ficha { FichaCode = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", Turno = "Mañana", ProductionOrderId = op1.Id },
+                new Ficha { FichaCode = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", Turno = "Mañana", ProductionOrderId = op1.Id },
+                new Ficha { FichaCode = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", Turno = "Tarde", ProductionOrderId = op2.Id });
 
             SeedRequirements(context);
             await context.SaveChangesAsync();
@@ -65,97 +65,6 @@ public static class DbInitializer
         await SeedUsersAsync(context);
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
-    }
-
-    private static async Task EnsureSchemaAsync(SipitexDbContext context)
-    {
-        await EnsureUsersTableAsync(context);
-
-        await context.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS "ProductionSessions" (
-                "Id" INTEGER NOT NULL CONSTRAINT "PK_ProductionSessions" PRIMARY KEY AUTOINCREMENT,
-                "FichaId" INTEGER NOT NULL,
-                "ProductionOrderId" INTEGER NOT NULL,
-                "Units" INTEGER NOT NULL,
-                "Observations" TEXT NOT NULL,
-                "SessionDate" TEXT NOT NULL,
-                CONSTRAINT "FK_ProductionSessions_Fichas_FichaId" FOREIGN KEY ("FichaId") REFERENCES "Fichas" ("Id") ON DELETE CASCADE,
-                CONSTRAINT "FK_ProductionSessions_ProductionOrders_ProductionOrderId" FOREIGN KEY ("ProductionOrderId") REFERENCES "ProductionOrders" ("Id") ON DELETE CASCADE
-            );
-            """);
-
-        await EnsureColumnAsync(context, "Materials", "LastEntryDate", """ALTER TABLE "Materials" ADD COLUMN "LastEntryDate" TEXT NOT NULL DEFAULT '2026-01-01';""");
-        await EnsureColumnAsync(context, "QualityRecords", "MotivoReproceso", """ALTER TABLE "QualityRecords" ADD COLUMN "MotivoReproceso" TEXT NULL;""");
-        await EnsureColumnAsync(context, "QualityRecords", "Responsable", """ALTER TABLE "QualityRecords" ADD COLUMN "Responsable" TEXT NULL;""");
-        await EnsureColumnAsync(context, "Fichas", "InstructorUserId", """ALTER TABLE "Fichas" ADD COLUMN "InstructorUserId" INTEGER NULL;""");
-        await EnsureColumnAsync(context, "ProductionSessions", "RegisteredByUserId", """ALTER TABLE "ProductionSessions" ADD COLUMN "RegisteredByUserId" INTEGER NULL;""");
-
-        await context.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS "AlertPreferences" (
-                "Id" INTEGER NOT NULL CONSTRAINT "PK_AlertPreferences" PRIMARY KEY AUTOINCREMENT,
-                "UserId" INTEGER NOT NULL,
-                "AlertType" INTEGER NOT NULL,
-                "Enabled" INTEGER NOT NULL,
-                CONSTRAINT "FK_AlertPreferences_Users_UserId" FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") ON DELETE CASCADE
-            );
-            """);
-        await context.Database.ExecuteSqlRawAsync("""
-            CREATE UNIQUE INDEX IF NOT EXISTS "IX_AlertPreferences_UserId_AlertType" ON "AlertPreferences" ("UserId", "AlertType");
-            """);
-        await context.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS "AlertDeliveries" (
-                "Id" INTEGER NOT NULL CONSTRAINT "PK_AlertDeliveries" PRIMARY KEY AUTOINCREMENT,
-                "UserId" INTEGER NOT NULL,
-                "AlertType" INTEGER NOT NULL,
-                "Subject" TEXT NOT NULL,
-                "Body" TEXT NOT NULL,
-                "SentAt" TEXT NOT NULL,
-                "Channel" TEXT NOT NULL,
-                CONSTRAINT "FK_AlertDeliveries_Users_UserId" FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") ON DELETE CASCADE
-            );
-            """);
-    }
-
-    private static async Task EnsureColumnAsync(SipitexDbContext context, string table, string column, string alterSql)
-    {
-        var connection = context.Database.GetDbConnection();
-        await context.Database.OpenConnectionAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = $"PRAGMA table_info(\"{table}\")";
-        await using var reader = await command.ExecuteReaderAsync();
-        var exists = false;
-        while (await reader.ReadAsync())
-        {
-            if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
-            {
-                exists = true;
-                break;
-            }
-        }
-        await reader.DisposeAsync();
-        if (!exists)
-            await context.Database.ExecuteSqlRawAsync(alterSql);
-    }
-
-    private static async Task EnsureUsersTableAsync(SipitexDbContext context)
-    {
-        // Compatible con BD SQLite creada antes de la tabla Users.
-        await context.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS "Users" (
-                "Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT,
-                "Nombre" TEXT NOT NULL,
-                "Email" TEXT NOT NULL,
-                "PasswordHash" TEXT NOT NULL,
-                "Rol" TEXT NOT NULL,
-                "FichaAsignadaId" INTEGER NULL,
-                "PermisosExtendidos" TEXT NOT NULL,
-                "IsActive" INTEGER NOT NULL,
-                CONSTRAINT "FK_Users_Fichas_FichaAsignadaId" FOREIGN KEY ("FichaAsignadaId") REFERENCES "Fichas" ("Id") ON DELETE SET NULL
-            );
-            """);
-        await context.Database.ExecuteSqlRawAsync("""
-            CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users" ("Email");
-            """);
     }
 
     private static async Task SeedUsersAsync(SipitexDbContext context)

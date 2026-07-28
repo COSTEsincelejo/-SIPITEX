@@ -18,8 +18,15 @@
             <label class="field-label" asp-for="Password">Contraseña</label>
             <input asp-for="Password" type="password" placeholder="••••••••" autocomplete="current-password" required />
         </div>
+        <p class="auth-hint" style="margin:.35rem 0 1rem;">
+            <a asp-action="ForgotPassword">¿Olvidaste tu contraseña?</a>
+        </p>
         <button type="submit" class="primary auth-submit"><i class="fas fa-sign-in-alt"></i> Entrar</button>
     </form>
+    @if (ViewBag.SuccessMessage is string success && !string.IsNullOrWhiteSpace(success))
+    {
+        <div class="alert alert-success" style="margin-top:1rem;">@success</div>
+    }
     <details class="auth-demo">
         <summary>Credenciales de demostración</summary>
         <div>Admin: <code>admin@sipitex.test</code> / <code>Admin123!</code></div>

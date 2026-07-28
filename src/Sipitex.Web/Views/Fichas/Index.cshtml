@@ -19,6 +19,57 @@
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
+@if (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-plus-circle"></i> Registrar ficha</div>
+        <form asp-action="CreateFicha" method="post">
+            @Html.AntiForgeryToken()
+            <div class="form-row">
+                <div class="field" style="width:160px;">
+                    <label class="field-label">Código de ficha</label>
+                    <input asp-for="CreateFicha.FichaCode" placeholder="Ej. FICHA-T4" required maxlength="30" />
+                </div>
+                <div class="field" style="flex:1;min-width:180px;">
+                    <label class="field-label">Proceso</label>
+                    <input asp-for="CreateFicha.ProcessName" list="procesos-ficha" placeholder="Trazo, Corte…" required style="width:100%" />
+                    <datalist id="procesos-ficha">
+                        <option value="Trazo"></option>
+                        <option value="Corte"></option>
+                        <option value="Confección"></option>
+                        <option value="Calidad"></option>
+                        <option value="Terminado"></option>
+                    </datalist>
+                </div>
+                <div class="field" style="flex:1;min-width:180px;">
+                    <label class="field-label">Instructor</label>
+                    <input asp-for="CreateFicha.InstructorName" placeholder="Nombre del instructor" required style="width:100%" />
+                </div>
+                <div class="field" style="width:140px;">
+                    <label class="field-label">Turno</label>
+                    <input asp-for="CreateFicha.Turno" list="turnos-ficha" placeholder="Mañana" required maxlength="20" />
+                    <datalist id="turnos-ficha">
+                        <option value="Mañana"></option>
+                        <option value="Tarde"></option>
+                        <option value="Noche"></option>
+                    </datalist>
+                </div>
+                <div class="field" style="width:160px;">
+                    <label class="field-label">Orden asignada</label>
+                    <select asp-for="CreateFicha.ProductionOrderId">
+                        <option value="">— Opcional —</option>
+                        @foreach (var o in Model.Orders)
+                        {
+                            <option value="@o.Id">@o.OrderNumber</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="primary"><i class="fas fa-save"></i> Registrar ficha</button>
+            </div>
+        </form>
+    </div>
+}
+
 <div class="card">
     <div class="card-title teal"><i class="fas fa-chalkboard-user"></i> Fichas de aprendices / procesos</div>
     @if (!Model.Fichas.Any())
@@ -29,7 +80,7 @@
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructor</th><th>Orden asignada</th><th>Registro rápido</th></tr></thead>
+                <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructor</th><th>Turno</th><th>Orden asignada</th><th>Registro rápido</th></tr></thead>
                 <tbody>
                 @foreach (var ficha in Model.Fichas)
                 {
@@ -37,6 +88,7 @@
                         <td><strong>@ficha.FichaCode</strong></td>
                         <td>@ficha.ProcessName</td>
                         <td>@ficha.InstructorName</td>
+                        <td>@(string.IsNullOrWhiteSpace(ficha.Turno) ? "—" : ficha.Turno)</td>
                         <td>@(ficha.AssignedOrderNumber ?? "—")</td>
                         <td>
                             <form asp-action="QuickRegister" method="post" class="row-actions">
@@ -84,6 +136,52 @@
 </div>
 
 <div class="card">
+    <div class="card-title"><i class="fas fa-filter"></i> Buscar fichas y sesiones</div>
+    <form asp-action="Index" method="get" class="form-row">
+        <div class="field" style="flex:1;min-width:160px;">
+            <label class="field-label">Ficha</label>
+            <input type="text" name="fichaCode" value="@Model.FichaCodeFilter" placeholder="Código de ficha" style="width:100%" />
+        </div>
+        <div class="field" style="flex:1;min-width:160px;">
+            <label class="field-label">Instructor</label>
+            <input type="text" name="instructor" value="@Model.InstructorFilter" placeholder="Nombre" style="width:100%" />
+        </div>
+        <div class="field" style="width:160px;">
+            <label class="field-label">Turno</label>
+            <select name="turno">
+                <option value="">Todos</option>
+                @if (string.Equals(Model.TurnoFilter, "Mañana", StringComparison.OrdinalIgnoreCase))
+                {
+                    <option value="Mañana" selected>Mañana</option>
+                }
+                else
+                {
+                    <option value="Mañana">Mañana</option>
+                }
+                @if (string.Equals(Model.TurnoFilter, "Tarde", StringComparison.OrdinalIgnoreCase))
+                {
+                    <option value="Tarde" selected>Tarde</option>
+                }
+                else
+                {
+                    <option value="Tarde">Tarde</option>
+                }
+                @if (string.Equals(Model.TurnoFilter, "Noche", StringComparison.OrdinalIgnoreCase))
+                {
+                    <option value="Noche" selected>Noche</option>
+                }
+                else
+                {
+                    <option value="Noche">Noche</option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="primary"><i class="fas fa-search"></i> Buscar</button>
+        <a class="ghost" asp-action="Index" style="align-self:flex-end;padding:10px 14px;">Limpiar filtros</a>
+    </form>
+</div>
+
+<div class="card">
     <div class="card-title amber"><i class="fas fa-clock-rotate-left"></i> @(Model.IsAdministrator ? "Sesiones recientes (todos los instructores)" : "Mis sesiones de producción")</div>
     @if (!Model.Sessions.Any())
     {
@@ -97,10 +195,8 @@
                     <tr>
                         <th>Fecha</th>
                         <th>Ficha</th>
-                        @if (Model.IsAdministrator)
-                        {
-                            <th>Instructor</th>
-                        }
+                        <th>Instructor</th>
+                        <th>Turno</th>
                         <th>Orden</th>
                         <th>Unidades</th>
                         <th>Observaciones</th>
@@ -112,10 +208,8 @@
                     <tr>
                         <td>@s.SessionDate.ToString("yyyy-MM-dd HH:mm")</td>
                         <td>@s.FichaCode</td>
-                        @if (Model.IsAdministrator)
-                        {
-                            <td>@s.InstructorName</td>
-                        }
+                        <td>@s.InstructorName</td>
+                        <td>@(string.IsNullOrWhiteSpace(s.Turno) ? "—" : s.Turno)</td>
                         <td>@s.OrderNumber</td>
                         <td>@s.Units</td>
                         <td>@(string.IsNullOrWhiteSpace(s.Observations) ? "—" : s.Observations)</td>

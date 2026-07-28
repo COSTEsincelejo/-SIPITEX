@@ -31,4 +31,9 @@ public interface IFichaService
         string? viewerRole = null,
         string? viewerName = null,
         CancellationToken cancellationToken = default);
+
+    Task<ServiceResult> CreateFichaAsync(
+        CreateFichaDto dto,
+        int? instructorUserId = null,
+        CancellationToken cancellationToken = default);
 }

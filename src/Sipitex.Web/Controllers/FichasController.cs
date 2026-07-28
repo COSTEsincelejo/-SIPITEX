@@ -22,26 +22,36 @@ public class FichasController : Controller
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
-    {
-        var (userId, role, name) = CurrentViewer();
-        var orders = await _orderService.GetOrdersAsync(cancellationToken);
-        var fichas = await _fichaService.GetFichasAsync(userId, role, name, cancellationToken);
+    public async Task<IActionResult> Index(
+        string? fichaCode,
+        string? instructor,
+        string? turno,
+        CancellationToken cancellationToken) =>
+        View(await BuildViewModel(fichaCode, instructor, turno, cancellationToken));
 
-        return View(new FichasIndexViewModel
-        {
-            Fichas = fichas,
-            Orders = orders,
-            Sessions = await _fichaService.GetRecentSessionsAsync(userId, role, name, cancellationToken),
-            IsAdministrator = User.IsInRole(UserRoles.Administrador),
-            Register = new RegisterProductionForm
-            {
-                ProductionOrderId = orders.FirstOrDefault()?.Id ?? 0,
-                FichaId = fichas.FirstOrDefault()?.Id ?? 0
-            },
-            Message = TempData["Message"] as string,
-            IsSuccess = TempData["IsSuccess"] as bool? ?? false
-        });
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateFicha([Bind(Prefix = "CreateFicha")] CreateFichaForm form, CancellationToken cancellationToken)
+    {
+        var (userId, role, _) = CurrentViewer();
+        int? instructorUserId = string.Equals(role, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase)
+            ? userId
+            : null;
+
+        var result = await _fichaService.CreateFichaAsync(
+            new CreateFichaDto(
+                form.FichaCode,
+                form.ProcessName,
+                form.InstructorName,
+                form.Turno,
+                form.ProductionOrderId is > 0 ? form.ProductionOrderId : null),
+            instructorUserId,
+            cancellationToken);
+
+        TempData["Message"] = result.Message ?? (result.Success ? "Ficha registrada." : "Error al registrar ficha.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index));
     }
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
@@ -72,6 +82,62 @@ public class FichasController : Controller
         TempData["Message"] = result.Message ?? (result.Success ? "Registro exitoso." : "Error al registrar.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<FichasIndexViewModel> BuildViewModel(
+        string? fichaCode,
+        string? instructor,
+        string? turno,
+        CancellationToken cancellationToken)
+    {
+        var (userId, role, name) = CurrentViewer();
+        var orders = await _orderService.GetOrdersAsync(cancellationToken);
+        var fichas = (await _fichaService.GetFichasAsync(userId, role, name, cancellationToken)).AsEnumerable();
+        var sessions = (await _fichaService.GetRecentSessionsAsync(userId, role, name, cancellationToken)).AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(fichaCode))
+        {
+            fichas = fichas.Where(f => f.FichaCode.Contains(fichaCode, StringComparison.OrdinalIgnoreCase));
+            sessions = sessions.Where(s => s.FichaCode.Contains(fichaCode, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(instructor))
+        {
+            fichas = fichas.Where(f => f.InstructorName.Contains(instructor, StringComparison.OrdinalIgnoreCase));
+            sessions = sessions.Where(s => s.InstructorName.Contains(instructor, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(turno))
+        {
+            fichas = fichas.Where(f => string.Equals(f.Turno, turno, StringComparison.OrdinalIgnoreCase));
+            sessions = sessions.Where(s => string.Equals(s.Turno, turno, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var fichaList = fichas.ToList();
+        var sessionList = sessions.ToList();
+
+        var create = new CreateFichaForm();
+        if (User.IsInRole(UserRoles.Instructor) && !string.IsNullOrWhiteSpace(name))
+            create.InstructorName = name!;
+
+        return new FichasIndexViewModel
+        {
+            Fichas = fichaList,
+            Orders = orders,
+            Sessions = sessionList,
+            IsAdministrator = User.IsInRole(UserRoles.Administrador),
+            CreateFicha = create,
+            Register = new RegisterProductionForm
+            {
+                ProductionOrderId = orders.FirstOrDefault()?.Id ?? 0,
+                FichaId = fichaList.FirstOrDefault()?.Id ?? 0
+            },
+            FichaCodeFilter = fichaCode,
+            InstructorFilter = instructor,
+            TurnoFilter = turno,
+            Message = TempData["Message"] as string,
+            IsSuccess = TempData["IsSuccess"] as bool? ?? false
+        };
     }
 
     private (int? UserId, string? Role, string? Name) CurrentViewer()
