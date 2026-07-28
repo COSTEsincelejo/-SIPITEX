@@ -57,7 +57,7 @@ public class UserAccountService : IUserAccountService
             PasswordHash = PasswordHasher.Hash(password),
             Rol = rol,
             FichaAsignadaId = fichaAsignadaId,
-            PermisosExtendidos = string.Join(", ", permisos),
+            PermisosExtendidos = ExtendedPermissions.Serialize(permisos),
             IsActive = true
         };
 
@@ -90,7 +90,7 @@ public class UserAccountService : IUserAccountService
         user.Email = email.Trim().ToLowerInvariant();
         user.Rol = rol;
         user.FichaAsignadaId = fichaAsignadaId;
-        user.PermisosExtendidos = string.Join(", ", permisos);
+        user.PermisosExtendidos = ExtendedPermissions.Serialize(permisos);
         user.IsActive = isActive;
 
         if (!string.IsNullOrWhiteSpace(password))

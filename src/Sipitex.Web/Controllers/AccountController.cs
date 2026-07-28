@@ -42,6 +42,9 @@ public class AccountController : Controller
             new(ClaimTypes.Role, user.Rol)
         };
 
+        foreach (var permiso in ExtendedPermissions.Parse(user.PermisosExtendidos))
+            claims.Add(new Claim(ExtendedPermissions.ClaimType, permiso));
+
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = true });
 
@@ -79,7 +82,7 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) { ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
-        var permisos = model.PermisosExtendidos?.Split(',').Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList() ?? [];
+        var permisos = model.SelectedPermissions ?? [];
         var result = await _userAccountService.CreateUserAsync(model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, permisos, cancellationToken);
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
@@ -101,7 +104,7 @@ public class AccountController : Controller
             Email = user.Email,
             Rol = user.Rol,
             FichaAsignadaId = user.FichaAsignadaId,
-            PermisosExtendidos = user.PermisosExtendidos,
+            SelectedPermissions = ExtendedPermissions.Parse(user.PermisosExtendidos).ToList(),
             IsActive = user.IsActive
         });
     }
@@ -113,7 +116,7 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) { ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
-        var permisos = model.PermisosExtendidos?.Split(',').Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList() ?? [];
+        var permisos = model.SelectedPermissions ?? [];
         var result = await _userAccountService.UpdateUserAsync(model.Id, model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, permisos, model.IsActive, cancellationToken);
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 

@@ -50,7 +50,17 @@
         </div>
         <div class="field">
             <label class="field-label">Permisos extendidos</label>
-            <input asp-for="PermisosExtendidos" placeholder="VerReportes, AprobarSolicitudes" />
+            <div class="sub" style="margin-bottom:.5rem;">Opcional: otorga capacidades extra según el rol (p. ej. Instructor).</div>
+            @foreach (var (key, label) in ExtendedPermissions.Catalog)
+            {
+                <label style="display:flex;align-items:center;gap:.5rem;margin:.35rem 0;">
+                    <input type="checkbox"
+                           name="SelectedPermissions"
+                           value="@key"
+                           @(Model.SelectedPermissions.Contains(key) ? "checked" : null) />
+                    <span>@label <code style="font-size:.8em;">@key</code></span>
+                </label>
+            }
         </div>
         <div class="field">
             <label class="field-label">Activo</label>

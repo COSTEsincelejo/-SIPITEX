@@ -3,6 +3,7 @@ using Sipitex.Infrastructure;
 using Sipitex.Infrastructure.Data;
 using Sipitex.Infrastructure.Persistence;
 using Sipitex.Web;
+using Sipitex.Web.Authorization;
 
 // Aquí empieza la aplicación web. Primero se prepara el proyecto y se cargan los servicios principales.
 var builder = WebApplication.CreateBuilder(args);
@@ -17,7 +18,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options => options.AddSipitexPolicies());
 builder.Services.AddHostedService<Sipitex.Web.Hosting.AlertEvaluationHostedService>();
 
 var app = builder.Build();

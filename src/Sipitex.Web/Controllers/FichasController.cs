@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
@@ -19,6 +20,7 @@ public class FichasController : Controller
         _orderService = orderService;
     }
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
@@ -40,6 +42,7 @@ public class FichasController : Controller
         });
     }
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterProductionForm form, CancellationToken cancellationToken)
@@ -52,6 +55,7 @@ public class FichasController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> QuickRegister(int fichaId, int units, string? observations, CancellationToken cancellationToken)

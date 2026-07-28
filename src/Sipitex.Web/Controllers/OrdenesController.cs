@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
@@ -14,6 +15,7 @@ public class OrdenesController : Controller
 
     public OrdenesController(IProductionOrderService orderService) => _orderService = orderService;
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero},{UserRoles.Instructor}")]
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
@@ -26,6 +28,7 @@ public class OrdenesController : Controller
         });
     }
 
+    [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateOrderForm form, CancellationToken cancellationToken)
@@ -38,6 +41,7 @@ public class OrdenesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddProduction(int id, CancellationToken cancellationToken)

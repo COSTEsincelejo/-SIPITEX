@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Sipitex.Application.Authorization;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
@@ -27,7 +28,7 @@ public class InventarioController : Controller
         return View(await BuildViewModel(cancellationToken));
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeRegistrarMateriales)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddMaterial(CreateMaterialForm form, CancellationToken cancellationToken)
@@ -81,7 +82,7 @@ public class InventarioController : Controller
         return View("Index", vm);
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeAprobarSolicitudes)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveRequest(int id, CancellationToken cancellationToken)
@@ -92,7 +93,7 @@ public class InventarioController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeAprobarSolicitudes)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RejectRequest(int id, CancellationToken cancellationToken)
