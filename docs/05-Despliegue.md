@@ -42,17 +42,44 @@ Para producción, usar ruta absoluta a la BD en el servidor.
 ## 5.5 Docker Compose (RNF07)
 
 ```bash
+# Copiar plantilla de secretos y completar usuario/contraseña SMTP (opcional)
+cp .env.example .env
+
 docker compose up --build
 ```
 
-La aplicación queda en `http://localhost:8080` con SQLite persistente en el volumen `sipitex-data`.
+La aplicación queda en `http://localhost:8080` con SQLite persistente en el volumen `sipitex-data`.  
+Health check: `http://localhost:8080/health` (sin autenticación).
+
+Variables SMTP en Compose (desde el archivo `.env` del host; **no** subir `.env` al repo):
+
+| Variable de entorno | Config ASP.NET |
+|---------------------|----------------|
+| `EMAIL_SMTP_USER` | `Email__User` → `Email:User` |
+| `EMAIL_SMTP_PASSWORD` | `Email__Password` → `Email:Password` |
 
 ## 5.6 Reportes y alertas
 
 - **Reportes** (`/Reportes`): PDF (QuestPDF) y Excel (ClosedXML) de Inventario, Órdenes, Calidad y Dashboard.
 - **Alertas** (`/Alertas`): cada actor activa/desactiva notificaciones (stock bajo, solicitudes pendientes, órdenes por vencer/atrasadas, reprocesos).
 - Sin SMTP (`Email:Enabled=false`) los correos se guardan en `email-outbox/`.
-- Con SMTP, configure `Email` en `appsettings.json` (`Host`, `User`, `Password`, `From`).
+
+### Credenciales SMTP — no guardarlas en appsettings
+
+`Email:User` y `Email:Password` **nunca** deben llenarse en `appsettings.json` ni en `appsettings.Development.json`.  
+Se configuran por variable de entorno o user-secrets. ASP.NET Core mapea `Email__Password` → `Email:Password` automáticamente hacia `EmailOptions`.
+
+**Docker / producción:** use `.env` (ver `.env.example`) o variables del orquestador.
+
+**Desarrollo local (sin Docker):**
+
+```bash
+dotnet user-secrets init --project src/Sipitex.Web
+dotnet user-secrets set "Email:User" "tu-usuario@smtp" --project src/Sipitex.Web
+dotnet user-secrets set "Email:Password" "xxxx" --project src/Sipitex.Web
+```
+
+Para activar el envío real, además configure `Email:Enabled=true` (por user-secrets, env o Compose) y el resto de host/puerto/`From` según su proveedor.
 
 ## 5.7 Base de datos y migraciones EF Core
 

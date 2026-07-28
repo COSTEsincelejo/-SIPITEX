@@ -28,3 +28,7 @@ Thumbs.db
 # Node (generación de diagramas Mermaid)
 docs/diagramas/node_modules/
 **/node_modules/
+
+# Secretos locales (SMTP, etc.) — nunca subir el .env real
+.env
+.env.local
