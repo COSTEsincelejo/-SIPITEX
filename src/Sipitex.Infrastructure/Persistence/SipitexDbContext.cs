@@ -110,6 +110,7 @@ public class SipitexDbContext : DbContext
             e.Property(u => u.PasswordHash).HasMaxLength(256).IsRequired();
             e.Property(u => u.Rol).HasMaxLength(40).IsRequired();
             e.Property(u => u.PermisosExtendidos).HasMaxLength(500);
+            e.Property(u => u.PhotoPath).HasMaxLength(260);
             e.HasIndex(u => u.Email).IsUnique();
             e.HasOne(u => u.FichaAsignada)
                 .WithMany()

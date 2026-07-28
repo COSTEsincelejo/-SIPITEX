@@ -11,6 +11,9 @@ public static class DbInitializer
     public static async Task InitializeAsync(SipitexDbContext context)
     {
         await MigrationBaseline.EnsureBaselineAsync(context);
+        // BD que ya tenían columnas vía EnsureColumnAsync (antes de migraciones EF):
+        // evita "duplicate column name" al aplicar AddFichaTurno.
+        await EnsureAddFichaTurnoCompatibleAsync(context);
         await context.Database.MigrateAsync();
 
         if (!await context.Materials.AnyAsync())
@@ -65,6 +68,94 @@ public static class DbInitializer
         await SeedUsersAsync(context);
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
+    }
+
+    /// <summary>
+    /// Si la BD ya tiene columnas de AddFichaTurno (p. ej. EnsureColumnAsync legacy)
+    /// pero la migración no está en el historial, las asegura y marca la migración
+    /// para que MigrateAsync no intente ALTER TABLE duplicado.
+    /// </summary>
+    private static async Task EnsureAddFichaTurnoCompatibleAsync(SipitexDbContext context)
+    {
+        const string migrationId = "20260728231835_AddFichaTurno";
+
+        if (!await TableExistsAsync(context, "ProductionSessions")
+            || !await TableExistsAsync(context, "Fichas"))
+            return;
+
+        if (!await TableExistsAsync(context, "__EFMigrationsHistory"))
+            return;
+
+        if (await MigrationRowExistsAsync(context, migrationId))
+            return;
+
+        await EnsureColumnAsync(context, "ProductionSessions", "RegisteredByUserId",
+            """ALTER TABLE "ProductionSessions" ADD COLUMN "RegisteredByUserId" INTEGER NULL;""");
+        await EnsureColumnAsync(context, "Fichas", "InstructorUserId",
+            """ALTER TABLE "Fichas" ADD COLUMN "InstructorUserId" INTEGER NULL;""");
+        await EnsureColumnAsync(context, "Fichas", "Turno",
+            """ALTER TABLE "Fichas" ADD COLUMN "Turno" TEXT NOT NULL DEFAULT '';""");
+
+        await context.Database.ExecuteSqlRawAsync(
+            """CREATE INDEX IF NOT EXISTS "IX_ProductionSessions_RegisteredByUserId" ON "ProductionSessions" ("RegisteredByUserId");""");
+        await context.Database.ExecuteSqlRawAsync(
+            """CREATE INDEX IF NOT EXISTS "IX_Fichas_InstructorUserId" ON "Fichas" ("InstructorUserId");""");
+
+        await context.Database.ExecuteSqlRawAsync(
+            """
+            INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+            VALUES ({0}, {1});
+            """,
+            migrationId,
+            MigrationBaseline.EfProductVersion);
+    }
+
+    private static async Task EnsureColumnAsync(SipitexDbContext context, string table, string column, string alterSql)
+    {
+        if (await ColumnExistsAsync(context, table, column))
+            return;
+        await context.Database.ExecuteSqlRawAsync(alterSql);
+    }
+
+    private static async Task<bool> TableExistsAsync(SipitexDbContext context, string table)
+    {
+        var connection = context.Database.GetDbConnection();
+        await context.Database.OpenConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name=$n LIMIT 1;";
+        var p = command.CreateParameter();
+        p.ParameterName = "$n";
+        p.Value = table;
+        command.Parameters.Add(p);
+        return await command.ExecuteScalarAsync() is not null and not DBNull;
+    }
+
+    private static async Task<bool> ColumnExistsAsync(SipitexDbContext context, string table, string column)
+    {
+        var connection = context.Database.GetDbConnection();
+        await context.Database.OpenConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA table_info(\"{table}\")";
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static async Task<bool> MigrationRowExistsAsync(SipitexDbContext context, string migrationId)
+    {
+        var connection = context.Database.GetDbConnection();
+        await context.Database.OpenConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = $id LIMIT 1;""";
+        var p = command.CreateParameter();
+        p.ParameterName = "$id";
+        p.Value = migrationId;
+        command.Parameters.Add(p);
+        return await command.ExecuteScalarAsync() is not null and not DBNull;
     }
 
     private static async Task SeedUsersAsync(SipitexDbContext context)
