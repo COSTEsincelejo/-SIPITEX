@@ -1,8 +1,10 @@
 @model AlertasIndexViewModel
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = "Alertas";
     ViewData["Breadcrumb"] = "SIPITEX / Análisis / Alertas";
     Layout = "_Layout";
+    var puedeConfigurarAlertas = (await AuthorizationService.AuthorizeAsync(User, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeConfigurarAlertas)).Succeeded;
 }
 
 <div class="page-header">
@@ -67,7 +69,7 @@
     </form>
 </div>
 
-@if (User.IsInRole("Administrador"))
+@if (puedeConfigurarAlertas)
 {
     <div class="card">
         <div class="card-title amber"><i class="fas fa-paper-plane"></i> Evaluar y enviar ahora</div>

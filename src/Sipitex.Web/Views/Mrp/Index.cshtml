@@ -1,8 +1,10 @@
 @model MrpIndexViewModel
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = "MRP / Materiales";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / MRP";
     Layout = "_Layout";
+    var puedeSimular = (await AuthorizationService.AuthorizeAsync(User, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeSimularMrp)).Succeeded;
 }
 
 <div class="page-header">
@@ -32,6 +34,8 @@
     </div>
 </div>
 
+@if (puedeSimular)
+{
 <div class="card">
     <div class="card-title amber"><i class="fas fa-calculator"></i> Simulación de requerimiento neto</div>
     <form asp-action="Simulate" method="post" class="form-row">
@@ -75,3 +79,4 @@
         </div>
     }
 </div>
+}

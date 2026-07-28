@@ -38,8 +38,11 @@
             <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
             <a class="@NavClass("Ordenes")" asp-controller="Ordenes" asp-action="Index"><i class="fas fa-clipboard-list"></i> Órdenes de producción</a>
             <a class="@NavClass("Mrp")" asp-controller="Mrp" asp-action="Index"><i class="fas fa-diagram-project"></i> MRP / Materiales</a>
-            <a class="@NavClass("Fichas")" asp-controller="Fichas" asp-action="Index"><i class="fas fa-people-group"></i> Fichas & producción</a>
-            <a class="@NavClass("Calidad")" asp-controller="Calidad" asp-action="Index"><i class="fas fa-clipboard-check"></i> Control de calidad</a>
+            @if (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
+            {
+                <a class="@NavClass("Fichas")" asp-controller="Fichas" asp-action="Index"><i class="fas fa-people-group"></i> Fichas & producción</a>
+                <a class="@NavClass("Calidad")" asp-controller="Calidad" asp-action="Index"><i class="fas fa-clipboard-check"></i> Control de calidad</a>
+            }
         </nav>
         <nav class="nav-group">
             <div class="nav-group-label">Análisis</div>
