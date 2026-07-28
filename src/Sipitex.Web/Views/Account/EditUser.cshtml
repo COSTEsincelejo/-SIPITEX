@@ -4,6 +4,7 @@
     ViewData["Breadcrumb"] = "SIPITEX / Administración / Editar usuario";
     Layout = "_Layout";
     var fichas = ViewBag.Fichas as IEnumerable<Ficha> ?? Array.Empty<Ficha>();
+    var isAdminUser = string.Equals(Model.Rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="page-header">
@@ -32,11 +33,21 @@
         </div>
         <div class="field">
             <label class="field-label">Rol</label>
-            <select asp-for="Rol">
-                <option value="Administrador">Administrador</option>
-                <option value="Instructor">Instructor</option>
-                <option value="Bodeguero">Bodeguero</option>
-            </select>
+            @if (isAdminUser)
+            {
+                <input asp-for="Rol" type="hidden" />
+                <input value="@Model.Rol" readonly class="readonly-input" />
+                <p class="hint" style="margin-top:.35rem;">El rol del administrador no se puede cambiar.</p>
+            }
+            else
+            {
+                <select asp-for="Rol">
+                    @foreach (var rol in UserRoles.CreatableByAdmin)
+                    {
+                        <option value="@rol">@rol</option>
+                    }
+                </select>
+            }
         </div>
         <div class="field">
             <label class="field-label">Ficha asignada</label>

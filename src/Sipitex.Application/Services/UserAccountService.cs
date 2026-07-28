@@ -46,7 +46,7 @@ public class UserAccountService : IUserAccountService
         IReadOnlyList<string> permisos,
         CancellationToken cancellationToken = default)
     {
-        var validation = Validate(nombre, email, password, rol, requirePassword: true);
+        var validation = Validate(nombre, email, password, rol, requirePassword: true, creatableOnly: true);
         if (validation is not null) return validation;
 
         if (await _userRepository.EmailExistsAsync(email.Trim(), null, cancellationToken))
@@ -80,11 +80,22 @@ public class UserAccountService : IUserAccountService
         bool isActive,
         CancellationToken cancellationToken = default)
     {
-        var validation = Validate(nombre, email, password, rol, requirePassword: false);
+        var validation = Validate(nombre, email, password, rol, requirePassword: false, creatableOnly: false);
         if (validation is not null) return validation;
 
         var user = await _userRepository.GetByIdAsync(id, cancellationToken);
         if (user is null) return ServiceResult.Fail("Usuario no encontrado.");
+
+        var isExistingAdmin = string.Equals(user.Rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
+        if (isExistingAdmin)
+        {
+            if (!string.Equals(rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase))
+                return ServiceResult.Fail("No se puede cambiar el rol del administrador.");
+        }
+        else if (!UserRoles.CreatableByAdmin.Contains(rol))
+        {
+            return ServiceResult.Fail("Solo se pueden asignar roles de Instructor o Bodeguero.");
+        }
 
         if (await _userRepository.EmailExistsAsync(email.Trim(), id, cancellationToken))
             return ServiceResult.Fail("Ya existe un usuario con ese correo.");
@@ -116,7 +127,51 @@ public class UserAccountService : IUserAccountService
         return ServiceResult.Ok(isActive ? "Usuario activado." : "Usuario desactivado.");
     }
 
-    private static ServiceResult? Validate(string nombre, string email, string password, string rol, bool requirePassword)
+    public async Task<ServiceResult> UpdateProfileAsync(
+        int id,
+        string nombre,
+        string email,
+        string? newPassword,
+        string? photoPath,
+        bool removePhoto,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(email))
+            return ServiceResult.Fail("Nombre y correo son obligatorios.");
+
+        var passwordError = PasswordRules.Validate(newPassword, required: false);
+        if (passwordError is not null)
+            return ServiceResult.Fail(passwordError);
+
+        var user = await _userRepository.GetByIdAsync(id, cancellationToken);
+        if (user is null) return ServiceResult.Fail("Usuario no encontrado.");
+
+        if (await _userRepository.EmailExistsAsync(email.Trim(), id, cancellationToken))
+            return ServiceResult.Fail("Ya existe un usuario con ese correo.");
+
+        user.Nombre = nombre.Trim();
+        user.Email = email.Trim().ToLowerInvariant();
+
+        if (!string.IsNullOrWhiteSpace(newPassword))
+            user.PasswordHash = PasswordHasher.Hash(newPassword);
+
+        if (removePhoto)
+            user.PhotoPath = null;
+        else if (!string.IsNullOrWhiteSpace(photoPath))
+            user.PhotoPath = photoPath;
+
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok("Perfil actualizado correctamente.");
+    }
+
+    private static ServiceResult? Validate(
+        string nombre,
+        string email,
+        string password,
+        string rol,
+        bool requirePassword,
+        bool creatableOnly)
     {
         if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(email))
             return ServiceResult.Fail("Nombre y correo son obligatorios.");
@@ -125,8 +180,15 @@ public class UserAccountService : IUserAccountService
         if (passwordError is not null)
             return ServiceResult.Fail(passwordError);
 
-        if (!UserRoles.All.Contains(rol))
+        if (creatableOnly)
+        {
+            if (!UserRoles.CreatableByAdmin.Contains(rol))
+                return ServiceResult.Fail("Solo el administrador puede crear cuentas de Instructor o Bodeguero.");
+        }
+        else if (!UserRoles.All.Contains(rol))
+        {
             return ServiceResult.Fail("Rol no válido.");
+        }
 
         return null;
     }

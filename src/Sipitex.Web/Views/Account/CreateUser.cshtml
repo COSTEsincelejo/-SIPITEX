@@ -9,7 +9,7 @@
 <div class="page-header">
     <div>
         <h2>Crear usuario</h2>
-        <div class="sub">Registre un nuevo usuario del sistema</div>
+        <div class="sub">Solo el administrador puede crear cuentas de Instructor o Bodeguero. Ellos podrán luego actualizar su foto y contraseña en Mi perfil.</div>
     </div>
 </div>
 
@@ -26,15 +26,17 @@
             <input asp-for="Email" type="email" required />
         </div>
         <div class="field">
-            <label class="field-label">Contraseña</label>
+            <label class="field-label">Contraseña temporal</label>
             <input asp-for="Password" type="password" required />
+            <p class="hint" style="margin-top:.35rem;">El usuario podrá cambiarla desde Mi perfil o con recuperación de contraseña.</p>
         </div>
         <div class="field">
             <label class="field-label">Rol</label>
             <select asp-for="Rol">
-                <option value="Administrador">Administrador</option>
-                <option value="Instructor">Instructor</option>
-                <option value="Bodeguero">Bodeguero</option>
+                @foreach (var rol in UserRoles.CreatableByAdmin)
+                {
+                    <option value="@rol">@rol</option>
+                }
             </select>
         </div>
         <div class="field">

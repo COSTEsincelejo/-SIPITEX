@@ -7,6 +7,7 @@
     var user = User.Identity?.IsAuthenticated == true ? User : null;
     var role = user?.FindFirstValue(ClaimTypes.Role) ?? "Invitado";
     var name = user?.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
+    var photo = user?.FindFirstValue("photo");
     var toastMessage = TempData["Message"] as string;
     var toastSuccess = TempData["IsSuccess"] as bool?;
 }
@@ -71,10 +72,17 @@
                     <a class="icon-btn" asp-controller="Alertas" asp-action="Index" title="Alertas" aria-label="Alertas">
                         <i class="fas fa-bell"></i>
                     </a>
-                    <div class="role-chip">
-                        <div class="avatar">@name.Substring(0, 1).ToUpper()</div>
+                    <a class="role-chip role-chip-link" asp-controller="Account" asp-action="Profile" title="Mi perfil" aria-label="Ir a mi perfil">
+                        @if (!string.IsNullOrWhiteSpace(photo))
+                        {
+                            <img class="avatar avatar-img" src="@photo" alt="" />
+                        }
+                        else
+                        {
+                            <div class="avatar">@(string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1).ToUpper())</div>
+                        }
                         <span class="role-text">@name · @role</span>
-                    </div>
+                    </a>
                     <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="ghost small"><i class="fas fa-right-from-bracket"></i> Salir</button>
