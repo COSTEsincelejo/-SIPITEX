@@ -54,9 +54,9 @@ public static class DbInitializer
             await context.SaveChangesAsync();
 
             context.Fichas.AddRange(
-                new Ficha { FichaCode = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", ProductionOrderId = op1.Id },
-                new Ficha { FichaCode = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", ProductionOrderId = op1.Id },
-                new Ficha { FichaCode = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", ProductionOrderId = op2.Id });
+                new Ficha { FichaCode = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", Turno = "Mañana", ProductionOrderId = op1.Id },
+                new Ficha { FichaCode = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", Turno = "Mañana", ProductionOrderId = op1.Id },
+                new Ficha { FichaCode = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", Turno = "Tarde", ProductionOrderId = op2.Id });
 
             SeedRequirements(context);
             await context.SaveChangesAsync();

@@ -60,6 +60,7 @@ public class SipitexDbContext : DbContext
         {
             e.HasKey(f => f.Id);
             e.Property(f => f.FichaCode).HasMaxLength(30).IsRequired();
+            e.Property(f => f.Turno).HasMaxLength(20).IsRequired();
             e.HasOne(f => f.ProductionOrder).WithMany(o => o.Fichas).HasForeignKey(f => f.ProductionOrderId);
             e.HasOne(f => f.InstructorUser)
                 .WithMany()
