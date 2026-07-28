@@ -12,6 +12,8 @@ public class User
     public string PermisosExtendidos { get; set; } = string.Empty;
     /// <summary>Ruta relativa de la foto de perfil (p. ej. /uploads/profiles/1.jpg).</summary>
     public string? PhotoPath { get; set; }
+    /// <summary>Descripción de las funciones del usuario, escrita por él mismo.</summary>
+    public string? FuncionDescripcion { get; set; }
     public bool IsActive { get; set; } = true;
 }
 

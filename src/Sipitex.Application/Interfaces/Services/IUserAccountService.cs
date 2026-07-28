@@ -31,6 +31,7 @@ public interface IUserAccountService
         int id,
         string nombre,
         string email,
+        string? funcionDescripcion,
         string? newPassword,
         string? photoPath,
         bool removePhoto,
