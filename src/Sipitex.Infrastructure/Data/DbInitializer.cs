@@ -10,6 +10,7 @@ public static class DbInitializer
 {
     public static async Task InitializeAsync(SipitexDbContext context)
     {
+        await MigrationBaseline.EnsureBaselineAsync(context);
         await context.Database.MigrateAsync();
 
         if (!await context.Materials.AnyAsync())

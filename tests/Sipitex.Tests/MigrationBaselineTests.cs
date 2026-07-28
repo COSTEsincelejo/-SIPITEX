@@ -1,0 +1,144 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Sipitex.Infrastructure.Data;
+using Sipitex.Infrastructure.Persistence;
+
+namespace Sipitex.Tests;
+
+public class MigrationBaselineTests
+{
+    private static SipitexDbContext CreateContext(string dbPath)
+    {
+        var options = new DbContextOptionsBuilder<SipitexDbContext>()
+            .UseSqlite($"Data Source={dbPath}")
+            .Options;
+        return new SipitexDbContext(options);
+    }
+
+    private static string NewTempDbPath() =>
+        Path.Combine(Path.GetTempPath(), $"sipitex-baseline-{Guid.NewGuid():N}.db");
+
+    private static async Task<int> CountMigrationRowsAsync(string dbPath)
+    {
+        await using var conn = new SqliteConnection($"Data Source={dbPath}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """SELECT COUNT(*) FROM "__EFMigrationsHistory";""";
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
+
+    private static async Task<bool> TableExistsAsync(string dbPath, string table)
+    {
+        await using var conn = new SqliteConnection($"Data Source={dbPath}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name=$n LIMIT 1;";
+        var p = cmd.CreateParameter();
+        p.ParameterName = "$n";
+        p.Value = table;
+        cmd.Parameters.Add(p);
+        return await cmd.ExecuteScalarAsync() is not null and not DBNull;
+    }
+
+    [Fact]
+    public async Task NewDatabase_MigrateAsync_CreatesFullSchema()
+    {
+        var dbPath = NewTempDbPath();
+        try
+        {
+            await using (var context = CreateContext(dbPath))
+            {
+                await MigrationBaseline.EnsureBaselineAsync(context);
+                await context.Database.MigrateAsync();
+            }
+
+            Assert.True(await TableExistsAsync(dbPath, "Materials"));
+            Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
+            Assert.True(await TableExistsAsync(dbPath, "Users"));
+            Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
+            Assert.Equal(1, await CountMigrationRowsAsync(dbPath));
+        }
+        finally
+        {
+            if (File.Exists(dbPath)) File.Delete(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task LegacyFullSchemaWithoutHistory_BaselineThenMigrate_Succeeds()
+    {
+        var dbPath = NewTempDbPath();
+        try
+        {
+            // Crear esquema completo vía migración y luego quitar el historial
+            // (simula EnsureCreated / SQL manual sin __EFMigrationsHistory).
+            await using (var context = CreateContext(dbPath))
+            {
+                await context.Database.MigrateAsync();
+            }
+
+            await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = """DROP TABLE IF EXISTS "__EFMigrationsHistory";""";
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            Assert.False(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
+            Assert.True(await TableExistsAsync(dbPath, "Materials"));
+
+            await using (var context = CreateContext(dbPath))
+            {
+                await MigrationBaseline.EnsureBaselineAsync(context);
+                await context.Database.MigrateAsync(); // no debe fallar
+            }
+
+            Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
+            Assert.Equal(1, await CountMigrationRowsAsync(dbPath));
+
+            await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText =
+                    """SELECT "MigrationId" FROM "__EFMigrationsHistory" LIMIT 1;""";
+                var id = (string?)await cmd.ExecuteScalarAsync();
+                Assert.Equal(MigrationBaseline.InitialCreateMigrationId, id);
+            }
+        }
+        finally
+        {
+            if (File.Exists(dbPath)) File.Delete(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task ExistingMigrationsHistory_EnsureBaseline_DoesNothing()
+    {
+        var dbPath = NewTempDbPath();
+        try
+        {
+            await using (var context = CreateContext(dbPath))
+            {
+                await context.Database.MigrateAsync();
+            }
+
+            var before = await CountMigrationRowsAsync(dbPath);
+            Assert.Equal(1, before);
+
+            await using (var context = CreateContext(dbPath))
+            {
+                await MigrationBaseline.EnsureBaselineAsync(context);
+                await MigrationBaseline.EnsureBaselineAsync(context); // segunda vez idempotente
+            }
+
+            var after = await CountMigrationRowsAsync(dbPath);
+            Assert.Equal(before, after);
+        }
+        finally
+        {
+            if (File.Exists(dbPath)) File.Delete(dbPath);
+        }
+    }
+}

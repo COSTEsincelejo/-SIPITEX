@@ -58,6 +58,8 @@ La aplicación queda en `http://localhost:8080` con SQLite persistente en el vol
 
 El esquema se aplica con **migraciones EF Core** (`MigrateAsync` al arrancar), no con `EnsureCreated`.
 
+Antes de `MigrateAsync`, `MigrationBaseline.EnsureBaselineAsync` detecta BD legacy (tiene tablas de negocio pero no `__EFMigrationsHistory`) y marca `InitialCreate` como ya aplicada **sin borrar datos**.
+
 ```bash
 # Crear una nueva migración (desarrollo)
 dotnet ef migrations add NombreCambio \
@@ -65,9 +67,17 @@ dotnet ef migrations add NombreCambio \
   --startup-project src/Sipitex.Web
 ```
 
-- **Instalación limpia** (sin `sipitex.db`): al iniciar se crea el esquema completo y el seed de demo.
-- **BD creada con el esquema anterior** (`EnsureCreated` / SQL manual, sin `__EFMigrationsHistory`): `MigrateAsync` **falla** porque `InitialCreate` intenta `CREATE TABLE` sobre tablas que ya existen.  
-  Opciones pendientes de decisión: (A) borrar `sipitex.db` y regenerar, (B) *baseline* (marcar `InitialCreate` como aplicada sin ejecutarla si el esquema ya está completo), (C) migraciones incrementales/SQL de parche para columnas faltantes.
+- **Instalación limpia** (sin `sipitex.db`): `MigrateAsync` crea el esquema completo y el seed de demo.
+- **BD legacy completa** (EnsureCreated / SQL manual, sin historial): se aplica baseline automático y luego `MigrateAsync` no vuelve a crear tablas.
+- **BD legacy incompleta** (faltan columnas/tablas del modelo actual): el baseline **no** se aplica y el arranque falla con mensaje explícito (para no ocultar el desfase).
+
+### Antes de desplegar en CMTC / producción
+
+```bash
+cp sipitex.db sipitex.db.bak
+```
+
+Haga el backup **manualmente** antes del primer arranque con esta versión. El código de arranque no lo automatiza.
 
 ## 5.8 Roadmap post-MVP
 
