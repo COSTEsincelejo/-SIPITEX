@@ -5,4 +5,7 @@
     <Project Path="src/Sipitex.Infrastructure/Sipitex.Infrastructure.csproj" />
     <Project Path="src/Sipitex.Web/Sipitex.Web.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sipitex.Tests/Sipitex.Tests.csproj" />
+  </Folder>
 </Solution>
