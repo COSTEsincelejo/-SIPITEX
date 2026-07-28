@@ -16,6 +16,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IQualityService, QualityService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IUserAccountService, UserAccountService>();
+        services.AddScoped<IPasswordResetService, PasswordResetService>();
         services.AddScoped<IAlertService, AlertService>();
         return services;
     }

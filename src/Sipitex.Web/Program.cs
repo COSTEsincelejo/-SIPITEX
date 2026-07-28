@@ -19,6 +19,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
     });
 builder.Services.AddAuthorization(options => options.AddSipitexPolicies());
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<SipitexDbContext>("database");
 builder.Services.AddHostedService<Sipitex.Web.Hosting.AlertEvaluationHostedService>();
 
 var app = builder.Build();
@@ -41,8 +43,11 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHealthChecks("/health").AllowAnonymous();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Inventario}/{action=Index}/{id?}");
 
 app.Run();
+
+public partial class Program;

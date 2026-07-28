@@ -38,3 +38,30 @@ public class UserEditViewModel
 
     public bool IsActive { get; set; } = true;
 }
+
+public class ForgotPasswordViewModel
+{
+    [Required(ErrorMessage = "El correo es obligatorio")]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+}
+
+public class ResetPasswordViewModel
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    public string Token { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "La contraseña es obligatoria")]
+    [DataType(DataType.Password)]
+    [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres.")]
+    public string NewPassword { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Confirme la contraseña")]
+    [DataType(DataType.Password)]
+    [Compare(nameof(NewPassword), ErrorMessage = "Las contraseñas no coinciden.")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}

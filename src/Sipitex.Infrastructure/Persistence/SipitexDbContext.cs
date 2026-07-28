@@ -19,6 +19,7 @@ public class SipitexDbContext : DbContext
     public DbSet<ProductionSession> ProductionSessions => Set<ProductionSession>();
     public DbSet<AlertPreference> AlertPreferences => Set<AlertPreference>();
     public DbSet<AlertDelivery> AlertDeliveries => Set<AlertDelivery>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -129,6 +130,18 @@ public class SipitexDbContext : DbContext
             e.Property(a => a.Body).HasMaxLength(4000).IsRequired();
             e.Property(a => a.Channel).HasMaxLength(40).IsRequired();
             e.HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.TokenHash).HasMaxLength(128).IsRequired();
+            e.HasIndex(t => t.TokenHash);
+            e.HasIndex(t => new { t.UserId, t.CreatedAtUtc });
+            e.HasOne(t => t.User)
+                .WithMany()
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
