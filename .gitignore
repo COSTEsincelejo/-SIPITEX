@@ -24,3 +24,7 @@ publish/
 # OS
 Thumbs.db
 .DS_Store
+
+# Node (generación de diagramas Mermaid)
+docs/diagramas/node_modules/
+**/node_modules/

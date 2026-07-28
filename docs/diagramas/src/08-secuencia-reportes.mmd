@@ -1,0 +1,19 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'actorBkg': '#e8f1fb', 'actorBorder': '#2c5282', 'actorTextColor': '#1a2b3c', 'signalColor': '#2c5282', 'noteBkgColor': '#fff7ed', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+sequenceDiagram
+  actor U as Usuario
+  participant V as ReportesController
+  participant R as ReportService
+  participant DB as SQLite
+
+  U->>V: Elegir filtros y formato
+  V->>R: ExportFilteredAsync
+  R->>R: Resolver período (día/semana/mes/año)
+  R->>DB: Leer materiales, sesiones, calidad, órdenes
+  R->>R: Filtrar por instructor / ficha
+  alt Formato PDF
+    R->>R: Generar PDF (QuestPDF)
+  else Formato Excel
+    R->>R: Generar Excel (ClosedXML)
+  end
+  R-->>V: Archivo
+  V-->>U: Descarga

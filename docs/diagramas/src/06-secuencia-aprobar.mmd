@@ -1,0 +1,19 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'actorBkg': '#e8f1fb', 'actorBorder': '#2c5282', 'actorTextColor': '#1a2b3c', 'signalColor': '#2c5282', 'noteBkgColor': '#fff7ed', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+sequenceDiagram
+  actor B as Bodeguero
+  participant V as InventarioController
+  participant S as InventoryService
+  participant DB as SQLite
+
+  B->>V: Aprobar solicitud
+  V->>S: ApproveRequestAsync
+  S->>S: Validar Pendiente y stock suficiente
+  alt Stock insuficiente
+    S-->>V: Error
+    V-->>B: No se puede aprobar
+  else Stock OK
+    S->>S: Descontar stock y marcar Aprobada
+    S->>DB: UPDATE Materials y Requests
+    S-->>V: Ok
+    V-->>B: Solicitud aprobada
+  end

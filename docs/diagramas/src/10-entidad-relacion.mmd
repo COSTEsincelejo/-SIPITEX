@@ -1,0 +1,108 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f1fb', 'primaryTextColor': '#1a2b3c', 'primaryBorderColor': '#2c5282', 'lineColor': '#2c5282', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+erDiagram
+  USERS ||--o| FICHAS : "ficha_asignada"
+  USERS ||--o{ ALERT_PREFERENCES : configura
+  USERS ||--o{ ALERT_DELIVERIES : recibe
+
+  MATERIALS ||--o{ BOM_ITEMS : "usado_en"
+  MATERIALS ||--o{ MATERIAL_REQUESTS : "pedido_en"
+
+  PRODUCTION_ORDERS ||--o{ MATERIAL_REQUESTS : origina
+  PRODUCTION_ORDERS ||--o{ QUALITY_RECORDS : inspecciona
+  PRODUCTION_ORDERS ||--o{ FICHAS : asigna
+  PRODUCTION_ORDERS ||--o{ PRODUCTION_SESSIONS : avanza
+
+  FICHAS ||--o{ PRODUCTION_SESSIONS : registra
+
+  USERS {
+    int Id PK
+    string Nombre
+    string Email UK
+    string PasswordHash
+    string Rol
+    string PermisosExtendidos
+    bool IsActive
+    int FichaAsignadaId FK
+  }
+
+  MATERIALS {
+    int Id PK
+    string Code
+    string Name
+    int Unit
+    decimal Stock
+    decimal MinStock
+    int Status
+    date LastEntryDate
+  }
+
+  BOM_ITEMS {
+    int Id PK
+    string ProductName
+    int MaterialId FK
+    decimal QuantityPerUnit
+    int Unit
+  }
+
+  PRODUCTION_ORDERS {
+    int Id PK
+    string OrderNumber UK
+    string ProductName
+    int TotalQuantity
+    int ProducedQuantity
+    int Status
+    date Deadline
+  }
+
+  MATERIAL_REQUESTS {
+    int Id PK
+    int MaterialId FK
+    int ProductionOrderId FK
+    decimal Quantity
+    int Status
+    datetime CreatedAt
+  }
+
+  FICHAS {
+    int Id PK
+    string FichaCode
+    string ProcessName
+    string InstructorName
+    int ProductionOrderId FK
+  }
+
+  PRODUCTION_SESSIONS {
+    int Id PK
+    int FichaId FK
+    int ProductionOrderId FK
+    int Units
+    string Observations
+    datetime SessionDate
+  }
+
+  QUALITY_RECORDS {
+    int Id PK
+    int ProductionOrderId FK
+    int UnitsInspected
+    int Result
+    date InspectionDate
+    string MotivoReproceso
+    string Responsable
+  }
+
+  ALERT_PREFERENCES {
+    int Id PK
+    int UserId FK
+    int AlertType
+    bool Enabled
+  }
+
+  ALERT_DELIVERIES {
+    int Id PK
+    int UserId FK
+    int AlertType
+    string Subject
+    string Body
+    datetime SentAt
+    string Channel
+  }

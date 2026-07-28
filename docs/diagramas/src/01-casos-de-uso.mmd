@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f1fb', 'primaryTextColor': '#1a2b3c', 'primaryBorderColor': '#2c5282', 'lineColor': '#2c5282', 'secondaryColor': '#f7fafc', 'tertiaryColor': '#fff7ed', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+flowchart TB
+  subgraph Actores["Actores"]
+    direction TB
+    A["👤 Administrador"]
+    B["👤 Bodeguero"]
+    I["👤 Instructor"]
+  end
+
+  subgraph Sistema["SIPITEX"]
+    direction TB
+    UC1(("1. Iniciar sesión"))
+    UC2(("2. Gestionar usuarios"))
+    UC3(("3. Registrar materiales"))
+    UC4(("4. Consultar stock"))
+    UC5(("5. Solicitar material"))
+    UC6(("6. Aprobar / rechazar"))
+    UC7(("7. Crear orden"))
+    UC8(("8. Registrar producción"))
+    UC9(("9. BOM / MRP"))
+    UC10(("10. Control de calidad"))
+    UC11(("11. Descargar reportes"))
+    UC12(("12. Configurar alertas"))
+  end
+
+  A --> UC1
+  B --> UC1
+  I --> UC1
+  A --> UC2
+  A --> UC3
+  B --> UC3
+  A --> UC4
+  B --> UC4
+  I --> UC4
+  I --> UC5
+  A --> UC5
+  B --> UC6
+  A --> UC6
+  A --> UC7
+  I --> UC8
+  A --> UC8
+  A --> UC9
+  B --> UC9
+  A --> UC10
+  I --> UC10
+  A --> UC11
+  B --> UC11
+  I --> UC11
+  A --> UC12

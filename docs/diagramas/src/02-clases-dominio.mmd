@@ -1,0 +1,107 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f1fb', 'primaryTextColor': '#1a2b3c', 'primaryBorderColor': '#2c5282', 'lineColor': '#4a5568', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+classDiagram
+  direction TB
+
+  class User {
+    +int Id
+    +string Nombre
+    +string Email
+    +string PasswordHash
+    +string Rol
+    +string PermisosExtendidos
+    +bool IsActive
+    +int? FichaAsignadaId
+  }
+
+  class Material {
+    +int Id
+    +string Code
+    +string Name
+    +MaterialUnit Unit
+    +decimal Stock
+    +decimal MinStock
+    +MaterialStatus Status
+    +DateOnly LastEntryDate
+  }
+
+  class BomItem {
+    +int Id
+    +string ProductName
+    +int MaterialId
+    +decimal QuantityPerUnit
+    +MaterialUnit Unit
+  }
+
+  class ProductionOrder {
+    +int Id
+    +string OrderNumber
+    +string ProductName
+    +int TotalQuantity
+    +int ProducedQuantity
+    +OrderStatus Status
+    +DateOnly Deadline
+  }
+
+  class MaterialRequest {
+    +int Id
+    +int MaterialId
+    +int ProductionOrderId
+    +decimal Quantity
+    +RequestStatus Status
+    +DateTime CreatedAt
+  }
+
+  class Ficha {
+    +int Id
+    +string FichaCode
+    +string ProcessName
+    +string InstructorName
+    +int? ProductionOrderId
+  }
+
+  class ProductionSession {
+    +int Id
+    +int FichaId
+    +int ProductionOrderId
+    +int Units
+    +string Observations
+    +DateTime SessionDate
+  }
+
+  class QualityRecord {
+    +int Id
+    +int ProductionOrderId
+    +int UnitsInspected
+    +QualityResult Result
+    +DateOnly InspectionDate
+    +string? MotivoReproceso
+    +string? Responsable
+  }
+
+  class AlertPreference {
+    +int Id
+    +int UserId
+    +AlertType AlertType
+    +bool Enabled
+  }
+
+  class AlertDelivery {
+    +int Id
+    +int UserId
+    +AlertType AlertType
+    +string Subject
+    +string Body
+    +DateTime SentAt
+    +string Channel
+  }
+
+  User "0..1" --> "0..1" Ficha : FichaAsignada
+  Material "1" --> "*" BomItem : compone
+  Material "1" --> "*" MaterialRequest : solicita
+  ProductionOrder "1" --> "*" MaterialRequest : origina
+  ProductionOrder "1" --> "*" QualityRecord : inspecciona
+  ProductionOrder "1" --> "*" Ficha : asigna
+  Ficha "1" --> "*" ProductionSession : registra
+  ProductionOrder "1" --> "*" ProductionSession : avanza
+  User "1" --> "*" AlertPreference : configura
+  User "1" --> "*" AlertDelivery : recibe
