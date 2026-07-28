@@ -29,7 +29,7 @@ public class MrpController : Controller
     [Authorize(Policy = AuthorizationPolicyNames.PuedeSimularMrp)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Simulate(MrpSimulationForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> Simulate([Bind(Prefix = "Simulation")] MrpSimulationForm form, CancellationToken cancellationToken)
     {
         return View("Index", new MrpIndexViewModel
         {

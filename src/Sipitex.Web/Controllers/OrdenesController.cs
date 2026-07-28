@@ -31,7 +31,7 @@ public class OrdenesController : Controller
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CreateOrderForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create([Bind(Prefix = "CreateOrder")] CreateOrderForm form, CancellationToken cancellationToken)
     {
         var result = await _orderService.CreateOrderAsync(
             new CreateProductionOrderDto(form.ProductName, form.TotalQuantity, form.Deadline), cancellationToken);

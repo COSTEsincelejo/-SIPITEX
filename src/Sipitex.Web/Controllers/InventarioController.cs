@@ -31,7 +31,7 @@ public class InventarioController : Controller
     [Authorize(Policy = AuthorizationPolicyNames.PuedeRegistrarMateriales)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddMaterial(CreateMaterialForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> AddMaterial([Bind(Prefix = "CreateMaterial")] CreateMaterialForm form, CancellationToken cancellationToken)
     {
         var result = await _inventoryService.AddMaterialAsync(
             new CreateMaterialDto(form.Name, form.Stock, form.Unit), cancellationToken);
@@ -71,7 +71,7 @@ public class InventarioController : Controller
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateRequest(CreateRequestForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateRequest([Bind(Prefix = "CreateRequest")] CreateRequestForm form, CancellationToken cancellationToken)
     {
         var result = await _inventoryService.CreateRequestAsync(
             new CreateMaterialRequestDto(form.ProductionOrderId, form.MaterialId, form.Quantity), cancellationToken);
