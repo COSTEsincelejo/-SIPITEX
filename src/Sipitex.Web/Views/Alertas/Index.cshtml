@@ -4,7 +4,7 @@
     ViewData["Title"] = "Alertas";
     ViewData["Breadcrumb"] = "SIPITEX / Análisis / Alertas";
     Layout = "_Layout";
-    var puedeConfigurarAlertas = (await AuthorizationService.AuthorizeAsync(User, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeConfigurarAlertas)).Succeeded;
+    var puedeConfigurarAlertas = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeConfigurarAlertas)).Succeeded;
 }
 
 <div class="page-header">

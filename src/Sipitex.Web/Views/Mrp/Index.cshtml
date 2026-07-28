@@ -4,7 +4,7 @@
     ViewData["Title"] = "MRP / Materiales";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / MRP";
     Layout = "_Layout";
-    var puedeSimular = (await AuthorizationService.AuthorizeAsync(User, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeSimularMrp)).Succeeded;
+    var puedeSimular = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeSimularMrp)).Succeeded;
 }
 
 <div class="page-header">

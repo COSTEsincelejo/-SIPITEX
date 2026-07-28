@@ -6,8 +6,8 @@
     Layout = "_Layout";
     var lowStock = Model.Materials.Where(m => m.IsLowStock).Select(m => m.Name).ToList();
     var canManageStock = User.IsInRole("Administrador") || User.IsInRole("Bodeguero");
-    var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
-    var canApproveRequests = (await AuthorizationService.AuthorizeAsync(User, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeAprobarSolicitudes)).Succeeded;
+    var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
+    var canApproveRequests = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeAprobarSolicitudes)).Succeeded;
     var canRequest = User.IsInRole("Administrador") || User.IsInRole("Instructor");
 }
 
