@@ -56,6 +56,11 @@ public class ProfileViewModel
 
     public string? PhotoPath { get; set; }
 
+    [StringLength(800, ErrorMessage = "La descripción no puede superar 800 caracteres.")]
+    [DataType(DataType.MultilineText)]
+    [Display(Name = "Descripción de funciones")]
+    public string? FuncionDescripcion { get; set; }
+
     [DataType(DataType.Password)]
     [StringLength(100)]
     public string? NewPassword { get; set; }

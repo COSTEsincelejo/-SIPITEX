@@ -1,7 +1,11 @@
 ﻿@using System.Security.Claims
 @{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     string NavClass(string name) => controller.Equals(name, StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item";
+    bool IsAccountAction(params string[] actions) =>
+        controller.Equals("Account", StringComparison.OrdinalIgnoreCase)
+        && actions.Any(a => action.Equals(a, StringComparison.OrdinalIgnoreCase));
     var title = ViewData["Title"]?.ToString() ?? "SIPITEX";
     var breadcrumb = ViewData["Breadcrumb"]?.ToString() ?? "SIPITEX";
     var user = User.Identity?.IsAuthenticated == true ? User : null;
@@ -52,7 +56,13 @@
             <a class="@NavClass("Alertas")" asp-controller="Alertas" asp-action="Index"><i class="fas fa-bell"></i> Alertas</a>
             @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Administrador"))
             {
-                <a class="@NavClass("Account")" asp-controller="Account" asp-action="Users"><i class="fas fa-users-gear"></i> Usuarios</a>
+                <a class="@(IsAccountAction("Users", "CreateUser", "EditUser") ? "nav-item active" : "nav-item")"
+                   asp-controller="Account" asp-action="Users"><i class="fas fa-users-gear"></i> Usuarios</a>
+            }
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a class="@(IsAccountAction("Profile") ? "nav-item active" : "nav-item")"
+                   asp-controller="Account" asp-action="Profile"><i class="fas fa-user"></i> Mi perfil</a>
             }
         </nav>
         <div class="sidebar-foot">SIPITEX v1.0 · .NET MVC<br>CMTC · SENA · ADSO</div>

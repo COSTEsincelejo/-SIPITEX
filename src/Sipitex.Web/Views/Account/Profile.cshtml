@@ -9,7 +9,7 @@
 <div class="page-header">
     <div>
         <h2>Mi perfil</h2>
-        <div class="sub">Actualice su foto, nombre, correo y contraseña. El rol lo asigna el administrador.</div>
+        <div class="sub">Administre su foto, la descripción de sus funciones, datos de contacto y contraseña. El rol lo asigna el administrador.</div>
     </div>
 </div>
 
@@ -66,6 +66,13 @@
         <div class="field">
             <label class="field-label">Rol</label>
             <input value="@Model.Rol" readonly class="readonly-input" />
+        </div>
+
+        <div class="field">
+            <label class="field-label" asp-for="FuncionDescripcion">Descripción de mis funciones</label>
+            <textarea asp-for="FuncionDescripcion" rows="4" maxlength="800" placeholder="Ej.: Responsable de inventario y despacho de materiales en bodega; apoyo en conteos y alertas de stock."></textarea>
+            <p class="hint">Escriba con sus palabras las funciones que desempeña en SIPITEX (máx. 800 caracteres).</p>
+            <span asp-validation-for="FuncionDescripcion" class="field-error"></span>
         </div>
 
         <div class="field-row">
