@@ -69,6 +69,9 @@ Abrir `http://localhost:8080`. La base de datos persiste en el volumen `sipitex-
 | Reportes | `/Reportes` | Exportación PDF / Excel |
 | Alertas | `/Alertas` | Preferencias de correo por actor |
 | Usuarios | `/Account/Users` | CRUD de usuarios (Administrador) |
+| Mi perfil | `/Account/Profile` | Foto, funciones, datos y contraseña |
+
+Manuales de uso por rol: [`docs/manuales/`](docs/manuales/).
 
 ## Metodología cascada
 
