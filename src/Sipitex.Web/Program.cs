@@ -59,7 +59,14 @@ app.UseAuthentication(); // tiene que ir antes de Authorization
 app.UseAuthorization(); // revisa roles y políticas
 
 app.MapHealthChecks("/health").AllowAnonymous(); // endpoint público de salud
-// Ruta por defecto: al entrar va a Inventario
+
+// Entrada amigable: si no hay sesión, manda al login (evita confusión en Codespaces)
+app.MapGet("/", (HttpContext http) =>
+    Results.Redirect(http.User.Identity?.IsAuthenticated == true
+        ? "/Inventario"
+        : "/Account/Login"));
+
+// Ruta por defecto MVC
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Inventario}/{action=Index}/{id?}");
