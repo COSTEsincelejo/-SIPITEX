@@ -134,15 +134,18 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
+    // GET del perfil: solo cargo los datos del usuario logueado
     [HttpGet]
     public async Task<IActionResult> Profile(CancellationToken cancellationToken)
     {
         var user = await GetCurrentUserAsync(cancellationToken);
+        // Challenge = "vuelve a autenticarte" si la cookie no cuadra con un usuario real
         if (user is null) return Challenge();
 
         return View(ToProfileViewModel(user));
     }
 
+    // POST del perfil: guarda nombre, correo, descripción, contraseña opcional y foto
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Profile(ProfileViewModel model, IFormFile? photo, CancellationToken cancellationToken)
@@ -150,7 +153,8 @@ public class AccountController : Controller
         var user = await GetCurrentUserAsync(cancellationToken);
         if (user is null) return Challenge();
 
-        // Relleno campos que no vienen del form pero sí los necesito al guardar
+        // Estos campos no vienen del form (están disabled o hidden),
+        // pero los necesito para que la vista no quede vacía si hay error de validación
         model.Id = user.Id;
         model.Rol = user.Rol;
         model.PhotoPath = user.PhotoPath;
@@ -158,9 +162,11 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
+        // newPhotoPath = la que acabo de subir; previousPhotoPath = la que ya tenía en BD
         string? newPhotoPath = null;
         string? previousPhotoPath = user.PhotoPath;
 
+        // Si mandaron un archivo, lo guardo en disco antes de tocar la BD
         if (photo is { Length: > 0 })
         {
             var saveResult = await SaveProfilePhotoAsync(user.Id, photo, cancellationToken);
@@ -170,9 +176,11 @@ public class AccountController : Controller
                 return View(model);
             }
             newPhotoPath = saveResult.Path;
+            // Si subió foto nueva, no tiene sentido "quitar foto" al mismo tiempo
             model.RemovePhoto = false;
         }
 
+        // Acá se actualiza todo en BD (incluida la ruta de la foto)
         var result = await _userAccountService.UpdateProfileAsync(
             user.Id,
             model.Nombre,
@@ -193,6 +201,7 @@ public class AccountController : Controller
         }
 
         // Solo borro la foto vieja si realmente cambió o la quitaron
+        // (si no hago esto se acumulan archivos huérfanos en wwwroot/uploads)
         if ((model.RemovePhoto || !string.IsNullOrWhiteSpace(newPhotoPath)) &&
             !string.IsNullOrWhiteSpace(previousPhotoPath) &&
             !string.Equals(previousPhotoPath, newPhotoPath, StringComparison.OrdinalIgnoreCase))
@@ -200,12 +209,14 @@ public class AccountController : Controller
             DeleteProfilePhotoFile(previousPhotoPath);
         }
 
-        // Refresco la cookie porque el nombre/foto/permisos pueden haber cambiado
+        // Refresco la cookie porque el nombre/foto pueden haber cambiado
+        // y el layout lee eso de los claims, no de la BD
         var refreshed = await _userAccountService.GetUserByIdAsync(user.Id, cancellationToken);
         if (refreshed is not null)
             await SignInUserAsync(refreshed);
 
         TempData["Message"] = result.Message;
+        // Redirect para que un F5 no vuelva a mandar el POST
         return RedirectToAction(nameof(Profile));
     }
 
