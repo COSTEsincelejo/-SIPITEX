@@ -6,6 +6,7 @@ namespace Sipitex.Infrastructure.Data;
 // Para BDs que se crearon antes con EnsureCreated o SQL a mano:
 // si ya tienen tablas pero no __EFMigrationsHistory, les "estampo" las migraciones
 // que ya están reflejadas en el esquema. Solo CREATE/INSERT, nunca DROP.
+// Nota: el baseline legacy aplica solo a SQLite; PostgreSQL usa migraciones EF propias.
 public static class MigrationBaseline
 {
     // Tiene que coincidir exacto con el nombre del archivo de migración
@@ -22,6 +23,10 @@ public static class MigrationBaseline
         SipitexDbContext context,
         CancellationToken cancellationToken = default)
     {
+        // PostgreSQL no usa el baseline legacy de SQLite
+        if (context.Database.IsNpgsql())
+            return;
+
         // Si ya hay historial de migraciones, no hago nada
         if (await TableExistsAsync(context, "__EFMigrationsHistory", cancellationToken))
             return;
@@ -98,7 +103,7 @@ public static class MigrationBaseline
         return true; // El esquema parece el de InitialCreate
     }
 
-    // Consulta sqlite_master — también lo usa DbInitializer
+    // Existencia de tabla (SQLite o PostgreSQL)
     internal static async Task<bool> TableExistsAsync(
         SipitexDbContext context,
         string tableName,
@@ -107,17 +112,36 @@ public static class MigrationBaseline
         var connection = context.Database.GetDbConnection();
         await context.Database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        command.CommandText =
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = $name LIMIT 1;";
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = "$name";
-        parameter.Value = tableName;
-        command.Parameters.Add(parameter);
+
+        if (context.Database.IsNpgsql())
+        {
+            command.CommandText =
+                """
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = @name
+                LIMIT 1;
+                """;
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = "@name";
+            parameter.Value = tableName;
+            command.Parameters.Add(parameter);
+        }
+        else
+        {
+            command.CommandText =
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = $name LIMIT 1;";
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = "$name";
+            parameter.Value = tableName;
+            command.Parameters.Add(parameter);
+        }
+
         var result = await command.ExecuteScalarAsync(cancellationToken);
         return result is not null && result is not DBNull;
     }
 
-    // PRAGMA table_info para ver si una columna existe
+    // Existencia de columna (SQLite o PostgreSQL)
     private static async Task<bool> ColumnExistsAsync(
         SipitexDbContext context,
         string tableName,
@@ -127,6 +151,30 @@ public static class MigrationBaseline
         var connection = context.Database.GetDbConnection();
         await context.Database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
+
+        if (context.Database.IsNpgsql())
+        {
+            command.CommandText =
+                """
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = @table
+                  AND column_name = @column
+                LIMIT 1;
+                """;
+            var tableParam = command.CreateParameter();
+            tableParam.ParameterName = "@table";
+            tableParam.Value = tableName;
+            command.Parameters.Add(tableParam);
+            var columnParam = command.CreateParameter();
+            columnParam.ParameterName = "@column";
+            columnParam.Value = columnName;
+            command.Parameters.Add(columnParam);
+            var result = await command.ExecuteScalarAsync(cancellationToken);
+            return result is not null && result is not DBNull;
+        }
+
         // Por si acaso, no meto nombres raros en el PRAGMA
         if (!IsSafeSqliteIdentifier(tableName) || !IsSafeSqliteIdentifier(columnName))
             return false; // Nombre sospechoso, no ejecuto

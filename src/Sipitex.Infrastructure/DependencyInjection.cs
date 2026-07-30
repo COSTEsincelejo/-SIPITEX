@@ -14,16 +14,31 @@ namespace Sipitex.Infrastructure;
 // Registro de servicios de la capa Infrastructure en el contenedor DI de ASP.NET
 public static class DependencyInjection
 {
+    public const string PostgreSqlMigrationsAssembly = "Sipitex.Infrastructure.Migrations.PostgreSQL";
+
     // Método de extensión que llama Program.cs para cablear todo
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // Leo la cadena de conexión del appsettings, si no hay uso el default
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? "Data Source=sipitex.db";
+        var configuredProvider = configuration["Database:Provider"];
+        var provider = DatabaseProvider.Resolve(connectionString, configuredProvider);
 
-        // EF Core con SQLite — el archivo sipitex.db queda en la raíz del proyecto
+        // EF Core: SQLite (local/demo) o PostgreSQL (producción / Docker)
         services.AddDbContext<SipitexDbContext>(options =>
-            options.UseSqlite(connectionString));
+        {
+            if (provider == DatabaseProvider.PostgreSql)
+            {
+                options.UseNpgsql(
+                    connectionString,
+                    npgsql => npgsql.MigrationsAssembly(PostgreSqlMigrationsAssembly));
+            }
+            else
+            {
+                options.UseSqlite(connectionString);
+            }
+        });
 
         // Opciones de correo desde la sección "Email" del appsettings
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));

@@ -19,7 +19,8 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
 COPY --from=build /app/publish .
 VOLUME ["/app/data"]
-ENV ConnectionStrings__DefaultConnection="Data Source=/app/data/sipitex.db"
+ENV Database__Provider=PostgreSQL
+ENV ConnectionStrings__DefaultConnection="Host=db;Port=5432;Database=sipitex;Username=sipitex;Password=sipitex"
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
   CMD curl -fsS http://localhost:8080/health || exit 1
 ENTRYPOINT ["dotnet", "Sipitex.Web.dll"]
