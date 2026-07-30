@@ -17,6 +17,7 @@
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
+@* Solo el admin puede crear órdenes nuevas *@
 @if (User.IsInRole("Administrador"))
 {
 <div class="card">
@@ -74,6 +75,7 @@
                     <td><span class="badge @DisplayHelper.BadgeClass(order.Status)">@DisplayHelper.StatusText(order.Status)</span></td>
                     <td><small style="color:var(--text-mut);">@order.MrpHint</small></td>
                     <td>
+                        @* Botón rápido para sumar 10 unidades si la orden no está finalizada *@
                         @if (order.Status != OrderStatus.Finalizada)
                         {
                             <form asp-action="AddProduction" method="post" style="display:inline;">

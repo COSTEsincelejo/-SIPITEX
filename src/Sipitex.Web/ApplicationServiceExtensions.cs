@@ -6,7 +6,7 @@ namespace Sipitex.Web;
 // Método de extensión para registrar servicios sin llenar Program.cs de líneas
 public static class ApplicationServiceExtensions
 {
-    // Aquí se registran los servicios de la capa de aplicación para que puedan ser usados por los controladores.
+    // Registra los servicios de aplicación en el contenedor de DI
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         // Consumo de materiales en producción
@@ -20,6 +20,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IMrpService, MrpService>();
         services.AddScoped<IFichaService, FichaService>();
 
+        // Control de calidad y estadísticas del dashboard
         services.AddScoped<IQualityService, QualityService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
 
@@ -27,6 +28,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IUserAccountService, UserAccountService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
 
+        // Alertas por correo y evaluación programada
         services.AddScoped<IAlertService, AlertService>();
 
         return services;

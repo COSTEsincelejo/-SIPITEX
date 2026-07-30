@@ -5,21 +5,22 @@ namespace Sipitex.Web.Models;
 // Modelos para el login y la gestión de usuarios.
 // Son los que reciben los formularios de Account (no van directo a la BD).
 
+// Formulario de inicio de sesión
 public class LoginViewModel
 {
     [Required(ErrorMessage = "El correo es obligatorio")]
-    [EmailAddress]
+    [EmailAddress] // valida formato de correo
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria")]
-    [DataType(DataType.Password)]
+    [DataType(DataType.Password)] // en la vista se renderiza como input password
     public string Password { get; set; } = string.Empty;
 }
 
 // Para crear/editar usuarios desde el panel de admin
 public class UserEditViewModel
 {
-    public int Id { get; set; }
+    public int Id { get; set; } // 0 al crear, >0 al editar
 
     [Required]
     public string Nombre { get; set; } = string.Empty;
@@ -33,14 +34,14 @@ public class UserEditViewModel
     public string Password { get; set; } = string.Empty;
 
     [Required]
-    public string Rol { get; set; } = "Instructor";
+    public string Rol { get; set; } = "Instructor"; // Instructor o Bodeguero al crear
 
-    public int? FichaAsignadaId { get; set; }
+    public int? FichaAsignadaId { get; set; } // opcional, solo para instructores
 
     // Permisos extra aparte del rol (claves de ExtendedPermissions)
     public List<string> SelectedPermissions { get; set; } = [];
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; } = true; // usuario activo o desactivado
 }
 
 // El usuario edita su propio perfil
@@ -57,26 +58,27 @@ public class ProfileViewModel
     [StringLength(160)]
     public string Email { get; set; } = string.Empty;
 
-    public string Rol { get; set; } = string.Empty;
+    public string Rol { get; set; } = string.Empty; // solo lectura, lo pone el admin
 
-    public string? PhotoPath { get; set; }
+    public string? PhotoPath { get; set; } // ruta de la foto actual en wwwroot
 
     [StringLength(800, ErrorMessage = "La descripción no puede superar 800 caracteres.")]
-    [DataType(DataType.MultilineText)]
+    [DataType(DataType.MultilineText)] // textarea en la vista
     [Display(Name = "Descripción de funciones")]
     public string? FuncionDescripcion { get; set; }
 
     [DataType(DataType.Password)]
     [StringLength(100)]
-    public string? NewPassword { get; set; }
+    public string? NewPassword { get; set; } // opcional al guardar perfil
 
     [DataType(DataType.Password)]
     [Compare(nameof(NewPassword), ErrorMessage = "Las contraseñas no coinciden")]
     public string? ConfirmPassword { get; set; }
 
-    public bool RemovePhoto { get; set; }
+    public bool RemovePhoto { get; set; } // checkbox para borrar la foto
 }
 
+// Paso 1 de recuperar contraseña: solo pide el correo
 public class ForgotPasswordViewModel
 {
     [Required(ErrorMessage = "El correo es obligatorio")]
@@ -84,6 +86,7 @@ public class ForgotPasswordViewModel
     public string Email { get; set; } = string.Empty;
 }
 
+// Paso 2: el usuario llega con token en el link del correo
 public class ResetPasswordViewModel
 {
     [Required]
@@ -91,7 +94,7 @@ public class ResetPasswordViewModel
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    public string Token { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty; // viene oculto en el form
 
     [Required(ErrorMessage = "La contraseña es obligatoria")]
     [DataType(DataType.Password)]

@@ -1,43 +1,51 @@
 namespace Sipitex.Domain.Entities;
 
-// Entidad de usuario del sistema. Acá guardo lo básico para login y roles.
+// Entidad de usuario: login, rol, foto y permisos extra
 public class User
 {
+    // PK de la tabla Users
     public int Id { get; set; }
+
+    // Nombre completo para mostrar en la UI y en claims
     public string Nombre { get; set; } = string.Empty;
+
+    // Correo único (con eso hacen login)
     public string Email { get; set; } = string.Empty;
 
-    // Nunca guardo la contraseña en texto plano, solo el hash
+    // Hash de la contraseña (nunca el texto plano)
     public string PasswordHash { get; set; } = string.Empty;
 
-    // Por defecto lo dejo como Instructor (es el rol más común en el taller)
+    // Rol del sistema; por defecto Instructor porque es el más común en el taller
     public string Rol { get; set; } = UserRoles.Instructor;
 
-    // Si es instructor, puede tener una ficha asignada (nullable porque el admin/bodeguero no tienen)
+    // FK opcional a la ficha "principal" del instructor (null en admin/bodeguero)
     public int? FichaAsignadaId { get; set; }
+
+    // Navegación a esa ficha (EF Core la llena si hago Include)
     public Ficha? FichaAsignada { get; set; }
 
-    // Permisos extra separados por comas, ej: "Inventario.Registrar, Mrp.Simular"
-    // Los parseo con ExtendedPermissions.Parse
+    // Permisos extra en texto, separados por comas (los parseo con ExtendedPermissions)
     public string PermisosExtendidos { get; set; } = string.Empty;
 
-    // Ruta relativa de la foto, algo como /uploads/profiles/1.jpg
+    // Ruta web de la foto, ej: /uploads/profiles/1_abc.jpg (null = sin foto)
     public string? PhotoPath { get; set; }
 
-    // El mismo usuario escribe qué hace en su rol (lo pedían para el perfil)
+    // Texto libre de qué hace en su rol (lo escribe él en el perfil)
     public string? FuncionDescripcion { get; set; }
 
-    // Si está en false no puede entrar al sistema
+    // false = no puede entrar aunque tenga contraseña correcta
     public bool IsActive { get; set; } = true;
 }
 
-// Constantes de roles para no andar escribiendo strings sueltos por todo el código
+// Constantes de roles para no escribir strings sueltos por todo el proyecto
 public static class UserRoles
 {
+    // Valor exacto que se guarda en User.Rol y en ClaimTypes.Role
     public const string Administrador = "Administrador";
     public const string Instructor = "Instructor";
     public const string Bodeguero = "Bodeguero";
 
+    // Todos los roles válidos (para validar en ediciones)
     public static readonly string[] All =
     [
         Administrador,
@@ -45,8 +53,7 @@ public static class UserRoles
         Bodeguero
     ];
 
-    // El admin no se puede crear desde la UI, solo Instructor y Bodeguero
-    // (el primer admin sale del seed)
+    // Roles que el admin puede crear desde la UI (el admin inicial sale del seed)
     public static readonly string[] CreatableByAdmin =
     [
         Instructor,

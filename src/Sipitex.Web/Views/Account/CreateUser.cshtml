@@ -3,6 +3,7 @@
     ViewData["Title"] = "Crear usuario";
     ViewData["Breadcrumb"] = "SIPITEX / Administración / Crear usuario";
     Layout = "_Layout";
+    // Fichas disponibles para asignar (viene del controlador en ViewBag)
     var fichas = ViewBag.Fichas as IEnumerable<Ficha> ?? Array.Empty<Ficha>();
 }
 

@@ -5,6 +5,7 @@
 *@
 @model Sipitex.Web.Models.EmptyStateModel
 @{
+    // Valores por defecto si el partial se llama sin modelo completo
     var icon = Model?.Icon ?? "fa-inbox";
     var title = Model?.Title ?? "Sin registros";
     var text = Model?.Text ?? "Todavía no hay información para mostrar.";
@@ -13,6 +14,7 @@
     <div class="empty-icon"><i class="fas @icon"></i></div>
     <h3>@title</h3>
     <p>@text</p>
+    @* Botón de acción o solo texto hint según venga ActionHref *@
     @if (!string.IsNullOrWhiteSpace(Model?.ActionText))
     {
         if (!string.IsNullOrWhiteSpace(Model.ActionHref))

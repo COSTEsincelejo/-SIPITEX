@@ -8,6 +8,7 @@
 <div class="page-header">
     <div>
         <h2>Fichas & producción</h2>
+        @* El subtítulo cambia si es admin (ve todo) o instructor (solo lo suyo) *@
         <div class="sub">@(Model.IsAdministrator
             ? "Vista global: todas las fichas y sesiones de todos los instructores"
             : "Solo ve sus fichas y la producción que registró con ellas")</div>
@@ -91,6 +92,7 @@
                         <td>@(string.IsNullOrWhiteSpace(ficha.Turno) ? "—" : ficha.Turno)</td>
                         <td>@(ficha.AssignedOrderNumber ?? "—")</td>
                         <td>
+                            @* Registro express sin pasar por el formulario grande de abajo *@
                             <form asp-action="QuickRegister" method="post" class="row-actions">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="fichaId" value="@ficha.Id" />
@@ -150,6 +152,7 @@
             <label class="field-label">Turno</label>
             <select name="turno">
                 <option value="">Todos</option>
+                @* Mantener el turno seleccionado después del filtro *@
                 @if (string.Equals(Model.TurnoFilter, "Mañana", StringComparison.OrdinalIgnoreCase))
                 {
                     <option value="Mañana" selected>Mañana</option>

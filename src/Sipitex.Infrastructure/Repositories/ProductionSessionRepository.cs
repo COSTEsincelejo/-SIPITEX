@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore;
-using Sipitex.Application.Interfaces.Repositories;
-using Sipitex.Domain.Entities;
-using Sipitex.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore; // Include, OrderByDescending, Take...
+using Sipitex.Application.Interfaces.Repositories; // IProductionSessionRepository
+using Sipitex.Domain.Entities; // ProductionSession
+using Sipitex.Infrastructure.Persistence; // SipitexDbContext
 
 namespace Sipitex.Infrastructure.Repositories;
 
+// Sesiones diarias de producción que registra el instructor
 public class ProductionSessionRepository : IProductionSessionRepository
 {
     private readonly SipitexDbContext _context;
@@ -14,12 +15,13 @@ public class ProductionSessionRepository : IProductionSessionRepository
     // Las sesiones más recientes primero (para el dashboard o historial)
     public async Task<IReadOnlyList<ProductionSession>> GetRecentAsync(int take = 20, CancellationToken cancellationToken = default) =>
         await _context.ProductionSessions
-            .Include(s => s.Ficha)
-            .Include(s => s.ProductionOrder)
-            .OrderByDescending(s => s.SessionDate)
-            .Take(take)
+            .Include(s => s.Ficha) // En qué ficha trabajó
+            .Include(s => s.ProductionOrder) // Orden asociada
+            .OrderByDescending(s => s.SessionDate) // Más nuevas arriba
+            .Take(take) // Solo las últimas N
             .ToListAsync(cancellationToken);
 
+    // Registra una sesión nueva del día
     public async Task AddAsync(ProductionSession session, CancellationToken cancellationToken = default) =>
         await _context.ProductionSessions.AddAsync(session, cancellationToken);
 }

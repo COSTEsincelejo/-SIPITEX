@@ -1,27 +1,32 @@
 namespace Sipitex.Domain.Entities;
 
-// Ficha de formación / grupo del taller. Cada instructor suele tener la suya.
+// Ficha de formación del SENA (grupo/proceso del taller)
 public class Ficha
 {
+    // PK
     public int Id { get; set; }
 
-    // Número de ficha del SENA, ej: 2871234
+    // Número de ficha, ej: 2871234 (único en la práctica)
     public string FichaCode { get; set; } = string.Empty;
 
-    // Nombre del proceso que están haciendo (confección, corte, etc.)
+    // Qué proceso hacen (confección, corte, etc.)
     public string ProcessName { get; set; } = string.Empty;
 
-    // Lo dejé por si no hay usuario vinculado todavía; mejor usar InstructorUserId
+    // Nombre del instructor en texto (legacy / respaldo si no hay FK)
     public string InstructorName { get; set; } = string.Empty;
 
-    // Mañana, tarde o noche (lo pedían filtrar en la vista)
+    // Turno: mañana, tarde o noche (sirve para filtrar en la vista)
     public string Turno { get; set; } = string.Empty;
 
-    // Preferible al nombre: así sé exactamente qué usuario instructor es dueño de la ficha
+    // FK al usuario instructor dueño de la ficha (preferible al nombre)
     public int? InstructorUserId { get; set; }
+
+    // Navegación al User instructor
     public User? InstructorUser { get; set; }
 
-    // Orden de producción a la que está ligada (puede no tener todavía)
+    // FK a la orden en la que trabaja esta ficha (puede ser null al crear)
     public int? ProductionOrderId { get; set; }
+
+    // Navegación a la orden de producción
     public ProductionOrder? ProductionOrder { get; set; }
 }

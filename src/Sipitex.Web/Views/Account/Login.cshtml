@@ -1,7 +1,7 @@
 @model LoginViewModel
 @{
     ViewData["Title"] = "Iniciar sesión";
-    Layout = "_LoginLayout";
+    Layout = "_LoginLayout"; // sin menú lateral
 }
 
 <div class="card auth-card">
@@ -23,6 +23,7 @@
         </p>
         <button type="submit" class="primary auth-submit"><i class="fas fa-sign-in-alt"></i> Entrar</button>
     </form>
+    @* Mensaje de éxito tras reset de contraseña u otra acción *@
     @if (ViewBag.SuccessMessage is string success && !string.IsNullOrWhiteSpace(success))
     {
         <div class="alert alert-success" style="margin-top:1rem;">@success</div>

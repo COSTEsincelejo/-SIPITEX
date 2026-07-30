@@ -12,6 +12,7 @@ public class FichaService : IFichaService
     private readonly IFichaRepository _fichaRepository;
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IProductionSessionRepository _sessionRepository;
+    // Para registrar avance y consumo de materiales en la orden
     private readonly IProductionOrderService _orderService;
     private readonly IUnitOfWork _unitOfWork;
 
@@ -36,14 +37,18 @@ public class FichaService : IFichaService
         string? viewerName = null,
         CancellationToken cancellationToken = default)
     {
+        // Traigo todas las fichas de BD
         var fichas = await _fichaRepository.GetAllAsync(cancellationToken);
+        // Acá reviso si el que consulta es instructor
         if (IsInstructorViewer(viewerRole, viewerUserId))
         {
+            // Solo dejo las fichas que le pertenecen
             fichas = fichas
                 .Where(f => BelongsToInstructor(f, viewerUserId!.Value, viewerName))
                 .ToList();
         }
 
+        // Mapeo a DTO para la vista
         return fichas.Select(f => new FichaDto(
             f.Id,
             f.FichaCode,
@@ -65,6 +70,7 @@ public class FichaService : IFichaService
         var take = IsInstructorViewer(viewerRole, viewerUserId) ? 100 : 20;
         var sessions = await _sessionRepository.GetRecentAsync(take, cancellationToken);
 
+        // Si es instructor, filtro por sus fichas o lo que él registró
         if (IsInstructorViewer(viewerRole, viewerUserId))
         {
             sessions = sessions
@@ -75,6 +81,7 @@ public class FichaService : IFichaService
                 .ToList();
         }
 
+        // Proyecto cada sesión al DTO con datos de ficha y orden
         return sessions.Select(s => new ProductionSessionDto(
             s.Id,
             s.Ficha.FichaCode,
@@ -95,17 +102,21 @@ public class FichaService : IFichaService
         string? viewerName = null,
         CancellationToken cancellationToken = default)
     {
+        // Validación básica de cantidad
         if (dto.Units <= 0) return ServiceResult.Fail("Ingrese una cantidad válida.");
 
+        // Busco la ficha en BD
         var ficha = await _fichaRepository.GetByIdAsync(dto.FichaId, cancellationToken);
         if (ficha is null) return ServiceResult.Fail("Ficha no encontrada.");
 
+        // Instructor solo puede registrar en sus propias fichas
         if (IsInstructorViewer(viewerRole, registeredByUserId)
             && !BelongsToInstructor(ficha, registeredByUserId!.Value, viewerName))
         {
             return ServiceResult.Fail("Solo puede registrar producción en sus propias fichas.");
         }
 
+        // Verifico que la orden exista
         var order = await _orderRepository.GetByIdAsync(dto.ProductionOrderId, cancellationToken);
         if (order is null) return ServiceResult.Fail("Orden no encontrada.");
 
@@ -113,6 +124,7 @@ public class FichaService : IFichaService
         ficha.ProductionOrderId = dto.ProductionOrderId;
         _fichaRepository.Update(ficha);
 
+        // Creo el registro de sesión diaria
         await _sessionRepository.AddAsync(new ProductionSession
         {
             FichaId = dto.FichaId,
@@ -123,10 +135,12 @@ public class FichaService : IFichaService
             RegisteredByUserId = registeredByUserId
         }, cancellationToken);
 
+        // Guardo ficha actualizada y sesión nueva
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Esto también descuenta materiales según el BOM
         var production = await _orderService.RegisterProductionAsync(dto.ProductionOrderId, dto.Units, cancellationToken);
+        // Si el consumo falló, devuelvo ese error; si no, mensaje de éxito
         return production.Success
             ? ServiceResult.Ok("Sesión diaria registrada.")
             : production;
@@ -145,9 +159,11 @@ public class FichaService : IFichaService
         if (units <= 0) return ServiceResult.Fail("Ingrese una cantidad válida.");
 
         var ficha = await _fichaRepository.GetByIdAsync(fichaId, cancellationToken);
+        // La ficha tiene que tener orden asignada
         if (ficha?.ProductionOrderId is null)
             return ServiceResult.Fail("Ficha sin orden asignada.");
 
+        // Reutilizo RegisterSessionAsync con los datos de la ficha
         return await RegisterSessionAsync(
             new RegisterProductionDto(ficha.ProductionOrderId.Value, fichaId, units, observations),
             registeredByUserId,
@@ -162,11 +178,13 @@ public class FichaService : IFichaService
         int? instructorUserId = null,
         CancellationToken cancellationToken = default)
     {
+        // Limpio espacios de los campos de texto
         var code = (dto.FichaCode ?? string.Empty).Trim();
         var process = (dto.ProcessName ?? string.Empty).Trim();
         var instructor = (dto.InstructorName ?? string.Empty).Trim();
         var turno = (dto.Turno ?? string.Empty).Trim();
 
+        // Validaciones campo por campo
         if (string.IsNullOrWhiteSpace(code))
             return ServiceResult.Fail("El código de ficha es obligatorio.");
         if (string.IsNullOrWhiteSpace(process))
@@ -180,9 +198,11 @@ public class FichaService : IFichaService
         if (turno.Length > 20)
             return ServiceResult.Fail("El turno no puede superar 20 caracteres.");
 
+        // No puede repetirse el código
         if (await _fichaRepository.ExistsByCodeAsync(code, cancellationToken))
             return ServiceResult.Fail("Ya existe una ficha con ese código.");
 
+        // Si mandan orden, verifico que exista
         if (dto.ProductionOrderId is int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId, cancellationToken);
@@ -190,6 +210,7 @@ public class FichaService : IFichaService
                 return ServiceResult.Fail("Orden de producción no encontrada.");
         }
 
+        // Inserto la ficha nueva
         await _fichaRepository.AddAsync(new Ficha
         {
             FichaCode = code,
@@ -204,12 +225,15 @@ public class FichaService : IFichaService
         return ServiceResult.Ok($"Ficha {code} registrada.");
     }
 
+    // Acá reviso si quien mira es instructor con id válido
     private static bool IsInstructorViewer(string? viewerRole, int? viewerUserId) =>
         viewerUserId is > 0
         && string.Equals(viewerRole, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase);
 
+    // La ficha le pertenece al instructor por userId o por nombre (legacy)
     private static bool BelongsToInstructor(Ficha ficha, int instructorUserId, string? instructorName)
     {
+        // Caso normal: la ficha tiene FK al usuario instructor
         if (ficha.InstructorUserId == instructorUserId)
             return true;
 

@@ -10,17 +10,19 @@ public static class DisplayHelper
     {
         MaterialStatus.Bueno => "badge-success",
         MaterialStatus.Regular => "badge-warning",
-        _ => "badge-danger"
+        _ => "badge-danger" // Deteriorado u otro
     };
 
+    // Colores para el estado de una orden de producción
     public static string BadgeClass(OrderStatus status) => status switch
     {
         OrderStatus.Finalizada => "badge-success",
         OrderStatus.EnProceso => "badge-info",
         OrderStatus.Pendiente => "badge-warning",
-        _ => "badge-danger"
+        _ => "badge-danger" // Cancelada
     };
 
+    // Colores para solicitudes de material (pendiente/aprobada/rechazada)
     public static string BadgeClass(RequestStatus status) => status switch
     {
         RequestStatus.Pendiente => "badge-warning",
@@ -29,13 +31,15 @@ public static class DisplayHelper
         _ => "badge-info"
     };
 
+    // Colores para resultados de inspección de calidad
     public static string BadgeClass(QualityResult result) => result switch
     {
         QualityResult.Aprobada => "badge-success",
         QualityResult.Reproceso => "badge-warning",
-        _ => "badge-danger"
+        _ => "badge-danger" // Rechazada
     };
 
+    // Colores para cumplimiento normativo (si aplica en reportes)
     public static string BadgeClass(ComplianceStatus status) => status switch
     {
         ComplianceStatus.Cumple => "badge-success",

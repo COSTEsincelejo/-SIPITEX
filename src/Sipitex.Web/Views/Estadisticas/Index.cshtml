@@ -3,7 +3,7 @@
     ViewData["Title"] = "Estadísticas";
     ViewData["Breadcrumb"] = "SIPITEX / Análisis / Estadísticas";
     Layout = "_Layout";
-    var d = Model.Dashboard;
+    var d = Model.Dashboard; // atajo para no escribir Model.Dashboard todo el rato
 }
 
 <div class="page-header">
@@ -44,6 +44,7 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
+        @* Pasamos los datos del servidor a JS para armar el gráfico *@
         const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.ChartData.Select(c => c.Label)));
         const produced = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.ChartData.Select(c => c.Produced)));
         const target = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.ChartData.Select(c => c.Target)));

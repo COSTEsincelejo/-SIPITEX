@@ -1,7 +1,7 @@
-using Microsoft.EntityFrameworkCore;
-using Sipitex.Application.Interfaces.Repositories;
-using Sipitex.Domain.Entities;
-using Sipitex.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore; // Include, OrderByDescending...
+using Sipitex.Application.Interfaces.Repositories; // IQualityRepository
+using Sipitex.Domain.Entities; // QualityRecord
+using Sipitex.Infrastructure.Persistence; // SipitexDbContext
 
 namespace Sipitex.Infrastructure.Repositories;
 
@@ -15,10 +15,11 @@ public class QualityRepository : IQualityRepository
     // Incluyo la orden porque en la vista muestro el número OP-xxx
     public async Task<IReadOnlyList<QualityRecord>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await _context.QualityRecords
-            .Include(q => q.ProductionOrder)
-            .OrderByDescending(q => q.InspectionDate)
+            .Include(q => q.ProductionOrder) // Traigo la orden para el número OP-xxx
+            .OrderByDescending(q => q.InspectionDate) // Inspecciones recientes primero
             .ToListAsync(cancellationToken);
 
+    // Guarda un registro de inspección nuevo
     public async Task AddAsync(QualityRecord record, CancellationToken cancellationToken = default) =>
         await _context.QualityRecords.AddAsync(record, cancellationToken);
 }

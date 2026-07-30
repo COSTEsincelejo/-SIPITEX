@@ -19,13 +19,17 @@ public class ProductionConsumptionService
     // Solo revisa si alcanza el stock, no modifica nada
     public async Task<bool> CanConsumeAsync(string productName, int units, CancellationToken cancellationToken = default)
     {
+        // Receta del producto en el BOM
         var recipe = await _bomRepository.GetByProductAsync(productName, cancellationToken);
         foreach (var item in recipe)
         {
+            // Cargo el material de cada línea del BOM
             var material = await _materialRepository.GetByIdAsync(item.MaterialId, cancellationToken);
+            // Si falta material o no alcanza stock, no se puede consumir
             if (material is null || material.Stock < item.QuantityPerUnit * units)
                 return false;
         }
+        // También tiene que haber receta (producto válido en BOM)
         return recipe.Count > 0;
     }
 
@@ -43,9 +47,12 @@ public class ProductionConsumptionService
                 return false;
         }
 
+        // Si pasó validación, ahora sí descuento cada material
         foreach (var item in recipe)
         {
+            // Vuelvo a cargar porque EF puede haber trackeado la entidad
             var material = (await _materialRepository.GetByIdAsync(item.MaterialId, cancellationToken))!;
+            // Esto descuenta según cantidad por unidad × unidades producidas
             material.Stock -= item.QuantityPerUnit * units;
             _materialRepository.Update(material);
         }
@@ -56,7 +63,9 @@ public class ProductionConsumptionService
     // Suma unidades producidas y cierra la orden si ya llegó a la meta
     public static void UpdateOrderProgress(ProductionOrder order, int units)
     {
+        // Sumo lo producido en esta operación
         order.ProducedQuantity += units;
+        // Si ya cumplió la meta, la orden queda finalizada
         if (order.ProducedQuantity >= order.TotalQuantity)
             order.Status = OrderStatus.Finalizada;
     }

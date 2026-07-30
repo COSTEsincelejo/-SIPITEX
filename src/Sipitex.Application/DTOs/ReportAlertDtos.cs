@@ -6,8 +6,10 @@ namespace Sipitex.Application.DTOs;
 // Archivo binario para descargas de reportes (PDF, Excel, etc.)
 public record ReportFileDto(byte[] Content, string ContentType, string FileName);
 
+// Preferencia de alerta de un usuario (tipo, título, si está activa)
 public record AlertPreferenceDto(AlertType AlertType, string Title, string Description, bool Enabled, IReadOnlyList<string> SuggestedRoles);
 
+// Un envío de alerta ya hecho (historial)
 public record AlertDeliveryDto(AlertType AlertType, string Subject, DateTime SentAt, string Channel);
 
 // Resumen después de correr la evaluación de alertas
@@ -16,6 +18,7 @@ public record AlertEvaluationResultDto(int AlertsFound, int EmailsSent, IReadOnl
 // Catálogo fijo de tipos de alerta (lo usamos en la UI y en AlertService)
 public static class AlertCatalog
 {
+    // Lista de todas las alertas con título, descripción y roles sugeridos
     public static IReadOnlyList<(AlertType Type, string Title, string Description, string[] Roles)> All { get; } =
     [
         (AlertType.StockBajo, "Stock bajo mínimo", "Materiales con stock por debajo del mínimo.", [UserRoles.Administrador, UserRoles.Bodeguero]),

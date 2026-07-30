@@ -1,14 +1,15 @@
-using Microsoft.EntityFrameworkCore;
-using Sipitex.Application.Helpers;
-using Sipitex.Domain.Entities;
-using Sipitex.Domain.Enums;
-using Sipitex.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore; // Consultas async y MigrateAsync
+using Sipitex.Application.Helpers; // PasswordHasher para los usuarios de prueba
+using Sipitex.Domain.Entities; // Entidades que inserto en el seed
+using Sipitex.Domain.Enums; // MaterialUnit, OrderStatus, UserRoles...
+using Sipitex.Infrastructure.Persistence; // SipitexDbContext
 
 namespace Sipitex.Infrastructure.Data;
 
 // Datos iniciales y migraciones al arrancar la app
 public static class DbInitializer
 {
+    // Lo llama Program.cs al iniciar — deja la BD lista con datos de demo
     public static async Task InitializeAsync(SipitexDbContext context)
     {
         // Primero reviso si hay una BD vieja sin historial de migraciones
@@ -16,19 +17,21 @@ public static class DbInitializer
         // BD que ya tenían columnas vía EnsureColumnAsync (antes de migraciones EF):
         // evita "duplicate column name" al aplicar AddFichaTurno.
         await EnsureAddFichaTurnoCompatibleAsync(context);
+        // Aplico las migraciones pendientes de EF Core
         await context.Database.MigrateAsync();
 
         // Solo meto datos de demo si la tabla está vacía
         if (!await context.Materials.AnyAsync())
         {
-            var today = DateOnly.FromDateTime(DateTime.Today);
+            var today = DateOnly.FromDateTime(DateTime.Today); // Fecha de hoy para LastEntryDate
+            // Cuatro materiales de ejemplo para probar inventario y BOM
             var mat1 = new Material { Code = "mat1", Name = "Tela Jersey", Unit = MaterialUnit.Metros, Stock = 280, MinStock = 80, Status = MaterialStatus.Bueno, LastEntryDate = today };
             var mat2 = new Material { Code = "mat2", Name = "Hilo Poliéster", Unit = MaterialUnit.Metros, Stock = 3200, MinStock = 500, Status = MaterialStatus.Bueno, LastEntryDate = today };
             var mat3 = new Material { Code = "mat3", Name = "Cremallera invisible", Unit = MaterialUnit.Unidades, Stock = 95, MinStock = 40, Status = MaterialStatus.Bueno, LastEntryDate = today };
             var mat4 = new Material { Code = "mat4", Name = "Forro Satín", Unit = MaterialUnit.Metros, Stock = 120, MinStock = 50, Status = MaterialStatus.Regular, LastEntryDate = today };
 
-            context.Materials.AddRange(mat1, mat2, mat3, mat4);
-            await context.SaveChangesAsync();
+            context.Materials.AddRange(mat1, mat2, mat3, mat4); // Inserto los 4 de una vez
+            await context.SaveChangesAsync(); // Necesito los Id para el BOM y las órdenes
 
             // BOM de ejemplo para Camisa y Pantalón
             context.BomItems.AddRange(
@@ -39,6 +42,7 @@ public static class DbInitializer
                 new BomItem { ProductName = "Pantalón", MaterialId = mat2.Id, QuantityPerUnit = 22m, Unit = MaterialUnit.Metros },
                 new BomItem { ProductName = "Pantalón", MaterialId = mat4.Id, QuantityPerUnit = 0.8m, Unit = MaterialUnit.Metros });
 
+            // Dos órdenes de producción para el demo
             var op1 = new ProductionOrder
             {
                 OrderNumber = "OP-001",
@@ -58,15 +62,16 @@ public static class DbInitializer
                 Deadline = new DateOnly(2025, 4, 20)
             };
             context.ProductionOrders.AddRange(op1, op2);
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(); // Guardo para tener los Id de las órdenes
 
+            // Tres fichas de proceso ligadas a las órdenes
             context.Fichas.AddRange(
                 new Ficha { FichaCode = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", Turno = "Mañana", ProductionOrderId = op1.Id },
                 new Ficha { FichaCode = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", Turno = "Mañana", ProductionOrderId = op1.Id },
                 new Ficha { FichaCode = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", Turno = "Tarde", ProductionOrderId = op2.Id });
 
-            SeedRequirements(context);
-            await context.SaveChangesAsync();
+            SeedRequirements(context); // RF y RNF del proyecto académico
+            await context.SaveChangesAsync(); // Persisto fichas y requisitos
         }
 
         // Estos siempre corren (idempotentes) por si faltan usuarios o prefs
@@ -79,18 +84,22 @@ public static class DbInitializer
     // pero EF no sabe que esa migración ya corrió → la marco a mano para no duplicar ALTER TABLE
     private static async Task EnsureAddFichaTurnoCompatibleAsync(SipitexDbContext context)
     {
-        const string migrationId = "20260728231835_AddFichaTurno";
+        const string migrationId = "20260728231835_AddFichaTurno"; // Id exacto de la migración EF
 
+        // Si no existen estas tablas, todavía no aplica el parche
         if (!await TableExistsAsync(context, "ProductionSessions")
             || !await TableExistsAsync(context, "Fichas"))
             return;
 
+        // Sin historial de migraciones no puedo marcar nada
         if (!await TableExistsAsync(context, "__EFMigrationsHistory"))
             return;
 
+        // Ya está registrada → no hago nada
         if (await MigrationRowExistsAsync(context, migrationId))
             return;
 
+        // Agrego columnas solo si no existen (evita duplicate column)
         await EnsureColumnAsync(context, "ProductionSessions", "RegisteredByUserId",
             """ALTER TABLE "ProductionSessions" ADD COLUMN "RegisteredByUserId" INTEGER NULL;""");
         await EnsureColumnAsync(context, "Fichas", "InstructorUserId",
@@ -98,6 +107,7 @@ public static class DbInitializer
         await EnsureColumnAsync(context, "Fichas", "Turno",
             """ALTER TABLE "Fichas" ADD COLUMN "Turno" TEXT NOT NULL DEFAULT '';""");
 
+        // Índices para las FK nuevas
         await context.Database.ExecuteSqlRawAsync(
             """CREATE INDEX IF NOT EXISTS "IX_ProductionSessions_RegisteredByUserId" ON "ProductionSessions" ("RegisteredByUserId");""");
         await context.Database.ExecuteSqlRawAsync(
@@ -113,42 +123,45 @@ public static class DbInitializer
             MigrationBaseline.EfProductVersion);
     }
 
+    // Ejecuta el ALTER solo si la columna no está todavía
     private static async Task EnsureColumnAsync(SipitexDbContext context, string table, string column, string alterSql)
     {
         if (await ColumnExistsAsync(context, table, column))
-            return;
-        await context.Database.ExecuteSqlRawAsync(alterSql);
+            return; // Ya existe, salgo
+        await context.Database.ExecuteSqlRawAsync(alterSql); // Creo la columna
     }
 
     // Consulto sqlite_master para ver si la tabla existe
     private static async Task<bool> TableExistsAsync(SipitexDbContext context, string table)
     {
-        var connection = context.Database.GetDbConnection();
-        await context.Database.OpenConnectionAsync();
-        await using var command = connection.CreateCommand();
+        var connection = context.Database.GetDbConnection(); // Conexión ADO.NET subyacente
+        await context.Database.OpenConnectionAsync(); // La abro si estaba cerrada
+        await using var command = connection.CreateCommand(); // Comando SQL crudo
         command.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name=$n LIMIT 1;";
-        var p = command.CreateParameter();
+        var p = command.CreateParameter(); // Parámetro para evitar inyección
         p.ParameterName = "$n";
-        p.Value = table;
+        p.Value = table; // Nombre de la tabla a buscar
         command.Parameters.Add(p);
-        return await command.ExecuteScalarAsync() is not null and not DBNull;
+        return await command.ExecuteScalarAsync() is not null and not DBNull; // Si devuelve algo, existe
     }
 
+    // Revisa columnas de una tabla con PRAGMA table_info
     private static async Task<bool> ColumnExistsAsync(SipitexDbContext context, string table, string column)
     {
         var connection = context.Database.GetDbConnection();
         await context.Database.OpenConnectionAsync();
         await using var command = connection.CreateCommand();
-        command.CommandText = $"PRAGMA table_info(\"{table}\")";
+        command.CommandText = $"PRAGMA table_info(\"{table}\")"; // Lista columnas de la tabla
         await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
+        while (await reader.ReadAsync()) // Recorro cada columna
         {
             if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
-                return true;
+                return true; // Encontré la que buscaba
         }
-        return false;
+        return false; // No estaba
     }
 
+    // Mira si ya hay una fila en __EFMigrationsHistory para ese migrationId
     private static async Task<bool> MigrationRowExistsAsync(SipitexDbContext context, string migrationId)
     {
         var connection = context.Database.GetDbConnection();
@@ -165,14 +178,14 @@ public static class DbInitializer
     // Usuarios de prueba para desarrollo (admin, instructor, bodega)
     private static async Task SeedUsersAsync(SipitexDbContext context)
     {
-        if (await context.Users.AnyAsync()) return;
+        if (await context.Users.AnyAsync()) return; // Ya hay usuarios, no duplico
 
         context.Users.AddRange(
             new User
             {
                 Nombre = "Administrador SIPITEX",
                 Email = "admin@sipitex.test",
-                PasswordHash = PasswordHasher.Hash("Admin123!"),
+                PasswordHash = PasswordHasher.Hash("Admin123!"), // Clave de demo hasheada
                 Rol = UserRoles.Administrador,
                 PermisosExtendidos = string.Empty,
                 IsActive = true
@@ -203,48 +216,51 @@ public static class DbInitializer
     private static async Task LinkFichasToInstructorUsersAsync(SipitexDbContext context)
     {
         var instructors = await context.Users
-            .Where(u => u.Rol == UserRoles.Instructor && u.IsActive)
+            .Where(u => u.Rol == UserRoles.Instructor && u.IsActive) // Solo instructores activos
             .ToListAsync();
-        if (instructors.Count == 0) return;
+        if (instructors.Count == 0) return; // No hay a quién vincular
 
-        var fichas = await context.Fichas.Where(f => f.InstructorUserId == null).ToListAsync();
-        var changed = false;
+        var fichas = await context.Fichas.Where(f => f.InstructorUserId == null).ToListAsync(); // Fichas sin FK a usuario
+        var changed = false; // Flag para saber si guardo al final
         foreach (var ficha in fichas)
         {
+            // Busco instructor con el mismo nombre (case insensitive)
             var match = instructors.FirstOrDefault(u =>
                 string.Equals(u.Nombre, ficha.InstructorName, StringComparison.OrdinalIgnoreCase));
-            if (match is null) continue;
+            if (match is null) continue; // No hay match, sigo con la siguiente ficha
 
-            ficha.InstructorUserId = match.Id;
-            ficha.InstructorName = match.Nombre;
+            ficha.InstructorUserId = match.Id; // Vinculo la FK
+            ficha.InstructorName = match.Nombre; // Normalizo el nombre
             if (match.FichaAsignadaId is null)
-                match.FichaAsignadaId = ficha.Id;
+                match.FichaAsignadaId = ficha.Id; // Primera ficha que encuentre queda como "principal"
             changed = true;
         }
 
         if (changed)
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(); // Solo guardo si hubo cambios
     }
 
+    // Crea preferencias de alerta por defecto para cada usuario según su rol
     private static async Task SeedAlertPreferencesAsync(SipitexDbContext context)
     {
-        var users = await context.Users.ToListAsync();
+        var users = await context.Users.ToListAsync(); // Todos los usuarios
         foreach (var user in users)
         {
+            // Qué tipos de alerta ya tiene configurados
             var existing = await context.AlertPreferences
                 .Where(p => p.UserId == user.Id)
                 .Select(p => p.AlertType)
                 .ToListAsync();
 
-            foreach (var item in Application.DTOs.AlertCatalog.All)
+            foreach (var item in Application.DTOs.AlertCatalog.All) // Catálogo completo de alertas
             {
-                if (existing.Contains(item.Type)) continue;
+                if (existing.Contains(item.Type)) continue; // Ya tiene esa, salto
                 // Activo la alerta solo si el rol del usuario está en la lista del catálogo
                 context.AlertPreferences.Add(new AlertPreference
                 {
                     UserId = user.Id,
                     AlertType = item.Type,
-                    Enabled = item.Roles.Contains(user.Rol)
+                    Enabled = item.Roles.Contains(user.Rol) // Prendida si su rol aplica
                 });
             }
         }
@@ -255,6 +271,7 @@ public static class DbInitializer
     // Tabla de trazabilidad RF/RNF del proyecto académico
     private static void SeedRequirements(SipitexDbContext context)
     {
+        // Array con todos los requisitos funcionales y su estado de cumplimiento
         var rf = new[]
         {
             ("RF01", "Crear, editar y desactivar usuarios por rol.", "Usuarios", ComplianceStatus.Cumple, "CRUD de usuarios con roles."),
@@ -291,6 +308,7 @@ public static class DbInitializer
             });
         }
 
+        // Requisitos no funcionales (rendimiento, seguridad, despliegue...)
         var rnf = new[]
         {
             ("RNF01", "Carga rápida en intranet (<2s)", ComplianceStatus.Cumple, "HTML estático liviano."),
