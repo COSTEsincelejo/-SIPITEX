@@ -11,6 +11,7 @@ using Sipitex.Infrastructure.Repositories;
 
 namespace Sipitex.Infrastructure;
 
+// Registro de servicios de la capa Infrastructure en el contenedor DI de ASP.NET
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
@@ -18,6 +19,7 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? "Data Source=sipitex.db";
 
+        // EF Core con SQLite — el archivo sipitex.db queda en la raíz del proyecto
         services.AddDbContext<SipitexDbContext>(options =>
             options.UseSqlite(connectionString));
 
@@ -25,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IEmailSender, EmailSender>();
         services.AddScoped<IReportService, ReportService>();
 
+        // Repositorios scoped = una instancia por request HTTP
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IMaterialRepository, MaterialRepository>();
         services.AddScoped<IProductionOrderRepository, ProductionOrderRepository>();

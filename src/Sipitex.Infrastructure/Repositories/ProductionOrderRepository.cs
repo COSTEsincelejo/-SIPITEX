@@ -5,6 +5,7 @@ using Sipitex.Infrastructure.Persistence;
 
 namespace Sipitex.Infrastructure.Repositories;
 
+// Repositorio de órdenes de producción
 public class ProductionOrderRepository : IProductionOrderRepository
 {
     private readonly SipitexDbContext _context;
@@ -17,6 +18,7 @@ public class ProductionOrderRepository : IProductionOrderRepository
     public Task<ProductionOrder?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _context.ProductionOrders.FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
+    // Lo uso cuando necesito buscar por el código OP-xxx y no por el Id
     public Task<ProductionOrder?> GetByOrderNumberAsync(string orderNumber, CancellationToken cancellationToken = default) =>
         _context.ProductionOrders.FirstOrDefaultAsync(o => o.OrderNumber == orderNumber, cancellationToken);
 
@@ -25,6 +27,7 @@ public class ProductionOrderRepository : IProductionOrderRepository
 
     public void Update(ProductionOrder order) => _context.ProductionOrders.Update(order);
 
+    // Para armar el siguiente número de orden (OP-101, OP-102...)
     public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
         _context.ProductionOrders.CountAsync(cancellationToken);
 }

@@ -2,6 +2,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Interfaces.Repositories;
 
+// Usuarios del sistema (login, roles, permisos)
 public interface IUserRepository
 {
     Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default);

@@ -3,36 +3,32 @@ using Sipitex.Infrastructure.Persistence;
 
 namespace Sipitex.Infrastructure.Data;
 
-/// <summary>
-/// Marca migraciones ya reflejadas en BD legacy (EnsureCreated / SQL manual)
-/// que tienen tablas de negocio pero no <c>__EFMigrationsHistory</c>.
-/// Solo operaciones aditivas (CREATE / INSERT). Nunca DROP ni DELETE.
-/// </summary>
+// Para BDs que se crearon antes con EnsureCreated o SQL a mano:
+// si ya tienen tablas pero no __EFMigrationsHistory, les "estampo" las migraciones
+// que ya están reflejadas en el esquema. Solo CREATE/INSERT, nunca DROP.
 public static class MigrationBaseline
 {
-    /// <summary>MigrationId exacto de <c>20260728214130_InitialCreate.cs</c>.</summary>
+    // Tiene que coincidir exacto con el nombre del archivo de migración
     public const string InitialCreateMigrationId = "20260728214130_InitialCreate";
 
-    /// <summary>MigrationId exacto de <c>20260728221016_AddPasswordResetTokens.cs</c>.</summary>
     public const string AddPasswordResetTokensMigrationId = "20260728221016_AddPasswordResetTokens";
 
-    /// <summary>ProductVersion de EF Core usada al generar las migraciones.</summary>
+    // La versión de EF con la que generamos las migraciones
     public const string EfProductVersion = "10.0.9";
 
     public static async Task EnsureBaselineAsync(
         SipitexDbContext context,
         CancellationToken cancellationToken = default)
     {
-        // (a) Si ya hay historial de migraciones, no hacer nada.
+        // Si ya hay historial de migraciones, no hago nada
         if (await TableExistsAsync(context, "__EFMigrationsHistory", cancellationToken))
             return;
 
-        // (b)/(d) Sin Materials → BD nueva: MigrateAsync creará el esquema.
+        // BD nueva sin tablas → MigrateAsync se encarga de todo
         if (!await TableExistsAsync(context, "Materials", cancellationToken))
             return;
 
-        // (c) BD legacy con tablas. Solo baseline de InitialCreate si el esquema base coincide;
-        // si falta algo que InitialCreate asume, NO ocultar el desfase.
+        // Hay tablas pero sin historial = BD legacy. Verifico que el esquema calce con InitialCreate
         if (!await LooksLikeInitialCreateSchemaAsync(context, cancellationToken))
         {
             throw new InvalidOperationException(
@@ -54,12 +50,12 @@ public static class MigrationBaseline
 
         await StampMigrationAsync(context, InitialCreateMigrationId, cancellationToken);
 
-        // Si la tabla de la migración posterior ya existe, marcarla también
-        // (evita CREATE TABLE duplicado al correr MigrateAsync).
+        // Si PasswordResetTokens ya existe, esa migración también ya corrió de facto
         if (await TableExistsAsync(context, "PasswordResetTokens", cancellationToken))
             await StampMigrationAsync(context, AddPasswordResetTokensMigrationId, cancellationToken);
     }
 
+    // Inserta la fila en __EFMigrationsHistory para que EF no vuelva a aplicar esa migración
     private static async Task StampMigrationAsync(
         SipitexDbContext context,
         string migrationId,
@@ -77,6 +73,7 @@ public static class MigrationBaseline
             EfProductVersion);
     }
 
+    // Reviso columnas/tablas clave que InitialCreate debería haber creado
     private static async Task<bool> LooksLikeInitialCreateSchemaAsync(
         SipitexDbContext context,
         CancellationToken cancellationToken)
@@ -123,6 +120,7 @@ public static class MigrationBaseline
         var connection = context.Database.GetDbConnection();
         await context.Database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
+        // Por si acaso, no meto nombres raros en el PRAGMA
         if (!IsSafeSqliteIdentifier(tableName) || !IsSafeSqliteIdentifier(columnName))
             return false;
         command.CommandText = $"PRAGMA table_info(\"{tableName}\")";

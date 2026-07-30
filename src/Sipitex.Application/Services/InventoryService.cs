@@ -8,6 +8,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
+// Inventario de materiales y solicitudes de bodega
 public class InventoryService : IInventoryService
 {
     private readonly IMaterialRepository _materialRepository;
@@ -27,12 +28,14 @@ public class InventoryService : IInventoryService
         _unitOfWork = unitOfWork;
     }
 
+    // Traigo todos los materiales ya mapeados a DTO para la vista
     public async Task<IReadOnlyList<MaterialDto>> GetMaterialsAsync(CancellationToken cancellationToken = default)
     {
         var materials = await _materialRepository.GetAllAsync(cancellationToken);
         return materials.Select(MapMaterial).ToList();
     }
 
+    // Crea un material nuevo con código autogenerado
     public async Task<ServiceResult> AddMaterialAsync(CreateMaterialDto dto, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(dto.Name) || dto.Stock < 0)
@@ -44,7 +47,7 @@ public class InventoryService : IInventoryService
             Name = dto.Name.Trim(),
             Unit = dto.Unit,
             Stock = dto.Stock,
-            MinStock = 10,
+            MinStock = 10, // por ahora fijo, después podría ser configurable
             Status = MaterialStatus.Bueno,
             LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
         };
@@ -54,6 +57,7 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok("Material agregado.");
     }
 
+    // Ajuste manual de stock (no deja negativo)
     public async Task<ServiceResult> AdjustStockAsync(AdjustStockDto dto, CancellationToken cancellationToken = default)
     {
         var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
@@ -66,6 +70,7 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok("Stock actualizado.");
     }
 
+    // Cambia el estado físico: Bueno / Regular / Deteriorado
     public async Task<ServiceResult> UpdateStatusAsync(UpdateMaterialStatusDto dto, CancellationToken cancellationToken = default)
     {
         var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
@@ -77,6 +82,7 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok($"Estado actualizado a {dto.Status}.");
     }
 
+    // Solicitudes de material (pendientes, aprobadas, rechazadas)
     public async Task<IReadOnlyList<MaterialRequestDto>> GetRequestsAsync(CancellationToken cancellationToken = default)
     {
         var requests = await _requestRepository.GetAllAsync(cancellationToken);
@@ -88,6 +94,7 @@ public class InventoryService : IInventoryService
             r.Status)).ToList();
     }
 
+    // Instructor pide material para una orden
     public async Task<ServiceResult> CreateRequestAsync(CreateMaterialRequestDto dto, CancellationToken cancellationToken = default)
     {
         var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
@@ -107,6 +114,7 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok("Solicitud creada.");
     }
 
+    // Bodega aprueba: descuenta stock y marca la solicitud
     public async Task<ServiceResult> ApproveRequestAsync(int requestId, CancellationToken cancellationToken = default)
     {
         var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
@@ -124,6 +132,7 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok("Solicitud aprobada.");
     }
 
+    // Rechazo: no toco el stock, solo cambio el estado
     public async Task<ServiceResult> RejectRequestAsync(int requestId, CancellationToken cancellationToken = default)
     {
         var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
@@ -136,6 +145,7 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok("Solicitud rechazada.");
     }
 
+    // Armo el DTO e indico si está bajo el mínimo (para pintar en rojo en la vista)
     private static MaterialDto MapMaterial(Material m) => new(
         m.Id,
         m.Name,

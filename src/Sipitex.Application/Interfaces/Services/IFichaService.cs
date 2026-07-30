@@ -2,6 +2,7 @@ using Sipitex.Application.DTOs;
 
 namespace Sipitex.Application.Interfaces.Services;
 
+// Fichas de producción y registro de sesiones diarias
 public interface IFichaService
 {
     Task<IReadOnlyList<FichaDto>> GetFichasAsync(

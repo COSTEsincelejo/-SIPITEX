@@ -7,10 +7,10 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+// Órdenes de producción: listar, crear y registrar avance
 [Authorize]
 public class OrdenesController : Controller
 {
-    // Aquí se crean y manejan las órdenes de producción desde la vista.
     private readonly IProductionOrderService _orderService;
 
     public OrdenesController(IProductionOrderService orderService) => _orderService = orderService;
@@ -41,6 +41,7 @@ public class OrdenesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // Botón rápido: suma 10 unidades a la orden (para pruebas/demo en el taller)
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
     [ValidateAntiForgeryToken]

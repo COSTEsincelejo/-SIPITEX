@@ -2,6 +2,7 @@ using Sipitex.Application.DTOs;
 
 namespace Sipitex.Application.Interfaces.Services;
 
+// Órdenes de producción y registro de avance
 public interface IProductionOrderService
 {
     Task<IReadOnlyList<ProductionOrderDto>> GetOrdersAsync(CancellationToken cancellationToken = default);

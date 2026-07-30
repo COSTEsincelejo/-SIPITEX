@@ -7,6 +7,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
+// Módulo de alertas: preferencias por usuario, evaluación de condiciones y envío de correos
 public class AlertService : IAlertService
 {
     private readonly IAlertRepository _alertRepository;
@@ -38,17 +39,20 @@ public class AlertService : IAlertService
         _unitOfWork = unitOfWork;
     }
 
+    // Trae las preferencias de alerta de un usuario (qué tipos tiene activados)
     public async Task<IReadOnlyList<AlertPreferenceDto>> GetPreferencesForUserAsync(int userId, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("Usuario no encontrado.");
 
+        // Si es la primera vez, le creo las preferencias por defecto
         await _alertRepository.EnsureDefaultPreferencesAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var prefs = await _alertRepository.GetPreferencesByUserAsync(userId, cancellationToken);
         var map = prefs.ToDictionary(p => p.AlertType, p => p.Enabled);
 
+        // Cruzo el catálogo fijo con lo que el usuario tiene guardado
         return AlertCatalog.All.Select(item => new AlertPreferenceDto(
             item.Type,
             item.Title,
@@ -57,18 +61,21 @@ public class AlertService : IAlertService
             item.Roles)).ToList();
     }
 
+    // Guarda qué alertas quiere recibir cada usuario
     public async Task SavePreferencesAsync(int userId, IReadOnlyDictionary<AlertType, bool> preferences, CancellationToken cancellationToken = default)
     {
         await _alertRepository.UpsertPreferencesAsync(userId, preferences, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    // Historial de correos/alertas enviados (para mostrar en la vista)
     public async Task<IReadOnlyList<AlertDeliveryDto>> GetRecentDeliveriesAsync(int take = 30, CancellationToken cancellationToken = default)
     {
         var items = await _alertRepository.GetRecentDeliveriesAsync(take, cancellationToken);
         return items.Select(i => new AlertDeliveryDto(i.AlertType, i.Subject, i.SentAt, i.Channel)).ToList();
     }
 
+    // Revisa todas las condiciones del sistema y manda correos a quien tenga esa alerta activa
     public async Task<AlertEvaluationResultDto> EvaluateAndSendAsync(CancellationToken cancellationToken = default)
     {
         var details = new List<string>();
@@ -92,6 +99,7 @@ public class AlertService : IAlertService
                 var user = pref.User;
                 if (!user.IsActive) continue;
 
+                // Si no hay SMTP configurado igual guardo el envío como Outbox
                 var channel = _emailSender.IsSmtpConfigured ? "SMTP" : "Outbox";
                 await _emailSender.SendAsync(user.Email, user.Nombre, evt.Subject, evt.Body, cancellationToken);
                 await _alertRepository.AddDeliveryAsync(new AlertDelivery
@@ -114,11 +122,13 @@ public class AlertService : IAlertService
         return new AlertEvaluationResultDto(found, sent, details);
     }
 
+    // Arma la lista de "eventos" según lo que encuentre en inventario, órdenes, calidad, etc.
     private async Task<List<AlertEvent>> BuildAlertEventsAsync(CancellationToken cancellationToken)
     {
         var events = new List<AlertEvent>();
         var today = DateOnly.FromDateTime(DateTime.Today);
 
+        // Stock bajo mínimo
         var materials = await _materialRepository.GetAllAsync(cancellationToken);
         var low = materials.Where(m => m.Stock < m.MinStock).ToList();
         if (low.Count > 0)
@@ -130,6 +140,7 @@ public class AlertService : IAlertService
                 $"Se detectó stock bajo:\n{lines}\n\nRevise Inventario."));
         }
 
+        // Solicitudes de material sin aprobar
         var requests = await _requestRepository.GetAllAsync(cancellationToken);
         var pending = requests.Where(r => r.Status == RequestStatus.Pendiente).ToList();
         if (pending.Count > 0)
@@ -143,6 +154,8 @@ public class AlertService : IAlertService
 
         var orders = await _orderRepository.GetAllAsync(cancellationToken);
         var active = orders.Where(o => o.Status is not OrderStatus.Finalizada and not OrderStatus.Cancelada).ToList();
+
+        // Órdenes que vencen en 7 días o menos
         var dueSoon = active.Where(o => o.Deadline <= today.AddDays(7)).ToList();
         if (dueSoon.Count > 0)
         {
@@ -153,6 +166,7 @@ public class AlertService : IAlertService
                 $"Órdenes con plazo ≤ 7 días:\n{lines}"));
         }
 
+        // Atrasadas: menos del 50% de avance y plazo en 14 días
         var delayed = active.Where(o =>
             o.TotalQuantity > 0 &&
             (o.ProducedQuantity * 100.0 / o.TotalQuantity) < 50 &&
@@ -166,6 +180,7 @@ public class AlertService : IAlertService
                 $"Órdenes con avance < 50% y plazo próximo:\n{lines}"));
         }
 
+        // Reprocesos de calidad de la última semana
         var quality = await _qualityRepository.GetAllAsync(cancellationToken);
         var reprocesos = quality
             .Where(q => q.Result == QualityResult.Reproceso && q.InspectionDate >= today.AddDays(-7))
@@ -183,5 +198,6 @@ public class AlertService : IAlertService
         return events;
     }
 
+    // DTO interno para pasar tipo + asunto + cuerpo del correo
     private sealed record AlertEvent(AlertType Type, string Subject, string Body);
 }

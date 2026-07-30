@@ -22,6 +22,7 @@ public class FichaRepository : IFichaRepository
             .Include(f => f.ProductionOrder)
             .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 
+    // Para validar que no se repita el código al crear/editar
     public Task<bool> ExistsByCodeAsync(string fichaCode, CancellationToken cancellationToken = default) =>
         _context.Fichas.AnyAsync(
             f => f.FichaCode.ToLower() == fichaCode.ToLower(),

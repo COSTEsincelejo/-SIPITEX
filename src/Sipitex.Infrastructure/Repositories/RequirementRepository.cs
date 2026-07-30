@@ -5,6 +5,7 @@ using Sipitex.Infrastructure.Persistence;
 
 namespace Sipitex.Infrastructure.Repositories;
 
+// Requisitos funcionales y no funcionales del proyecto (tabla de trazabilidad)
 public class RequirementRepository : IRequirementRepository
 {
     private readonly SipitexDbContext _context;

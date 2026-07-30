@@ -2,6 +2,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Interfaces.Repositories;
 
+// Catálogo de materiales e inventario
 public interface IMaterialRepository
 {
     Task<IReadOnlyList<Material>> GetAllAsync(CancellationToken cancellationToken = default);

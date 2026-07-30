@@ -2,6 +2,8 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.DTOs;
 
+// --- Inventario ---
+
 public record MaterialDto(
     int Id,
     string Name,
@@ -27,6 +29,8 @@ public record MaterialRequestDto(
 
 public record CreateMaterialRequestDto(int ProductionOrderId, int MaterialId, decimal Quantity);
 
+// --- Producción ---
+
 public record ProductionOrderDto(
     int Id,
     string OrderNumber,
@@ -39,6 +43,8 @@ public record ProductionOrderDto(
     string MrpHint);
 
 public record CreateProductionOrderDto(string ProductName, int TotalQuantity, DateOnly Deadline);
+
+// --- MRP / BOM ---
 
 public record BomItemDto(string ProductName, string MaterialName, decimal QuantityPerUnit, string UnitDisplay);
 
@@ -54,6 +60,8 @@ public record MrpLineDto(
     decimal Deficit,
     string UnitDisplay,
     bool IsOk);
+
+// --- Fichas y sesiones ---
 
 public record FichaDto(
     int Id,
@@ -84,6 +92,8 @@ public record ProductionSessionDto(
 
 public record RegisterProductionDto(int ProductionOrderId, int FichaId, int Units, string? Observations = null);
 
+// --- Calidad ---
+
 public record QualityRecordDto(
     string OrderNumber,
     int Units,
@@ -99,6 +109,8 @@ public record CreateQualityRecordDto(
     string? MotivoReproceso = null,
     string? Responsable = null);
 
+// --- Dashboard ---
+
 public record DashboardKpiDto(
     int TotalProduced,
     decimal QualityRate,
@@ -107,6 +119,8 @@ public record DashboardKpiDto(
     IReadOnlyList<ChartBarDto> ChartData);
 
 public record ChartBarDto(string Label, int Produced, int Target);
+
+// --- Requisitos del proyecto (matriz RF/RNF) ---
 
 public record RequirementSummaryDto(int Cumple, int Parcial, int Ausente);
 
@@ -129,6 +143,7 @@ public record RequirementsViewDto(
     IReadOnlyList<FunctionalRequirementDto> Functional,
     IReadOnlyList<NonFunctionalRequirementDto> NonFunctional);
 
+// Resultado genérico de operaciones del servicio (éxito/error + mensaje)
 public record ServiceResult(bool Success, string? Message = null)
 {
     public static ServiceResult Ok(string? message = null) => new(true, message);

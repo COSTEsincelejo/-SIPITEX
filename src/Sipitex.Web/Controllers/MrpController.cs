@@ -7,10 +7,10 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+// BOM y simulación de materiales necesarios para producir
 [Authorize]
 public class MrpController : Controller
 {
-    // Este controlador muestra la información del MRP y la simulación de materiales.
     private readonly IMrpService _mrpService;
 
     public MrpController(IMrpService mrpService) => _mrpService = mrpService;
@@ -31,6 +31,7 @@ public class MrpController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Simulate([Bind(Prefix = "Simulation")] MrpSimulationForm form, CancellationToken cancellationToken)
     {
+        // Misma vista con el resultado debajo del formulario
         return View("Index", new MrpIndexViewModel
         {
             Bom = await _mrpService.GetBomAsync(cancellationToken),

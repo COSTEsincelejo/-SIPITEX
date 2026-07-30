@@ -3,10 +3,12 @@ using Sipitex.Application.Authorization;
 
 namespace Sipitex.Web.Authorization;
 
+// Conecta las reglas de permisos de Application con las políticas de ASP.NET
 public static class SipitexAuthorizationExtensions
 {
     public static AuthorizationOptions AddSipitexPolicies(this AuthorizationOptions options)
     {
+        // Cada política se usa en controladores con [Authorize(Policy = "...")]
         options.AddPolicy(AuthorizationPolicyNames.PuedeRegistrarMateriales,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeRegistrarMateriales(ctx.User)));
 

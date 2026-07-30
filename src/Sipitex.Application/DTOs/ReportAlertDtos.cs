@@ -3,14 +3,17 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.DTOs;
 
+// Archivo binario para descargas de reportes (PDF, Excel, etc.)
 public record ReportFileDto(byte[] Content, string ContentType, string FileName);
 
 public record AlertPreferenceDto(AlertType AlertType, string Title, string Description, bool Enabled, IReadOnlyList<string> SuggestedRoles);
 
 public record AlertDeliveryDto(AlertType AlertType, string Subject, DateTime SentAt, string Channel);
 
+// Resumen después de correr la evaluación de alertas
 public record AlertEvaluationResultDto(int AlertsFound, int EmailsSent, IReadOnlyList<string> Details);
 
+// Catálogo fijo de tipos de alerta (lo usamos en la UI y en AlertService)
 public static class AlertCatalog
 {
     public static IReadOnlyList<(AlertType Type, string Title, string Description, string[] Roles)> All { get; } =

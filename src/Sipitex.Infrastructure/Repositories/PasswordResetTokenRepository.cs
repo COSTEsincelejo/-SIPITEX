@@ -14,6 +14,7 @@ public class PasswordResetTokenRepository : IPasswordResetTokenRepository
     public Task AddAsync(PasswordResetToken token, CancellationToken cancellationToken = default) =>
         _context.PasswordResetTokens.AddAsync(token, cancellationToken).AsTask();
 
+    // Rate limiting: cuántos tokens pidió el usuario desde cierta fecha
     public Task<int> CountCreatedSinceAsync(int userId, DateTime sinceUtc, CancellationToken cancellationToken = default) =>
         _context.PasswordResetTokens.CountAsync(
             t => t.UserId == userId && t.CreatedAtUtc >= sinceUtc,
@@ -26,6 +27,7 @@ public class PasswordResetTokenRepository : IPasswordResetTokenRepository
             .Where(t => t.UserId == userId && t.UsedAtUtc == null)
             .ToListAsync(cancellationToken);
 
+    // Busca un token válido (no usado y no expirado)
     public Task<PasswordResetToken?> FindValidAsync(
         int userId,
         string tokenHash,

@@ -8,6 +8,7 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+// Fichas del SENA: crear, filtrar y registrar producción por sesión
 [Authorize]
 public class FichasController : Controller
 {
@@ -35,6 +36,7 @@ public class FichasController : Controller
     public async Task<IActionResult> CreateFicha([Bind(Prefix = "CreateFicha")] CreateFichaForm form, CancellationToken cancellationToken)
     {
         var (userId, role, _) = CurrentViewer();
+        // Si es instructor, la ficha queda asociada a su usuario automáticamente
         int? instructorUserId = string.Equals(role, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase)
             ? userId
             : null;
@@ -72,6 +74,7 @@ public class FichasController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // Atajo desde la tabla de fichas sin abrir el formulario completo
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -92,9 +95,11 @@ public class FichasController : Controller
     {
         var (userId, role, name) = CurrentViewer();
         var orders = await _orderService.GetOrdersAsync(cancellationToken);
+        // El servicio ya filtra por rol (instructor solo ve lo suyo)
         var fichas = (await _fichaService.GetFichasAsync(userId, role, name, cancellationToken)).AsEnumerable();
         var sessions = (await _fichaService.GetRecentSessionsAsync(userId, role, name, cancellationToken)).AsEnumerable();
 
+    // Filtros de la barra (código, instructor, turno) — se aplican en memoria
         if (!string.IsNullOrWhiteSpace(fichaCode))
         {
             fichas = fichas.Where(f => f.FichaCode.Contains(fichaCode, StringComparison.OrdinalIgnoreCase));
@@ -116,6 +121,7 @@ public class FichasController : Controller
         var fichaList = fichas.ToList();
         var sessionList = sessions.ToList();
 
+    // Si es instructor, dejo su nombre ya puesto en el form de crear
         var create = new CreateFichaForm();
         if (User.IsInRole(UserRoles.Instructor) && !string.IsNullOrWhiteSpace(name))
             create.InstructorName = name!;
@@ -140,6 +146,7 @@ public class FichasController : Controller
         };
     }
 
+    // Datos del usuario logueado que el servicio usa para permisos
     private (int? UserId, string? Role, string? Name) CurrentViewer()
     {
         int? userId = null;

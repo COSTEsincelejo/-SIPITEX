@@ -6,6 +6,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Services;
 
+// Fichas de producción y registro de sesiones diarias por el instructor
 public class FichaService : IFichaService
 {
     private readonly IFichaRepository _fichaRepository;
@@ -28,6 +29,7 @@ public class FichaService : IFichaService
         _unitOfWork = unitOfWork;
     }
 
+    // Lista fichas; si quien mira es instructor solo ve las suyas
     public async Task<IReadOnlyList<FichaDto>> GetFichasAsync(
         int? viewerUserId = null,
         string? viewerRole = null,
@@ -52,6 +54,7 @@ public class FichaService : IFichaService
             f.Turno)).ToList();
     }
 
+    // Sesiones recientes de producción (también filtradas por instructor si aplica)
     public async Task<IReadOnlyList<ProductionSessionDto>> GetRecentSessionsAsync(
         int? viewerUserId = null,
         string? viewerRole = null,
@@ -84,6 +87,7 @@ public class FichaService : IFichaService
             s.Ficha.Turno)).ToList();
     }
 
+    // Registra una sesión de producción y actualiza el avance de la orden
     public async Task<ServiceResult> RegisterSessionAsync(
         RegisterProductionDto dto,
         int? registeredByUserId = null,
@@ -105,6 +109,7 @@ public class FichaService : IFichaService
         var order = await _orderRepository.GetByIdAsync(dto.ProductionOrderId, cancellationToken);
         if (order is null) return ServiceResult.Fail("Orden no encontrada.");
 
+        // Actualizo la orden asignada a la ficha por si cambió
         ficha.ProductionOrderId = dto.ProductionOrderId;
         _fichaRepository.Update(ficha);
 
@@ -120,12 +125,14 @@ public class FichaService : IFichaService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // Esto también descuenta materiales según el BOM
         var production = await _orderService.RegisterProductionAsync(dto.ProductionOrderId, dto.Units, cancellationToken);
         return production.Success
             ? ServiceResult.Ok("Sesión diaria registrada.")
             : production;
     }
 
+    // Atajo: registra usando la orden que ya tiene la ficha
     public async Task<ServiceResult> QuickRegisterAsync(
         int fichaId,
         int units,
@@ -149,6 +156,7 @@ public class FichaService : IFichaService
             cancellationToken);
     }
 
+    // Alta de una ficha nueva (admin o quien tenga permiso)
     public async Task<ServiceResult> CreateFichaAsync(
         CreateFichaDto dto,
         int? instructorUserId = null,

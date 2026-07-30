@@ -5,12 +5,14 @@ using Sipitex.Infrastructure.Persistence;
 
 namespace Sipitex.Infrastructure.Repositories;
 
+// Acceso a la tabla Materials. CRUD básico para el inventario.
 public class MaterialRepository : IMaterialRepository
 {
     private readonly SipitexDbContext _context;
 
     public MaterialRepository(SipitexDbContext context) => _context = context;
 
+    // Lista ordenada por nombre para que en la vista se vea alfabético
     public async Task<IReadOnlyList<Material>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await _context.Materials.OrderBy(m => m.Name).ToListAsync(cancellationToken);
 

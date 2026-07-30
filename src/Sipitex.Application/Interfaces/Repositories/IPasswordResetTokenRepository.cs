@@ -2,6 +2,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Interfaces.Repositories;
 
+// Tokens de un solo uso para reset de contraseña
 public interface IPasswordResetTokenRepository
 {
     Task AddAsync(PasswordResetToken token, CancellationToken cancellationToken = default);

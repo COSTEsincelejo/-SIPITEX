@@ -11,6 +11,7 @@ public class MaterialRequestRepository : IMaterialRequestRepository
 
     public MaterialRequestRepository(SipitexDbContext context) => _context = context;
 
+    // Incluyo material y orden para mostrar todo en la lista sin N+1
     public async Task<IReadOnlyList<MaterialRequest>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await _context.MaterialRequests
             .Include(r => r.Material)

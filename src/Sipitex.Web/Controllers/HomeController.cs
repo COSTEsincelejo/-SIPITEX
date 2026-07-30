@@ -5,9 +5,9 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+// Página de inicio y la vista genérica de error
 public class HomeController : Controller
 {
-    // Este controlador maneja la página principal y los errores generales del sistema.
     [Authorize]
     public IActionResult Index()
     {
@@ -21,6 +21,7 @@ public class HomeController : Controller
         return View();
     }
 
+    // Sin caché para que el error muestre el RequestId actual
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

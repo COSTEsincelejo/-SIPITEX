@@ -5,6 +5,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
+// Matriz de requisitos del proyecto (RF/RNF) para la vista de cumplimiento
 public class RequirementService : IRequirementService
 {
     private readonly IRequirementRepository _requirementRepository;
@@ -14,6 +15,7 @@ public class RequirementService : IRequirementService
         _requirementRepository = requirementRepository;
     }
 
+    // Arma el resumen + listas de requisitos funcionales y no funcionales
     public async Task<RequirementsViewDto> GetComplianceAsync(CancellationToken cancellationToken = default)
     {
         var rf = await _requirementRepository.GetFunctionalAsync(cancellationToken);
@@ -26,6 +28,7 @@ public class RequirementService : IRequirementService
             rnf.Select(r => new NonFunctionalRequirementDto(r.Code, r.Description, r.Status, r.Observation)).ToList());
     }
 
+    // Cuenta cuántos cumplen, parcial o ausente
     private static RequirementSummaryDto Summarize(IEnumerable<ComplianceStatus> statuses)
     {
         var list = statuses.ToList();

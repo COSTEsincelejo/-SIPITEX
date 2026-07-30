@@ -3,6 +3,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Interfaces.Services;
 
+// Autenticación y administración de usuarios
 public interface IUserAccountService
 {
     Task<User?> AuthenticateAsync(string email, string password, CancellationToken cancellationToken = default);

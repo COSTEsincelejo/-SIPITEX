@@ -2,6 +2,7 @@ using Sipitex.Application.DTOs;
 
 namespace Sipitex.Application.Interfaces.Services;
 
+// Materiales, stock y solicitudes de bodega
 public interface IInventoryService
 {
     Task<IReadOnlyList<MaterialDto>> GetMaterialsAsync(CancellationToken cancellationToken = default);

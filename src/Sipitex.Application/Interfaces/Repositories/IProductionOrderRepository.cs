@@ -2,6 +2,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Interfaces.Repositories;
 
+// Órdenes de producción (OP)
 public interface IProductionOrderRepository
 {
     Task<IReadOnlyList<ProductionOrder>> GetAllAsync(CancellationToken cancellationToken = default);

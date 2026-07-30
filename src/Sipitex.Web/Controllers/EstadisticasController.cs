@@ -5,10 +5,10 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+// Dashboard con números resumidos del taller (producción, inventario, etc.)
 [Authorize]
 public class EstadisticasController : Controller
 {
-    // Aquí se muestran los datos del dashboard y métricas del sistema.
     private readonly IStatisticsService _statisticsService;
 
     public EstadisticasController(IStatisticsService statisticsService) => _statisticsService = statisticsService;

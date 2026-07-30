@@ -4,6 +4,8 @@ using Sipitex.Domain.Enums;
 namespace Sipitex.Web.Models;
 
 // Aquí están los modelos usados por las vistas para mostrar datos al usuario.
+// Cada pantalla suele tener un *IndexViewModel con listas + formularios de creación.
+
 public class InventarioIndexViewModel
 {
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
@@ -71,6 +73,7 @@ public class FichasIndexViewModel
     public CreateFichaForm CreateFicha { get; set; } = new();
     public RegisterProductionForm Register { get; set; } = new();
     public bool IsAdministrator { get; set; }
+    // Filtros de la tabla de fichas
     public string? FichaCodeFilter { get; set; }
     public string? InstructorFilter { get; set; }
     public string? TurnoFilter { get; set; }
@@ -132,6 +135,7 @@ public class AlertPreferencesForm
     public List<string> EnabledTypes { get; set; } = [];
 }
 
+// Componente reutilizable cuando una lista viene vacía
 public class EmptyStateModel
 {
     public string Icon { get; set; } = "fa-inbox";
@@ -140,4 +144,3 @@ public class EmptyStateModel
     public string? ActionText { get; set; }
     public string? ActionHref { get; set; }
 }
-

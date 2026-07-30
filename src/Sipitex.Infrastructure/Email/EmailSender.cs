@@ -7,6 +7,7 @@ using Sipitex.Application.Interfaces.Services;
 
 namespace Sipitex.Infrastructure.Email;
 
+// Opciones del correo, vienen de appsettings sección "Email"
 public class EmailOptions
 {
     public const string SectionName = "Email";
@@ -18,6 +19,7 @@ public class EmailOptions
     public string From { get; set; } = "sipitex@local";
     public string FromName { get; set; } = "SIPITEX Alertas";
     public bool UseSsl { get; set; } = true;
+    // Si no hay SMTP, guardo los correos acá como .txt (útil en desarrollo)
     public string OutboxPath { get; set; } = "email-outbox";
 }
 
@@ -32,6 +34,7 @@ public class EmailSender : IEmailSender
         _logger = logger;
     }
 
+    // Reviso si hay servidor SMTP configurado o toca simular
     public bool IsSmtpConfigured =>
         _options.Enabled &&
         !string.IsNullOrWhiteSpace(_options.Host) &&
@@ -57,6 +60,7 @@ public class EmailSender : IEmailSender
             return;
         }
 
+        // Fallback: escribo el correo a un archivo en vez de mandarlo
         var dir = Path.GetFullPath(_options.OutboxPath);
         Directory.CreateDirectory(dir);
         var file = Path.Combine(dir, $"{DateTime.Now:yyyyMMdd_HHmmss}_{Sanitize(toEmail)}_{Sanitize(subject)}.txt");
@@ -65,6 +69,7 @@ public class EmailSender : IEmailSender
         _logger.LogInformation("Correo simulado (outbox) para {Email}: {File}", toEmail, file);
     }
 
+    // Quito caracteres raros del nombre del archivo
     private static string Sanitize(string value) =>
         string.Concat(value.Where(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_')).Truncate(40);
 }

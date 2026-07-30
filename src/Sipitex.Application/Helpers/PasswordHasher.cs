@@ -2,12 +2,14 @@ using System.Security.Cryptography;
 
 namespace Sipitex.Application.Helpers;
 
+// Hash de contraseñas con PBKDF2 (no guardamos la clave en texto plano)
 public static class PasswordHasher
 {
     private const int SaltSize = 16;
     private const int KeySize = 32;
     private const int Iterations = 100_000;
 
+    // Genera salt aleatorio y devuelve todo en un string con formato propio
     public static string Hash(string password)
     {
         var salt = RandomNumberGenerator.GetBytes(SaltSize);
@@ -15,6 +17,7 @@ public static class PasswordHasher
         return $"pbkdf2${Iterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(key)}";
     }
 
+    // Vuelve a hashear con el mismo salt y compara en tiempo constante
     public static bool Verify(string password, string storedHash)
     {
         var parts = storedHash.Split('$', StringSplitOptions.RemoveEmptyEntries);

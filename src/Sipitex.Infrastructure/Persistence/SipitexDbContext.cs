@@ -3,10 +3,12 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Infrastructure.Persistence;
 
+// El DbContext de EF Core — acá queda todo el mapeo a SQLite
 public class SipitexDbContext : DbContext
 {
     public SipitexDbContext(DbContextOptions<SipitexDbContext> options) : base(options) { }
 
+    // Cada DbSet = una tabla en la BD
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<BomItem> BomItems => Set<BomItem>();
     public DbSet<ProductionOrder> ProductionOrders => Set<ProductionOrder>();
@@ -21,6 +23,7 @@ public class SipitexDbContext : DbContext
     public DbSet<AlertDelivery> AlertDeliveries => Set<AlertDelivery>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
+    // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Material>(e =>
@@ -28,10 +31,12 @@ public class SipitexDbContext : DbContext
             e.HasKey(m => m.Id);
             e.Property(m => m.Name).HasMaxLength(120).IsRequired();
             e.Property(m => m.Code).HasMaxLength(40).IsRequired();
+            // Precision 18,2 porque stock puede tener decimales (metros de tela, etc.)
             e.Property(m => m.Stock).HasPrecision(18, 2);
             e.Property(m => m.MinStock).HasPrecision(18, 2);
         });
 
+        // BOM = lista de materiales por prenda (Bill of Materials)
         modelBuilder.Entity<BomItem>(e =>
         {
             e.HasKey(b => b.Id);
@@ -45,6 +50,7 @@ public class SipitexDbContext : DbContext
             e.HasKey(o => o.Id);
             e.Property(o => o.OrderNumber).HasMaxLength(20).IsRequired();
             e.Property(o => o.ProductName).HasMaxLength(80).IsRequired();
+            // Que no se repita el número de orden
             e.HasIndex(o => o.OrderNumber).IsUnique();
         });
 
@@ -62,6 +68,7 @@ public class SipitexDbContext : DbContext
             e.Property(f => f.FichaCode).HasMaxLength(30).IsRequired();
             e.Property(f => f.Turno).HasMaxLength(20).IsRequired();
             e.HasOne(f => f.ProductionOrder).WithMany(o => o.Fichas).HasForeignKey(f => f.ProductionOrderId);
+            // Si borran el usuario instructor, dejo la ficha pero sin vínculo
             e.HasOne(f => f.InstructorUser)
                 .WithMany()
                 .HasForeignKey(f => f.InstructorUserId)
@@ -88,6 +95,7 @@ public class SipitexDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // Requisitos funcionales del proyecto (RF01, RF02...)
         modelBuilder.Entity<FunctionalRequirement>(e =>
         {
             e.HasKey(r => r.Id);
@@ -113,15 +121,18 @@ public class SipitexDbContext : DbContext
             e.Property(u => u.PhotoPath).HasMaxLength(260);
             e.Property(u => u.FuncionDescripcion).HasMaxLength(800);
             e.HasIndex(u => u.Email).IsUnique();
+            // Un instructor puede tener una ficha asignada como "principal"
             e.HasOne(u => u.FichaAsignada)
                 .WithMany()
                 .HasForeignKey(u => u.FichaAsignadaId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // Preferencias de alertas por usuario (qué tipo de notificación quiere recibir)
         modelBuilder.Entity<AlertPreference>(e =>
         {
             e.HasKey(a => a.Id);
+            // Un usuario no puede tener dos prefs del mismo tipo
             e.HasIndex(a => new { a.UserId, a.AlertType }).IsUnique();
             e.HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -135,6 +146,7 @@ public class SipitexDbContext : DbContext
             e.HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
+        // Tokens para recuperar contraseña (guardamos el hash, no el token en claro)
         modelBuilder.Entity<PasswordResetToken>(e =>
         {
             e.HasKey(t => t.Id);

@@ -1,11 +1,11 @@
 namespace Sipitex.Application.Helpers;
 
-/// <summary>Reglas de contraseña compartidas por alta de usuarios y reseteo.</summary>
+// Reglas de contraseña compartidas por alta de usuarios y reseteo
 public static class PasswordRules
 {
     public const int MinLength = 6;
 
-    /// <returns>Mensaje de error, o null si es válida.</returns>
+    // Devuelve mensaje de error o null si está bien
     public static string? Validate(string? password, bool required)
     {
         if (required && string.IsNullOrWhiteSpace(password))

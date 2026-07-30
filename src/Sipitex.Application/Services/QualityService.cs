@@ -7,6 +7,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
+// Inspecciones de calidad ligadas a órdenes de producción
 public class QualityService : IQualityService
 {
     private readonly IQualityRepository _qualityRepository;
@@ -23,6 +24,7 @@ public class QualityService : IQualityService
         _unitOfWork = unitOfWork;
     }
 
+    // Lista de inspecciones, las más recientes primero
     public async Task<IReadOnlyList<QualityRecordDto>> GetRecordsAsync(CancellationToken cancellationToken = default)
     {
         var records = await _qualityRepository.GetAllAsync(cancellationToken);
@@ -38,6 +40,7 @@ public class QualityService : IQualityService
             .ToList();
     }
 
+    // Guarda una inspección; si es reproceso pide motivo y responsable
     public async Task<ServiceResult> AddRecordAsync(CreateQualityRecordDto dto, CancellationToken cancellationToken = default)
     {
         var order = await _orderRepository.GetByIdAsync(dto.ProductionOrderId, cancellationToken);

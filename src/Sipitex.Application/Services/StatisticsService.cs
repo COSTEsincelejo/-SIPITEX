@@ -5,6 +5,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
+// KPIs del dashboard principal
 public class StatisticsService : IStatisticsService
 {
     private readonly IProductionOrderRepository _orderRepository;
@@ -21,6 +22,7 @@ public class StatisticsService : IStatisticsService
         _qualityRepository = qualityRepository;
     }
 
+    // Junta datos de órdenes, inventario y calidad para el home
     public async Task<DashboardKpiDto> GetDashboardAsync(CancellationToken cancellationToken = default)
     {
         var orders = await _orderRepository.GetAllAsync(cancellationToken);

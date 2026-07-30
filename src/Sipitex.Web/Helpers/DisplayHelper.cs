@@ -5,6 +5,7 @@ namespace Sipitex.Web.Helpers;
 // Esta clase ayuda a mostrar etiquetas visuales en la interfaz, como colores de estado.
 public static class DisplayHelper
 {
+    // Devuelve la clase CSS del badge según el estado del material
     public static string BadgeClass(MaterialStatus status) => status switch
     {
         MaterialStatus.Bueno => "badge-success",
@@ -42,6 +43,7 @@ public static class DisplayHelper
         _ => "badge-danger"
     };
 
+    // Texto legible en español; si no hay caso, deja el ToString del enum
     public static string StatusText(Enum value) => value switch
     {
         OrderStatus.EnProceso => "En proceso",
