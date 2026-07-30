@@ -59,19 +59,21 @@ echo
 echo "============================================"
 echo "  SIPITEX LISTO"
 echo "============================================"
-echo "  Login local OK: http://127.0.0.1:5240/Account/Login"
-if [[ -n "$CS_URL" ]]; then
-  echo "  Abre esta URL:"
-  echo "  $CS_URL"
-else
-  echo "  Abre en PORTS el globo de 5240 + /Account/Login"
-fi
+echo "  NO abras Chrome externo (suele dar 404)."
+echo
+echo "  Forma que SÍ funciona en Codespaces:"
+echo "  1) Ctrl+Shift+P"
+echo "  2) Escribe: Simple Browser: Show"
+echo "  3) Pega: http://127.0.0.1:5240/Account/Login"
+echo
+echo "  O en PORTS → 5240 → clic en el icono del globo"
+echo "  (Open in Browser), NO copies la URL a Chrome."
 echo
 echo "  Usuario: admin@sipitex.test"
 echo "  Clave:   Admin123!"
 echo
-echo "  (En PORTS: 5240 = Public)"
-echo "  Detener: kill \$(cat $PID_FILE)"
+echo "  Prueba local: curl -I http://127.0.0.1:5240/ping"
+echo "  Detener:     kill \$(cat $PID_FILE)"
 echo "============================================"
 
 # Intentar marcar el puerto público con gh si está disponible
