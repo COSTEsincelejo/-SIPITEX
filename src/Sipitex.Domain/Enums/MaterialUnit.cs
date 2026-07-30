@@ -1,9 +1,9 @@
 namespace Sipitex.Domain.Enums;
 
-// Unidades en que se mide el material en bodega
+// Unidades de medida del material en bodega
 public enum MaterialUnit
 {
-    Metros,
-    Unidades,
-    Kg
+    Metros,    // telas, elásticos, etc.
+    Unidades,  // botones, cierres, piezas
+    Kg         // hilos, rellenos, etc.
 }

@@ -2,34 +2,36 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Domain.Entities;
 
-// Orden de producción: qué se va a fabricar y cuánto.
+// Orden de producción: qué fabricar, cuánto y hasta cuándo
 public class ProductionOrder
 {
+    // PK
     public int Id { get; set; }
 
-    // Número de orden, tipo OP-2026-001
+    // Número visible tipo OP-101 (único en BD)
     public string OrderNumber { get; set; } = string.Empty;
 
+    // Producto a fabricar (debe existir en el BOM: Camisa / Pantalón)
     public string ProductName { get; set; } = string.Empty;
 
-    // Cantidad total que se pidió producir
+    // Meta total de unidades pedidas
     public int TotalQuantity { get; set; }
 
-    // Lo que ya se ha producido (se va sumando con las sesiones)
+    // Avance acumulado (se suma al registrar sesiones/producción)
     public int ProducedQuantity { get; set; }
 
-    // Arranca en proceso; después puede pasar a finalizada o cancelada
+    // Estado actual; arranca EnProceso
     public OrderStatus Status { get; set; } = OrderStatus.EnProceso;
 
-    // Fecha límite de entrega
+    // Fecha límite de entrega (solo día)
     public DateOnly Deadline { get; set; }
 
-    // Solicitudes de material asociadas a esta orden
+    // Solicitudes de material ligadas a esta orden
     public ICollection<MaterialRequest> MaterialRequests { get; set; } = [];
 
     // Inspecciones de calidad de esta orden
     public ICollection<QualityRecord> QualityRecords { get; set; } = [];
 
-    // Fichas que trabajan en esta orden
+    // Fichas que están trabajando esta orden
     public ICollection<Ficha> Fichas { get; set; } = [];
 }

@@ -2,21 +2,24 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Domain.Entities;
 
-// Ítem del BOM (Bill of Materials): cuánto material se necesita por unidad de producto.
-// El MRP usa esto para calcular qué falta.
+// Ítem del BOM: cuánto material sale por cada unidad del producto
 public class BomItem
 {
+    // PK
     public int Id { get; set; }
 
-    // Nombre del producto terminado (ej: "Camisa polo")
+    // Nombre del producto terminado (ej: "Camisa")
     public string ProductName { get; set; } = string.Empty;
 
+    // FK al material que se consume
     public int MaterialId { get; set; }
+
+    // Navegación al material
     public Material Material { get; set; } = null!;
 
-    // Cantidad de material por cada unidad que se fabrique
+    // Cuánto se gasta de ese material por 1 unidad fabricada
     public decimal QuantityPerUnit { get; set; }
 
-    // Unidad del material (debe coincidir con la del Material, o al menos ser coherente)
+    // Unidad del material en esta receta (metros, kg, etc.)
     public MaterialUnit Unit { get; set; }
 }

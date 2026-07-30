@@ -2,23 +2,24 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Domain.Entities;
 
-// Requisito funcional (RF) del documento IEEE 830.
-// Lo usamos para marcar si el sistema ya cumple o no cada requisito.
+// Requisito funcional (RF) del IEEE 830 — para marcar cumplimiento
 public class FunctionalRequirement
 {
+    // PK
     public int Id { get; set; }
 
-    // Código tipo RF-01, RF-02...
+    // Código tipo RF01 / RF-01
     public string Code { get; set; } = string.Empty;
 
+    // Qué pide el requisito (texto del documento)
     public string Description { get; set; } = string.Empty;
 
-    // Módulo al que pertenece (Inventario, Órdenes, etc.)
+    // Módulo del sistema al que pertenece (Inventario, Órdenes...)
     public string Module { get; set; } = string.Empty;
 
     // Cumple / Parcial / Ausente
     public ComplianceStatus Status { get; set; }
 
-    // Nota libre de por qué está parcial o ausente
+    // Nota de por qué está parcial o ausente
     public string Observation { get; set; } = string.Empty;
 }

@@ -1,10 +1,10 @@
 namespace Sipitex.Domain.Enums;
 
-// Estados posibles de una orden de producción
+// Ciclo de vida de una orden de producción
 public enum OrderStatus
 {
-    Pendiente,
-    EnProceso,
-    Finalizada,
-    Cancelada
+    Pendiente,   // creada pero aún no arranca
+    EnProceso,   // se está fabricando
+    Finalizada,  // ya llegó a la meta
+    Cancelada    // se cerró sin completar
 }
