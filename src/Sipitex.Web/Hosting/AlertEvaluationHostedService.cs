@@ -8,6 +8,7 @@ public class AlertEvaluationHostedService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<AlertEvaluationHostedService> _logger;
 
+    // El scope factory sirve para crear scopes y resolver servicios scoped
     public AlertEvaluationHostedService(IServiceScopeFactory scopeFactory, ILogger<AlertEvaluationHostedService> logger)
     {
         _scopeFactory = scopeFactory;
@@ -19,6 +20,7 @@ public class AlertEvaluationHostedService : BackgroundService
         // Espera inicial para no competir con el arranque/seed.
         await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
 
+        // Bucle hasta que apaguen la app
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -31,6 +33,7 @@ public class AlertEvaluationHostedService : BackgroundService
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                // Si falla no tumba la app, solo loguea
                 _logger.LogError(ex, "Error al evaluar alertas programadas");
             }
 

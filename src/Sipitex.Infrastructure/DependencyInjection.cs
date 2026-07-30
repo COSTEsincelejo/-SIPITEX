@@ -1,21 +1,23 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Sipitex.Application.Interfaces;
-using Sipitex.Application.Interfaces.Repositories;
-using Sipitex.Application.Interfaces.Services;
-using Sipitex.Infrastructure.Email;
-using Sipitex.Infrastructure.Persistence;
-using Sipitex.Infrastructure.Reporting;
-using Sipitex.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore; // Para registrar el DbContext
+using Microsoft.Extensions.Configuration; // Leo appsettings (connection string, email...)
+using Microsoft.Extensions.DependencyInjection; // Contenedor DI de ASP.NET
+using Sipitex.Application.Interfaces; // IUnitOfWork
+using Sipitex.Application.Interfaces.Repositories; // Interfaces de los repos
+using Sipitex.Application.Interfaces.Services; // IEmailSender, IReportService
+using Sipitex.Infrastructure.Email; // Implementación del correo
+using Sipitex.Infrastructure.Persistence; // SipitexDbContext
+using Sipitex.Infrastructure.Reporting; // ReportService
+using Sipitex.Infrastructure.Repositories; // Todos los repositorios
 
 namespace Sipitex.Infrastructure;
 
 // Registro de servicios de la capa Infrastructure en el contenedor DI de ASP.NET
 public static class DependencyInjection
 {
+    // Método de extensión que llama Program.cs para cablear todo
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        // Leo la cadena de conexión del appsettings, si no hay uso el default
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? "Data Source=sipitex.db";
 
@@ -23,12 +25,13 @@ public static class DependencyInjection
         services.AddDbContext<SipitexDbContext>(options =>
             options.UseSqlite(connectionString));
 
+        // Opciones de correo desde la sección "Email" del appsettings
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
-        services.AddScoped<IEmailSender, EmailSender>();
-        services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IEmailSender, EmailSender>(); // Un EmailSender por request
+        services.AddScoped<IReportService, ReportService>(); // Reportes Excel/PDF
 
         // Repositorios scoped = una instancia por request HTTP
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>(); // Guarda cambios al final del request
         services.AddScoped<IMaterialRepository, MaterialRepository>();
         services.AddScoped<IProductionOrderRepository, ProductionOrderRepository>();
         services.AddScoped<IBomRepository, BomRepository>();
@@ -41,6 +44,6 @@ public static class DependencyInjection
         services.AddScoped<IProductionSessionRepository, ProductionSessionRepository>();
         services.AddScoped<IAlertRepository, AlertRepository>();
 
-        return services;
+        return services; // Devuelvo la colección ya configurada
     }
 }

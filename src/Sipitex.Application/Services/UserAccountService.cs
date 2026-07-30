@@ -24,11 +24,15 @@ public class UserAccountService : IUserAccountService
     // Login: busca por email y compara hash de contraseña
     public async Task<User?> AuthenticateAsync(string email, string password, CancellationToken cancellationToken = default)
     {
+        // Acá reviso que vengan datos
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             return null;
 
+        // Busco el usuario por correo
         var user = await _userRepository.GetByEmailAsync(email.Trim(), cancellationToken);
+        // Usuario inexistente o cuenta desactivada
         if (user is null || !user.IsActive) return null;
+        // Verifico contraseña con PBKDF2
         if (!PasswordHasher.Verify(password, user.PasswordHash)) return null;
         return user;
     }
@@ -37,6 +41,7 @@ public class UserAccountService : IUserAccountService
     public Task<IReadOnlyList<User>> GetUsersAsync(CancellationToken cancellationToken = default) =>
         _userRepository.GetAllAsync(cancellationToken);
 
+    // Trae un usuario por id
     public Task<User?> GetUserByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _userRepository.GetByIdAsync(id, cancellationToken);
 
@@ -50,12 +55,15 @@ public class UserAccountService : IUserAccountService
         IReadOnlyList<string> permisos,
         CancellationToken cancellationToken = default)
     {
+        // Validaciones comunes de nombre, correo, contraseña y rol
         var validation = Validate(nombre, email, password, rol, requirePassword: true, creatableOnly: true);
         if (validation is not null) return validation;
 
+        // No puede repetirse el correo
         if (await _userRepository.EmailExistsAsync(email.Trim(), null, cancellationToken))
             return ServiceResult.Fail("Ya existe un usuario con ese correo.");
 
+        // Armo la entidad nueva
         var user = new User
         {
             Nombre = nombre.Trim(),
@@ -67,8 +75,10 @@ public class UserAccountService : IUserAccountService
             IsActive = true
         };
 
+        // INSERT en Users
         _userRepository.Add(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // Si es instructor con ficha, sincronizo ownership
         await SyncFichaOwnershipAsync(user.Id, user.Nombre, user.Rol, fichaAsignadaId, cancellationToken);
         return ServiceResult.Ok("Usuario creado correctamente.");
     }
@@ -85,9 +95,11 @@ public class UserAccountService : IUserAccountService
         bool isActive,
         CancellationToken cancellationToken = default)
     {
+        // Validación de campos; contraseña opcional en edición
         var validation = Validate(nombre, email, password, rol, requirePassword: false, creatableOnly: false);
         if (validation is not null) return validation;
 
+        // Busco el usuario que vamos a modificar
         var user = await _userRepository.GetByIdAsync(id, cancellationToken);
         if (user is null) return ServiceResult.Fail("Usuario no encontrado.");
 
@@ -95,6 +107,7 @@ public class UserAccountService : IUserAccountService
         var isExistingAdmin = string.Equals(user.Rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
         if (isExistingAdmin)
         {
+            // Protejo al único admin del sistema
             if (!string.Equals(rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase))
                 return ServiceResult.Fail("No se puede cambiar el rol del administrador.");
         }
@@ -103,9 +116,11 @@ public class UserAccountService : IUserAccountService
             return ServiceResult.Fail("Solo se pueden asignar roles de Instructor o Bodeguero.");
         }
 
+        // Correo único excluyendo al propio usuario
         if (await _userRepository.EmailExistsAsync(email.Trim(), id, cancellationToken))
             return ServiceResult.Fail("Ya existe un usuario con ese correo.");
 
+        // Actualizo campos del usuario
         user.Nombre = nombre.Trim();
         user.Email = email.Trim().ToLowerInvariant();
         user.Rol = rol;
@@ -113,11 +128,13 @@ public class UserAccountService : IUserAccountService
         user.PermisosExtendidos = ExtendedPermissions.Serialize(permisos);
         user.IsActive = isActive;
 
+        // Contraseña opcional en edición
         if (!string.IsNullOrWhiteSpace(password))
             user.PasswordHash = PasswordHasher.Hash(password);
 
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // Si cambió ficha de instructor, actualizo la ficha en BD
         await SyncFichaOwnershipAsync(user.Id, user.Nombre, user.Rol, fichaAsignadaId, cancellationToken);
         return ServiceResult.Ok("Usuario actualizado correctamente.");
     }
@@ -128,6 +145,7 @@ public class UserAccountService : IUserAccountService
         var user = await _userRepository.GetByIdAsync(id, cancellationToken);
         if (user is null) return ServiceResult.Fail("Usuario no encontrado.");
 
+        // Solo cambio el flag; no borro la fila
         user.IsActive = isActive;
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -145,12 +163,15 @@ public class UserAccountService : IUserAccountService
         bool removePhoto,
         CancellationToken cancellationToken = default)
     {
+        // Nombre y correo son obligatorios siempre
         if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(email))
             return ServiceResult.Fail("Nombre y correo son obligatorios.");
 
+        // Límite de texto en la descripción de funciones
         if (funcionDescripcion is { Length: > 800 })
             return ServiceResult.Fail("La descripción de funciones no puede superar 800 caracteres.");
 
+        // Reglas de complejidad si mandaron clave nueva
         var passwordError = PasswordRules.Validate(newPassword, required: false);
         if (passwordError is not null)
             return ServiceResult.Fail(passwordError);
@@ -161,15 +182,18 @@ public class UserAccountService : IUserAccountService
         if (await _userRepository.EmailExistsAsync(email.Trim(), id, cancellationToken))
             return ServiceResult.Fail("Ya existe un usuario con ese correo.");
 
+        // Datos básicos del perfil
         user.Nombre = nombre.Trim();
         user.Email = email.Trim().ToLowerInvariant();
         user.FuncionDescripcion = string.IsNullOrWhiteSpace(funcionDescripcion)
             ? null
             : funcionDescripcion.Trim();
 
+        // Solo hasheo si escribieron contraseña nueva
         if (!string.IsNullOrWhiteSpace(newPassword))
             user.PasswordHash = PasswordHasher.Hash(newPassword);
 
+        // Foto: quitar, actualizar o dejar como está
         if (removePhoto)
             user.PhotoPath = null;
         else if (!string.IsNullOrWhiteSpace(photoPath))
@@ -196,6 +220,7 @@ public class UserAccountService : IUserAccountService
         if (passwordError is not null)
             return ServiceResult.Fail(passwordError);
 
+        // En creación solo roles que el admin puede asignar
         if (creatableOnly)
         {
             if (!UserRoles.CreatableByAdmin.Contains(rol))
@@ -217,6 +242,7 @@ public class UserAccountService : IUserAccountService
         int? fichaAsignadaId,
         CancellationToken cancellationToken)
     {
+        // Solo aplica para instructores con ficha
         if (!string.Equals(rol, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase)
             || fichaAsignadaId is not int fichaId)
             return;

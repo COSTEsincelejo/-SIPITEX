@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // MVC: controladores + vistas (lo típico en este proyecto)
 builder.Services.AddControllersWithViews();
-// Servicios de negocio de la capa Application
+// Servicios de negocio de la capa Application (inventario, MRP, usuarios, etc.)
 builder.Services.AddApplicationServices();
 // BD, repositorios y cosas de infraestructura
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -19,8 +19,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Account/Login";
-        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.LoginPath = "/Account/Login";           // si no está logueado, manda acá
+        options.AccessDeniedPath = "/Account/AccessDenied"; // sin permiso para la acción
         options.ExpireTimeSpan = TimeSpan.FromHours(8); // sesión de 8h
     });
 
@@ -46,23 +46,23 @@ using (var scope = app.Services.CreateScope())
 // En producción no mostramos el stack trace feo al usuario
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    app.UseExceptionHandler("/Home/Error"); // página genérica de error
+    app.UseHsts(); // fuerza HTTPS en el navegador
 }
 
-app.UseHttpsRedirection();
+app.UseHttpsRedirection(); // redirige HTTP → HTTPS
 app.UseStaticFiles(); // CSS, JS, imágenes de wwwroot
-app.UseRouting();
+app.UseRouting(); // resuelve rutas antes de auth
 app.UseAuthentication(); // tiene que ir antes de Authorization
-app.UseAuthorization();
+app.UseAuthorization(); // revisa roles y políticas
 
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapHealthChecks("/health").AllowAnonymous(); // endpoint público de salud
 // Ruta por defecto: al entrar va a Inventario
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Inventario}/{action=Index}/{id?}");
 
-app.Run();
+app.Run(); // levanta el servidor
 
 // Lo pide el proyecto de tests de integración para levantar la app
 public partial class Program;

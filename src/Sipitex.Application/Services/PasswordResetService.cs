@@ -12,8 +12,11 @@ namespace Sipitex.Application.Services;
 // Flujo de "olvidé mi contraseña" con token por correo
 public class PasswordResetService : IPasswordResetService
 {
+    // El token dura 1 hora
     private static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(1);
+    // Ventana para limitar spam de solicitudes
     private static readonly TimeSpan RateLimitWindow = TimeSpan.FromMinutes(15);
+    // Máximo 3 solicitudes por ventana
     private const int MaxRequestsPerWindow = 3;
 
     private readonly IUserRepository _userRepository;
@@ -37,11 +40,15 @@ public class PasswordResetService : IPasswordResetService
     // No dice si el email existe (por seguridad)
     public async Task RequestResetAsync(string email, string publicBaseUrl, CancellationToken cancellationToken = default)
     {
+        // Si falta email o URL base, salgo sin error (no revelar nada)
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(publicBaseUrl))
             return;
 
+        // Normalizo correo para buscar en BD
         var normalizedEmail = email.Trim().ToLowerInvariant();
+        // Query por email
         var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
+        // Usuario inexistente o inactivo: mismo comportamiento silencioso
         if (user is null || !user.IsActive)
             return;
 
@@ -60,7 +67,9 @@ public class PasswordResetService : IPasswordResetService
             _tokenRepository.Update(previous);
         }
 
+        // Genero token nuevo en texto plano (solo va al correo)
         var plainToken = CreateSecureToken();
+        // Entidad que guardo en BD (solo el hash)
         var entity = new PasswordResetToken
         {
             UserId = user.Id,
@@ -72,10 +81,12 @@ public class PasswordResetService : IPasswordResetService
         await _tokenRepository.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // Armo el link que va en el correo
         var baseUrl = publicBaseUrl.TrimEnd('/');
         var link =
             $"{baseUrl}/Account/ResetPassword?token={Uri.EscapeDataString(plainToken)}&email={Uri.EscapeDataString(normalizedEmail)}";
 
+        // Cuerpo del correo en texto plano
         var body =
             $"""
             Hola {user.Nombre},
@@ -88,6 +99,7 @@ public class PasswordResetService : IPasswordResetService
             Si usted no solicitó este cambio, ignore este mensaje.
             """;
 
+        // Envío por SMTP (si está configurado)
         await _emailSender.SendAsync(
             user.Email,
             user.Nombre,
@@ -103,10 +115,12 @@ public class PasswordResetService : IPasswordResetService
         string newPassword,
         CancellationToken cancellationToken = default)
     {
+        // Primero valido la nueva contraseña con las reglas comunes
         var passwordError = PasswordRules.Validate(newPassword, required: true);
         if (passwordError is not null)
             return ServiceResult.Fail(passwordError);
 
+        // Token y email no pueden venir vacíos
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
             return ServiceResult.Fail("Enlace inválido o expirado.");
 
@@ -116,11 +130,13 @@ public class PasswordResetService : IPasswordResetService
             return ServiceResult.Fail("Enlace inválido o expirado.");
 
         var now = DateTime.UtcNow;
+        // Busco el token hasheado en BD
         var hash = HashToken(token);
         var resetToken = await _tokenRepository.FindValidAsync(user.Id, hash, now, cancellationToken);
         if (resetToken is null)
             return ServiceResult.Fail("Enlace inválido o expirado.");
 
+        // Actualizo contraseña y marco token como usado
         user.PasswordHash = PasswordHasher.Hash(newPassword);
         _userRepository.Update(user);
 
@@ -134,10 +150,12 @@ public class PasswordResetService : IPasswordResetService
     // Guardamos el hash del token, nunca el token en texto plano en BD
     internal static string HashToken(string token)
     {
+        // SHA256 del token en UTF-8
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
         return Convert.ToHexString(bytes);
     }
 
+    // Token aleatorio de 32 bytes
     private static string CreateSecureToken()
     {
         var bytes = RandomNumberGenerator.GetBytes(32);

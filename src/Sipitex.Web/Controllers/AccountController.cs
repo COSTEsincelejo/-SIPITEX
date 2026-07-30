@@ -1,8 +1,10 @@
+// Claims, cookies y autorización de ASP.NET
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+// Servicios de usuarios y reset de contraseña
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
@@ -28,6 +30,7 @@ public class AccountController : Controller
     private readonly IPasswordResetService _passwordResetService;
     private readonly IWebHostEnvironment _environment;
 
+    // Inyecto los servicios que usa todo el controller
     public AccountController(
         IUserAccountService userAccountService,
         IPasswordResetService passwordResetService,
@@ -38,38 +41,48 @@ public class AccountController : Controller
         _environment = environment;
     }
 
+    // Pantalla de login (GET)
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Login()
     {
         // Si venían de reset password exitoso, mostramos el mensaje verde
         ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;
+        // ViewModel vacío para email y contraseña
         return View(new LoginViewModel());
     }
 
+    // Valida credenciales y deja al usuario logueado
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model, CancellationToken cancellationToken)
     {
+        // Si el form viene mal, vuelvo a la vista con errores
         if (!ModelState.IsValid) return View(model);
 
+        // Pregunto al servicio si email y clave cuadran
         var user = await _userAccountService.AuthenticateAsync(model.Email, model.Password, cancellationToken);
+        // Usuario no existe, inactivo o contraseña mala
         if (user is null)
         {
+            // Error genérico para no decir si falló el email o la clave
             ModelState.AddModelError(string.Empty, "Credenciales inválidas.");
             return View(model);
         }
 
+        // Cookie lista con rol, foto y permisos
         await SignInUserAsync(user);
         // Después del login los mando al inventario porque es la pantalla principal del taller
         return RedirectToAction("Index", "Inventario");
     }
 
+    // Formulario "olvidé mi contraseña"
     [AllowAnonymous]
     [HttpGet]
     public IActionResult ForgotPassword() => View(new ForgotPasswordViewModel());
 
+    // Manda el correo con el link de reset
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -83,10 +96,12 @@ public class AccountController : Controller
         return RedirectToAction(nameof(ForgotPasswordConfirmation));
     }
 
+    // Vista de "revisa tu correo"
     [AllowAnonymous]
     [HttpGet]
     public IActionResult ForgotPasswordConfirmation() => View();
 
+    // Abre el form de nueva contraseña con token y email de la URL
     [AllowAnonymous]
     [HttpGet]
     public IActionResult ResetPassword(string? token, string? email)
@@ -99,6 +114,7 @@ public class AccountController : Controller
         });
     }
 
+    // Guarda la contraseña nueva si el token sigue válido
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -122,10 +138,12 @@ public class AccountController : Controller
             return View(model);
         }
 
+        // Mensaje para el login después del redirect
         TempData["SuccessMessage"] = result.Message ?? "Contraseña actualizada. Ya puede iniciar sesión.";
         return RedirectToAction(nameof(Login));
     }
 
+    // Cierra sesión y borra la cookie
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
@@ -134,15 +152,18 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
+    // Muestra el perfil del usuario logueado
     [HttpGet]
     public async Task<IActionResult> Profile(CancellationToken cancellationToken)
     {
         var user = await GetCurrentUserAsync(cancellationToken);
+        // Si no hay usuario en BD, que ASP.NET pida login otra vez
         if (user is null) return Challenge();
 
         return View(ToProfileViewModel(user));
     }
 
+    // Actualiza datos del perfil y opcionalmente la foto
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Profile(ProfileViewModel model, IFormFile? photo, CancellationToken cancellationToken)
@@ -161,6 +182,7 @@ public class AccountController : Controller
         string? newPhotoPath = null;
         string? previousPhotoPath = user.PhotoPath;
 
+        // Si subieron archivo, lo guardo en disco primero
         if (photo is { Length: > 0 })
         {
             var saveResult = await SaveProfilePhotoAsync(user.Id, photo, cancellationToken);
@@ -214,41 +236,56 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> Users(CancellationToken cancellationToken)
     {
+        // Traigo todos los usuarios de la BD
         var users = await _userAccountService.GetUsersAsync(cancellationToken);
+        // La vista muestra la tabla con nombre, rol, activo, etc.
         return View(users);
     }
 
+    // Form vacío para crear usuario con combo de fichas
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpGet]
     public async Task<IActionResult> CreateUser(CancellationToken cancellationToken)
     {
         // Paso las fichas para el dropdown de asignación
         ViewBag.Fichas = await GetFichasAsync(cancellationToken);
+        // Por defecto el rol nuevo es Instructor
         return View(new UserEditViewModel { Rol = UserRoles.Instructor });
     }
 
+    // Crea el usuario en BD con rol y permisos
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateUser(UserEditViewModel model, CancellationToken cancellationToken)
     {
+        // Validación del lado del servidor (DataAnnotations)
         if (!ModelState.IsValid) { ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
+        // Lista de permisos extendidos marcados en el form
         var permisos = model.SelectedPermissions ?? [];
+        // El servicio hashea la clave y guarda en BD
         var result = await _userAccountService.CreateUserAsync(model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, permisos, cancellationToken);
+        // Si falló (correo duplicado, rol inválido, etc.) me quedo en el form
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
+        // Mensaje verde en el listado
         TempData["Message"] = result.Message;
         return RedirectToAction(nameof(Users));
     }
 
+    // Carga un usuario para editarlo
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpGet]
     public async Task<IActionResult> EditUser(int id, CancellationToken cancellationToken)
     {
+        // Busco el usuario por id de la URL
         var user = await _userAccountService.GetUserByIdAsync(id, cancellationToken);
+        // 404 si no existe
         if (user is null) return NotFound();
+        // Fichas para el combo de asignación
         ViewBag.Fichas = await GetFichasAsync(cancellationToken);
+        // Armo el view model con lo que trae la BD
         return View(new UserEditViewModel
         {
             Id = user.Id,
@@ -256,20 +293,26 @@ public class AccountController : Controller
             Email = user.Email,
             Rol = user.Rol,
             FichaAsignadaId = user.FichaAsignadaId,
+            // Deserializo los permisos guardados como string
             SelectedPermissions = ExtendedPermissions.Parse(user.PermisosExtendidos).ToList(),
             IsActive = user.IsActive
         });
     }
 
+    // Guarda cambios del usuario (rol, ficha, activo, etc.)
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditUser(UserEditViewModel model, CancellationToken cancellationToken)
     {
+        // Reviso campos obligatorios del form
         if (!ModelState.IsValid) { ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
+        // Permisos que el admin marcó en los checkboxes
         var permisos = model.SelectedPermissions ?? [];
+        // Update en BD; contraseña es opcional si viene vacía
         var result = await _userAccountService.UpdateUserAsync(model.Id, model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, permisos, model.IsActive, cancellationToken);
+        // Error de negocio (ej. no bajar rol al admin principal)
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
         TempData["Message"] = result.Message;
@@ -287,6 +330,7 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Users));
     }
 
+    // Vista cuando el usuario no tiene permiso para entrar
     [AllowAnonymous]
     [HttpGet]
     public IActionResult AccessDenied() => View();
@@ -302,6 +346,7 @@ public class AccountController : Controller
     // Armo la cookie de autenticación con rol, foto y permisos extendidos
     private async Task SignInUserAsync(User user)
     {
+        // Claims básicos que usa el layout y la autorización
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -313,6 +358,7 @@ public class AccountController : Controller
         if (!string.IsNullOrWhiteSpace(user.PhotoPath))
             claims.Add(new Claim(PhotoClaimType, user.PhotoPath));
 
+        // Cada permiso extra va como claim aparte
         foreach (var permiso in ExtendedPermissions.Parse(user.PermisosExtendidos))
             claims.Add(new Claim(ExtendedPermissions.ClaimType, permiso));
 
@@ -323,6 +369,7 @@ public class AccountController : Controller
             new AuthenticationProperties { IsPersistent = true });
     }
 
+    // Pasa entidad User al modelo de la vista de perfil
     private static ProfileViewModel ToProfileViewModel(User user) => new()
     {
         Id = user.Id,
@@ -359,6 +406,7 @@ public class AccountController : Controller
         await using (var stream = System.IO.File.Create(physicalPath))
             await photo.CopyToAsync(stream, cancellationToken);
 
+        // Ruta relativa para guardar en BD y mostrar en el HTML
         return (true, $"/uploads/profiles/{fileName}", null);
     }
 
@@ -367,6 +415,7 @@ public class AccountController : Controller
     {
         if (string.IsNullOrWhiteSpace(relativePath)) return;
         var normalized = relativePath.TrimStart('~').TrimStart('/');
+        // Evito path traversal fuera de la carpeta de perfiles
         if (!normalized.StartsWith("uploads/profiles/", StringComparison.OrdinalIgnoreCase))
             return;
 
@@ -380,6 +429,7 @@ public class AccountController : Controller
     {
         var fichaService = HttpContext.RequestServices.GetService<IFichaService>();
         var fichas = await fichaService!.GetFichasAsync(cancellationToken: cancellationToken);
+        // Solo necesito id, código y proceso para el dropdown
         return fichas.Select(f => new Ficha { Id = f.Id, FichaCode = f.FichaCode, ProcessName = f.ProcessName }).ToList();
     }
 }

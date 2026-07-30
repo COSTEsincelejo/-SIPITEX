@@ -1,11 +1,14 @@
+@* Modelo con materiales, solicitudes y formularios de creación *@
 @model InventarioIndexViewModel
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = "Inventario";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Inventario";
     Layout = "_Layout";
+    // Materiales con stock bajo para el banner de alerta
     var lowStock = Model.Materials.Where(m => m.IsLowStock).Select(m => m.Name).ToList();
     var canManageStock = User.IsInRole("Administrador") || User.IsInRole("Bodeguero");
+    // Políticas más finas que el rol (permisos extendidos)
     var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
     var canApproveRequests = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeAprobarSolicitudes)).Succeeded;
     var canRequest = User.IsInRole("Administrador") || User.IsInRole("Instructor");
@@ -18,6 +21,7 @@
     </div>
 </div>
 
+@* Toast después de crear material, aprobar solicitud, etc. *@
 @if (!string.IsNullOrEmpty(Model.Message))
 {
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
@@ -63,6 +67,7 @@
                         <td>
                             @if (canManageStock)
                             {
+                                @* Bodeguero puede cambiar estado con un select que hace submit al cambiar *@
                                 <form asp-action="UpdateStatus" method="post" class="row-actions">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="MaterialId" value="@mat.Id" />
@@ -164,6 +169,7 @@
                         <td><span class="badge @DisplayHelper.BadgeClass(req.Status)">@DisplayHelper.StatusText(req.Status)</span></td>
                         <td>
                             <div class="row-actions">
+                            @* Solo pendientes se pueden aprobar/rechazar *@
                             @if (req.Status == RequestStatus.Pendiente && canApproveRequests)
                             {
                                 <form asp-action="ApproveRequest" method="post" data-confirm="¿Aprobar esta solicitud y descontar stock?">

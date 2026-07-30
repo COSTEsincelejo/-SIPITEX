@@ -3,6 +3,7 @@
     ViewData["Title"] = "Mi perfil";
     ViewData["Breadcrumb"] = "SIPITEX / Mi perfil";
     Layout = "_Layout";
+    // Inicial para el avatar cuando no hay foto
     var initial = string.IsNullOrWhiteSpace(Model.Nombre) ? "?" : Model.Nombre.Substring(0, 1).ToUpperInvariant();
 }
 

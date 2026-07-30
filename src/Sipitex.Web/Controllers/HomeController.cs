@@ -8,6 +8,7 @@ namespace Sipitex.Web.Controllers;
 // Página de inicio y la vista genérica de error
 public class HomeController : Controller
 {
+    // Landing después de entrar (necesita estar logueado)
     [Authorize]
     public IActionResult Index()
     {
@@ -16,6 +17,7 @@ public class HomeController : Controller
         return View();
     }
 
+    // Página de política de privacidad (pública)
     public IActionResult Privacy()
     {
         return View();
@@ -25,6 +27,7 @@ public class HomeController : Controller
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
+        // Activity.Current es el trace de .NET; si no hay, uso el id del request HTTP
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 }

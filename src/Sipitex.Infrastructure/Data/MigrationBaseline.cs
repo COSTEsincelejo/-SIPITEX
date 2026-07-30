@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
-using Sipitex.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore; // ExecuteSqlRawAsync y conexión ADO
+using Sipitex.Infrastructure.Persistence; // SipitexDbContext
 
 namespace Sipitex.Infrastructure.Data;
 
@@ -11,11 +11,13 @@ public static class MigrationBaseline
     // Tiene que coincidir exacto con el nombre del archivo de migración
     public const string InitialCreateMigrationId = "20260728214130_InitialCreate";
 
+    // Segunda migración que a veces ya estaba aplicada a mano
     public const string AddPasswordResetTokensMigrationId = "20260728221016_AddPasswordResetTokens";
 
     // La versión de EF con la que generamos las migraciones
     public const string EfProductVersion = "10.0.9";
 
+    // Punto de entrada: lo llama DbInitializer antes de MigrateAsync
     public static async Task EnsureBaselineAsync(
         SipitexDbContext context,
         CancellationToken cancellationToken = default)
@@ -31,6 +33,7 @@ public static class MigrationBaseline
         // Hay tablas pero sin historial = BD legacy. Verifico que el esquema calce con InitialCreate
         if (!await LooksLikeInitialCreateSchemaAsync(context, cancellationToken))
         {
+            // Si el esquema no cuadra, mejor tirar error que romper la BD
             throw new InvalidOperationException(
                 "sipitex.db tiene tablas de negocio pero el esquema no coincide con InitialCreate " +
                 "(faltan columnas o tablas esperadas: p. ej. Materials.LastEntryDate, " +
@@ -39,6 +42,7 @@ public static class MigrationBaseline
                 "y revise el desfase antes de continuar.");
         }
 
+        // Creo la tabla de historial si no existía (caso legacy)
         await context.Database.ExecuteSqlRawAsync(
             """
             CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
@@ -48,6 +52,7 @@ public static class MigrationBaseline
             """,
             cancellationToken);
 
+        // Marco InitialCreate como ya aplicada
         await StampMigrationAsync(context, InitialCreateMigrationId, cancellationToken);
 
         // Si PasswordResetTokens ya existe, esa migración también ya corrió de facto
@@ -62,7 +67,7 @@ public static class MigrationBaseline
         CancellationToken cancellationToken)
     {
         if (await MigrationRowExistsAsync(context, migrationId, cancellationToken))
-            return;
+            return; // Ya estaba estampada
 
         await context.Database.ExecuteSqlRawAsync(
             """
@@ -79,20 +84,21 @@ public static class MigrationBaseline
         CancellationToken cancellationToken)
     {
         if (!await ColumnExistsAsync(context, "Materials", "LastEntryDate", cancellationToken))
-            return false;
+            return false; // Falta columna de fecha de entrada
         if (!await TableExistsAsync(context, "QualityRecords", cancellationToken))
-            return false;
+            return false; // No hay tabla de calidad
         if (!await ColumnExistsAsync(context, "QualityRecords", "MotivoReproceso", cancellationToken))
-            return false;
+            return false; // Falta motivo de reproceso
         if (!await ColumnExistsAsync(context, "QualityRecords", "Responsable", cancellationToken))
-            return false;
+            return false; // Falta responsable
         if (!await TableExistsAsync(context, "ProductionSessions", cancellationToken))
-            return false;
+            return false; // No hay sesiones de producción
         if (!await TableExistsAsync(context, "Users", cancellationToken))
-            return false;
-        return true;
+            return false; // No hay usuarios
+        return true; // El esquema parece el de InitialCreate
     }
 
+    // Consulta sqlite_master — también lo usa DbInitializer
     internal static async Task<bool> TableExistsAsync(
         SipitexDbContext context,
         string tableName,
@@ -111,6 +117,7 @@ public static class MigrationBaseline
         return result is not null && result is not DBNull;
     }
 
+    // PRAGMA table_info para ver si una columna existe
     private static async Task<bool> ColumnExistsAsync(
         SipitexDbContext context,
         string tableName,
@@ -122,7 +129,7 @@ public static class MigrationBaseline
         await using var command = connection.CreateCommand();
         // Por si acaso, no meto nombres raros en el PRAGMA
         if (!IsSafeSqliteIdentifier(tableName) || !IsSafeSqliteIdentifier(columnName))
-            return false;
+            return false; // Nombre sospechoso, no ejecuto
         command.CommandText = $"PRAGMA table_info(\"{tableName}\")";
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
@@ -133,6 +140,7 @@ public static class MigrationBaseline
         return false;
     }
 
+    // Evita insertar dos veces la misma migración en el historial
     private static async Task<bool> MigrationRowExistsAsync(
         SipitexDbContext context,
         string migrationId,
@@ -151,6 +159,7 @@ public static class MigrationBaseline
         return result is not null && result is not DBNull;
     }
 
+    // Solo letras, números y guión bajo — nada de comillas raras en el PRAGMA
     private static bool IsSafeSqliteIdentifier(string name) =>
         name.Length > 0 && name.All(c => char.IsLetterOrDigit(c) || c == '_');
 }

@@ -4,6 +4,7 @@
     ViewData["Title"] = "MRP / Materiales";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / MRP";
     Layout = "_Layout";
+    // La simulación no la ven todos, depende de política
     var puedeSimular = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeSimularMrp)).Succeeded;
 }
 
@@ -53,6 +54,7 @@
         </div>
         <button type="submit" class="primary"><i class="fas fa-play"></i> Calcular MRP y alerta stock</button>
     </form>
+    @* Resultado de la última simulación (viene en el modelo después del POST) *@
     @if (Model.Result is not null)
     {
         <div class="alert alert-info">

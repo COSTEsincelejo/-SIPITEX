@@ -19,6 +19,7 @@
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
+@* Banner según si hay SMTP real o modo demo *@
 <div class="alert @(Model.SmtpConfigured ? "alert-success" : "alert-info")">
     <i class="fas fa-envelope"></i>
     @if (Model.SmtpConfigured)
@@ -69,6 +70,7 @@
     </form>
 </div>
 
+@* Evaluación manual solo para quien tenga la política *@
 @if (puedeConfigurarAlertas)
 {
     <div class="card">

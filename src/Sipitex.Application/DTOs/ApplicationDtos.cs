@@ -4,22 +4,27 @@ namespace Sipitex.Application.DTOs;
 
 // --- Inventario ---
 
+// Material tal como se muestra en la tabla de inventario
 public record MaterialDto(
     int Id,
     string Name,
-    string UnitDisplay,
+    string UnitDisplay, // unidad legible (m, kg, ud)
     decimal Stock,
     MaterialStatus Status,
     decimal MinStock,
-    bool IsLowStock,
+    bool IsLowStock, // true si hay que alertar
     DateOnly LastEntryDate);
 
+// Datos para crear material nuevo
 public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit);
 
+// Ajuste manual de stock por id de material
 public record AdjustStockDto(int MaterialId, decimal NewStock);
 
+// Cambiar estado físico del material
 public record UpdateMaterialStatusDto(int MaterialId, MaterialStatus Status);
 
+// Solicitud de material hacia bodega (vista lista)
 public record MaterialRequestDto(
     int Id,
     string MaterialName,
@@ -27,10 +32,12 @@ public record MaterialRequestDto(
     string OrderNumber,
     RequestStatus Status);
 
+// Crear solicitud: orden + material + cantidad
 public record CreateMaterialRequestDto(int ProductionOrderId, int MaterialId, decimal Quantity);
 
 // --- Producción ---
 
+// Orden de producción con avance y hint del BOM
 public record ProductionOrderDto(
     int Id,
     string OrderNumber,
@@ -42,27 +49,32 @@ public record ProductionOrderDto(
     DateOnly Deadline,
     string MrpHint);
 
+// Alta de orden nueva
 public record CreateProductionOrderDto(string ProductName, int TotalQuantity, DateOnly Deadline);
 
 // --- MRP / BOM ---
 
+// Una línea del listado BOM
 public record BomItemDto(string ProductName, string MaterialName, decimal QuantityPerUnit, string UnitDisplay);
 
+// Resultado completo de simular MRP
 public record MrpSimulationResultDto(
     string ProductName,
     decimal Quantity,
     IReadOnlyList<MrpLineDto> Lines);
 
+// Una línea de la simulación (requerido vs disponible)
 public record MrpLineDto(
     string MaterialName,
     decimal Required,
     decimal Available,
     decimal Deficit,
     string UnitDisplay,
-    bool IsOk);
+    bool IsOk); // true si no hay déficit
 
 // --- Fichas y sesiones ---
 
+// Ficha de formación / grupo de producción
 public record FichaDto(
     int Id,
     string FichaCode,
@@ -72,6 +84,7 @@ public record FichaDto(
     int? InstructorUserId = null,
     string Turno = "");
 
+// Datos para crear ficha
 public record CreateFichaDto(
     string FichaCode,
     string ProcessName,
@@ -79,6 +92,7 @@ public record CreateFichaDto(
     string Turno,
     int? ProductionOrderId = null);
 
+// Sesión diaria registrada por el instructor
 public record ProductionSessionDto(
     int Id,
     string FichaCode,
@@ -90,10 +104,12 @@ public record ProductionSessionDto(
     int? RegisteredByUserId = null,
     string Turno = "");
 
+// Registrar producción desde formulario
 public record RegisterProductionDto(int ProductionOrderId, int FichaId, int Units, string? Observations = null);
 
 // --- Calidad ---
 
+// Inspección ya guardada (vista lista)
 public record QualityRecordDto(
     string OrderNumber,
     int Units,
@@ -102,6 +118,7 @@ public record QualityRecordDto(
     string? MotivoReproceso,
     string? Responsable);
 
+// Crear inspección nueva
 public record CreateQualityRecordDto(
     int ProductionOrderId,
     int Units,
@@ -111,6 +128,7 @@ public record CreateQualityRecordDto(
 
 // --- Dashboard ---
 
+// KPIs del home
 public record DashboardKpiDto(
     int TotalProduced,
     decimal QualityRate,
@@ -118,12 +136,15 @@ public record DashboardKpiDto(
     int LowStockCount,
     IReadOnlyList<ChartBarDto> ChartData);
 
+// Una barra del gráfico de órdenes
 public record ChartBarDto(string Label, int Produced, int Target);
 
 // --- Requisitos del proyecto (matriz RF/RNF) ---
 
+// Resumen de cumplimiento (cuántos cumplen, parcial, ausente)
 public record RequirementSummaryDto(int Cumple, int Parcial, int Ausente);
 
+// Requisito funcional individual
 public record FunctionalRequirementDto(
     string Code,
     string Description,
@@ -131,12 +152,14 @@ public record FunctionalRequirementDto(
     ComplianceStatus Status,
     string Observation);
 
+// Requisito no funcional individual
 public record NonFunctionalRequirementDto(
     string Code,
     string Description,
     ComplianceStatus Status,
     string Observation);
 
+// Vista completa de la matriz RF/RNF
 public record RequirementsViewDto(
     RequirementSummaryDto FunctionalSummary,
     RequirementSummaryDto NonFunctionalSummary,

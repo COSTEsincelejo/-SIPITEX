@@ -1,17 +1,22 @@
 ﻿@using System.Security.Claims
 @{
+    // Sacamos controller y action de la ruta actual para marcar el menú activo
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    // Devuelve la clase CSS si el ítem del menú coincide con el controlador actual
     string NavClass(string name) => controller.Equals(name, StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item";
+    // Para resaltar sub-opciones de Account (usuarios, perfil, etc.)
     bool IsAccountAction(params string[] actions) =>
         controller.Equals("Account", StringComparison.OrdinalIgnoreCase)
         && actions.Any(a => action.Equals(a, StringComparison.OrdinalIgnoreCase));
     var title = ViewData["Title"]?.ToString() ?? "SIPITEX";
     var breadcrumb = ViewData["Breadcrumb"]?.ToString() ?? "SIPITEX";
+    // Datos del usuario logueado para la barra superior
     var user = User.Identity?.IsAuthenticated == true ? User : null;
     var role = user?.FindFirstValue(ClaimTypes.Role) ?? "Invitado";
     var name = user?.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
     var photo = user?.FindFirstValue("photo");
+    // Mensajes que vienen del controlador vía TempData (toast)
     var toastMessage = TempData["Message"] as string;
     var toastSuccess = TempData["IsSuccess"] as bool?;
 }
@@ -43,6 +48,7 @@
             <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
             <a class="@NavClass("Ordenes")" asp-controller="Ordenes" asp-action="Index"><i class="fas fa-clipboard-list"></i> Órdenes de producción</a>
             <a class="@NavClass("Mrp")" asp-controller="Mrp" asp-action="Index"><i class="fas fa-diagram-project"></i> MRP / Materiales</a>
+            @* Fichas y calidad solo para admin e instructor *@
             @if (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
             {
                 <a class="@NavClass("Fichas")" asp-controller="Fichas" asp-action="Index"><i class="fas fa-people-group"></i> Fichas & producción</a>
@@ -54,6 +60,7 @@
             <a class="@NavClass("Estadisticas")" asp-controller="Estadisticas" asp-action="Index"><i class="fas fa-chart-line"></i> Estadísticas</a>
             <a class="@NavClass("Reportes")" asp-controller="Reportes" asp-action="Index"><i class="fas fa-file-export"></i> Reportes</a>
             <a class="@NavClass("Alertas")" asp-controller="Alertas" asp-action="Index"><i class="fas fa-bell"></i> Alertas</a>
+            @* Gestión de usuarios solo admin *@
             @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Administrador"))
             {
                 <a class="@(IsAccountAction("Users", "CreateUser", "EditUser") ? "nav-item active" : "nav-item")"
@@ -83,6 +90,7 @@
                         <i class="fas fa-bell"></i>
                     </a>
                     <a class="role-chip role-chip-link" asp-controller="Account" asp-action="Profile" title="Mi perfil" aria-label="Ir a mi perfil">
+                        @* Avatar con foto o inicial del nombre *@
                         @if (!string.IsNullOrWhiteSpace(photo))
                         {
                             <img class="avatar avatar-img" src="@photo" alt="" />
@@ -105,6 +113,7 @@
             </div>
         </header>
         <main class="content">
+            @* Toast oculto que site.js lee para mostrar notificaciones *@
             @if (!string.IsNullOrWhiteSpace(toastMessage))
             {
                 <div data-toast data-toast-type="@(toastSuccess == false ? "danger" : "success")" class="visually-hidden" style="position:absolute;left:-9999px;">@toastMessage</div>

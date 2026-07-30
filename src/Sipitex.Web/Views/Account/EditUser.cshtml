@@ -4,6 +4,7 @@
     ViewData["Breadcrumb"] = "SIPITEX / Administración / Editar usuario";
     Layout = "_Layout";
     var fichas = ViewBag.Fichas as IEnumerable<Ficha> ?? Array.Empty<Ficha>();
+    // El admin principal no se le puede cambiar el rol
     var isAdminUser = string.Equals(Model.Rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
 }
 
@@ -35,6 +36,7 @@
             <label class="field-label">Rol</label>
             @if (isAdminUser)
             {
+                @* Rol bloqueado: hidden para que siga viajando en el POST *@
                 <input asp-for="Rol" type="hidden" />
                 <input value="@Model.Rol" readonly class="readonly-input" />
                 <p class="hint" style="margin-top:.35rem;">El rol del administrador no se puede cambiar.</p>
