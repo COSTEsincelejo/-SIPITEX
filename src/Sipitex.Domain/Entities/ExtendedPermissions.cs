@@ -1,10 +1,10 @@
 namespace Sipitex.Domain.Entities;
 
-/// <summary>
-/// Claves de permisos extendidos (serializados en <see cref="User.PermisosExtendidos"/> separados por comas).
-/// </summary>
+// Permisos extendidos que se pueden dar aparte del rol.
+// Se guardan en User.PermisosExtendidos como texto separado por comas.
 public static class ExtendedPermissions
 {
+    // Tipo de claim que meto en el cookie de autenticación
     public const string ClaimType = "permiso";
 
     public const string InventarioRegistrar = "Inventario.Registrar";
@@ -12,6 +12,7 @@ public static class ExtendedPermissions
     public const string MrpSimular = "Mrp.Simular";
     public const string AlertasConfigurar = "Alertas.Configurar";
 
+    // Lista blanca: solo estos valores son válidos
     public static readonly string[] All =
     [
         InventarioRegistrar,
@@ -20,6 +21,7 @@ public static class ExtendedPermissions
         AlertasConfigurar
     ];
 
+    // Para mostrar en la UI con un label legible
     public static readonly (string Key, string Label)[] Catalog =
     [
         (InventarioRegistrar, "Registrar materiales en inventario"),
@@ -28,6 +30,7 @@ public static class ExtendedPermissions
         (AlertasConfigurar, "Configurar / evaluar alertas")
     ];
 
+    // Saca solo los permisos válidos del string crudo (ignora basura o typos)
     public static IReadOnlyList<string> Parse(string? raw) =>
         (raw ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -35,6 +38,7 @@ public static class ExtendedPermissions
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
+    // Vuelve a armar el string limpio para guardar en BD
     public static string Serialize(IEnumerable<string>? permissions) =>
         string.Join(", ", Parse(string.Join(",", permissions ?? [])));
 }
