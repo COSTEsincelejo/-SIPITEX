@@ -6,4 +6,4 @@ echo "Iniciando SIPITEX en http://localhost:5240 ..."
 echo "En Codespaces: Ports → 5240 → Visibility = Public"
 echo "Luego abre: ...-5240.app.github.dev/Account/Login"
 echo "Login: admin@sipitex.test / Admin123!"
-exec dotnet run --launch-profile http --no-launch-profile=false
+exec dotnet run --launch-profile http
