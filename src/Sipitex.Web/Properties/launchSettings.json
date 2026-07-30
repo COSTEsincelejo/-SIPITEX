@@ -18,6 +18,17 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "PostgreSQL": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5240",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "PostgreSQL",
+        "Database__Provider": "PostgreSQL",
+        "ConnectionStrings__DefaultConnection": "Host=localhost;Port=5432;Database=sipitex;Username=sipitex;Password=sipitex"
+      }
     }
   }
 }

@@ -50,7 +50,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts(); // fuerza HTTPS en el navegador
 }
 
-app.UseHttpsRedirection(); // redirige HTTP → HTTPS
+// En Development/Codespaces no forzar HTTPS: rompe el puerto reenviado (404 en *.app.github.dev)
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
 app.UseStaticFiles(); // CSS, JS, imágenes de wwwroot
 app.UseRouting(); // resuelve rutas antes de auth
 app.UseAuthentication(); // tiene que ir antes de Authorization
