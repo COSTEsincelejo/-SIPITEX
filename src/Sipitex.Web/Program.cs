@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Sipitex.Infrastructure;
 using Sipitex.Infrastructure.Data;
 using Sipitex.Infrastructure.Persistence;
@@ -7,6 +8,17 @@ using Sipitex.Web.Authorization;
 
 // Punto de entrada de la web. Acá registro servicios y armo el pipeline HTTP.
 var builder = WebApplication.CreateBuilder(args);
+
+// Codespaces / proxies: confiar en X-Forwarded-* para Host y esquema
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+        | ForwardedHeaders.XForwardedProto
+        | ForwardedHeaders.XForwardedHost;
+    // Codespaces no usa IPs fijas conocidas
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // MVC: controladores + vistas (lo típico en este proyecto)
 builder.Services.AddControllersWithViews();
@@ -22,6 +34,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Account/Login";           // si no está logueado, manda acá
         options.AccessDeniedPath = "/Account/AccessDenied"; // sin permiso para la acción
         options.ExpireTimeSpan = TimeSpan.FromHours(8); // sesión de 8h
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     });
 
 // Políticas de permisos (quién puede hacer qué)
@@ -43,6 +57,9 @@ using (var scope = app.Services.CreateScope())
     await DbInitializer.InitializeAsync(db);
 }
 
+// Debe ir antes de auth / redirecciones (proxy de Codespaces)
+app.UseForwardedHeaders();
+
 // En producción no mostramos el stack trace feo al usuario
 if (!app.Environment.IsDevelopment())
 {
@@ -59,6 +76,7 @@ app.UseAuthentication(); // tiene que ir antes de Authorization
 app.UseAuthorization(); // revisa roles y políticas
 
 app.MapHealthChecks("/health").AllowAnonymous(); // endpoint público de salud
+app.MapGet("/ping", () => Results.Text("sipitex-ok")).AllowAnonymous();
 
 // Entrada amigable: si no hay sesión, manda al login (evita confusión en Codespaces)
 app.MapGet("/", (HttpContext http) =>
