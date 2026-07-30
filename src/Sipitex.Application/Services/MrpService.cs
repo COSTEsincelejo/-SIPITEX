@@ -5,6 +5,7 @@ using Sipitex.Application.Interfaces.Services;
 
 namespace Sipitex.Application.Services;
 
+// MRP: lista de materiales (BOM) y simulación de necesidades
 public class MrpService : IMrpService
 {
     private readonly IBomRepository _bomRepository;
@@ -16,6 +17,7 @@ public class MrpService : IMrpService
         _materialRepository = materialRepository;
     }
 
+    // Toda la lista de materiales por producto
     public async Task<IReadOnlyList<BomItemDto>> GetBomAsync(CancellationToken cancellationToken = default)
     {
         var items = await _bomRepository.GetAllAsync(cancellationToken);
@@ -26,6 +28,7 @@ public class MrpService : IMrpService
             UnitHelper.ToDisplay(i.Unit))).ToList();
     }
 
+    // Simula cuánto material haría falta para producir X unidades de un producto
     public async Task<MrpSimulationResultDto> SimulateAsync(string productName, decimal quantity, CancellationToken cancellationToken = default)
     {
         var recipe = await _bomRepository.GetByProductAsync(productName, cancellationToken);
@@ -50,6 +53,7 @@ public class MrpService : IMrpService
         return new MrpSimulationResultDto(productName, quantity, lines);
     }
 
+    // Para validar en el formulario de órdenes que el producto exista en el BOM
     public async Task<bool> ProductHasBomAsync(string productName, CancellationToken cancellationToken = default)
     {
         var recipe = await _bomRepository.GetByProductAsync(productName, cancellationToken);

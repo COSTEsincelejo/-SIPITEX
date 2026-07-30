@@ -22,11 +22,13 @@ public class UserRepository : IUserRepository
             .Include(u => u.FichaAsignada)
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
+    // Normalizo el email a minúsculas para que el login sea case-insensitive
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default) =>
         _context.Users
             .Include(u => u.FichaAsignada)
             .FirstOrDefaultAsync(u => u.Email == email.Trim().ToLowerInvariant(), cancellationToken);
 
+    // excludeUserId sirve al editar: no contar el propio email como duplicado
     public Task<bool> EmailExistsAsync(string email, int? excludeUserId = null, CancellationToken cancellationToken = default)
     {
         var normalized = email.Trim().ToLowerInvariant();

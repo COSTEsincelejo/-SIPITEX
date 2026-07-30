@@ -1,5 +1,6 @@
 namespace Sipitex.Application.Authorization;
 
+// Nombres de las policies que registramos en Program.cs
 public static class AuthorizationPolicyNames
 {
     public const string PuedeRegistrarMateriales = "PuedeRegistrarMateriales";

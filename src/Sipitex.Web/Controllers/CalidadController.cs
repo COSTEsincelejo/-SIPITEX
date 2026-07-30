@@ -7,10 +7,10 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+// Registro de inspecciones de calidad ligadas a órdenes de producción
 [Authorize]
 public class CalidadController : Controller
 {
-    // Este controlador permite ver y registrar la calidad de la producción.
     private readonly IQualityService _qualityService;
     private readonly IProductionOrderService _orderService;
 

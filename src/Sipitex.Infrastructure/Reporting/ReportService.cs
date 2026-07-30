@@ -10,6 +10,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Infrastructure.Reporting;
 
+// Genera reportes en Excel o PDF según lo pida el usuario
 public class ReportService : IReportService
 {
     private readonly IMaterialRepository _materialRepository;
@@ -19,6 +20,7 @@ public class ReportService : IReportService
 
     static ReportService()
     {
+        // Licencia community de QuestPDF (gratis para proyectos chicos)
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
@@ -99,12 +101,14 @@ public class ReportService : IReportService
             new[] { "Órdenes activas", dash.ActiveOrders.ToString(), "", "", "" },
             new[] { "Materiales bajo mínimo", dash.LowStockCount.ToString(), "", "", "" }
         };
+        // Abajo van los datos del gráfico de avance por orden
         rows.AddRange(dash.ChartData.Select(c => new[] { "Orden", c.Label, c.Produced.ToString(), c.Target.ToString(), "" }));
 
         var headers = new[] { "Indicador", "Valor / Orden", "Producido", "Meta", "" };
         return Build("Dashboard", "Reporte KPI SIPITEX", headers, rows, format);
     }
 
+    // Arma el archivo final — excel con ClosedXML o pdf con QuestPDF
     private static ReportFileDto Build(string name, string title, string[] headers, IReadOnlyList<string[]> rows, string format)
     {
         var normalized = format.Equals("excel", StringComparison.OrdinalIgnoreCase) || format.Equals("xlsx", StringComparison.OrdinalIgnoreCase)

@@ -9,10 +9,10 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+// Materiales, stock, solicitudes y aprobaciones del inventario
 [Authorize]
 public class InventarioController : Controller
 {
-    // Este controlador muestra y maneja todo lo del inventario desde la interfaz web.
     private readonly IInventoryService _inventoryService;
     private readonly IProductionOrderService _orderService;
 
@@ -36,12 +36,14 @@ public class InventarioController : Controller
         var result = await _inventoryService.AddMaterialAsync(
             new CreateMaterialDto(form.Name, form.Stock, form.Unit), cancellationToken);
 
+        // Devuelvo la misma vista con mensaje en vez de redirect (el form queda en la página)
         var vm = await BuildViewModel(cancellationToken);
         vm.Message = result.Message ?? (result.Success ? "Material agregado." : "Error al agregar material.");
         vm.IsSuccess = result.Success;
         return View("Index", vm);
     }
 
+    // Ajuste de stock (bodega/admin). Uso TempData porque hago redirect.
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -68,6 +70,7 @@ public class InventarioController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // Los instructores piden material para una orden; bodega/admin aprueba después
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -104,6 +107,7 @@ public class InventarioController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // Arma el ViewModel completo de la pantalla (materiales + solicitudes + combos)
     private async Task<InventarioIndexViewModel> BuildViewModel(CancellationToken cancellationToken)
     {
         var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
@@ -115,6 +119,7 @@ public class InventarioController : Controller
             Requests = await _inventoryService.GetRequestsAsync(cancellationToken),
             Orders = orders,
             CreateMaterial = new CreateMaterialForm(),
+            // Prefiero dejar seleccionado el primer ítem para que el form no quede vacío
             CreateRequest = new CreateRequestForm
             {
                 ProductionOrderId = orders.FirstOrDefault()?.Id ?? 0,

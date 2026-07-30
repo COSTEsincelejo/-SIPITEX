@@ -9,17 +9,20 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+// Login, perfil, recuperar contraseña y el CRUD de usuarios (solo admin)
 [Authorize]
 public class AccountController : Controller
 {
+    // Lo uso en los claims para saber qué foto mostrar en el layout
     public const string PhotoClaimType = "photo";
 
+    // Extensiones que aceptamos para la foto de perfil
     private static readonly HashSet<string> AllowedPhotoExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".jpg", ".jpeg", ".png", ".webp"
     };
 
-    private const long MaxPhotoBytes = 2 * 1024 * 1024;
+    private const long MaxPhotoBytes = 2 * 1024 * 1024; // 2 MB, para no llenar el servidor
 
     private readonly IUserAccountService _userAccountService;
     private readonly IPasswordResetService _passwordResetService;
@@ -39,6 +42,7 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult Login()
     {
+        // Si venían de reset password exitoso, mostramos el mensaje verde
         ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;
         return View(new LoginViewModel());
     }
@@ -58,6 +62,7 @@ public class AccountController : Controller
         }
 
         await SignInUserAsync(user);
+        // Después del login los mando al inventario porque es la pantalla principal del taller
         return RedirectToAction("Index", "Inventario");
     }
 
@@ -72,6 +77,7 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(model);
 
+        // El servicio arma el link del correo con esta URL base
         var publicBaseUrl = $"{Request.Scheme}://{Request.Host}";
         await _passwordResetService.RequestResetAsync(model.Email, publicBaseUrl, cancellationToken);
         return RedirectToAction(nameof(ForgotPasswordConfirmation));
@@ -85,6 +91,7 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult ResetPassword(string? token, string? email)
     {
+        // Token y email vienen en la URL del correo
         return View(new ResetPasswordViewModel
         {
             Token = token ?? string.Empty,
@@ -99,6 +106,7 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(model);
 
+        // Validación extra porque ConfirmPassword a veces no alcanza con DataAnnotations
         if (!string.Equals(model.NewPassword, model.ConfirmPassword, StringComparison.Ordinal))
         {
             ModelState.AddModelError(string.Empty, "Las contraseñas no coinciden.");
@@ -142,6 +150,7 @@ public class AccountController : Controller
         var user = await GetCurrentUserAsync(cancellationToken);
         if (user is null) return Challenge();
 
+        // Relleno campos que no vienen del form pero sí los necesito al guardar
         model.Id = user.Id;
         model.Rol = user.Rol;
         model.PhotoPath = user.PhotoPath;
@@ -176,12 +185,14 @@ public class AccountController : Controller
 
         if (!result.Success)
         {
+            // Si falló el update, borro la foto nueva para no dejar basura en uploads
             if (!string.IsNullOrWhiteSpace(newPhotoPath))
                 DeleteProfilePhotoFile(newPhotoPath);
             ModelState.AddModelError(string.Empty, result.Message ?? "No se pudo actualizar el perfil.");
             return View(model);
         }
 
+        // Solo borro la foto vieja si realmente cambió o la quitaron
         if ((model.RemovePhoto || !string.IsNullOrWhiteSpace(newPhotoPath)) &&
             !string.IsNullOrWhiteSpace(previousPhotoPath) &&
             !string.Equals(previousPhotoPath, newPhotoPath, StringComparison.OrdinalIgnoreCase))
@@ -189,6 +200,7 @@ public class AccountController : Controller
             DeleteProfilePhotoFile(previousPhotoPath);
         }
 
+        // Refresco la cookie porque el nombre/foto/permisos pueden haber cambiado
         var refreshed = await _userAccountService.GetUserByIdAsync(user.Id, cancellationToken);
         if (refreshed is not null)
             await SignInUserAsync(refreshed);
@@ -197,6 +209,7 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Profile));
     }
 
+    // Listado de usuarios (solo admin)
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpGet]
     public async Task<IActionResult> Users(CancellationToken cancellationToken)
@@ -209,6 +222,7 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> CreateUser(CancellationToken cancellationToken)
     {
+        // Paso las fichas para el dropdown de asignación
         ViewBag.Fichas = await GetFichasAsync(cancellationToken);
         return View(new UserEditViewModel { Rol = UserRoles.Instructor });
     }
@@ -262,6 +276,7 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Users));
     }
 
+    // Activar/desactivar sin borrar el usuario de la BD
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -276,6 +291,7 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult AccessDenied() => View();
 
+    // Saco el usuario de la cookie y lo busco en BD (más confiable que solo leer claims)
     private async Task<User?> GetCurrentUserAsync(CancellationToken cancellationToken)
     {
         var idValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -283,6 +299,7 @@ public class AccountController : Controller
         return await _userAccountService.GetUserByIdAsync(userId, cancellationToken);
     }
 
+    // Armo la cookie de autenticación con rol, foto y permisos extendidos
     private async Task SignInUserAsync(User user)
     {
         var claims = new List<Claim>
@@ -316,6 +333,7 @@ public class AccountController : Controller
         FuncionDescripcion = user.FuncionDescripcion
     };
 
+    // Guarda la imagen en wwwroot/uploads/profiles con nombre único
     private async Task<(bool Success, string? Path, string? Error)> SaveProfilePhotoAsync(
         int userId,
         IFormFile photo,
@@ -344,6 +362,7 @@ public class AccountController : Controller
         return (true, $"/uploads/profiles/{fileName}", null);
     }
 
+    // Por seguridad solo borro archivos dentro de uploads/profiles
     private void DeleteProfilePhotoFile(string relativePath)
     {
         if (string.IsNullOrWhiteSpace(relativePath)) return;
@@ -356,6 +375,7 @@ public class AccountController : Controller
             System.IO.File.Delete(physicalPath);
     }
 
+    // Para el combo de ficha al crear/editar usuario
     private async Task<IReadOnlyList<Ficha>> GetFichasAsync(CancellationToken cancellationToken)
     {
         var fichaService = HttpContext.RequestServices.GetService<IFichaService>();

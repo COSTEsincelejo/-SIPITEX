@@ -2,6 +2,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Interfaces.Repositories;
 
+// Fichas de formación / grupos de producción
 public interface IFichaRepository
 {
     Task<IReadOnlyList<Ficha>> GetAllAsync(CancellationToken cancellationToken = default);

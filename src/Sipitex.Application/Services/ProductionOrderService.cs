@@ -8,6 +8,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
+// Órdenes de producción: crear, listar y registrar avance
 public class ProductionOrderService : IProductionOrderService
 {
     private readonly IProductionOrderRepository _orderRepository;
@@ -27,6 +28,7 @@ public class ProductionOrderService : IProductionOrderService
         _consumptionService = consumptionService;
     }
 
+    // Lista órdenes con % de avance y un hint del BOM para la vista
     public async Task<IReadOnlyList<ProductionOrderDto>> GetOrdersAsync(CancellationToken cancellationToken = default)
     {
         var orders = await _orderRepository.GetAllAsync(cancellationToken);
@@ -58,6 +60,7 @@ public class ProductionOrderService : IProductionOrderService
         return result;
     }
 
+    // Nueva orden: el producto tiene que existir en el BOM (Camisa o Pantalón en el seed)
     public async Task<ServiceResult> CreateOrderAsync(CreateProductionOrderDto dto, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(dto.ProductName) || dto.TotalQuantity <= 0)
@@ -84,6 +87,7 @@ public class ProductionOrderService : IProductionOrderService
         return ServiceResult.Ok($"Orden {orderNumber} creada.");
     }
 
+    // Registra unidades producidas y descuenta materiales
     public async Task<ServiceResult> RegisterProductionAsync(int orderId, int units, CancellationToken cancellationToken = default)
     {
         if (units <= 0) return ServiceResult.Fail("Cantidad inválida.");
@@ -92,6 +96,7 @@ public class ProductionOrderService : IProductionOrderService
         if (order is null || order.Status == OrderStatus.Finalizada)
             return ServiceResult.Fail("Orden finalizada o inválida.");
 
+        // No dejo pasar de la meta total
         var toAdd = Math.Min(units, order.TotalQuantity - order.ProducedQuantity);
         if (toAdd <= 0) return ServiceResult.Fail("La orden ya alcanzó su meta.");
 

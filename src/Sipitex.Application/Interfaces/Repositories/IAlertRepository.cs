@@ -3,6 +3,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Interfaces.Repositories;
 
+// Preferencias de alerta y historial de envíos
 public interface IAlertRepository
 {
     Task<IReadOnlyList<AlertPreference>> GetPreferencesByUserAsync(int userId, CancellationToken cancellationToken = default);

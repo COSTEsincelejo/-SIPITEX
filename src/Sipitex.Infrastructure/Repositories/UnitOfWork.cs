@@ -4,6 +4,7 @@ using Sipitex.Infrastructure.Persistence;
 
 namespace Sipitex.Infrastructure.Repositories;
 
+// Guarda todos los cambios del DbContext de una vez (patrón Unit of Work)
 public class UnitOfWork : IUnitOfWork
 {
     private readonly SipitexDbContext _context;

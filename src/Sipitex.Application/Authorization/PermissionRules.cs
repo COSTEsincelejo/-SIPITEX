@@ -3,10 +3,8 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Authorization;
 
-/// <summary>
-/// Reglas de autorización usadas por las policies ASP.NET Core.
-/// Administrador siempre pasa; el resto combina rol base + claim "permiso".
-/// </summary>
+// Quién puede hacer qué según rol + permisos extra en claims
+// El admin siempre pasa; instructor puede tener permisos puntuales
 public static class PermissionRules
 {
     public static bool PuedeRegistrarMateriales(ClaimsPrincipal user) =>

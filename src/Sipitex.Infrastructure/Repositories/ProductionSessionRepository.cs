@@ -11,6 +11,7 @@ public class ProductionSessionRepository : IProductionSessionRepository
 
     public ProductionSessionRepository(SipitexDbContext context) => _context = context;
 
+    // Las sesiones más recientes primero (para el dashboard o historial)
     public async Task<IReadOnlyList<ProductionSession>> GetRecentAsync(int take = 20, CancellationToken cancellationToken = default) =>
         await _context.ProductionSessions
             .Include(s => s.Ficha)

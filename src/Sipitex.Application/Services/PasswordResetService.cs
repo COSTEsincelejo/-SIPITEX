@@ -9,6 +9,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Services;
 
+// Flujo de "olvidé mi contraseña" con token por correo
 public class PasswordResetService : IPasswordResetService
 {
     private static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(1);
@@ -32,6 +33,8 @@ public class PasswordResetService : IPasswordResetService
         _emailSender = emailSender;
     }
 
+    // Pide reset: genera token, invalida los viejos y manda el correo
+    // No dice si el email existe (por seguridad)
     public async Task RequestResetAsync(string email, string publicBaseUrl, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(publicBaseUrl))
@@ -42,12 +45,14 @@ public class PasswordResetService : IPasswordResetService
         if (user is null || !user.IsActive)
             return;
 
+        // Anti-spam: máximo 3 solicitudes en 15 min
         var now = DateTime.UtcNow;
         var recentCount = await _tokenRepository.CountCreatedSinceAsync(
             user.Id, now - RateLimitWindow, cancellationToken);
         if (recentCount >= MaxRequestsPerWindow)
             return;
 
+        // Marco como usados los tokens que aún no se habían gastado
         var unused = await _tokenRepository.GetUnusedByUserAsync(user.Id, cancellationToken);
         foreach (var previous in unused)
         {
@@ -91,6 +96,7 @@ public class PasswordResetService : IPasswordResetService
             cancellationToken);
     }
 
+    // Cambia la contraseña si el token sigue válido
     public async Task<ServiceResult> ResetPasswordAsync(
         string email,
         string token,
@@ -125,6 +131,7 @@ public class PasswordResetService : IPasswordResetService
         return ServiceResult.Ok("Contraseña actualizada. Ya puede iniciar sesión.");
     }
 
+    // Guardamos el hash del token, nunca el token en texto plano en BD
     internal static string HashToken(string token)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
@@ -137,6 +144,7 @@ public class PasswordResetService : IPasswordResetService
         return Base64UrlEncode(bytes);
     }
 
+    // Base64 seguro para URLs (sin + ni /)
     private static string Base64UrlEncode(byte[] bytes) =>
         Convert.ToBase64String(bytes)
             .TrimEnd('=')

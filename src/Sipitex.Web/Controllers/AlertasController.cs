@@ -9,6 +9,7 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
+// Preferencias de alertas por correo y el botón de evaluar manualmente
 [Authorize]
 public class AlertasController : Controller
 {
@@ -29,7 +30,7 @@ public class AlertasController : Controller
         {
             Preferences = await _alertService.GetPreferencesForUserAsync(userId, cancellationToken),
             Deliveries = await _alertService.GetRecentDeliveriesAsync(20, cancellationToken),
-            SmtpConfigured = _emailSender.IsSmtpConfigured,
+            SmtpConfigured = _emailSender.IsSmtpConfigured, // para avisar si el correo ni está configurado
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -39,6 +40,7 @@ public class AlertasController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SavePreferences(AlertPreferencesForm form, CancellationToken cancellationToken)
     {
+        // El checkbox manda strings; acá lo paso a diccionario AlertType -> bool
         var map = new Dictionary<AlertType, bool>();
         foreach (AlertType type in Enum.GetValues<AlertType>())
             map[type] = form.EnabledTypes?.Contains(type.ToString()) == true;
@@ -49,6 +51,7 @@ public class AlertasController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // Solo quien tenga el permiso puede forzar la evaluación (no esperar al job automático)
     [Authorize(Policy = AuthorizationPolicyNames.PuedeConfigurarAlertas)]
     [HttpPost]
     [ValidateAntiForgeryToken]

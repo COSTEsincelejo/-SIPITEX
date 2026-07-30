@@ -7,6 +7,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Services;
 
+// Login, CRUD de usuarios y perfil
 public class UserAccountService : IUserAccountService
 {
     private readonly IUserRepository _userRepository;
@@ -20,6 +21,7 @@ public class UserAccountService : IUserAccountService
         _unitOfWork = unitOfWork;
     }
 
+    // Login: busca por email y compara hash de contraseña
     public async Task<User?> AuthenticateAsync(string email, string password, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
@@ -31,12 +33,14 @@ public class UserAccountService : IUserAccountService
         return user;
     }
 
+    // Lista completa (la usa el admin en la pantalla de usuarios)
     public Task<IReadOnlyList<User>> GetUsersAsync(CancellationToken cancellationToken = default) =>
         _userRepository.GetAllAsync(cancellationToken);
 
     public Task<User?> GetUserByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _userRepository.GetByIdAsync(id, cancellationToken);
 
+    // Alta de usuario (solo roles que el admin puede crear)
     public async Task<ServiceResult> CreateUserAsync(
         string nombre,
         string email,
@@ -69,6 +73,7 @@ public class UserAccountService : IUserAccountService
         return ServiceResult.Ok("Usuario creado correctamente.");
     }
 
+    // Edición desde el admin: datos, rol, permisos y activo/inactivo
     public async Task<ServiceResult> UpdateUserAsync(
         int id,
         string nombre,
@@ -86,6 +91,7 @@ public class UserAccountService : IUserAccountService
         var user = await _userRepository.GetByIdAsync(id, cancellationToken);
         if (user is null) return ServiceResult.Fail("Usuario no encontrado.");
 
+        // El admin principal no se le puede bajar el rol
         var isExistingAdmin = string.Equals(user.Rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
         if (isExistingAdmin)
         {
@@ -116,6 +122,7 @@ public class UserAccountService : IUserAccountService
         return ServiceResult.Ok("Usuario actualizado correctamente.");
     }
 
+    // Activar / desactivar sin borrar el usuario (así no pierde el historial)
     public async Task<ServiceResult> ToggleUserStatusAsync(int id, bool isActive, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByIdAsync(id, cancellationToken);
@@ -127,6 +134,7 @@ public class UserAccountService : IUserAccountService
         return ServiceResult.Ok(isActive ? "Usuario activado." : "Usuario desactivado.");
     }
 
+    // El usuario edita su propio perfil (nombre, correo, foto, contraseña opcional)
     public async Task<ServiceResult> UpdateProfileAsync(
         int id,
         string nombre,
@@ -172,6 +180,7 @@ public class UserAccountService : IUserAccountService
         return ServiceResult.Ok("Perfil actualizado correctamente.");
     }
 
+    // Validaciones comunes entre crear y editar usuario
     private static ServiceResult? Validate(
         string nombre,
         string email,
@@ -200,6 +209,7 @@ public class UserAccountService : IUserAccountService
         return null;
     }
 
+    // Si es instructor con ficha asignada, actualizo la ficha para que apunte a ese usuario
     private async Task SyncFichaOwnershipAsync(
         int userId,
         string nombre,

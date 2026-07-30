@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations;
 namespace Sipitex.Web.Models;
 
 // Modelos para el login y la gestión de usuarios.
+// Son los que reciben los formularios de Account (no van directo a la BD).
+
 public class LoginViewModel
 {
     [Required(ErrorMessage = "El correo es obligatorio")]
@@ -14,6 +16,7 @@ public class LoginViewModel
     public string Password { get; set; } = string.Empty;
 }
 
+// Para crear/editar usuarios desde el panel de admin
 public class UserEditViewModel
 {
     public int Id { get; set; }
@@ -25,6 +28,7 @@ public class UserEditViewModel
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
+    // Si viene vacío al editar, no se cambia la contraseña
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
@@ -33,12 +37,13 @@ public class UserEditViewModel
 
     public int? FichaAsignadaId { get; set; }
 
-    /// <summary>Permisos extendidos seleccionados (claves de <c>ExtendedPermissions</c>).</summary>
+    // Permisos extra aparte del rol (claves de ExtendedPermissions)
     public List<string> SelectedPermissions { get; set; } = [];
 
     public bool IsActive { get; set; } = true;
 }
 
+// El usuario edita su propio perfil
 public class ProfileViewModel
 {
     public int Id { get; set; }

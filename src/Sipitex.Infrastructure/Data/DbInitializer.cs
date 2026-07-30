@@ -6,16 +6,19 @@ using Sipitex.Infrastructure.Persistence;
 
 namespace Sipitex.Infrastructure.Data;
 
+// Datos iniciales y migraciones al arrancar la app
 public static class DbInitializer
 {
     public static async Task InitializeAsync(SipitexDbContext context)
     {
+        // Primero reviso si hay una BD vieja sin historial de migraciones
         await MigrationBaseline.EnsureBaselineAsync(context);
         // BD que ya tenían columnas vía EnsureColumnAsync (antes de migraciones EF):
         // evita "duplicate column name" al aplicar AddFichaTurno.
         await EnsureAddFichaTurnoCompatibleAsync(context);
         await context.Database.MigrateAsync();
 
+        // Solo meto datos de demo si la tabla está vacía
         if (!await context.Materials.AnyAsync())
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
@@ -27,6 +30,7 @@ public static class DbInitializer
             context.Materials.AddRange(mat1, mat2, mat3, mat4);
             await context.SaveChangesAsync();
 
+            // BOM de ejemplo para Camisa y Pantalón
             context.BomItems.AddRange(
                 new BomItem { ProductName = "Camisa", MaterialId = mat1.Id, QuantityPerUnit = 1.6m, Unit = MaterialUnit.Metros },
                 new BomItem { ProductName = "Camisa", MaterialId = mat2.Id, QuantityPerUnit = 18m, Unit = MaterialUnit.Metros },
@@ -65,16 +69,14 @@ public static class DbInitializer
             await context.SaveChangesAsync();
         }
 
+        // Estos siempre corren (idempotentes) por si faltan usuarios o prefs
         await SeedUsersAsync(context);
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
     }
 
-    /// <summary>
-    /// Si la BD ya tiene columnas de AddFichaTurno (p. ej. EnsureColumnAsync legacy)
-    /// pero la migración no está en el historial, las asegura y marca la migración
-    /// para que MigrateAsync no intente ALTER TABLE duplicado.
-    /// </summary>
+    // Caso raro: la BD ya tiene las columnas de AddFichaTurno (SQL manual viejo)
+    // pero EF no sabe que esa migración ya corrió → la marco a mano para no duplicar ALTER TABLE
     private static async Task EnsureAddFichaTurnoCompatibleAsync(SipitexDbContext context)
     {
         const string migrationId = "20260728231835_AddFichaTurno";
@@ -101,6 +103,7 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync(
             """CREATE INDEX IF NOT EXISTS "IX_Fichas_InstructorUserId" ON "Fichas" ("InstructorUserId");""");
 
+        // Le digo a EF que ya aplicó esta migración
         await context.Database.ExecuteSqlRawAsync(
             """
             INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
@@ -117,6 +120,7 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync(alterSql);
     }
 
+    // Consulto sqlite_master para ver si la tabla existe
     private static async Task<bool> TableExistsAsync(SipitexDbContext context, string table)
     {
         var connection = context.Database.GetDbConnection();
@@ -158,6 +162,7 @@ public static class DbInitializer
         return await command.ExecuteScalarAsync() is not null and not DBNull;
     }
 
+    // Usuarios de prueba para desarrollo (admin, instructor, bodega)
     private static async Task SeedUsersAsync(SipitexDbContext context)
     {
         if (await context.Users.AnyAsync()) return;
@@ -194,6 +199,7 @@ public static class DbInitializer
         await context.SaveChangesAsync();
     }
 
+    // Une fichas con usuarios instructor por nombre (datos viejos solo tenían InstructorName texto)
     private static async Task LinkFichasToInstructorUsersAsync(SipitexDbContext context)
     {
         var instructors = await context.Users
@@ -233,6 +239,7 @@ public static class DbInitializer
             foreach (var item in Application.DTOs.AlertCatalog.All)
             {
                 if (existing.Contains(item.Type)) continue;
+                // Activo la alerta solo si el rol del usuario está en la lista del catálogo
                 context.AlertPreferences.Add(new AlertPreference
                 {
                     UserId = user.Id,
@@ -245,6 +252,7 @@ public static class DbInitializer
         await context.SaveChangesAsync();
     }
 
+    // Tabla de trazabilidad RF/RNF del proyecto académico
     private static void SeedRequirements(SipitexDbContext context)
     {
         var rf = new[]

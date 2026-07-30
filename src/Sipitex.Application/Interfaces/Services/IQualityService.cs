@@ -2,6 +2,7 @@ using Sipitex.Application.DTOs;
 
 namespace Sipitex.Application.Interfaces.Services;
 
+// Inspecciones de calidad por orden
 public interface IQualityService
 {
     Task<IReadOnlyList<QualityRecordDto>> GetRecordsAsync(CancellationToken cancellationToken = default);

@@ -11,6 +11,7 @@ public class BomRepository : IBomRepository
 
     public BomRepository(SipitexDbContext context) => _context = context;
 
+    // Trae los materiales que necesita una prenda (para el cálculo MRP)
     public async Task<IReadOnlyList<BomItem>> GetByProductAsync(string productName, CancellationToken cancellationToken = default) =>
         await _context.BomItems
             .Include(b => b.Material)
