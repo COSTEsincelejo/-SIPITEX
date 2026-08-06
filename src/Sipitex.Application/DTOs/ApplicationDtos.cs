@@ -57,6 +57,49 @@ public record CreateProductionOrderDto(string ProductName, int TotalQuantity, Da
 // Una línea del listado BOM
 public record BomItemDto(string ProductName, string MaterialName, decimal QuantityPerUnit, string UnitDisplay);
 
+// Fila del listado de fichas técnicas
+public record BomProductListItemDto(
+    int Id,
+    string ProductName,
+    int MaterialCount,
+    bool IsReference,
+    bool HabilitadoParaOrdenes,
+    string? Notes);
+
+// Línea editable de la receta
+public record BomRecipeLineDto(
+    int? ItemId,
+    int? MaterialId,
+    string? NewMaterialName,
+    MaterialUnit? NewMaterialUnit,
+    decimal QuantityPerUnit,
+    MaterialUnit Unit);
+
+// Alta / edición de ficha técnica
+public record UpsertBomProductDto(
+    string ProductName,
+    bool IsReference,
+    string? Notes,
+    bool HabilitadoParaOrdenes,
+    IReadOnlyList<BomRecipeLineDto> Lines);
+
+// Detalle para la pantalla de edición
+public record BomProductDetailDto(
+    int Id,
+    string ProductName,
+    bool IsReference,
+    string? Notes,
+    bool HabilitadoParaOrdenes,
+    IReadOnlyList<BomRecipeLineDetailDto> Lines);
+
+public record BomRecipeLineDetailDto(
+    int ItemId,
+    int MaterialId,
+    string MaterialName,
+    decimal QuantityPerUnit,
+    MaterialUnit Unit,
+    string UnitDisplay);
+
 // Resultado completo de simular MRP
 public record MrpSimulationResultDto(
     string ProductName,

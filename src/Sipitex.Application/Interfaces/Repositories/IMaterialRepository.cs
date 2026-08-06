@@ -9,4 +9,5 @@ public interface IMaterialRepository
     Task<Material?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task AddAsync(Material material, CancellationToken cancellationToken = default);
     void Update(Material material);
+    void Remove(Material material);
 }

@@ -45,6 +45,7 @@ public class AdjustStockForm
 public class OrdenesIndexViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<string> ProductNames { get; set; } = [];
     public CreateOrderForm CreateOrder { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
@@ -58,19 +59,53 @@ public class CreateOrderForm
     public DateOnly Deadline { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 }
 
-// Pantalla MRP: BOM + simulación
+// Pantalla MRP: fichas técnicas + BOM + simulación
 public class MrpIndexViewModel
 {
     public IReadOnlyList<BomItemDto> Bom { get; set; } = [];
+    public IReadOnlyList<BomProductListItemDto> Products { get; set; } = [];
+    public IReadOnlyList<string> ProductNames { get; set; } = [];
     public MrpSimulationForm Simulation { get; set; } = new();
-    public MrpSimulationResultDto? Result { get; set; } // null hasta que simulen
+    public MrpSimulationResultDto? Result { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
 }
 
 // Datos del formulario de simulación MRP
 public class MrpSimulationForm
 {
-    public string ProductName { get; set; } = "Camisa";
+    public string ProductName { get; set; } = string.Empty;
     public decimal Quantity { get; set; } = 50;
+}
+
+// Crear / editar ficha técnica
+public class BomProductEditViewModel
+{
+    public BomProductEditForm Form { get; set; } = new();
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public bool IsEdit { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class BomProductEditForm
+{
+    public int Id { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public bool IsReference { get; set; }
+    public string? Notes { get; set; }
+    public bool HabilitadoParaOrdenes { get; set; } = true;
+    public List<BomRecipeLineForm> Lines { get; set; } = [new()];
+}
+
+public class BomRecipeLineForm
+{
+    public int? ItemId { get; set; }
+    public int MaterialId { get; set; }
+    public string? NewMaterialName { get; set; }
+    public MaterialUnit? NewMaterialUnit { get; set; }
+    public decimal QuantityPerUnit { get; set; }
+    public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
 }
 
 // Pantalla de fichas y registro de producción diaria

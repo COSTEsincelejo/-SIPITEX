@@ -26,4 +26,6 @@ public class MaterialRepository : IMaterialRepository
 
     // Marca cambios en un material existente
     public void Update(Material material) => _context.Materials.Update(material);
+
+    public void Remove(Material material) => _context.Materials.Remove(material);
 }

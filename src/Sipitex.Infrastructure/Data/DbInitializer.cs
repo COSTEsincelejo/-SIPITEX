@@ -33,14 +33,32 @@ public static class DbInitializer
             context.Materials.AddRange(mat1, mat2, mat3, mat4); // Inserto los 4 de una vez
             await context.SaveChangesAsync(); // Necesito los Id para el BOM y las órdenes
 
+            // Cabeceras de ficha técnica (demo) — habilitadas para órdenes
+            var bomCamisa = new BomProduct
+            {
+                ProductName = "Camisa",
+                IsReference = false,
+                HabilitadoParaOrdenes = true,
+                Notes = null
+            };
+            var bomPantalon = new BomProduct
+            {
+                ProductName = "Pantalón",
+                IsReference = false,
+                HabilitadoParaOrdenes = true,
+                Notes = null
+            };
+            context.BomProducts.AddRange(bomCamisa, bomPantalon);
+            await context.SaveChangesAsync();
+
             // BOM de ejemplo para Camisa y Pantalón
             context.BomItems.AddRange(
-                new BomItem { ProductName = "Camisa", MaterialId = mat1.Id, QuantityPerUnit = 1.6m, Unit = MaterialUnit.Metros },
-                new BomItem { ProductName = "Camisa", MaterialId = mat2.Id, QuantityPerUnit = 18m, Unit = MaterialUnit.Metros },
-                new BomItem { ProductName = "Camisa", MaterialId = mat3.Id, QuantityPerUnit = 1m, Unit = MaterialUnit.Unidades },
-                new BomItem { ProductName = "Pantalón", MaterialId = mat1.Id, QuantityPerUnit = 2.2m, Unit = MaterialUnit.Metros },
-                new BomItem { ProductName = "Pantalón", MaterialId = mat2.Id, QuantityPerUnit = 22m, Unit = MaterialUnit.Metros },
-                new BomItem { ProductName = "Pantalón", MaterialId = mat4.Id, QuantityPerUnit = 0.8m, Unit = MaterialUnit.Metros });
+                new BomItem { BomProductId = bomCamisa.Id, ProductName = "Camisa", MaterialId = mat1.Id, QuantityPerUnit = 1.6m, Unit = MaterialUnit.Metros },
+                new BomItem { BomProductId = bomCamisa.Id, ProductName = "Camisa", MaterialId = mat2.Id, QuantityPerUnit = 18m, Unit = MaterialUnit.Metros },
+                new BomItem { BomProductId = bomCamisa.Id, ProductName = "Camisa", MaterialId = mat3.Id, QuantityPerUnit = 1m, Unit = MaterialUnit.Unidades },
+                new BomItem { BomProductId = bomPantalon.Id, ProductName = "Pantalón", MaterialId = mat1.Id, QuantityPerUnit = 2.2m, Unit = MaterialUnit.Metros },
+                new BomItem { BomProductId = bomPantalon.Id, ProductName = "Pantalón", MaterialId = mat2.Id, QuantityPerUnit = 22m, Unit = MaterialUnit.Metros },
+                new BomItem { BomProductId = bomPantalon.Id, ProductName = "Pantalón", MaterialId = mat4.Id, QuantityPerUnit = 0.8m, Unit = MaterialUnit.Metros });
 
             // Dos órdenes de producción para el demo
             var op1 = new ProductionOrder
@@ -64,6 +82,16 @@ public static class DbInitializer
             context.ProductionOrders.AddRange(op1, op2);
             await context.SaveChangesAsync(); // Guardo para tener los Id de las órdenes
 
+            // Snapshot de receta al crear (órdenes demo)
+            context.ProductionOrderBomSnapshots.AddRange(
+                new ProductionOrderBomSnapshot { ProductionOrderId = op1.Id, MaterialId = mat1.Id, MaterialCode = mat1.Code, MaterialName = mat1.Name, QuantityPerUnit = 1.6m, Unit = MaterialUnit.Metros },
+                new ProductionOrderBomSnapshot { ProductionOrderId = op1.Id, MaterialId = mat2.Id, MaterialCode = mat2.Code, MaterialName = mat2.Name, QuantityPerUnit = 18m, Unit = MaterialUnit.Metros },
+                new ProductionOrderBomSnapshot { ProductionOrderId = op1.Id, MaterialId = mat3.Id, MaterialCode = mat3.Code, MaterialName = mat3.Name, QuantityPerUnit = 1m, Unit = MaterialUnit.Unidades },
+                new ProductionOrderBomSnapshot { ProductionOrderId = op2.Id, MaterialId = mat1.Id, MaterialCode = mat1.Code, MaterialName = mat1.Name, QuantityPerUnit = 2.2m, Unit = MaterialUnit.Metros },
+                new ProductionOrderBomSnapshot { ProductionOrderId = op2.Id, MaterialId = mat2.Id, MaterialCode = mat2.Code, MaterialName = mat2.Name, QuantityPerUnit = 22m, Unit = MaterialUnit.Metros },
+                new ProductionOrderBomSnapshot { ProductionOrderId = op2.Id, MaterialId = mat4.Id, MaterialCode = mat4.Code, MaterialName = mat4.Name, QuantityPerUnit = 0.8m, Unit = MaterialUnit.Metros });
+            await context.SaveChangesAsync();
+
             // Tres fichas de proceso ligadas a las órdenes
             context.Fichas.AddRange(
                 new Ficha { FichaCode = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", Turno = "Mañana", ProductionOrderId = op1.Id },
@@ -78,6 +106,67 @@ public static class DbInitializer
         await SeedUsersAsync(context);
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
+        await EnsureBomProductsAndSnapshotsAsync(context);
+    }
+
+    // BD antiguas: crea BomProduct por ProductName distinto y backfill de snapshots faltantes
+    private static async Task EnsureBomProductsAndSnapshotsAsync(SipitexDbContext context)
+    {
+        var productNames = await context.BomItems
+            .Select(b => b.ProductName)
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var name in productNames)
+        {
+            if (await context.BomProducts.AnyAsync(p => p.ProductName == name))
+                continue;
+
+            var product = new BomProduct
+            {
+                ProductName = name,
+                IsReference = false,
+                HabilitadoParaOrdenes = true
+            };
+            context.BomProducts.Add(product);
+            await context.SaveChangesAsync();
+
+            var items = await context.BomItems.Where(b => b.ProductName == name).ToListAsync();
+            foreach (var item in items)
+            {
+                item.BomProductId = product.Id;
+            }
+            await context.SaveChangesAsync();
+        }
+
+        // Órdenes sin snapshot: congelar BOM vigente actual (solo una vez)
+        var orderIds = await context.ProductionOrders.Select(o => o.Id).ToListAsync();
+        foreach (var orderId in orderIds)
+        {
+            if (await context.ProductionOrderBomSnapshots.AnyAsync(s => s.ProductionOrderId == orderId))
+                continue;
+
+            var order = await context.ProductionOrders.FirstAsync(o => o.Id == orderId);
+            var bom = await context.BomItems
+                .Include(b => b.Material)
+                .Where(b => b.ProductName == order.ProductName)
+                .ToListAsync();
+
+            foreach (var line in bom)
+            {
+                context.ProductionOrderBomSnapshots.Add(new ProductionOrderBomSnapshot
+                {
+                    ProductionOrderId = order.Id,
+                    MaterialId = line.MaterialId,
+                    MaterialCode = line.Material.Code,
+                    MaterialName = line.Material.Name,
+                    QuantityPerUnit = line.QuantityPerUnit,
+                    Unit = line.Unit
+                });
+            }
+        }
+
+        await context.SaveChangesAsync();
     }
 
     // Caso raro: la BD ya tiene las columnas de AddFichaTurno (SQL manual viejo)

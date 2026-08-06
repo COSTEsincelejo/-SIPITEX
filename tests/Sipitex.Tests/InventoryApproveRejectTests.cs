@@ -12,12 +12,14 @@ public class InventoryApproveRejectTests
     private readonly Mock<IMaterialRepository> _materialRepository = new();
     private readonly Mock<IMaterialRequestRepository> _requestRepository = new();
     private readonly Mock<IProductionOrderRepository> _orderRepository = new();
+    private readonly Mock<IBomRepository> _bomRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
     private InventoryService CreateSut() => new(
         _materialRepository.Object,
         _requestRepository.Object,
         _orderRepository.Object,
+        _bomRepository.Object,
         _unitOfWork.Object);
 
     private static MaterialRequest CreatePendingRequest(decimal stock, decimal quantity)

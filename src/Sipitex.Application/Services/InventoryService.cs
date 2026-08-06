@@ -14,17 +14,20 @@ public class InventoryService : IInventoryService
     private readonly IMaterialRepository _materialRepository;
     private readonly IMaterialRequestRepository _requestRepository;
     private readonly IProductionOrderRepository _orderRepository;
+    private readonly IBomRepository _bomRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public InventoryService(
         IMaterialRepository materialRepository,
         IMaterialRequestRepository requestRepository,
         IProductionOrderRepository orderRepository,
+        IBomRepository bomRepository,
         IUnitOfWork unitOfWork)
     {
         _materialRepository = materialRepository;
         _requestRepository = requestRepository;
         _orderRepository = orderRepository;
+        _bomRepository = bomRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -166,6 +169,24 @@ public class InventoryService : IInventoryService
         _requestRepository.Update(request);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok("Solicitud rechazada.");
+    }
+
+    // Elimina del catálogo solo si no está en ninguna ficha técnica activa
+    public async Task<ServiceResult> DeleteMaterialAsync(int materialId, CancellationToken cancellationToken = default)
+    {
+        var material = await _materialRepository.GetByIdAsync(materialId, cancellationToken);
+        if (material is null) return ServiceResult.Fail("Material no encontrado.");
+
+        var products = await _bomRepository.GetProductNamesUsingMaterialAsync(materialId, cancellationToken);
+        if (products.Count > 0)
+        {
+            return ServiceResult.Fail(
+                $"No se puede eliminar «{material.Name}»: está en fichas técnicas de {string.Join(", ", products)}. Quítelo de esas recetas antes.");
+        }
+
+        _materialRepository.Remove(material);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok($"Material «{material.Name}» eliminado.");
     }
 
     // Armo el DTO e indico si está bajo el mínimo (para pintar en rojo en la vista)

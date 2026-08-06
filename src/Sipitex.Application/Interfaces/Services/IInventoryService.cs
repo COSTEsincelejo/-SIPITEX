@@ -13,4 +13,5 @@ public interface IInventoryService
     Task<ServiceResult> CreateRequestAsync(CreateMaterialRequestDto dto, CancellationToken cancellationToken = default);
     Task<ServiceResult> ApproveRequestAsync(int requestId, CancellationToken cancellationToken = default);
     Task<ServiceResult> RejectRequestAsync(int requestId, CancellationToken cancellationToken = default);
+    Task<ServiceResult> DeleteMaterialAsync(int materialId, CancellationToken cancellationToken = default);
 }

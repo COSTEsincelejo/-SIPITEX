@@ -11,8 +11,10 @@ public class SipitexDbContext : DbContext
 
     // Cada DbSet = una tabla en la BD
     public DbSet<Material> Materials => Set<Material>(); // Inventario de telas, hilos, etc.
+    public DbSet<BomProduct> BomProducts => Set<BomProduct>(); // Cabecera de ficha técnica (producto)
     public DbSet<BomItem> BomItems => Set<BomItem>(); // Lista de materiales por prenda (BOM)
     public DbSet<ProductionOrder> ProductionOrders => Set<ProductionOrder>(); // Órdenes OP-xxx
+    public DbSet<ProductionOrderBomSnapshot> ProductionOrderBomSnapshots => Set<ProductionOrderBomSnapshot>(); // Receta congelada por orden
     public DbSet<MaterialRequest> MaterialRequests => Set<MaterialRequest>(); // Solicitudes de salida de bodega
     public DbSet<Ficha> Fichas => Set<Ficha>(); // Fichas de proceso (trazo, corte, confección...)
     public DbSet<FichaInstructor> FichaInstructors => Set<FichaInstructor>(); // M2M ficha ↔ instructor
@@ -42,14 +44,28 @@ public class SipitexDbContext : DbContext
             e.Property(m => m.MinStock).HasPrecision(18, 2); // Umbral para alerta de stock bajo
         });
 
+        // Cabecera de ficha técnica (producto)
+        modelBuilder.Entity<BomProduct>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.ProductName).HasMaxLength(80).IsRequired();
+            e.HasIndex(p => p.ProductName).IsUnique();
+            e.Property(p => p.Notes).HasMaxLength(500);
+        });
+
         // BOM = lista de materiales por prenda (Bill of Materials)
         modelBuilder.Entity<BomItem>(e =>
         {
             e.HasKey(b => b.Id); // PK del ítem BOM
-            e.Property(b => b.ProductName).HasMaxLength(80).IsRequired(); // Prenda: Camisa, Pantalón...
+            e.Property(b => b.ProductName).HasMaxLength(80).IsRequired(); // Denormalizado desde BomProduct
             e.Property(b => b.QuantityPerUnit).HasPrecision(18, 2); // Cuánto material gasta una unidad
+            e.HasOne(b => b.BomProduct)
+                .WithMany(p => p.Items)
+                .HasForeignKey(b => b.BomProductId)
+                .OnDelete(DeleteBehavior.Cascade);
             // Relación: cada BomItem apunta a un Material
             e.HasOne(b => b.Material).WithMany(m => m.BomItems).HasForeignKey(b => b.MaterialId);
+            e.HasIndex(b => b.BomProductId);
         });
 
         // --- ProductionOrder ---
@@ -60,6 +76,24 @@ public class SipitexDbContext : DbContext
             e.Property(o => o.ProductName).HasMaxLength(80).IsRequired(); // Qué prenda se fabrica
             // Que no se repita el número de orden
             e.HasIndex(o => o.OrderNumber).IsUnique();
+        });
+
+        // Snapshot de BOM al crear la orden
+        modelBuilder.Entity<ProductionOrderBomSnapshot>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.MaterialCode).HasMaxLength(40).IsRequired();
+            e.Property(s => s.MaterialName).HasMaxLength(120).IsRequired();
+            e.Property(s => s.QuantityPerUnit).HasPrecision(18, 2);
+            e.HasOne(s => s.ProductionOrder)
+                .WithMany(o => o.BomSnapshots)
+                .HasForeignKey(s => s.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Material)
+                .WithMany()
+                .HasForeignKey(s => s.MaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(s => s.ProductionOrderId);
         });
 
         // --- MaterialRequest ---

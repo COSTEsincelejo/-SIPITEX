@@ -29,10 +29,12 @@
                 <div class="form-row">
                     <div class="field" style="flex:1;">
                         <label class="field-label">Producto</label>
-                        <input asp-for="CreateOrder.ProductName" list="productos" placeholder="Camisa / Pantalón" style="width:100%" required />
+                        <input asp-for="CreateOrder.ProductName" list="productos" placeholder="Producto con ficha técnica" style="width:100%" required />
                         <datalist id="productos">
-                            <option value="Camisa"></option>
-                            <option value="Pantalón"></option>
+                            @foreach (var name in Model.ProductNames)
+                            {
+                                <option value="@name"></option>
+                            }
                         </datalist>
                     </div>
                     <div class="field" style="width:140px;">
