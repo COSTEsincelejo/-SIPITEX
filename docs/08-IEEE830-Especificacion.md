@@ -3,7 +3,7 @@
 
 | Campo | Valor |
 |-------|--------|
-| **Proyecto** | SIPITEX — Sistema Integrado de Producción e Inventario Textil |
+| **Proyecto** | SIPITEX — Sistema Integrado de Aprendizaje Producción e Inventario Textil |
 | **Institución** | SENA CMTC · Programa ADSO |
 | **Versión del documento** | 2.1 |
 | **Fecha** | 2026-07-28 |
