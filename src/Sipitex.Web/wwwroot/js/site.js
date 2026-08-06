@@ -81,7 +81,17 @@
       setExpanded(!isExpanded());
     });
 
-<<<<<<< HEAD
+    backdrop?.addEventListener('click', () => setExpanded(false));
+
+    sidebar?.querySelectorAll('a.nav-item').forEach((link) => {
+      link.addEventListener('click', () => {
+        if (isMobile()) setExpanded(false);
+      });
+    });
+
+    mq.addEventListener('change', syncSidebarToViewport);
+    syncSidebarToViewport();
+
     // Orden asignada: dropdown existente vs texto manual (mutuamente excluyentes)
     const orderSelect = document.getElementById('createFichaOrderSelect');
     const orderIdInput = document.getElementById('createFichaOrderId');
@@ -111,18 +121,6 @@
       orderSelect.addEventListener('change', syncOrderMode);
       syncOrderMode();
     }
-=======
-    backdrop?.addEventListener('click', () => setExpanded(false));
-
-    sidebar?.querySelectorAll('a.nav-item').forEach((link) => {
-      link.addEventListener('click', () => {
-        if (isMobile()) setExpanded(false);
-      });
-    });
-
-    mq.addEventListener('change', syncSidebarToViewport);
-    syncSidebarToViewport();
->>>>>>> origin/cursor/sidebar-hamburger-toggle-41da
 
     // Convert server flash alerts into toasts (keep inline for accessibility if needed)
     document.querySelectorAll('[data-toast]').forEach((node) => {
