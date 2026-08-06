@@ -177,10 +177,11 @@ public class FichaService : IFichaService
             return ServiceResult.Fail("Debe asignar al menos un instructor registrado.");
         if (string.IsNullOrWhiteSpace(turno))
             return ServiceResult.Fail("El turno es obligatorio.");
+        if (!FichaTurnos.IsValid(turno))
+            return ServiceResult.Fail("El turno debe ser Mañana, Tarde o Noche.");
         if (code.Length > 30)
             return ServiceResult.Fail("El código de ficha no puede superar 30 caracteres.");
-        if (turno.Length > 20)
-            return ServiceResult.Fail("El turno no puede superar 20 caracteres.");
+
 
         if (await _fichaRepository.ExistsByCodeAsync(code, cancellationToken))
             return ServiceResult.Fail("Ya existe una ficha con ese código.");

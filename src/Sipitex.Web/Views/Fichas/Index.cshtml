@@ -61,12 +61,11 @@
                 </div>
                 <div class="field">
                     <label class="field-label">Turno</label>
-                    <input asp-for="CreateFicha.Turno" list="turnos-ficha" placeholder="Mañana" required maxlength="20" />
-                    <datalist id="turnos-ficha">
-                        <option value="Mañana"></option>
-                        <option value="Tarde"></option>
-                        <option value="Noche"></option>
-                    </datalist>
+                    <select asp-for="CreateFicha.Turno" required>
+                        <option value="Mañana">Mañana</option>
+                        <option value="Tarde">Tarde</option>
+                        <option value="Noche">Noche</option>
+                    </select>
                 </div>
                 <div class="field">
                     <label class="field-label">Orden asignada</label>

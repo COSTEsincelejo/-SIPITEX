@@ -58,6 +58,27 @@ public class FichaCreateAndFilterTests
     }
 
     [Fact]
+    public async Task CreateFichaAsync_WhenTurnoIsNotAllowed_Fails()
+    {
+        _fichas.Setup(r => r.ExistsByCodeAsync("FICHA-X1", It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _users.Setup(r => r.GetByIdAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(new User
+        {
+            Id = 10,
+            Nombre = "Laura Gómez",
+            Rol = UserRoles.Instructor,
+            IsActive = true,
+            PasswordHash = "x"
+        });
+
+        var result = await CreateSut().CreateFichaAsync(
+            new CreateFichaDto("FICHA-X1", "Corte", [10], "Madrugada"));
+
+        Assert.False(result.Success);
+        Assert.Equal("El turno debe ser Mañana, Tarde o Noche.", result.Message);
+        _fichas.Verify(r => r.AddAsync(It.IsAny<Ficha>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetRecentSessionsAsync_FilterByInstructorAndTurno_ReturnsOnlyExpected()
     {
         _sessions.Setup(r => r.GetRecentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(
