@@ -260,3 +260,10 @@ public class EmptyStateModel
     public string? ActionText { get; set; } // texto del botón o hint
     public string? ActionHref { get; set; } // link del botón (opcional)
 }
+
+// Pantalla de reportes con filtros opcionales
+public class ReportesIndexViewModel
+{
+    public IReadOnlyList<InstructorOptionDto> Instructors { get; set; } = [];
+    public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
+}

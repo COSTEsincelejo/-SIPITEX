@@ -244,6 +244,11 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 .report-card{cursor:default;}
 .report-card:hover{transform:none;box-shadow:var(--shadow-sm);}
 .report-actions{display:flex;gap:8px;margin-top:14px;}
+.filter-summary{
+  margin-top:14px;padding:10px 12px;border-radius:8px;background:var(--accent-soft);color:var(--navy-2);
+  font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+.filter-summary strong{font-weight:700;}
 
 /* Empty states */
 .empty-state{text-align:center;padding:36px 20px;color:var(--text-mut);}
