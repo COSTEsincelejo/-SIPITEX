@@ -1,0 +1,158 @@
+@model OrdenMaterialDetailViewModel
+@{
+    ViewData["Title"] = $"Materiales {Model.Detail.OrderNumber}";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Órdenes / Materiales";
+    Layout = "_Layout";
+    var d = Model.Detail;
+    var canManage = User.IsInRole("Administrador") || User.IsInRole("Instructor");
+}
+
+<div class="page-header">
+    <div>
+        <h2>Materiales · @d.OrderNumber</h2>
+        <div class="sub">@d.ProductName · meta @d.TotalQuantity uds · producido @d.ProducedQuantity</div>
+    </div>
+    <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver a órdenes</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-info-circle"></i> Estado</div>
+    <div class="solicitud-detail-meta">
+        <div><span class="field-label">Producción</span><br /><span class="badge @DisplayHelper.BadgeClass(d.Status)">@DisplayHelper.StatusText(d.Status)</span></div>
+        <div><span class="field-label">Materiales / bodega</span><br /><span class="badge @DisplayHelper.BadgeClass(d.MaterialsStatus)">@DisplayHelper.StatusText(d.MaterialsStatus)</span></div>
+        <div><span class="field-label">¿Puede producir?</span><br />@(d.CanRegisterProduction ? "Sí" : "No — pendiente entrega")</div>
+    </div>
+</div>
+
+@if (canManage && d.CanEditRequirements)
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-plus"></i> Asociar material del inventario</div>
+        <p class="hint" style="margin-top:0;">Solo materiales existentes. La asociación es opcional; sin materiales la orden produce como hasta ahora.</p>
+        <form asp-action="AddMaterial" method="post" class="form-row" style="align-items:flex-end;flex-wrap:wrap;gap:12px;" data-order-material-form>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="AddMaterial.OrderId" />
+            <div class="field" style="min-width:220px;flex:1;">
+                <label class="field-label">Material</label>
+                <select asp-for="AddMaterial.MaterialId" required data-material-select style="width:100%">
+                    <option value="">Seleccione…</option>
+                    @foreach (var m in Model.Materials)
+                    {
+                        <option value="@m.Id"
+                                data-stock="@m.Stock.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                data-unit="@m.UnitDisplay">
+                            @m.Name (@m.UnitDisplay) · stock @m.Stock.ToString("0.##")
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Cantidad requerida</label>
+                <input asp-for="AddMaterial.QuantityRequired" type="number" min="0.01" step="0.01" required data-qty-input />
+            </div>
+            <div class="field" style="flex:1;min-width:180px;">
+                <label class="field-label">Observaciones</label>
+                <input asp-for="AddMaterial.Observations" maxlength="500" placeholder="Opcional" />
+            </div>
+            <button type="submit" class="primary small">Agregar</button>
+        </form>
+        <div id="stockPreview" class="alert alert-info" style="margin-top:12px;" hidden></div>
+        <form asp-action="ImportBomMaterials" method="post" style="margin-top:12px;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@d.OrderId" />
+            <button type="submit" class="ghost small"><i class="fas fa-file-import"></i> Sugerir desde BOM × cantidad</button>
+        </form>
+    </div>
+}
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-boxes-stacked"></i> Materiales de la orden</div>
+    @if (d.Lines.Count == 0)
+    {
+        <p class="hint">Sin materiales asociados. La producción no requiere entrega de bodega.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Requerido</th>
+                        <th>Entregado</th>
+                        <th>Pendiente</th>
+                        <th>Stock</th>
+                        <th>Diferencia</th>
+                        <th>Estado</th>
+                        <th>Obs.</th>
+                        @if (canManage) { <th></th> }
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var line in d.Lines)
+                {
+                    <tr class="@(line.Availability != MaterialStockAvailability.Suficiente && !line.IsFullyDelivered ? "stock-warn-row" : null)">
+                        <td><strong>@line.MaterialName</strong><div class="hint">@line.MaterialCode</div></td>
+                        <td>@line.QuantityRequired.ToString("0.##") @line.UnitDisplay</td>
+                        <td>@line.QuantityDelivered.ToString("0.##")</td>
+                        <td>@line.QuantityPending.ToString("0.##")</td>
+                        <td>@line.StockAvailable.ToString("0.##")</td>
+                        <td>@line.Difference.ToString("0.##")</td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(line.Availability)">@DisplayHelper.StatusText(line.Availability)</span></td>
+                        <td><small>@(line.Observations ?? "—")</small></td>
+                        @if (canManage)
+                        {
+                            <td>
+                                @if (line.QuantityDelivered == 0 && d.CanEditRequirements)
+                                {
+                                    <form asp-action="RemoveMaterial" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="lineId" value="@line.Id" />
+                                        <input type="hidden" name="orderId" value="@d.OrderId" />
+                                        <button type="submit" class="small ghost">Quitar</button>
+                                    </form>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const select = document.querySelector('[data-material-select]');
+    const qty = document.querySelector('[data-qty-input]');
+    const preview = document.getElementById('stockPreview');
+    if (!select || !qty || !preview) return;
+
+    function refresh() {
+        const opt = select.options[select.selectedIndex];
+        if (!opt || !opt.value) { preview.hidden = true; return; }
+        const stock = parseFloat(opt.getAttribute('data-stock') || '0');
+        const unit = opt.getAttribute('data-unit') || '';
+        const required = parseFloat(qty.value || '0');
+        const diff = stock - required;
+        let label = 'Stock suficiente';
+        let cls = 'alert alert-info';
+        if (stock <= 0) { label = 'Sin existencias'; cls = 'alert alert-danger'; }
+        else if (required > 0 && stock < required) { label = 'Stock insuficiente'; cls = 'alert alert-warning'; }
+        preview.className = cls;
+        preview.hidden = false;
+        preview.textContent = label + ' · stock ' + stock.toFixed(2) + ' ' + unit
+            + (required > 0 ? ' · requerido ' + required.toFixed(2) + ' · diferencia ' + diff.toFixed(2) : '');
+    }
+    select.addEventListener('change', refresh);
+    qty.addEventListener('input', refresh);
+})();
+</script>
+}

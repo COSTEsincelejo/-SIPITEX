@@ -29,6 +29,7 @@ public class SipitexDbContext : DbContext
     public DbSet<SolicitudMaterial> SolicitudesMaterial => Set<SolicitudMaterial>(); // Solicitudes multi-ítem ligadas a Ficha
     public DbSet<DetalleSolicitudMaterial> DetallesSolicitudMaterial => Set<DetalleSolicitudMaterial>(); // Ítems de SolicitudMaterial
     public DbSet<EntregaMaterial> EntregasMaterial => Set<EntregaMaterial>(); // Entrega 1:1 de una solicitud resuelta
+    public DbSet<ProductionOrderMaterialRequirement> ProductionOrderMaterialRequirements => Set<ProductionOrderMaterialRequirement>(); // Materiales opcionales por orden
 
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -76,6 +77,28 @@ public class SipitexDbContext : DbContext
             e.Property(o => o.ProductName).HasMaxLength(80).IsRequired(); // Qué prenda se fabrica
             // Que no se repita el número de orden
             e.HasIndex(o => o.OrderNumber).IsUnique();
+            e.Property(o => o.MaterialsStatus).HasConversion<string>().HasMaxLength(40);
+        });
+
+        // Materiales opcionales asociados a una orden (seleccionados del inventario)
+        modelBuilder.Entity<ProductionOrderMaterialRequirement>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.QuantityRequired).HasPrecision(18, 2);
+            e.Property(r => r.QuantityDelivered).HasPrecision(18, 2);
+            e.Property(r => r.Observations).HasMaxLength(500);
+            e.HasOne(r => r.ProductionOrder)
+                .WithMany(o => o.MaterialRequirements)
+                .HasForeignKey(r => r.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Material)
+                .WithMany()
+                .HasForeignKey(r => r.MaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(r => r.ProductionOrderId);
+            e.HasIndex(r => new { r.ProductionOrderId, r.MaterialId }).IsUnique();
+            e.Ignore(r => r.QuantityPending);
+            e.Ignore(r => r.IsFullyDelivered);
         });
 
         // Snapshot de BOM al crear la orden

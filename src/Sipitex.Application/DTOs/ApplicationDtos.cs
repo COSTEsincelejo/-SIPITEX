@@ -47,7 +47,10 @@ public record ProductionOrderDto(
     int ProgressPercent,
     OrderStatus Status,
     DateOnly Deadline,
-    string MrpHint);
+    string MrpHint,
+    OrderMaterialsStatus MaterialsStatus = OrderMaterialsStatus.NoAplica,
+    bool HasMaterialRequirements = false,
+    bool CanRegisterProduction = true);
 
 // Alta de orden nueva
 public record CreateProductionOrderDto(string ProductName, int TotalQuantity, DateOnly Deadline);
@@ -289,3 +292,46 @@ public record ServiceResult(bool Success, string? Message = null)
     public static ServiceResult Ok(string? message = null) => new(true, message);
     public static ServiceResult Fail(string message) => new(false, message);
 }
+
+// --- Materiales de orden (bodega) ---
+
+public record OrderMaterialLineDto(
+    int Id,
+    int MaterialId,
+    string MaterialCode,
+    string MaterialName,
+    decimal QuantityRequired,
+    decimal QuantityDelivered,
+    decimal QuantityPending,
+    decimal StockAvailable,
+    decimal Difference, // Stock - QuantityPending (para lo que aún falta entregar)
+    string UnitDisplay,
+    MaterialUnit Unit,
+    string? Observations,
+    MaterialStockAvailability Availability,
+    bool IsFullyDelivered);
+
+public record OrderMaterialsDetailDto(
+    int OrderId,
+    string OrderNumber,
+    string ProductName,
+    OrderStatus Status,
+    OrderMaterialsStatus MaterialsStatus,
+    int TotalQuantity,
+    int ProducedQuantity,
+    bool CanRegisterProduction,
+    bool CanEditRequirements,
+    IReadOnlyList<OrderMaterialLineDto> Lines);
+
+public record AddOrderMaterialDto(
+    int OrderId,
+    int MaterialId,
+    decimal QuantityRequired,
+    string? Observations);
+
+public record DeliverOrderMaterialItemDto(int LineId, decimal QuantityToDeliver);
+
+public record DeliverOrderMaterialsDto(
+    int OrderId,
+    IReadOnlyList<DeliverOrderMaterialItemDto> Items,
+    string? Observations);

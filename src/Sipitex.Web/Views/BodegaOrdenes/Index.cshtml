@@ -1,0 +1,50 @@
+@model BodegaOrdenesIndexViewModel
+@{
+    ViewData["Title"] = "Materiales de órdenes";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Bodega · Órdenes";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Materiales de órdenes</h2>
+        <div class="sub">Revisar stock y entregar insumos asociados a órdenes de producción</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Orden</th>
+                    <th>Producto</th>
+                    <th>Estado materiales</th>
+                    <th>Producción</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Orders.Count == 0)
+            {
+                <tr><td colspan="5"><span class="hint">No hay órdenes con materiales pendientes de bodega.</span></td></tr>
+            }
+            @foreach (var o in Model.Orders)
+            {
+                <tr>
+                    <td><strong>@o.OrderNumber</strong></td>
+                    <td>@o.ProductName</td>
+                    <td><span class="badge @DisplayHelper.BadgeClass(o.MaterialsStatus)">@DisplayHelper.StatusText(o.MaterialsStatus)</span></td>
+                    <td>@o.ProducedQuantity / @o.TotalQuantity</td>
+                    <td><a class="small primary" asp-action="Detail" asp-route-id="@o.Id">Revisar / entregar</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

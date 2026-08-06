@@ -1,0 +1,141 @@
+@model BodegaOrdenDetailViewModel
+@{
+    ViewData["Title"] = $"Entrega {Model.Detail.OrderNumber}";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Bodega · Órdenes / Detalle";
+    Layout = "_Layout";
+    var d = Model.Detail;
+    var puedeEntregar = d.MaterialsStatus is OrderMaterialsStatus.PendienteRevisionBodega
+        or OrderMaterialsStatus.MaterialesValidados
+        or OrderMaterialsStatus.EntregaParcial;
+}
+
+<div class="page-header">
+    <div>
+        <h2>@d.OrderNumber</h2>
+        <div class="sub">@d.ProductName · materiales para producción</div>
+    </div>
+    <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-info-circle"></i> Cabecera</div>
+    <div class="solicitud-detail-meta">
+        <div><span class="field-label">Estado materiales</span><br /><span class="badge @DisplayHelper.BadgeClass(d.MaterialsStatus)">@DisplayHelper.StatusText(d.MaterialsStatus)</span></div>
+        <div><span class="field-label">Producción</span><br /><span class="badge @DisplayHelper.BadgeClass(d.Status)">@DisplayHelper.StatusText(d.Status)</span></div>
+        <div><span class="field-label">Avance</span><br />@d.ProducedQuantity / @d.TotalQuantity</div>
+        <div><span class="field-label">¿Lista para producir?</span><br />@(d.CanRegisterProduction ? "Sí" : "No")</div>
+    </div>
+    @if (puedeEntregar)
+    {
+        <form asp-action="ValidateStock" method="post" style="margin-top:12px;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@d.OrderId" />
+            <button type="submit" class="ghost small"><i class="fas fa-clipboard-check"></i> Validar stock</button>
+        </form>
+    }
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-truck-ramp-box"></i> Entrega de materiales</div>
+
+    @if (!puedeEntregar)
+    {
+        <p class="hint">Esta orden ya no admite entregas (completa o cerrada).</p>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Material</th><th>Requerido</th><th>Entregado</th><th>Pendiente</th><th>Stock</th><th>Estado</th></tr></thead>
+                <tbody>
+                @foreach (var line in d.Lines)
+                {
+                    <tr>
+                        <td>@line.MaterialName</td>
+                        <td>@line.QuantityRequired.ToString("0.##") @line.UnitDisplay</td>
+                        <td>@line.QuantityDelivered.ToString("0.##")</td>
+                        <td>@line.QuantityPending.ToString("0.##")</td>
+                        <td>@line.StockAvailable.ToString("0.##")</td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(line.Availability)">@DisplayHelper.StatusText(line.Availability)</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <form asp-action="Deliver" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="Deliver.OrderId" value="@d.OrderId" />
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Requerido</th>
+                            <th>Entregado</th>
+                            <th>Pendiente</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
+                            <th>Entregar ahora</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @{ var idx = 0; }
+                    @foreach (var line in d.Lines)
+                    {
+                        var maxEntregar = Math.Min(line.QuantityPending, line.StockAvailable);
+                        var stockBajo = !line.IsFullyDelivered && line.StockAvailable < line.QuantityPending;
+                        <tr class="@(stockBajo ? "stock-warn-row" : null)">
+                            <td>
+                                <strong>@line.MaterialName</strong>
+                                @if (line.IsFullyDelivered)
+                                {
+                                    <div class="hint">Completo</div>
+                                }
+                            </td>
+                            <td>@line.QuantityRequired.ToString("0.##") @line.UnitDisplay</td>
+                            <td>@line.QuantityDelivered.ToString("0.##")</td>
+                            <td>@line.QuantityPending.ToString("0.##")</td>
+                            <td class="@(stockBajo ? "stock-warn-text" : null)">@line.StockAvailable.ToString("0.##")</td>
+                            <td><span class="badge @DisplayHelper.BadgeClass(line.Availability)">@DisplayHelper.StatusText(line.Availability)</span></td>
+                            <td>
+                                <input type="hidden" name="Deliver.Items[@idx].LineId" value="@line.Id" />
+                                @if (line.IsFullyDelivered || maxEntregar <= 0)
+                                {
+                                    <input type="hidden" name="Deliver.Items[@idx].QuantityToDeliver" value="0" />
+                                    <span class="hint">@(line.IsFullyDelivered ? "—" : "Sin stock")</span>
+                                }
+                                else
+                                {
+                                    <input type="number"
+                                           name="Deliver.Items[@idx].QuantityToDeliver"
+                                           value="@maxEntregar.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           min="0"
+                                           max="@maxEntregar.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           step="0.01"
+                                           style="width:100px"
+                                           aria-label="Cantidad a entregar de @line.MaterialName" />
+                                    <span class="hint">máx. @maxEntregar.ToString("0.##")</span>
+                                }
+                            </td>
+                        </tr>
+                        idx++;
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="field" style="margin-top:12px;">
+                <label class="field-label">Observaciones de entrega</label>
+                <input name="Deliver.Observations" maxlength="500" placeholder="Opcional" style="width:100%" />
+            </div>
+            <div class="form-row" style="margin-top:12px;gap:8px;">
+                <button type="submit" class="primary"><i class="fas fa-check"></i> Confirmar entrega</button>
+            </div>
+            <p class="hint">Puede entregar parcialmente. El inventario solo descuenta lo realmente entregado y nunca queda negativo.</p>
+        </form>
+    }
+</div>

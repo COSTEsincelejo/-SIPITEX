@@ -23,6 +23,9 @@ public class ProductionOrder
     // Estado actual; arranca EnProceso
     public OrderStatus Status { get; set; } = OrderStatus.EnProceso;
 
+    // Flujo de materiales de bodega (NoAplica si la orden no asocia insumos)
+    public OrderMaterialsStatus MaterialsStatus { get; set; } = OrderMaterialsStatus.NoAplica;
+
     // Fecha límite de entrega (solo día)
     public DateOnly Deadline { get; set; }
 
@@ -37,4 +40,7 @@ public class ProductionOrder
 
     // Receta congelada al crear la orden (independiente del BOM vigente)
     public ICollection<ProductionOrderBomSnapshot> BomSnapshots { get; set; } = [];
+
+    // Materiales opcionales a entregar desde bodega antes de producir
+    public ICollection<ProductionOrderMaterialRequirement> MaterialRequirements { get; set; } = [];
 }

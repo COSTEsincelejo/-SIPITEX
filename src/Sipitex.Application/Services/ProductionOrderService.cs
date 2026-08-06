@@ -14,6 +14,7 @@ public class ProductionOrderService : IProductionOrderService
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IBomRepository _bomRepository;
     private readonly IProductionOrderBomSnapshotRepository _snapshotRepository;
+    private readonly IOrderMaterialRequirementRepository _requirementRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ProductionConsumptionService _consumptionService;
 
@@ -21,12 +22,14 @@ public class ProductionOrderService : IProductionOrderService
         IProductionOrderRepository orderRepository,
         IBomRepository bomRepository,
         IProductionOrderBomSnapshotRepository snapshotRepository,
+        IOrderMaterialRequirementRepository requirementRepository,
         IUnitOfWork unitOfWork,
         ProductionConsumptionService consumptionService)
     {
         _orderRepository = orderRepository;
         _bomRepository = bomRepository;
         _snapshotRepository = snapshotRepository;
+        _requirementRepository = requirementRepository;
         _unitOfWork = unitOfWork;
         _consumptionService = consumptionService;
     }
@@ -43,6 +46,7 @@ public class ProductionOrderService : IProductionOrderService
             var pct = order.TotalQuantity > 0
                 ? Math.Min(100, (int)Math.Round(order.ProducedQuantity * 100m / order.TotalQuantity))
                 : 0;
+            var reqs = await _requirementRepository.GetByOrderIdAsync(order.Id, cancellationToken);
 
             result.Add(new ProductionOrderDto(
                 order.Id,
@@ -53,7 +57,10 @@ public class ProductionOrderService : IProductionOrderService
                 pct,
                 order.Status,
                 order.Deadline,
-                hint));
+                hint,
+                order.MaterialsStatus,
+                reqs.Count > 0,
+                OrderMaterialService.CanRegisterProduction(order)));
         }
 
         return result;
@@ -83,6 +90,7 @@ public class ProductionOrderService : IProductionOrderService
             TotalQuantity = dto.TotalQuantity,
             ProducedQuantity = 0,
             Status = OrderStatus.EnProceso,
+            MaterialsStatus = OrderMaterialsStatus.NoAplica,
             Deadline = dto.Deadline
         };
 
@@ -112,12 +120,21 @@ public class ProductionOrderService : IProductionOrderService
         if (order is null || order.Status == OrderStatus.Finalizada)
             return ServiceResult.Fail("Orden finalizada o inválida.");
 
+        // Gate: si la orden exige materiales de bodega, deben estar entregados por completo
+        if (!OrderMaterialService.CanRegisterProduction(order))
+            return ServiceResult.Fail(
+                "No se puede iniciar producción: hay materiales pendientes de entrega en bodega.");
+
         var toAdd = Math.Min(units, order.TotalQuantity - order.ProducedQuantity);
         if (toAdd <= 0) return ServiceResult.Fail("La orden ya alcanzó su meta.");
 
-        var recipe = await ResolveRecipeForOrderAsync(order, cancellationToken);
-        if (!await _consumptionService.ConsumeRecipeAsync(recipe, toAdd, cancellationToken))
-            return ServiceResult.Fail("Consumo fallido: materiales insuficientes.");
+        // Si bodega ya entregó los materiales de la orden, no volver a descontar BOM (evita doble consumo)
+        if (!OrderMaterialService.UsesWarehouseIssuedMaterials(order))
+        {
+            var recipe = await ResolveRecipeForOrderAsync(order, cancellationToken);
+            if (!await _consumptionService.ConsumeRecipeAsync(recipe, toAdd, cancellationToken))
+                return ServiceResult.Fail("Consumo fallido: materiales insuficientes.");
+        }
 
         ProductionConsumptionService.UpdateOrderProgress(order, toAdd);
         _orderRepository.Update(order);

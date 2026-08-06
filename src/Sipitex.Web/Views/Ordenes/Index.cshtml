@@ -61,12 +61,15 @@
 <div class="card">
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Orden</th><th>Producto</th><th>Cantidad</th><th>Producido</th><th>Avance</th><th>Estado</th><th>MRP sugerido</th><th></th></tr></thead>
+            <thead><tr><th>Orden</th><th>Producto</th><th>Cantidad</th><th>Producido</th><th>Avance</th><th>Estado</th><th>Materiales</th><th>MRP sugerido</th><th></th></tr></thead>
             <tbody>
             @foreach (var order in Model.Orders)
             {
                 <tr>
-                    <td><strong>@order.OrderNumber</strong></td>
+                    <td>
+                        <strong>@order.OrderNumber</strong>
+                        <div><a class="hint" asp-action="Detail" asp-route-id="@order.Id">Materiales</a></div>
+                    </td>
                     <td>@order.ProductName</td>
                     <td>@order.TotalQuantity</td>
                     <td>@order.ProducedQuantity</td>
@@ -75,10 +78,11 @@
                         <div style="font-size:11px;color:var(--text-mut);margin-top:4px;">@order.ProgressPercent%</div>
                     </td>
                     <td><span class="badge @DisplayHelper.BadgeClass(order.Status)">@DisplayHelper.StatusText(order.Status)</span></td>
+                    <td><span class="badge @DisplayHelper.BadgeClass(order.MaterialsStatus)">@DisplayHelper.StatusText(order.MaterialsStatus)</span></td>
                     <td><small style="color:var(--text-mut);">@order.MrpHint</small></td>
                     <td>
-                        @* Campo libre: sumar N unidades (mín. 1) si la orden no está finalizada *@
-                        @if (order.Status != OrderStatus.Finalizada)
+                        @* Campo libre: sumar N unidades (mín. 1) si la orden no está finalizada y materiales listos *@
+                        @if (order.Status != OrderStatus.Finalizada && order.CanRegisterProduction)
                         {
                             <form asp-action="AddProduction" method="post" class="row-actions">
                                 @Html.AntiForgeryToken()
@@ -86,6 +90,10 @@
                                 <input type="number" name="units" min="1" step="1" value="1" placeholder="uds" style="width:72px" required aria-label="Unidades a registrar" />
                                 <button type="submit" class="small ghost">+ uds</button>
                             </form>
+                        }
+                        else if (order.Status != OrderStatus.Finalizada && !order.CanRegisterProduction)
+                        {
+                            <span class="hint">Pendiente bodega</span>
                         }
                     </td>
                 </tr>
