@@ -56,6 +56,7 @@ public class CreateOrderForm
 {
     public string ProductName { get; set; } = string.Empty;
     public int TotalQuantity { get; set; }
+    public string? ClientName { get; set; }
     public DateOnly Deadline { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 }
 
@@ -268,11 +269,22 @@ public class ReportesIndexViewModel
     public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
 }
 
-// Detalle de materiales asociados a una orden
+// Detalle de materiales asociados a una orden (legacy VM; Detail usa OrdenMesDetailViewModel)
 public class OrdenMaterialDetailViewModel
 {
     public OrderMaterialsDetailDto Detail { get; set; } = null!;
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public AddOrderMaterialForm AddMaterial { get; set; } = new();
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+// Detalle MES completo de una orden
+public class OrdenMesDetailViewModel
+{
+    public OrderMesDetailDto Mes { get; set; } = null!;
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public IReadOnlyList<Sipitex.Domain.Entities.User> Instructors { get; set; } = [];
     public AddOrderMaterialForm AddMaterial { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }

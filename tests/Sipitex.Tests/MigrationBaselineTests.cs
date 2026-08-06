@@ -56,14 +56,15 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
             Assert.True(await TableExistsAsync(dbPath, "Users"));
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            // ... + AddOrderMaterialRequirements = 11
-            Assert.Equal(11, await CountMigrationRowsAsync(dbPath));
+            // ... + AddProductionOrderMesFlow = 12
+            Assert.Equal(12, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "DetallesSolicitudMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "EntregasMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
             Assert.True(await TableExistsAsync(dbPath, "ProductionOrderMaterialRequirements"));
+            Assert.True(await TableExistsAsync(dbPath, "ProductionOrderStages"));
             Assert.True(await TableExistsAsync(dbPath, "ProductionOrderBomSnapshots"));
         }
         finally
@@ -103,7 +104,7 @@ public class MigrationBaselineTests
             }
 
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(11, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(12, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
@@ -130,6 +131,7 @@ public class MigrationBaselineTests
                 Assert.Contains(ids, id => id.Contains("AddSolicitudMaterial", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddBomProductAndOrderSnapshot", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddOrderMaterialRequirements", StringComparison.Ordinal));
+                Assert.Contains(ids, id => id.Contains("AddProductionOrderMesFlow", StringComparison.Ordinal));
             }
         }
         finally
@@ -150,7 +152,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(11, before);
+            Assert.Equal(12, before);
 
             await using (var context = CreateContext(dbPath))
             {

@@ -15,6 +15,8 @@ public class ProductionOrderService : IProductionOrderService
     private readonly IBomRepository _bomRepository;
     private readonly IProductionOrderBomSnapshotRepository _snapshotRepository;
     private readonly IOrderMaterialRequirementRepository _requirementRepository;
+    private readonly IProductionFlowRepository _flowRepository;
+    private readonly IProductionFlowService _flowService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ProductionConsumptionService _consumptionService;
 
@@ -23,6 +25,8 @@ public class ProductionOrderService : IProductionOrderService
         IBomRepository bomRepository,
         IProductionOrderBomSnapshotRepository snapshotRepository,
         IOrderMaterialRequirementRepository requirementRepository,
+        IProductionFlowRepository flowRepository,
+        IProductionFlowService flowService,
         IUnitOfWork unitOfWork,
         ProductionConsumptionService consumptionService)
     {
@@ -30,6 +34,8 @@ public class ProductionOrderService : IProductionOrderService
         _bomRepository = bomRepository;
         _snapshotRepository = snapshotRepository;
         _requirementRepository = requirementRepository;
+        _flowRepository = flowRepository;
+        _flowService = flowService;
         _unitOfWork = unitOfWork;
         _consumptionService = consumptionService;
     }
@@ -47,6 +53,14 @@ public class ProductionOrderService : IProductionOrderService
                 ? Math.Min(100, (int)Math.Round(order.ProducedQuantity * 100m / order.TotalQuantity))
                 : 0;
             var reqs = await _requirementRepository.GetByOrderIdAsync(order.Id, cancellationToken);
+            var stages = await _flowRepository.GetStagesByOrderAsync(order.Id, cancellationToken);
+            var flowPct = stages.Count == 0
+                ? 0
+                : Math.Min(100, (int)Math.Round(
+                    stages.Count(s => s.Status == ProductionStageStatus.Finalizado) * 100m / stages.Count));
+            var combined = stages.Count == 0 ? pct : (pct + flowPct) / 2;
+            var currentName = stages.FirstOrDefault(s => s.Id == order.CurrentStageId)?.Name
+                              ?? stages.FirstOrDefault(s => s.Status != ProductionStageStatus.Finalizado)?.Name;
 
             result.Add(new ProductionOrderDto(
                 order.Id,
@@ -60,7 +74,11 @@ public class ProductionOrderService : IProductionOrderService
                 hint,
                 order.MaterialsStatus,
                 reqs.Count > 0,
-                OrderMaterialService.CanRegisterProduction(order)));
+                OrderMaterialService.CanRegisterProduction(order),
+                order.ClientName,
+                currentName,
+                flowPct,
+                combined));
         }
 
         return result;
@@ -87,6 +105,7 @@ public class ProductionOrderService : IProductionOrderService
         {
             OrderNumber = orderNumber,
             ProductName = product.ProductName,
+            ClientName = string.IsNullOrWhiteSpace(dto.ClientName) ? null : dto.ClientName.Trim(),
             TotalQuantity = dto.TotalQuantity,
             ProducedQuantity = 0,
             Status = OrderStatus.EnProceso,
@@ -109,6 +128,10 @@ public class ProductionOrderService : IProductionOrderService
 
         await _snapshotRepository.AddRangeAsync(snapshots, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Inicializa flujo MES (plantilla del producto o default) — no altera BOM/MRP
+        await _flowService.EnsureStagesForOrderAsync(order.Id, "Sistema", cancellationToken);
+
         return ServiceResult.Ok($"Orden {orderNumber} creada.");
     }
 
@@ -139,6 +162,8 @@ public class ProductionOrderService : IProductionOrderService
         ProductionConsumptionService.UpdateOrderProgress(order, toAdd);
         _orderRepository.Update(order);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _flowService.LogProductionRegisteredAsync(orderId, toAdd, null, cancellationToken);
         return ServiceResult.Ok($"Se registraron {toAdd} unidades.");
     }
 

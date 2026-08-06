@@ -30,6 +30,14 @@ public class SipitexDbContext : DbContext
     public DbSet<DetalleSolicitudMaterial> DetallesSolicitudMaterial => Set<DetalleSolicitudMaterial>(); // Ítems de SolicitudMaterial
     public DbSet<EntregaMaterial> EntregasMaterial => Set<EntregaMaterial>(); // Entrega 1:1 de una solicitud resuelta
     public DbSet<ProductionOrderMaterialRequirement> ProductionOrderMaterialRequirements => Set<ProductionOrderMaterialRequirement>(); // Materiales opcionales por orden
+    public DbSet<ProductFlowTemplate> ProductFlowTemplates => Set<ProductFlowTemplate>();
+    public DbSet<ProductFlowStageTemplate> ProductFlowStageTemplates => Set<ProductFlowStageTemplate>();
+    public DbSet<ProductionOrderStage> ProductionOrderStages => Set<ProductionOrderStage>();
+    public DbSet<ProductionOrderStageMovement> ProductionOrderStageMovements => Set<ProductionOrderStageMovement>();
+    public DbSet<ProductionOrderHistoryEntry> ProductionOrderHistoryEntries => Set<ProductionOrderHistoryEntry>();
+    public DbSet<FinishedGoodStock> FinishedGoodStocks => Set<FinishedGoodStock>();
+    public DbSet<FinishedGoodMovement> FinishedGoodMovements => Set<FinishedGoodMovement>();
+    public DbSet<InstructorStagePermission> InstructorStagePermissions => Set<InstructorStagePermission>();
 
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -75,9 +83,14 @@ public class SipitexDbContext : DbContext
             e.HasKey(o => o.Id); // PK de la orden
             e.Property(o => o.OrderNumber).HasMaxLength(20).IsRequired(); // OP-001, OP-002...
             e.Property(o => o.ProductName).HasMaxLength(80).IsRequired(); // Qué prenda se fabrica
+            e.Property(o => o.ClientName).HasMaxLength(120);
             // Que no se repita el número de orden
             e.HasIndex(o => o.OrderNumber).IsUnique();
             e.Property(o => o.MaterialsStatus).HasConversion<string>().HasMaxLength(40);
+            e.HasOne(o => o.CurrentStage)
+                .WithMany()
+                .HasForeignKey(o => o.CurrentStageId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Materiales opcionales asociados a una orden (seleccionados del inventario)
@@ -316,6 +329,123 @@ public class SipitexDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Flujo MES: plantillas por producto ---
+        modelBuilder.Entity<ProductFlowTemplate>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.ProductName).HasMaxLength(80).IsRequired();
+            e.Property(t => t.Name).HasMaxLength(120).IsRequired();
+            e.HasIndex(t => t.ProductName);
+        });
+
+        modelBuilder.Entity<ProductFlowStageTemplate>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Name).HasMaxLength(80).IsRequired();
+            e.HasOne(s => s.Template)
+                .WithMany(t => t.Stages)
+                .HasForeignKey(s => s.ProductFlowTemplateId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(s => new { s.ProductFlowTemplateId, s.SortOrder });
+        });
+
+        modelBuilder.Entity<ProductionOrderStage>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Name).HasMaxLength(80).IsRequired();
+            e.Property(s => s.Status).HasConversion<string>().HasMaxLength(30);
+            e.Property(s => s.Observations).HasMaxLength(1000);
+            e.HasOne(s => s.ProductionOrder)
+                .WithMany(o => o.Stages)
+                .HasForeignKey(s => s.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.InstructorUser)
+                .WithMany()
+                .HasForeignKey(s => s.InstructorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(s => new { s.ProductionOrderId, s.SortOrder });
+            e.Ignore(s => s.QuantityAvailable);
+        });
+
+        modelBuilder.Entity<ProductionOrderStageMovement>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.MovementType).HasMaxLength(30).IsRequired();
+            e.Property(m => m.Motive).HasMaxLength(200);
+            e.Property(m => m.Observations).HasMaxLength(1000);
+            e.HasOne(m => m.ProductionOrder)
+                .WithMany(o => o.StageMovements)
+                .HasForeignKey(m => m.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.FromStage)
+                .WithMany()
+                .HasForeignKey(m => m.FromStageId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.ToStage)
+                .WithMany()
+                .HasForeignKey(m => m.ToStageId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.ActorUser)
+                .WithMany()
+                .HasForeignKey(m => m.ActorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.AuthorizedByUser)
+                .WithMany()
+                .HasForeignKey(m => m.AuthorizedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(m => m.ProductionOrderId);
+        });
+
+        modelBuilder.Entity<ProductionOrderHistoryEntry>(e =>
+        {
+            e.HasKey(h => h.Id);
+            e.Property(h => h.EventType).HasConversion<string>().HasMaxLength(40);
+            e.Property(h => h.Message).HasMaxLength(500).IsRequired();
+            e.Property(h => h.ActorUserName).HasMaxLength(120);
+            e.Property(h => h.StageName).HasMaxLength(80);
+            e.HasOne(h => h.ProductionOrder)
+                .WithMany(o => o.HistoryEntries)
+                .HasForeignKey(h => h.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(h => new { h.ProductionOrderId, h.AtUtc });
+        });
+
+        modelBuilder.Entity<FinishedGoodStock>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.Property(f => f.ProductName).HasMaxLength(80).IsRequired();
+            e.Property(f => f.Stock).HasPrecision(18, 2);
+            e.HasIndex(f => f.ProductName).IsUnique();
+        });
+
+        modelBuilder.Entity<FinishedGoodMovement>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.Property(f => f.ProductName).HasMaxLength(80).IsRequired();
+            e.Property(f => f.Quantity).HasPrecision(18, 2);
+            e.Property(f => f.Observations).HasMaxLength(1000);
+            e.HasOne(f => f.ProductionOrder)
+                .WithMany()
+                .HasForeignKey(f => f.ProductionOrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(f => f.ActorUser)
+                .WithMany()
+                .HasForeignKey(f => f.ActorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(f => f.ProductName);
+        });
+
+        modelBuilder.Entity<InstructorStagePermission>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.StageName).HasMaxLength(80).IsRequired();
+            e.HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(p => new { p.UserId, p.StageName }).IsUnique();
         });
     }
 }

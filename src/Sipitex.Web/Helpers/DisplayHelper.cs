@@ -32,6 +32,14 @@ public static class DisplayHelper
         _ => "badge-info"
     };
 
+    public static string BadgeClass(ProductionStageStatus status) => status switch
+    {
+        ProductionStageStatus.Finalizado => "badge-success",
+        ProductionStageStatus.EnProceso => "badge-info",
+        ProductionStageStatus.Pausado => "badge-warning",
+        _ => "badge-warning"
+    };
+
     public static string BadgeClass(MaterialStockAvailability availability) => availability switch
     {
         MaterialStockAvailability.Suficiente => "badge-success",
@@ -99,6 +107,10 @@ public static class DisplayHelper
         MaterialStockAvailability.Suficiente => "Stock suficiente",
         MaterialStockAvailability.Insuficiente => "Stock insuficiente",
         MaterialStockAvailability.SinExistencias => "Sin existencias",
+        ProductionStageStatus.Pendiente => "Pendiente",
+        ProductionStageStatus.EnProceso => "En proceso",
+        ProductionStageStatus.Pausado => "Pausado",
+        ProductionStageStatus.Finalizado => "Finalizado",
         RequestStatus.Pendiente => "Pendiente",
         RequestStatus.Aprobada => "Aprobada",
         RequestStatus.Rechazada => "Rechazada",
