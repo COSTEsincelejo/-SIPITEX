@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
@@ -9,43 +11,96 @@ namespace Sipitex.Web.Controllers;
 public class ReportesController : Controller
 {
     private readonly IReportService _reportService;
+    private readonly IFichaService _fichaService;
 
-    public ReportesController(IReportService reportService) => _reportService = reportService;
-
-    // Menú de reportes disponibles
-    [HttpGet]
-    public IActionResult Index()
+    public ReportesController(IReportService reportService, IFichaService fichaService)
     {
-        // Título de la pestaña del navegador
-        ViewData["Title"] = "Reportes";
-        // Migas de pan en el layout
-        ViewData["Breadcrumb"] = "SIPITEX / Análisis / Reportes";
-        return View();
+        _reportService = reportService;
+        _fichaService = fichaService;
     }
 
-    // Export inventario: ?format=pdf o excel
+    // Menú de reportes + filtros opcionales
     [HttpGet]
-    // El servicio genera bytes y yo los devuelvo como archivo
-    public async Task<IActionResult> Inventario(string format = "pdf", CancellationToken cancellationToken = default) =>
-        FileResult(await _reportService.ExportInventoryAsync(format, cancellationToken));
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    {
+        ViewData["Title"] = "Reportes";
+        ViewData["Breadcrumb"] = "SIPITEX / Análisis / Reportes";
 
-    // Export órdenes de producción
+        var instructors = await _fichaService.GetActiveInstructorsAsync(cancellationToken);
+        var fichas = await _fichaService.GetFichasAsync(cancellationToken: cancellationToken);
+
+        return View(new ReportesIndexViewModel
+        {
+            Instructors = instructors,
+            Fichas = fichas
+        });
+    }
+
+    // Export inventario: ?format=pdf|excel + filtros opcionales
     [HttpGet]
-    public async Task<IActionResult> Ordenes(string format = "pdf", CancellationToken cancellationToken = default) =>
-        FileResult(await _reportService.ExportOrdersAsync(format, cancellationToken));
+    public async Task<IActionResult> Inventario(
+        string format = "pdf",
+        int? instructorId = null,
+        int? fichaId = null,
+        string? jornada = null,
+        DateOnly? fecha = null,
+        int? mes = null,
+        int? anio = null,
+        CancellationToken cancellationToken = default) =>
+        FileResult(await _reportService.ExportInventoryAsync(
+            format, ToFilter(instructorId, fichaId, jornada, fecha, mes, anio), cancellationToken));
 
-    // Export registros de calidad
     [HttpGet]
-    public async Task<IActionResult> Calidad(string format = "pdf", CancellationToken cancellationToken = default) =>
-        FileResult(await _reportService.ExportQualityAsync(format, cancellationToken));
+    public async Task<IActionResult> Ordenes(
+        string format = "pdf",
+        int? instructorId = null,
+        int? fichaId = null,
+        string? jornada = null,
+        DateOnly? fecha = null,
+        int? mes = null,
+        int? anio = null,
+        CancellationToken cancellationToken = default) =>
+        FileResult(await _reportService.ExportOrdersAsync(
+            format, ToFilter(instructorId, fichaId, jornada, fecha, mes, anio), cancellationToken));
 
-    // Export resumen del dashboard
     [HttpGet]
-    public async Task<IActionResult> Dashboard(string format = "pdf", CancellationToken cancellationToken = default) =>
-        FileResult(await _reportService.ExportDashboardAsync(format, cancellationToken));
+    public async Task<IActionResult> Calidad(
+        string format = "pdf",
+        int? instructorId = null,
+        int? fichaId = null,
+        string? jornada = null,
+        DateOnly? fecha = null,
+        int? mes = null,
+        int? anio = null,
+        CancellationToken cancellationToken = default) =>
+        FileResult(await _reportService.ExportQualityAsync(
+            format, ToFilter(instructorId, fichaId, jornada, fecha, mes, anio), cancellationToken));
 
-    // Convierte el DTO del servicio en FileContentResult para el navegador
-    private FileContentResult FileResult(Application.DTOs.ReportFileDto file) =>
-        // Content = bytes, ContentType = application/pdf o excel, FileName para la descarga
+    [HttpGet]
+    public async Task<IActionResult> Dashboard(
+        string format = "pdf",
+        int? instructorId = null,
+        int? fichaId = null,
+        string? jornada = null,
+        DateOnly? fecha = null,
+        int? mes = null,
+        int? anio = null,
+        CancellationToken cancellationToken = default) =>
+        FileResult(await _reportService.ExportDashboardAsync(
+            format, ToFilter(instructorId, fichaId, jornada, fecha, mes, anio), cancellationToken));
+
+    private static ReportFilterDto? ToFilter(
+        int? instructorId,
+        int? fichaId,
+        string? jornada,
+        DateOnly? fecha,
+        int? mes,
+        int? anio)
+    {
+        var filter = new ReportFilterDto(instructorId, fichaId, jornada, fecha, mes, anio);
+        return filter.HasAny ? filter : null;
+    }
+
+    private FileContentResult FileResult(ReportFileDto file) =>
         File(file.Content, file.ContentType, file.FileName);
 }

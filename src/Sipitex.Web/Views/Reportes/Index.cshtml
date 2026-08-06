@@ -1,14 +1,93 @@
+@model ReportesIndexViewModel
 @{
-    // Metadatos de la página para el layout
     ViewData["Title"] = "Reportes";
     ViewData["Breadcrumb"] = "SIPITEX / Análisis / Reportes";
     Layout = "_Layout";
+    var yearNow = DateTime.Today.Year;
 }
 
 <div class="page-header">
     <div>
         <h2>Reportes</h2>
-        <div class="sub">Descargue reportes operativos en PDF o Excel</div>
+        <div class="sub">Descargue reportes operativos en PDF o Excel. Los filtros son opcionales y se aplican a cada descarga.</div>
+    </div>
+</div>
+
+<div class="card" id="reportFiltersCard">
+    <div class="card-title"><i class="fas fa-filter"></i> Filtros de búsqueda</div>
+    <p class="hint" style="margin-top:0;">
+        Combinables y opcionales. Si un filtro no aplica al tipo de reporte (p. ej. Instructor en Inventario), se ignora en esa descarga.
+    </p>
+    <div class="form-row" id="reportFilters">
+        <div class="field">
+            <label class="field-label" for="filterInstructor">Instructor</label>
+            <select id="filterInstructor" data-filter="instructorId">
+                <option value="">Todos</option>
+                @foreach (var i in Model.Instructors)
+                {
+                    <option value="@i.Id">@i.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label class="field-label" for="filterFicha">Ficha</label>
+            <select id="filterFicha" data-filter="fichaId">
+                <option value="">Todas</option>
+                @foreach (var f in Model.Fichas)
+                {
+                    <option value="@f.Id">@f.FichaCode — @f.ProcessName</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label class="field-label" for="filterJornada">Jornada</label>
+            <select id="filterJornada" data-filter="jornada">
+                <option value="">Todas</option>
+                <option value="Mañana">Mañana</option>
+                <option value="Tarde">Tarde</option>
+                <option value="Noche">Noche</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-row" style="align-items:flex-end;">
+        <div class="field">
+            <label class="field-label" for="filterDateMode">Tipo de fecha</label>
+            <select id="filterDateMode">
+                <option value="none">Sin filtro de fecha</option>
+                <option value="dia">Día específico</option>
+                <option value="mes">Mes y año</option>
+            </select>
+        </div>
+        <div class="field" id="filterDiaWrap" hidden>
+            <label class="field-label" for="filterFecha">Día</label>
+            <input type="date" id="filterFecha" data-filter="fecha" />
+        </div>
+        <div class="field" id="filterMesWrap" hidden>
+            <label class="field-label" for="filterMes">Mes</label>
+            <select id="filterMes" data-filter="mes">
+                <option value="">—</option>
+                @for (var m = 1; m <= 12; m++)
+                {
+                    <option value="@m">@System.Globalization.CultureInfo.GetCultureInfo("es-CO").DateTimeFormat.GetMonthName(m)</option>
+                }
+            </select>
+        </div>
+        <div class="field" id="filterAnioWrap" hidden>
+            <label class="field-label" for="filterAnio">Año</label>
+            <select id="filterAnio" data-filter="anio">
+                <option value="">—</option>
+                @for (var y = yearNow; y >= yearNow - 5; y--)
+                {
+                    <option value="@y">@y</option>
+                }
+            </select>
+        </div>
+        <button type="button" class="ghost small" id="clearReportFilters"><i class="fas fa-eraser"></i> Limpiar filtros</button>
+    </div>
+
+    <div id="activeFiltersSummary" class="filter-summary" hidden>
+        <span>Filtrando por: <strong id="activeFiltersText"></strong></span>
     </div>
 </div>
 
@@ -18,8 +97,8 @@
         <h3>Inventario</h3>
         <p>Stock, estado, mínimos y última entrada.</p>
         <div class="report-actions">
-            <a class="btn primary small js-download" asp-action="Inventario" asp-route-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
-            <a class="btn ghost small js-download" asp-action="Inventario" asp-route-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
+            <a class="btn primary small js-download js-report-download" asp-action="Inventario" asp-route-format="pdf" data-report-base="@Url.Action("Inventario")" data-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn ghost small js-download js-report-download" asp-action="Inventario" asp-route-format="excel" data-report-base="@Url.Action("Inventario")" data-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
         </div>
     </div>
     <div class="module-link report-card">
@@ -27,8 +106,8 @@
         <h3>Órdenes</h3>
         <p>Avance, meta, estado y fechas límite.</p>
         <div class="report-actions">
-            <a class="btn primary small js-download" asp-action="Ordenes" asp-route-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
-            <a class="btn ghost small js-download" asp-action="Ordenes" asp-route-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
+            <a class="btn primary small js-download js-report-download" asp-action="Ordenes" asp-route-format="pdf" data-report-base="@Url.Action("Ordenes")" data-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn ghost small js-download js-report-download" asp-action="Ordenes" asp-route-format="excel" data-report-base="@Url.Action("Ordenes")" data-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
         </div>
     </div>
     <div class="module-link report-card">
@@ -36,8 +115,8 @@
         <h3>Calidad</h3>
         <p>Inspecciones, reprocesos, motivo y responsable.</p>
         <div class="report-actions">
-            <a class="btn primary small js-download" asp-action="Calidad" asp-route-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
-            <a class="btn ghost small js-download" asp-action="Calidad" asp-route-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
+            <a class="btn primary small js-download js-report-download" asp-action="Calidad" asp-route-format="pdf" data-report-base="@Url.Action("Calidad")" data-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn ghost small js-download js-report-download" asp-action="Calidad" asp-route-format="excel" data-report-base="@Url.Action("Calidad")" data-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
         </div>
     </div>
     <div class="module-link report-card">
@@ -45,8 +124,116 @@
         <h3>Dashboard KPI</h3>
         <p>Indicadores globales de producción y calidad.</p>
         <div class="report-actions">
-            <a class="btn primary small js-download" asp-action="Dashboard" asp-route-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
-            <a class="btn ghost small js-download" asp-action="Dashboard" asp-route-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
+            <a class="btn primary small js-download js-report-download" asp-action="Dashboard" asp-route-format="pdf" data-report-base="@Url.Action("Dashboard")" data-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn ghost small js-download js-report-download" asp-action="Dashboard" asp-route-format="excel" data-report-base="@Url.Action("Dashboard")" data-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
         </div>
     </div>
 </div>
+
+@section Scripts {
+<script>
+(function () {
+    const instructor = document.getElementById('filterInstructor');
+    const ficha = document.getElementById('filterFicha');
+    const jornada = document.getElementById('filterJornada');
+    const dateMode = document.getElementById('filterDateMode');
+    const fecha = document.getElementById('filterFecha');
+    const mes = document.getElementById('filterMes');
+    const anio = document.getElementById('filterAnio');
+    const diaWrap = document.getElementById('filterDiaWrap');
+    const mesWrap = document.getElementById('filterMesWrap');
+    const anioWrap = document.getElementById('filterAnioWrap');
+    const summary = document.getElementById('activeFiltersSummary');
+    const summaryText = document.getElementById('activeFiltersText');
+    const clearBtn = document.getElementById('clearReportFilters');
+    const links = document.querySelectorAll('.js-report-download');
+
+    function syncDateMode() {
+        const mode = dateMode?.value || 'none';
+        if (diaWrap) diaWrap.hidden = mode !== 'dia';
+        if (mesWrap) mesWrap.hidden = mode !== 'mes';
+        if (anioWrap) anioWrap.hidden = mode !== 'mes';
+        if (mode !== 'dia' && fecha) fecha.value = '';
+        if (mode !== 'mes') {
+            if (mes) mes.value = '';
+            if (anio) anio.value = '';
+        }
+        refresh();
+    }
+
+    function selectedLabel(select) {
+        if (!select || !select.value) return '';
+        return select.options[select.selectedIndex]?.text?.trim() || select.value;
+    }
+
+    function monthName(m) {
+        const names = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        return names[Number(m)] || m;
+    }
+
+    function buildParams(format) {
+        const params = new URLSearchParams();
+        params.set('format', format);
+        if (instructor?.value) params.set('instructorId', instructor.value);
+        if (ficha?.value) params.set('fichaId', ficha.value);
+        if (jornada?.value) params.set('jornada', jornada.value);
+        const mode = dateMode?.value || 'none';
+        if (mode === 'dia' && fecha?.value) params.set('fecha', fecha.value);
+        if (mode === 'mes') {
+            if (mes?.value) params.set('mes', mes.value);
+            if (anio?.value) params.set('anio', anio.value);
+        }
+        return params;
+    }
+
+    function refresh() {
+        const parts = [];
+        if (instructor?.value) parts.push('Instructor ' + selectedLabel(instructor));
+        if (ficha?.value) parts.push('Ficha ' + selectedLabel(ficha).split('—')[0].trim());
+        if (jornada?.value) parts.push('Jornada ' + jornada.value);
+        const mode = dateMode?.value || 'none';
+        if (mode === 'dia' && fecha?.value) parts.push(fecha.value);
+        if (mode === 'mes' && (mes?.value || anio?.value)) {
+            const label = [mes?.value ? monthName(mes.value) : null, anio?.value || null].filter(Boolean).join(' ');
+            if (label) parts.push(label);
+        }
+
+        if (summary && summaryText) {
+            if (parts.length) {
+                summary.hidden = false;
+                summaryText.textContent = parts.join(', ');
+            } else {
+                summary.hidden = true;
+                summaryText.textContent = '';
+            }
+        }
+
+        links.forEach((a) => {
+            const base = a.getAttribute('data-report-base') || a.getAttribute('href') || '';
+            const fmt = a.getAttribute('data-format') || 'pdf';
+            const path = base.split('?')[0];
+            a.href = path + '?' + buildParams(fmt).toString();
+        });
+    }
+
+    [instructor, ficha, jornada, fecha, mes, anio].forEach((el) => {
+        el?.addEventListener('change', refresh);
+        el?.addEventListener('input', refresh);
+    });
+    dateMode?.addEventListener('change', syncDateMode);
+    clearBtn?.addEventListener('click', () => {
+        if (instructor) instructor.value = '';
+        if (ficha) ficha.value = '';
+        if (jornada) jornada.value = '';
+        if (dateMode) dateMode.value = 'none';
+        if (fecha) fecha.value = '';
+        if (mes) mes.value = '';
+        if (anio) anio.value = '';
+        syncDateMode();
+    });
+
+    syncDateMode();
+})();
+</script>
+}
