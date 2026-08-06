@@ -1,0 +1,66 @@
+@model SolicitudesMaterialIndexViewModel
+@{
+    ViewData["Title"] = "Mis solicitudes";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Mis solicitudes";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Mis solicitudes de materiales</h2>
+        <div class="sub">@(Model.IsAdministrator
+            ? "Vista global: todas las solicitudes ligadas a fichas"
+            : "Solo las solicitudes que usted ha creado")</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title teal"><i class="fas fa-clipboard-list"></i> Solicitudes</div>
+    @if (!Model.Solicitudes.Any())
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-clipboard-list", Title = "Sin solicitudes", Text = "Todavía no hay solicitudes de materiales por ficha.", ActionText = "Use «Solicitar materiales» en Fichas & producción." }' />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Ficha</th>
+                        <th>Estado</th>
+                        <th>Fecha de solicitud</th>
+                        @if (Model.IsAdministrator)
+                        {
+                            <th>Solicitante</th>
+                        }
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var s in Model.Solicitudes)
+                {
+                    <tr class="clickable-row" onclick="location.href='@Url.Action("Detail", "SolicitudesMaterial", new { id = s.Id })'">
+                        <td><strong>@s.Codigo</strong></td>
+                        <td>@s.FichaCode</td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></td>
+                        <td>@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        @if (Model.IsAdministrator)
+                        {
+                            <td>@s.SolicitanteNombre</td>
+                        }
+                        <td>
+                            <a class="small ghost" asp-action="Detail" asp-route-id="@s.Id">Ver detalle</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

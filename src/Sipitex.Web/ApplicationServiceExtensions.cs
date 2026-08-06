@@ -19,6 +19,7 @@ public static class ApplicationServiceExtensions
         // SolicitudMaterial (flujo Ficha multi-ítem; paralelo a MaterialRequest)
         services.AddScoped<ICodigoGeneradorService, CodigoGeneradorService>();
         services.AddScoped<ISolicitudMaterialApprovalService, SolicitudMaterialApprovalService>();
+        services.AddScoped<ISolicitudMaterialService, SolicitudMaterialService>();
 
         // MRP y fichas de producción
         services.AddScoped<IMrpService, MrpService>();

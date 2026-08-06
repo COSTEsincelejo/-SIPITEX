@@ -99,12 +99,16 @@
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructores</th><th>Turno</th><th>Orden asignada</th><th>Registro rápido</th></tr></thead>
+                <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructores</th><th>Turno</th><th>Orden asignada</th><th>Registro rápido</th><th>Materiales</th></tr></thead>
                 <tbody>
                 @foreach (var ficha in Model.Fichas)
                 {
                     var assignedIds = ficha.Instructors?.Select(i => i.UserId).ToHashSet() ?? [];
                     var availableToAssign = instructorOptions.Where(i => !assignedIds.Contains(i.Id)).ToList();
+                    var canRequestMaterials = isAdmin
+                        || (User.IsInRole("Instructor")
+                            && currentUserId is int uidReq
+                            && (assignedIds.Contains(uidReq) || ficha.InstructorUserId == uidReq));
                     <tr>
                         <td><strong>@ficha.FichaCode</strong></td>
                         <td>@ficha.ProcessName</td>
@@ -197,7 +201,108 @@
                                 <button type="submit" class="small ghost">Registrar hoy</button>
                             </form>
                         </td>
+                        <td>
+                            @if (canRequestMaterials)
+                            {
+                                <button type="button"
+                                        class="small primary"
+                                        data-solicitud-toggle="#solicitud-form-@ficha.Id"
+                                        aria-expanded="false"
+                                        aria-controls="solicitud-form-@ficha.Id">
+                                    Solicitar materiales
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="hint">—</span>
+                            }
+                        </td>
                     </tr>
+                    @if (canRequestMaterials)
+                    {
+                        <tr id="solicitud-form-@ficha.Id" class="solicitud-form-row" hidden>
+                            <td colspan="7">
+                                <form asp-controller="SolicitudesMaterial"
+                                      asp-action="Create"
+                                      method="post"
+                                      class="solicitud-material-form"
+                                      data-solicitud-form>
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="CreateSolicitud.FichaId" value="@ficha.Id" />
+                                    <div class="solicitud-form-title">
+                                        Solicitar materiales para <strong>@ficha.FichaCode</strong>
+                                    </div>
+                                    <div class="solicitud-rows" data-solicitud-rows>
+                                        <div class="solicitud-row" data-solicitud-row>
+                                            <div class="field">
+                                                <label class="field-label">Material</label>
+                                                <select name="CreateSolicitud.Detalles[0].MaterialId" required aria-label="Material">
+                                                    <option value="">— Seleccione —</option>
+                                                    @foreach (var mat in Model.Materials)
+                                                    {
+                                                        <option value="@mat.Id">@mat.Name (@mat.UnitDisplay)</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="field">
+                                                <label class="field-label">Cantidad</label>
+                                                <input type="number"
+                                                       name="CreateSolicitud.Detalles[0].CantidadSolicitada"
+                                                       min="0.01"
+                                                       step="0.01"
+                                                       required
+                                                       placeholder="0"
+                                                       aria-label="Cantidad solicitada" />
+                                            </div>
+                                            <button type="button" class="small ghost danger" data-solicitud-remove hidden aria-label="Quitar material">Quitar</button>
+                                        </div>
+                                    </div>
+                                    <template data-solicitud-row-template>
+                                        <div class="solicitud-row" data-solicitud-row>
+                                            <div class="field">
+                                                <label class="field-label">Material</label>
+                                                <select data-name-template="CreateSolicitud.Detalles[{i}].MaterialId" required aria-label="Material">
+                                                    <option value="">— Seleccione —</option>
+                                                    @foreach (var mat in Model.Materials)
+                                                    {
+                                                        <option value="@mat.Id">@mat.Name (@mat.UnitDisplay)</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="field">
+                                                <label class="field-label">Cantidad</label>
+                                                <input type="number"
+                                                       data-name-template="CreateSolicitud.Detalles[{i}].CantidadSolicitada"
+                                                       min="0.01"
+                                                       step="0.01"
+                                                       required
+                                                       placeholder="0"
+                                                       aria-label="Cantidad solicitada" />
+                                            </div>
+                                            <button type="button" class="small ghost danger" data-solicitud-remove aria-label="Quitar material">Quitar</button>
+                                        </div>
+                                    </template>
+                                    <div class="field" style="margin-top:10px;max-width:420px;">
+                                        <label class="field-label">Observaciones (opcional)</label>
+                                        <input type="text" name="CreateSolicitud.Observaciones" maxlength="500" placeholder="Notas para bodega" />
+                                    </div>
+                                    <div class="solicitud-form-actions">
+                                        <button type="button" class="small ghost" data-solicitud-add @(Model.Materials.Count == 0 ? "disabled" : null)>
+                                            <i class="fas fa-plus" aria-hidden="true"></i> Agregar material
+                                        </button>
+                                        <button type="submit" class="primary" @(Model.Materials.Count == 0 ? "disabled" : null)>
+                                            Enviar solicitud
+                                        </button>
+                                        <button type="button" class="small ghost" data-solicitud-cancel>Cancelar</button>
+                                    </div>
+                                    @if (Model.Materials.Count == 0)
+                                    {
+                                        <div class="hint" style="margin-top:8px;">No hay materiales en inventario para solicitar.</div>
+                                    }
+                                </form>
+                            </td>
+                        </tr>
+                    }
                 }
                 </tbody>
             </table>
