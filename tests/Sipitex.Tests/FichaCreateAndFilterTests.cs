@@ -13,19 +13,28 @@ public class FichaCreateAndFilterTests
     private readonly Mock<IFichaRepository> _fichas = new();
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IProductionSessionRepository> _sessions = new();
+    private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IProductionOrderService> _orderService = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private FichaService CreateSut() =>
-        new(_fichas.Object, _orders.Object, _sessions.Object, _orderService.Object, _uow.Object);
+        new(_fichas.Object, _orders.Object, _sessions.Object, _users.Object, _orderService.Object, _uow.Object);
 
     [Fact]
     public async Task CreateFichaAsync_WhenCodeIsNew_Succeeds()
     {
         _fichas.Setup(r => r.ExistsByCodeAsync("FICHA-N1", It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _users.Setup(r => r.GetByIdAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(new User
+        {
+            Id = 10,
+            Nombre = "Laura Gómez",
+            Rol = UserRoles.Instructor,
+            IsActive = true,
+            PasswordHash = "x"
+        });
 
         var result = await CreateSut().CreateFichaAsync(
-            new CreateFichaDto("FICHA-N1", "Corte", "Laura Gómez", "Mañana", null));
+            new CreateFichaDto("FICHA-N1", "Corte", [10], "Mañana", null));
 
         Assert.True(result.Success);
         Assert.Contains("FICHA-N1", result.Message);
@@ -41,7 +50,7 @@ public class FichaCreateAndFilterTests
         _fichas.Setup(r => r.ExistsByCodeAsync("FICHA-T1", It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var result = await CreateSut().CreateFichaAsync(
-            new CreateFichaDto("FICHA-T1", "Trazo", "Laura Gómez", "Mañana"));
+            new CreateFichaDto("FICHA-T1", "Trazo", [10], "Mañana"));
 
         Assert.False(result.Success);
         Assert.Equal("Ya existe una ficha con ese código.", result.Message);

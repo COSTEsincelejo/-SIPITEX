@@ -15,6 +15,7 @@ public class SipitexDbContext : DbContext
     public DbSet<ProductionOrder> ProductionOrders => Set<ProductionOrder>(); // Órdenes OP-xxx
     public DbSet<MaterialRequest> MaterialRequests => Set<MaterialRequest>(); // Solicitudes de salida de bodega
     public DbSet<Ficha> Fichas => Set<Ficha>(); // Fichas de proceso (trazo, corte, confección...)
+    public DbSet<FichaInstructor> FichaInstructors => Set<FichaInstructor>(); // M2M ficha ↔ instructor
     public DbSet<QualityRecord> QualityRecords => Set<QualityRecord>(); // Inspecciones de calidad
     public DbSet<FunctionalRequirement> FunctionalRequirements => Set<FunctionalRequirement>(); // RF del proyecto
     public DbSet<NonFunctionalRequirement> NonFunctionalRequirements => Set<NonFunctionalRequirement>(); // RNF del proyecto
@@ -81,6 +82,21 @@ public class SipitexDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(f => f.InstructorUserId)
                 .OnDelete(DeleteBehavior.SetNull); // No borro la ficha, solo pongo null
+        });
+
+        // --- FichaInstructor (M2M) ---
+        modelBuilder.Entity<FichaInstructor>(e =>
+        {
+            e.HasKey(x => new { x.FichaId, x.UserId }); // Un instructor una sola vez por ficha
+            e.HasOne(x => x.Ficha)
+                .WithMany(f => f.Instructors)
+                .HasForeignKey(x => x.FichaId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.UserId);
         });
 
         // --- QualityRecord ---

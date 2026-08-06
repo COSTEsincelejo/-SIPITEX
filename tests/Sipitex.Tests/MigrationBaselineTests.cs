@@ -56,7 +56,8 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
             Assert.True(await TableExistsAsync(dbPath, "Users"));
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(5, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(6, await CountMigrationRowsAsync(dbPath));
+            Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
         }
         finally
         {
@@ -95,7 +96,8 @@ public class MigrationBaselineTests
             }
 
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(5, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(6, await CountMigrationRowsAsync(dbPath));
+            Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
 
             await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
             {
@@ -112,6 +114,7 @@ public class MigrationBaselineTests
                 Assert.Contains(ids, id => id.Contains("AddFichaTurno", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddUserPhotoPath", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddUserFuncionDescripcion", StringComparison.Ordinal));
+                Assert.Contains(ids, id => id.Contains("AddFichaInstructors", StringComparison.Ordinal));
             }
         }
         finally
@@ -132,7 +135,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(5, before);
+            Assert.Equal(6, before);
 
             await using (var context = CreateContext(dbPath))
             {

@@ -250,8 +250,27 @@ public class UserAccountService : IUserAccountService
         var ficha = await _fichaRepository.GetByIdAsync(fichaId, cancellationToken);
         if (ficha is null) return;
 
+        // También refleja la asignación en la relación muchos-a-muchos
+        if (!ficha.Instructors.Any(i => i.UserId == userId))
+        {
+            ficha.Instructors.Add(new FichaInstructor
+            {
+                FichaId = ficha.Id,
+                UserId = userId,
+                AssignedAtUtc = DateTime.UtcNow
+            });
+        }
+
         ficha.InstructorUserId = userId;
-        ficha.InstructorName = nombre;
+        var names = ficha.Instructors
+            .Select(i => i.UserId == userId ? nombre : i.User?.Nombre)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n)
+            .ToList();
+        if (names.Count == 0) names.Add(nombre);
+        ficha.InstructorName = string.Join(", ", names!);
+
         _fichaRepository.Update(ficha);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }

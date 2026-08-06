@@ -3,12 +3,12 @@
     ViewData["Title"] = "Fichas & producción";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Fichas & producción";
     Layout = "_Layout";
+    var instructorOptions = Model.Instructors;
 }
 
 <div class="page-header">
     <div>
         <h2>Fichas & producción</h2>
-        @* El subtítulo cambia si es admin (ve todo) o instructor (solo lo suyo) *@
         <div class="sub">@(Model.IsAdministrator
             ? "Vista global: todas las fichas y sesiones de todos los instructores"
             : "Solo ve sus fichas y la producción que registró con ellas")</div>
@@ -42,9 +42,22 @@
                         <option value="Terminado"></option>
                     </datalist>
                 </div>
-                <div class="field" style="flex:1;min-width:180px;">
-                    <label class="field-label">Instructor</label>
-                    <input asp-for="CreateFicha.InstructorName" placeholder="Nombre del instructor" required style="width:100%" />
+                <div class="field" style="flex:1.4;min-width:220px;">
+                    <label class="field-label">Instructores registrados</label>
+                    <select asp-for="CreateFicha.InstructorUserIds" multiple required size="4" style="width:100%;min-height:96px;">
+                        @foreach (var instructor in instructorOptions)
+                        {
+                            if (Model.CreateFicha.InstructorUserIds.Contains(instructor.Id))
+                            {
+                                <option value="@instructor.Id" selected>@instructor.Nombre</option>
+                            }
+                            else
+                            {
+                                <option value="@instructor.Id">@instructor.Nombre</option>
+                            }
+                        }
+                    </select>
+                    <div class="hint" style="margin-top:4px;">Ctrl/Cmd + clic para elegir varios. Solo usuarios con rol Instructor.</div>
                 </div>
                 <div class="field" style="width:140px;">
                     <label class="field-label">Turno</label>
@@ -81,18 +94,56 @@
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructor</th><th>Turno</th><th>Orden asignada</th><th>Registro rápido</th></tr></thead>
+                <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructores</th><th>Turno</th><th>Orden asignada</th><th>Registro rápido</th></tr></thead>
                 <tbody>
                 @foreach (var ficha in Model.Fichas)
                 {
+                    var assignedIds = ficha.Instructors?.Select(i => i.UserId).ToHashSet() ?? [];
+                    var availableToAssign = instructorOptions.Where(i => !assignedIds.Contains(i.Id)).ToList();
                     <tr>
                         <td><strong>@ficha.FichaCode</strong></td>
                         <td>@ficha.ProcessName</td>
-                        <td>@ficha.InstructorName</td>
+                        <td>
+                            <div class="instructor-chips">
+                                @if (ficha.Instructors is { Count: > 0 })
+                                {
+                                    @foreach (var inst in ficha.Instructors)
+                                    {
+                                        <span class="instructor-chip">
+                                            @inst.Nombre
+                                            <form asp-action="RemoveInstructor" method="post" class="chip-remove-form">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="fichaId" value="@ficha.Id" />
+                                                <input type="hidden" name="instructorUserId" value="@inst.UserId" />
+                                                <button type="submit" class="chip-remove" title="Quitar instructor" aria-label="Quitar @inst.Nombre">&times;</button>
+                                            </form>
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span>@(string.IsNullOrWhiteSpace(ficha.InstructorName) ? "—" : ficha.InstructorName)</span>
+                                }
+                            </div>
+                            @if (availableToAssign.Count > 0)
+                            {
+                                <form asp-action="AssignInstructor" method="post" class="assign-instructor-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="fichaId" value="@ficha.Id" />
+                                    <select name="instructorUserId" required aria-label="Asignar instructor a @ficha.FichaCode">
+                                        <option value="">— Asignar instructor —</option>
+                                        @foreach (var opt in availableToAssign)
+                                        {
+                                            <option value="@opt.Id">@opt.Nombre</option>
+                                        }
+                                    </select>
+                                    <button type="submit" class="small ghost">Asignar</button>
+                                </form>
+                            }
+                        </td>
                         <td>@(string.IsNullOrWhiteSpace(ficha.Turno) ? "—" : ficha.Turno)</td>
                         <td>@(ficha.AssignedOrderNumber ?? "—")</td>
                         <td>
-                            @* Registro express sin pasar por el formulario grande de abajo *@
                             <form asp-action="QuickRegister" method="post" class="row-actions">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="fichaId" value="@ficha.Id" />
@@ -152,7 +203,6 @@
             <label class="field-label">Turno</label>
             <select name="turno">
                 <option value="">Todos</option>
-                @* Mantener el turno seleccionado después del filtro *@
                 @if (string.Equals(Model.TurnoFilter, "Mañana", StringComparison.OrdinalIgnoreCase))
                 {
                     <option value="Mañana" selected>Mañana</option>

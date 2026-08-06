@@ -12,6 +12,10 @@ public interface IFichaService
         string? viewerName = null,
         CancellationToken cancellationToken = default);
 
+    // Instructores activos registrados (para selects)
+    Task<IReadOnlyList<InstructorOptionDto>> GetActiveInstructorsAsync(
+        CancellationToken cancellationToken = default);
+
     // Sesiones recientes de producción
     Task<IReadOnlyList<ProductionSessionDto>> GetRecentSessionsAsync(
         int? viewerUserId = null,
@@ -37,9 +41,26 @@ public interface IFichaService
         string? viewerName = null,
         CancellationToken cancellationToken = default);
 
-    // Crear ficha nueva
+    // Crear ficha nueva con uno o más instructores registrados
     Task<ServiceResult> CreateFichaAsync(
         CreateFichaDto dto,
-        int? instructorUserId = null,
+        CancellationToken cancellationToken = default);
+
+    // Asignar un instructor registrado a una ficha existente
+    Task<ServiceResult> AssignInstructorAsync(
+        int fichaId,
+        int instructorUserId,
+        int? actorUserId = null,
+        string? actorRole = null,
+        string? actorName = null,
+        CancellationToken cancellationToken = default);
+
+    // Quitar un instructor de una ficha
+    Task<ServiceResult> RemoveInstructorAsync(
+        int fichaId,
+        int instructorUserId,
+        int? actorUserId = null,
+        string? actorRole = null,
+        string? actorName = null,
         CancellationToken cancellationToken = default);
 }

@@ -74,6 +74,12 @@ public record MrpLineDto(
 
 // --- Fichas y sesiones ---
 
+// Instructor asignado a una ficha (para chips / quitar)
+public record FichaInstructorDto(int UserId, string Nombre);
+
+// Opción de instructor activo para selects
+public record InstructorOptionDto(int Id, string Nombre);
+
 // Ficha de formación / grupo de producción
 public record FichaDto(
     int Id,
@@ -82,13 +88,14 @@ public record FichaDto(
     string InstructorName,
     string? AssignedOrderNumber,
     int? InstructorUserId = null,
-    string Turno = "");
+    string Turno = "",
+    IReadOnlyList<FichaInstructorDto>? Instructors = null);
 
-// Datos para crear ficha
+// Datos para crear ficha (instructores = IDs de usuarios con rol Instructor)
 public record CreateFichaDto(
     string FichaCode,
     string ProcessName,
-    string InstructorName,
+    IReadOnlyList<int> InstructorUserIds,
     string Turno,
     int? ProductionOrderId = null);
 
