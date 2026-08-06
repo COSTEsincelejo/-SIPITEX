@@ -38,10 +38,50 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('menuToggle')?.addEventListener('click', () => {
-      document.getElementById('sidebar')?.classList.toggle('open');
+    const sidebar = document.getElementById('sidebar');
+    const menuToggle = document.getElementById('menuToggle');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const mq = window.matchMedia('(max-width: 980px)');
+
+    function isMobile() {
+      return mq.matches;
+    }
+
+    function setExpanded(expanded) {
+      if (!sidebar || !menuToggle) return;
+
+      if (isMobile()) {
+        document.body.classList.remove('sidebar-collapsed');
+        sidebar.classList.toggle('open', expanded);
+        backdrop?.classList.toggle('show', expanded);
+        if (backdrop) backdrop.hidden = !expanded;
+      } else {
+        sidebar.classList.remove('open');
+        backdrop?.classList.remove('show');
+        if (backdrop) backdrop.hidden = true;
+        document.body.classList.toggle('sidebar-collapsed', !expanded);
+      }
+
+      menuToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
+    function isExpanded() {
+      if (!sidebar) return false;
+      return isMobile()
+        ? sidebar.classList.contains('open')
+        : !document.body.classList.contains('sidebar-collapsed');
+    }
+
+    function syncSidebarToViewport() {
+      // Móvil: cerrado por defecto | Escritorio: abierto por defecto
+      setExpanded(!isMobile());
+    }
+
+    menuToggle?.addEventListener('click', () => {
+      setExpanded(!isExpanded());
     });
 
+<<<<<<< HEAD
     // Orden asignada: dropdown existente vs texto manual (mutuamente excluyentes)
     const orderSelect = document.getElementById('createFichaOrderSelect');
     const orderIdInput = document.getElementById('createFichaOrderId');
@@ -71,6 +111,18 @@
       orderSelect.addEventListener('change', syncOrderMode);
       syncOrderMode();
     }
+=======
+    backdrop?.addEventListener('click', () => setExpanded(false));
+
+    sidebar?.querySelectorAll('a.nav-item').forEach((link) => {
+      link.addEventListener('click', () => {
+        if (isMobile()) setExpanded(false);
+      });
+    });
+
+    mq.addEventListener('change', syncSidebarToViewport);
+    syncSidebarToViewport();
+>>>>>>> origin/cursor/sidebar-hamburger-toggle-41da
 
     // Convert server flash alerts into toasts (keep inline for accessibility if needed)
     document.querySelectorAll('[data-toast]').forEach((node) => {

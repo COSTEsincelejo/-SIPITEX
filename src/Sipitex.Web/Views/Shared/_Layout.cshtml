@@ -80,10 +80,18 @@
         </nav>
         <div class="sidebar-foot">SIPITEX v1.0 · .NET MVC<br>CMTC · SENA · ADSO</div>
     </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
     <div class="main">
         <header class="topbar">
             <div class="topbar-left">
-                <button type="button" class="menu-toggle" id="menuToggle" aria-label="Menú"><i class="fas fa-bars"></i></button>
+                <button type="button"
+                        class="menu-toggle"
+                        id="menuToggle"
+                        aria-label="Abrir o cerrar menú"
+                        aria-controls="sidebar"
+                        aria-expanded="true">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
+                </button>
                 <div>
                     <h2>@title</h2>
                     <div class="breadcrumb">@breadcrumb</div>
