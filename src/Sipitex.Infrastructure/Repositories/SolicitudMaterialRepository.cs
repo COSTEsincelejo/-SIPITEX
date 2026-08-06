@@ -17,10 +17,19 @@ public class SolicitudMaterialRepository : ISolicitudMaterialRepository
 
     public Task<SolicitudMaterial?> GetByIdWithDetallesAsync(int id, CancellationToken cancellationToken = default) =>
         _context.SolicitudesMaterial
+            .Include(s => s.Ficha)
+            .Include(s => s.Solicitante)
             .Include(s => s.Detalles)
             .ThenInclude(d => d.Material)
             .Include(s => s.Entrega)
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<SolicitudMaterial>> GetAllWithFichaAsync(CancellationToken cancellationToken = default) =>
+        await _context.SolicitudesMaterial
+            .Include(s => s.Ficha)
+            .Include(s => s.Solicitante)
+            .OrderByDescending(s => s.FechaSolicitud)
+            .ToListAsync(cancellationToken);
 
     public Task<DetalleSolicitudMaterial?> GetDetalleByIdAsync(int detalleId, CancellationToken cancellationToken = default) =>
         _context.DetallesSolicitudMaterial

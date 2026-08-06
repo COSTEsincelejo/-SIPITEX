@@ -9,6 +9,9 @@ public interface ISolicitudMaterialRepository
 
     Task<SolicitudMaterial?> GetByIdWithDetallesAsync(int id, CancellationToken cancellationToken = default);
 
+    // Listado con Ficha y Solicitante (para "Mis solicitudes")
+    Task<IReadOnlyList<SolicitudMaterial>> GetAllWithFichaAsync(CancellationToken cancellationToken = default);
+
     // Detalle con solicitud, todos los ítems y material (para aprobar con stock)
     Task<DetalleSolicitudMaterial?> GetDetalleByIdAsync(int detalleId, CancellationToken cancellationToken = default);
 

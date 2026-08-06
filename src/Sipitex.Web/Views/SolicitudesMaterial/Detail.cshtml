@@ -1,0 +1,64 @@
+@model SolicitudMaterialDetailViewModel
+@{
+    ViewData["Title"] = $"Solicitud {Model.Solicitud.Codigo}";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Mis solicitudes / Detalle";
+    Layout = "_Layout";
+    var s = Model.Solicitud;
+}
+
+<div class="page-header">
+    <div>
+        <h2>@s.Codigo</h2>
+        <div class="sub">Solicitud de materiales · Ficha @s.FichaCode</div>
+    </div>
+    <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver al listado</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-info-circle"></i> Cabecera</div>
+    <div class="solicitud-detail-meta">
+        <div><span class="field-label">Estado</span><br /><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></div>
+        <div><span class="field-label">Ficha</span><br /><strong>@s.FichaCode</strong></div>
+        <div><span class="field-label">Solicitante</span><br />@s.SolicitanteNombre</div>
+        <div><span class="field-label">Fecha solicitud</span><br />@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+        <div><span class="field-label">Fecha resolución</span><br />@(s.FechaResolucion?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "—")</div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(s.Observaciones))
+    {
+        <p class="hint" style="margin-top:14px;"><strong>Observaciones:</strong> @s.Observaciones</p>
+    }
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-boxes-stacked"></i> Materiales solicitados</div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Material</th>
+                    <th>Unidad</th>
+                    <th>Cant. solicitada</th>
+                    <th>Cant. aprobada</th>
+                    <th>Estado ítem</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var d in s.Detalles)
+            {
+                <tr>
+                    <td><strong>@d.MaterialName</strong></td>
+                    <td>@d.UnitDisplay</td>
+                    <td>@d.CantidadSolicitada.ToString("0.##")</td>
+                    <td>@(d.CantidadAprobada?.ToString("0.##") ?? "—")</td>
+                    <td><span class="badge @DisplayHelper.BadgeClass(d.EstadoItem)">@DisplayHelper.StatusText(d.EstadoItem)</span></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -91,5 +91,84 @@
         view.hidden = false;
       });
     });
+
+    // SolicitudMaterial: mostrar/ocultar formulario expandible por ficha
+    document.querySelectorAll('[data-solicitud-toggle]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const sel = btn.getAttribute('data-solicitud-toggle');
+        const panel = sel ? document.querySelector(sel) : null;
+        if (!panel) return;
+        const open = panel.hidden;
+        panel.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    });
+
+    // SolicitudMaterial: filas dinámicas (agregar / quitar / reindexar)
+    document.querySelectorAll('[data-solicitud-form]').forEach((form) => {
+      const rowsHost = form.querySelector('[data-solicitud-rows]');
+      const template = form.querySelector('template[data-solicitud-row-template]');
+      const addBtn = form.querySelector('[data-solicitud-add]');
+      const cancelBtn = form.querySelector('[data-solicitud-cancel]');
+      if (!rowsHost || !template || !addBtn) return;
+
+      const reindex = () => {
+        const rows = [...rowsHost.querySelectorAll('[data-solicitud-row]')];
+        rows.forEach((row, i) => {
+          row.querySelectorAll('[name], [data-name-template]').forEach((el) => {
+            const tpl = el.getAttribute('data-name-template');
+            if (tpl) {
+              el.setAttribute('name', tpl.replace('{i}', String(i)));
+            } else if (el.name) {
+              el.name = el.name.replace(/Detalles\[\d+]/, `Detalles[${i}]`);
+            }
+          });
+          const removeBtn = row.querySelector('[data-solicitud-remove]');
+          if (removeBtn) removeBtn.hidden = rows.length <= 1;
+        });
+      };
+
+      addBtn.addEventListener('click', () => {
+        const node = template.content.cloneNode(true);
+        rowsHost.appendChild(node);
+        reindex();
+      });
+
+      rowsHost.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('[data-solicitud-remove]');
+        if (!removeBtn || !rowsHost.contains(removeBtn)) return;
+        const row = removeBtn.closest('[data-solicitud-row]');
+        const rows = rowsHost.querySelectorAll('[data-solicitud-row]');
+        if (!row || rows.length <= 1) return;
+        row.remove();
+        reindex();
+      });
+
+      cancelBtn?.addEventListener('click', () => {
+        const panel = form.closest('.solicitud-form-row');
+        if (panel) panel.hidden = true;
+        const id = panel?.id ? `#${panel.id}` : null;
+        if (id) {
+          document.querySelectorAll(`[data-solicitud-toggle="${id}"]`).forEach((b) => {
+            b.setAttribute('aria-expanded', 'false');
+          });
+        }
+      });
+
+      form.addEventListener('submit', (e) => {
+        const rows = [...rowsHost.querySelectorAll('[data-solicitud-row]')];
+        const valid = rows.some((row) => {
+          const mat = Number(row.querySelector('select')?.value || 0);
+          const qty = Number(row.querySelector('input[type="number"]')?.value || 0);
+          return mat > 0 && qty > 0;
+        });
+        if (!valid) {
+          e.preventDefault();
+          window.SipitexToast('Agregue al menos un material con cantidad mayor a cero.', 'warning');
+        }
+      });
+
+      reindex();
+    });
   });
 })();

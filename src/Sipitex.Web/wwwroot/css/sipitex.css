@@ -151,6 +151,19 @@ label.field-label{font-size:11px;font-weight:700;text-transform:uppercase;letter
 .assign-instructor-form select{min-width:160px;padding:6px 8px;font-size:12px;}
 .assign-instructor-form input[type=text]{min-width:140px;padding:6px 8px;font-size:12px;}
 
+/* SolicitudMaterial: formulario expandible multi-ítem en Fichas */
+.solicitud-form-row td{background:#F7FAFD;border-top:none;padding:16px 18px;}
+.solicitud-material-form{display:flex;flex-direction:column;gap:10px;}
+.solicitud-form-title{font-size:13px;font-weight:700;color:var(--navy-2);margin-bottom:4px;}
+.solicitud-rows{display:flex;flex-direction:column;gap:10px;}
+.solicitud-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+.solicitud-row .field{min-width:180px;flex:1;}
+.solicitud-row .field input[type=number]{max-width:140px;}
+.solicitud-form-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px;}
+.solicitud-detail-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;}
+tr.clickable-row{cursor:pointer;}
+tr.clickable-row:hover td{background:#F3F8FF;}
+
 /* Auth / login */
 .auth-body{
   min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;

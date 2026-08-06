@@ -173,6 +173,47 @@ public record RequirementsViewDto(
     IReadOnlyList<FunctionalRequirementDto> Functional,
     IReadOnlyList<NonFunctionalRequirementDto> NonFunctional);
 
+// --- SolicitudMaterial (flujo Ficha multi-ítem; paralelo a MaterialRequest) ---
+
+// Ítem al crear una solicitud
+public record CreateDetalleSolicitudDto(int MaterialId, decimal CantidadSolicitada);
+
+// Alta de solicitud ligada a Ficha
+public record CreateSolicitudMaterialDto(
+    int FichaId,
+    IReadOnlyList<CreateDetalleSolicitudDto> Detalles,
+    string? Observaciones = null);
+
+// Fila del listado "Mis solicitudes"
+public record SolicitudMaterialListItemDto(
+    int Id,
+    string Codigo,
+    string FichaCode,
+    SolicitudMaterialEstado Estado,
+    DateTime FechaSolicitud,
+    string SolicitanteNombre);
+
+// Ítem en el detalle de una solicitud
+public record DetalleSolicitudMaterialDto(
+    int Id,
+    string MaterialName,
+    string UnitDisplay,
+    decimal CantidadSolicitada,
+    decimal? CantidadAprobada,
+    DetalleSolicitudEstado EstadoItem);
+
+// Detalle completo (cabecera + líneas)
+public record SolicitudMaterialDetailDto(
+    int Id,
+    string Codigo,
+    string FichaCode,
+    string SolicitanteNombre,
+    SolicitudMaterialEstado Estado,
+    DateTime FechaSolicitud,
+    DateTime? FechaResolucion,
+    string? Observaciones,
+    IReadOnlyList<DetalleSolicitudMaterialDto> Detalles);
+
 // Resultado genérico de operaciones del servicio (éxito/error + mensaje)
 public record ServiceResult(bool Success, string? Message = null)
 {

@@ -14,11 +14,16 @@ public class FichasController : Controller
 {
     private readonly IFichaService _fichaService;
     private readonly IProductionOrderService _orderService;
+    private readonly IInventoryService _inventoryService;
 
-    public FichasController(IFichaService fichaService, IProductionOrderService orderService)
+    public FichasController(
+        IFichaService fichaService,
+        IProductionOrderService orderService,
+        IInventoryService inventoryService)
     {
         _fichaService = fichaService;
         _orderService = orderService;
+        _inventoryService = inventoryService;
     }
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
@@ -144,6 +149,7 @@ public class FichasController : Controller
         var (userId, role, name) = CurrentViewer();
         var orders = await _orderService.GetOrdersAsync(cancellationToken);
         var instructors = await _fichaService.GetActiveInstructorsAsync(cancellationToken);
+        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
         var fichas = (await _fichaService.GetFichasAsync(userId, role, name, cancellationToken)).AsEnumerable();
         var sessions = (await _fichaService.GetRecentSessionsAsync(userId, role, name, cancellationToken)).AsEnumerable();
 
@@ -180,6 +186,7 @@ public class FichasController : Controller
             Orders = orders,
             Instructors = instructors,
             Sessions = sessionList,
+            Materials = materials,
             IsAdministrator = User.IsInRole(UserRoles.Administrador),
             CreateFicha = create,
             Register = new RegisterProductionForm
