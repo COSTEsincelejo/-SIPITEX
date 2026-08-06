@@ -77,13 +77,14 @@
                     <td><span class="badge @DisplayHelper.BadgeClass(order.Status)">@DisplayHelper.StatusText(order.Status)</span></td>
                     <td><small style="color:var(--text-mut);">@order.MrpHint</small></td>
                     <td>
-                        @* Botón rápido para sumar 10 unidades si la orden no está finalizada *@
+                        @* Campo libre: sumar N unidades (mín. 1) si la orden no está finalizada *@
                         @if (order.Status != OrderStatus.Finalizada)
                         {
-                            <form asp-action="AddProduction" method="post" style="display:inline;">
+                            <form asp-action="AddProduction" method="post" class="row-actions">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@order.Id" />
-                                <button type="submit" class="small ghost">+ 10u</button>
+                                <input type="number" name="units" min="1" step="1" value="1" placeholder="uds" style="width:72px" required aria-label="Unidades a registrar" />
+                                <button type="submit" class="small ghost">+ uds</button>
                             </form>
                         }
                     </td>

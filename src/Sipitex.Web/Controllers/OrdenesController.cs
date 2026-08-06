@@ -50,9 +50,9 @@ public class OrdenesController : Controller
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddProduction(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> AddProduction(int id, int units, CancellationToken cancellationToken)
     {
-        var result = await _orderService.RegisterProductionAsync(id, 10, cancellationToken);
+        var result = await _orderService.RegisterProductionAsync(id, units, cancellationToken);
         TempData["Message"] = result.Message ?? (result.Success ? "Producción registrada." : "Error en producción.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
