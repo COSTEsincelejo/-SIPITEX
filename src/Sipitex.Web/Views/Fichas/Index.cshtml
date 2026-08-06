@@ -24,16 +24,16 @@
 {
     <div class="card">
         <div class="card-title"><i class="fas fa-plus-circle"></i> Registrar ficha</div>
-        <form asp-action="CreateFicha" method="post">
+        <form asp-action="CreateFicha" method="post" class="create-ficha-form">
             @Html.AntiForgeryToken()
-            <div class="form-row">
-                <div class="field" style="width:160px;">
+            <div class="create-ficha-grid">
+                <div class="field">
                     <label class="field-label">Código de ficha</label>
                     <input asp-for="CreateFicha.FichaCode" placeholder="Ej. FICHA-T4" required maxlength="30" />
                 </div>
-                <div class="field" style="flex:1;min-width:180px;">
+                <div class="field">
                     <label class="field-label">Proceso</label>
-                    <input asp-for="CreateFicha.ProcessName" list="procesos-ficha" placeholder="Trazo, Corte…" required style="width:100%" />
+                    <input asp-for="CreateFicha.ProcessName" list="procesos-ficha" placeholder="Trazo, Corte…" required />
                     <datalist id="procesos-ficha">
                         <option value="Trazo"></option>
                         <option value="Corte"></option>
@@ -42,9 +42,9 @@
                         <option value="Terminado"></option>
                     </datalist>
                 </div>
-                <div class="field" style="flex:1.4;min-width:220px;">
+                <div class="field create-ficha-instructors">
                     <label class="field-label">Instructores registrados</label>
-                    <select asp-for="CreateFicha.InstructorUserIds" multiple required size="4" style="width:100%;min-height:96px;">
+                    <select asp-for="CreateFicha.InstructorUserIds" multiple required size="4" class="create-ficha-multiselect">
                         @foreach (var instructor in instructorOptions)
                         {
                             if (Model.CreateFicha.InstructorUserIds.Contains(instructor.Id))
@@ -57,9 +57,9 @@
                             }
                         }
                     </select>
-                    <div class="hint" style="margin-top:4px;">Ctrl/Cmd + clic para elegir varios. Solo usuarios con rol Instructor.</div>
+                    <div class="hint create-ficha-hint">Ctrl/Cmd + clic para elegir varios. Solo usuarios con rol Instructor.</div>
                 </div>
-                <div class="field" style="width:140px;">
+                <div class="field">
                     <label class="field-label">Turno</label>
                     <input asp-for="CreateFicha.Turno" list="turnos-ficha" placeholder="Mañana" required maxlength="20" />
                     <datalist id="turnos-ficha">
@@ -68,7 +68,7 @@
                         <option value="Noche"></option>
                     </datalist>
                 </div>
-                <div class="field" style="width:160px;">
+                <div class="field">
                     <label class="field-label">Orden asignada</label>
                     <select asp-for="CreateFicha.ProductionOrderId">
                         <option value="">— Opcional —</option>
@@ -78,6 +78,8 @@
                         }
                     </select>
                 </div>
+            </div>
+            <div class="create-ficha-actions">
                 <button type="submit" class="primary"><i class="fas fa-save"></i> Registrar ficha</button>
             </div>
         </form>
