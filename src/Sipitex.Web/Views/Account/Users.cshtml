@@ -11,7 +11,10 @@
         <h2>Gestión de usuarios</h2>
         <div class="sub">Solo el administrador crea cuentas de Instructor y Bodeguero. Cada usuario gestiona su foto y contraseña en Mi perfil.</div>
     </div>
-    <a asp-action="CreateUser" class="primary"><i class="fas fa-user-plus"></i> Crear instructor / bodeguero</a>
+    <div class="row-actions">
+        <a asp-action="DescargarFuncionalidades" class="btn ghost"><i class="fas fa-file-word"></i> Descargar reporte de funcionalidades</a>
+        <a asp-action="CreateUser" class="primary"><i class="fas fa-user-plus"></i> Crear instructor / bodeguero</a>
+    </div>
 </div>
 
 @if (TempData["Message"] is string msg)
