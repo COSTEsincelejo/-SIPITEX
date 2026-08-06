@@ -93,6 +93,75 @@ public class AlertService : IAlertService
         return items.Select(i => new AlertDeliveryDto(i.AlertType, i.Subject, i.SentAt, i.Channel)).ToList();
     }
 
+    // Disparo inmediato a userIds y/o rol, respetando preferencias
+    public async Task<int> NotifyUsersAsync(
+        AlertType type,
+        string subject,
+        string body,
+        IReadOnlyList<int>? userIds = null,
+        string? role = null,
+        CancellationToken cancellationToken = default)
+    {
+        var candidates = new List<User>();
+
+        if (userIds is { Count: > 0 })
+        {
+            foreach (var id in userIds.Distinct())
+            {
+                var user = await _userRepository.GetByIdAsync(id, cancellationToken);
+                if (user is { IsActive: true })
+                {
+                    await _alertRepository.EnsureDefaultPreferencesAsync(user, cancellationToken);
+                    candidates.Add(user);
+                }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var all = await _userRepository.GetAllAsync(cancellationToken);
+            foreach (var user in all.Where(u =>
+                         u.IsActive
+                         && string.Equals(u.Rol, role, StringComparison.OrdinalIgnoreCase)))
+            {
+                if (candidates.Any(c => c.Id == user.Id)) continue;
+                await _alertRepository.EnsureDefaultPreferencesAsync(user, cancellationToken);
+                candidates.Add(user);
+            }
+        }
+
+        // Persistimos prefs nuevas antes de consultar cuáles están enabled
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (candidates.Count == 0)
+            return 0;
+
+        var enabled = await _alertRepository.GetEnabledPreferencesAsync(type, cancellationToken);
+        var enabledIds = enabled.Select(p => p.UserId).ToHashSet();
+        var channel = _emailSender.IsSmtpConfigured ? "SMTP" : "Outbox";
+        var sent = 0;
+
+        foreach (var user in candidates.Where(u => enabledIds.Contains(u.Id)))
+        {
+            await _emailSender.SendAsync(user.Email, user.Nombre, subject, body, cancellationToken);
+            await _alertRepository.AddDeliveryAsync(new AlertDelivery
+            {
+                UserId = user.Id,
+                AlertType = type,
+                Subject = subject,
+                Body = body,
+                SentAt = DateTime.Now,
+                Channel = channel
+            }, cancellationToken);
+            sent++;
+        }
+
+        if (sent > 0)
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return sent;
+    }
+
     // Revisa todas las condiciones del sistema y manda correos a quien tenga esa alerta activa
     public async Task<AlertEvaluationResultDto> EvaluateAndSendAsync(CancellationToken cancellationToken = default)
     {

@@ -7,20 +7,26 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
-// Aprueba ítems de SolicitudMaterial descontando stock de forma atómica
+// Aprueba / resuelve SolicitudMaterial descontando stock de forma atómica
 public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalService
 {
     private readonly ISolicitudMaterialRepository _solicitudRepository;
     private readonly IMaterialRepository _materialRepository;
+    private readonly ICodigoGeneradorService _codigoGenerador;
+    private readonly IAlertService _alertService;
     private readonly IUnitOfWork _unitOfWork;
 
     public SolicitudMaterialApprovalService(
         ISolicitudMaterialRepository solicitudRepository,
         IMaterialRepository materialRepository,
+        ICodigoGeneradorService codigoGenerador,
+        IAlertService alertService,
         IUnitOfWork unitOfWork)
     {
         _solicitudRepository = solicitudRepository;
         _materialRepository = materialRepository;
+        _codigoGenerador = codigoGenerador;
+        _alertService = alertService;
         _unitOfWork = unitOfWork;
     }
 
@@ -40,33 +46,21 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
         if (detalle.EstadoItem != DetalleSolicitudEstado.Pendiente)
             return ServiceResult.Fail("El ítem ya fue resuelto.");
 
-        if (cantidadAprobada > detalle.CantidadSolicitada)
-            return ServiceResult.Fail("La cantidad aprobada no puede superar la solicitada.");
-
-        // Validación previa: si no alcanza stock, no abrimos transacción ni tocamos estado
-        if (cantidadAprobada > detalle.Material.Stock)
-            return ServiceResult.Fail("Stock insuficiente para aprobar la cantidad indicada.");
+        var error = ValidarCantidadAprobada(detalle, cantidadAprobada);
+        if (error is not null)
+            return ServiceResult.Fail(error);
 
         try
         {
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
-                // Revalidación dentro de la transacción (evita carrera con otra aprobación)
-                if (cantidadAprobada > detalle.Material.Stock)
-                    throw new InvalidOperationException("Stock insuficiente para aprobar la cantidad indicada.");
-
-                detalle.Material.Stock -= cantidadAprobada;
-                detalle.CantidadAprobada = cantidadAprobada;
-                detalle.EstadoItem = cantidadAprobada == detalle.CantidadSolicitada
-                    ? DetalleSolicitudEstado.Aprobado
-                    : DetalleSolicitudEstado.AprobadoParcial;
+                var applyError = AplicarDecisionDetalle(detalle, cantidadAprobada);
+                if (applyError is not null)
+                    throw new InvalidOperationException(applyError);
 
                 _materialRepository.Update(detalle.Material);
-
-                var solicitud = detalle.SolicitudMaterial;
-                ActualizarEstadoSolicitud(solicitud, resueltoPorId);
-                _solicitudRepository.Update(solicitud);
-
+                ActualizarEstadoSolicitud(detalle.SolicitudMaterial, resueltoPorId);
+                _solicitudRepository.Update(detalle.SolicitudMaterial);
                 await Task.CompletedTask;
             }, cancellationToken);
         }
@@ -76,6 +70,160 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
         }
 
         return ServiceResult.Ok("Ítem aprobado.");
+    }
+
+    public async Task<ServiceResult> ResolveSolicitudAsync(
+        int solicitudId,
+        IReadOnlyList<ResolveDetalleDto> items,
+        int bodegueroId,
+        string? observaciones = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (bodegueroId <= 0)
+            return ServiceResult.Fail("Bodeguero no válido.");
+
+        var solicitud = await _solicitudRepository.GetByIdWithDetallesAsync(solicitudId, cancellationToken);
+        if (solicitud is null)
+            return ServiceResult.Fail("Solicitud no encontrada.");
+
+        if (solicitud.Estado != SolicitudMaterialEstado.Pendiente)
+            return ServiceResult.Fail("La solicitud ya fue resuelta y no puede modificarse.");
+
+        var decisions = (items ?? [])
+            .GroupBy(i => i.DetalleId)
+            .ToDictionary(g => g.Key, g => g.Last().CantidadAprobada);
+
+        if (solicitud.Detalles.Count == 0)
+            return ServiceResult.Fail("La solicitud no tiene ítems.");
+
+        // Debe ser una decisión por cada ítem pendiente
+        foreach (var detalle in solicitud.Detalles)
+        {
+            if (detalle.EstadoItem != DetalleSolicitudEstado.Pendiente)
+                return ServiceResult.Fail("Hay ítems ya resueltos; no se puede re-resolver.");
+
+            if (!decisions.TryGetValue(detalle.Id, out var cantidad))
+                return ServiceResult.Fail("Debe indicar una cantidad aprobada para cada material.");
+
+            if (cantidad < 0)
+                return ServiceResult.Fail("La cantidad aprobada no puede ser negativa.");
+
+            if (cantidad > 0)
+            {
+                var error = ValidarCantidadAprobada(detalle, cantidad);
+                if (error is not null)
+                    return ServiceResult.Fail(error);
+            }
+        }
+
+        string? entregaCodigo = null;
+
+        try
+        {
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                foreach (var detalle in solicitud.Detalles)
+                {
+                    var cantidad = decisions[detalle.Id];
+                    var applyError = AplicarDecisionDetalle(detalle, cantidad);
+                    if (applyError is not null)
+                        throw new InvalidOperationException(applyError);
+
+                    if (cantidad > 0)
+                        _materialRepository.Update(detalle.Material);
+                }
+
+                if (!string.IsNullOrWhiteSpace(observaciones))
+                    solicitud.Observaciones = observaciones.Trim();
+
+                ActualizarEstadoSolicitud(solicitud, bodegueroId);
+
+                var hayEntrega = solicitud.Detalles.Any(d => (d.CantidadAprobada ?? 0) > 0);
+                if (hayEntrega)
+                {
+                    entregaCodigo = await _codigoGenerador.GenerarCodigoEntregaMaterialAsync(ct);
+                    await _solicitudRepository.AddEntregaAsync(new EntregaMaterial
+                    {
+                        Codigo = entregaCodigo,
+                        SolicitudMaterialId = solicitud.Id,
+                        BodegueroId = bodegueroId,
+                        FechaEntrega = DateTime.UtcNow,
+                        Observaciones = string.IsNullOrWhiteSpace(observaciones) ? null : observaciones.Trim()
+                    }, ct);
+                }
+
+                _solicitudRepository.Update(solicitud);
+            }, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ServiceResult.Fail(ex.Message);
+        }
+
+        // Notificación fuera de la transacción (tras commit exitoso)
+        var estadoTexto = DisplayEstado(solicitud.Estado);
+        var body = $"Su solicitud {solicitud.Codigo} fue resuelta: {estadoTexto}.";
+        if (!string.IsNullOrWhiteSpace(entregaCodigo))
+            body += $"\nEntrega generada: {entregaCodigo}.";
+        body += "\n\nRevise el detalle en Mis solicitudes.";
+
+        await _alertService.NotifyUsersAsync(
+            AlertType.SolicitudMaterialResuelta,
+            $"SIPITEX · Solicitud {solicitud.Codigo} resuelta ({estadoTexto})",
+            body,
+            userIds: [solicitud.SolicitanteId],
+            role: null,
+            cancellationToken);
+
+        return ServiceResult.Ok(
+            string.IsNullOrWhiteSpace(entregaCodigo)
+                ? $"Solicitud {solicitud.Codigo} resuelta ({DisplayEstado(solicitud.Estado)})."
+                : $"Solicitud {solicitud.Codigo} resuelta. Entrega {entregaCodigo}.");
+    }
+
+    // Validación autoritativa: CantidadAprobada <= min(Solicitada, Stock)
+    internal static string? ValidarCantidadAprobada(DetalleSolicitudMaterial detalle, decimal cantidadAprobada)
+    {
+        if (cantidadAprobada > detalle.CantidadSolicitada)
+            return "La cantidad aprobada no puede superar la solicitada.";
+
+        if (cantidadAprobada > detalle.Material.Stock)
+            return "Stock insuficiente para aprobar la cantidad indicada.";
+
+        return null;
+    }
+
+    // Aplica decisión a un ítem (0 = rechazo sin stock; >0 = descuento). Reutilizado por Approve y Resolve.
+    internal static string? AplicarDecisionDetalle(DetalleSolicitudMaterial detalle, decimal cantidadAprobada)
+    {
+        if (detalle.EstadoItem != DetalleSolicitudEstado.Pendiente)
+            return "El ítem ya fue resuelto.";
+
+        if (cantidadAprobada < 0)
+            return "La cantidad aprobada no puede ser negativa.";
+
+        if (cantidadAprobada == 0)
+        {
+            detalle.CantidadAprobada = 0;
+            detalle.EstadoItem = DetalleSolicitudEstado.Rechazado;
+            return null;
+        }
+
+        var error = ValidarCantidadAprobada(detalle, cantidadAprobada);
+        if (error is not null)
+            return error;
+
+        // Revalidación de stock en el momento de aplicar (carrera)
+        if (cantidadAprobada > detalle.Material.Stock)
+            return "Stock insuficiente para aprobar la cantidad indicada.";
+
+        detalle.Material.Stock -= cantidadAprobada;
+        detalle.CantidadAprobada = cantidadAprobada;
+        detalle.EstadoItem = cantidadAprobada == detalle.CantidadSolicitada
+            ? DetalleSolicitudEstado.Aprobado
+            : DetalleSolicitudEstado.AprobadoParcial;
+
+        return null;
     }
 
     // Recalcula Estado global; FechaResolucion solo cuando no quedan ítems Pendiente
@@ -91,7 +239,6 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
         var hayPendiente = detalles.Any(d => d.EstadoItem == DetalleSolicitudEstado.Pendiente);
         if (hayPendiente)
         {
-            // Mientras queden ítems sin resolver, la solicitud sigue Pendiente
             solicitud.Estado = SolicitudMaterialEstado.Pendiente;
             return;
         }
@@ -109,4 +256,12 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
         solicitud.FechaResolucion = DateTime.UtcNow;
         solicitud.ResueltoPorId = resueltoPorId;
     }
+
+    private static string DisplayEstado(SolicitudMaterialEstado estado) => estado switch
+    {
+        SolicitudMaterialEstado.AprobadaTotal => "Aprobada total",
+        SolicitudMaterialEstado.AprobadaParcial => "Aprobada parcial",
+        SolicitudMaterialEstado.Rechazada => "Rechazada",
+        _ => estado.ToString()
+    };
 }
