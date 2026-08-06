@@ -99,6 +99,25 @@
                     <div class="breadcrumb">@breadcrumb</div>
                 </div>
             </div>
+            @* Buscador global: módulos (JS) + entidades (/api/busqueda) *@
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="topbar-search" id="globalSearch" data-search-api="@Url.Content("~/api/busqueda")">
+                    <div class="search-field">
+                        <i class="fas fa-magnifying-glass search-icon" aria-hidden="true"></i>
+                        <input type="search"
+                               id="globalSearchInput"
+                               class="search-input"
+                               placeholder="Buscar en SIPITEX..."
+                               autocomplete="off"
+                               aria-label="Buscar en SIPITEX"
+                               aria-autocomplete="list"
+                               aria-controls="globalSearchResults"
+                               aria-expanded="false" />
+                    </div>
+                    <div class="search-dropdown" id="globalSearchResults" role="listbox" hidden></div>
+                </div>
+            }
             <div class="topbar-right">
                 @if (User.Identity?.IsAuthenticated == true)
                 {

@@ -8,6 +8,7 @@ using Sipitex.Infrastructure.Email; // Implementación del correo
 using Sipitex.Infrastructure.Persistence; // SipitexDbContext
 using Sipitex.Infrastructure.Reporting; // ReportService
 using Sipitex.Infrastructure.Repositories; // Todos los repositorios
+using Sipitex.Infrastructure.Search; // BusquedaService
 
 namespace Sipitex.Infrastructure;
 
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IEmailSender, EmailSender>(); // Un EmailSender por request
         services.AddScoped<IReportService, ReportService>(); // Reportes Excel/PDF
         services.AddScoped<IFuncionalidadesReportService, FuncionalidadesReportService>(); // Catálogo Word
+        services.AddScoped<IBusquedaService, BusquedaService>(); // Búsqueda global del header
 
         // Repositorios scoped = una instancia por request HTTP
         services.AddScoped<IUnitOfWork, UnitOfWork>(); // Guarda cambios al final del request
