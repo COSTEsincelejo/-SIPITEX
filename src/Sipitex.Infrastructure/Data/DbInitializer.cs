@@ -63,6 +63,7 @@ public static class DbInitializer
         }
 
         await SeedUsersAsync(context);
+        await LinkSeedOrdersToInstructorAsync(context);
         await SeedAlertPreferencesAsync(context);
     }
 
@@ -87,6 +88,7 @@ public static class DbInitializer
         await EnsureColumnAsync(context, "Materials", "LastEntryDate", """ALTER TABLE "Materials" ADD COLUMN "LastEntryDate" TEXT NOT NULL DEFAULT '2026-01-01';""");
         await EnsureColumnAsync(context, "QualityRecords", "MotivoReproceso", """ALTER TABLE "QualityRecords" ADD COLUMN "MotivoReproceso" TEXT NULL;""");
         await EnsureColumnAsync(context, "QualityRecords", "Responsable", """ALTER TABLE "QualityRecords" ADD COLUMN "Responsable" TEXT NULL;""");
+        await EnsureColumnAsync(context, "ProductionOrders", "InstructorId", """ALTER TABLE "ProductionOrders" ADD COLUMN "InstructorId" INTEGER NULL;""");
 
         await context.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "AlertPreferences" (
@@ -189,6 +191,24 @@ public static class DbInitializer
                 PermisosExtendidos = "AprobarSolicitudes",
                 IsActive = true
             });
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task LinkSeedOrdersToInstructorAsync(SipitexDbContext context)
+    {
+        var instructor = await context.Users
+            .FirstOrDefaultAsync(u => u.Rol == UserRoles.Instructor && u.IsActive);
+        if (instructor is null) return;
+
+        // Solo datos demo (OP-001 / OP-002), no reasigna órdenes creadas sin instructor.
+        var demoOrders = await context.ProductionOrders
+            .Where(o => (o.OrderNumber == "OP-001" || o.OrderNumber == "OP-002") && o.InstructorId == null)
+            .ToListAsync();
+        if (demoOrders.Count == 0) return;
+
+        foreach (var order in demoOrders)
+            order.InstructorId = instructor.Id;
 
         await context.SaveChangesAsync();
     }

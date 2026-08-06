@@ -12,17 +12,20 @@ public class ProductionOrderService : IProductionOrderService
 {
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IBomRepository _bomRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ProductionConsumptionService _consumptionService;
 
     public ProductionOrderService(
         IProductionOrderRepository orderRepository,
         IBomRepository bomRepository,
+        IUserRepository userRepository,
         IUnitOfWork unitOfWork,
         ProductionConsumptionService consumptionService)
     {
         _orderRepository = orderRepository;
         _bomRepository = bomRepository;
+        _userRepository = userRepository;
         _unitOfWork = unitOfWork;
         _consumptionService = consumptionService;
     }
@@ -52,7 +55,9 @@ public class ProductionOrderService : IProductionOrderService
                 pct,
                 order.Status,
                 order.Deadline,
-                hint));
+                hint,
+                order.Instructor?.Nombre,
+                order.InstructorId));
         }
 
         return result;
@@ -67,6 +72,18 @@ public class ProductionOrderService : IProductionOrderService
         if (productName.Length > 80)
             return ServiceResult.Fail("El nombre del producto no puede superar 80 caracteres.");
 
+        int? instructorId = null;
+        string? instructorName = null;
+        if (dto.InstructorId is int id && id > 0)
+        {
+            var instructor = await _userRepository.GetByIdAsync(id, cancellationToken);
+            if (instructor is null || !instructor.IsActive || instructor.Rol != UserRoles.Instructor)
+                return ServiceResult.Fail("El instructor seleccionado no es válido.");
+
+            instructorId = instructor.Id;
+            instructorName = instructor.Nombre;
+        }
+
         var bom = await _bomRepository.GetByProductAsync(productName, cancellationToken);
         var count = await _orderRepository.CountAsync(cancellationToken);
         var orderNumber = $"OP-{(count + 101):D3}";
@@ -78,16 +95,20 @@ public class ProductionOrderService : IProductionOrderService
             TotalQuantity = dto.TotalQuantity,
             ProducedQuantity = 0,
             Status = OrderStatus.EnProceso,
-            Deadline = dto.Deadline
+            Deadline = dto.Deadline,
+            InstructorId = instructorId
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var extra = bom.Count == 0
+        var bomExtra = bom.Count == 0
             ? " (sin BOM aún: defina materiales en MRP si desea descontar stock)."
             : " (MRP calculado con ficha técnica existente).";
+        var instructorExtra = instructorName is null
+            ? string.Empty
+            : $" Instructor: {instructorName}.";
 
-        return ServiceResult.Ok($"Orden {orderNumber} creada para «{productName}».{extra}");
+        return ServiceResult.Ok($"Orden {orderNumber} creada para «{productName}».{bomExtra}{instructorExtra}");
     }
 
     public async Task<ServiceResult> RegisterProductionAsync(int orderId, int units, CancellationToken cancellationToken = default)

@@ -24,7 +24,7 @@ public class MrpController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Simulate(MrpSimulationForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> Simulate([Bind(Prefix = "Simulation")] MrpSimulationForm form, CancellationToken cancellationToken)
     {
         var vm = await BuildViewModel(cancellationToken);
         vm.Simulation = form;
@@ -39,7 +39,7 @@ public class MrpController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddBomItem(AddBomItemForm form, CancellationToken cancellationToken)
+    public async Task<IActionResult> AddBomItem([Bind(Prefix = "AddBom")] AddBomItemForm form, CancellationToken cancellationToken)
     {
         if (!PermissionHelper.CanManageInventory(User))
             return Forbid();

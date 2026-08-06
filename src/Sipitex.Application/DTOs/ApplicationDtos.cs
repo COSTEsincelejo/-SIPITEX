@@ -43,9 +43,11 @@ public record ProductionOrderDto(
     int ProgressPercent,
     OrderStatus Status,
     DateOnly Deadline,
-    string MrpHint);
+    string MrpHint,
+    string? InstructorName = null,
+    int? InstructorId = null);
 
-public record CreateProductionOrderDto(string ProductName, int TotalQuantity, DateOnly Deadline);
+public record CreateProductionOrderDto(string ProductName, int TotalQuantity, DateOnly Deadline, int? InstructorId = null);
 
 public record BomItemDto(string ProductName, string MaterialName, decimal QuantityPerUnit, string UnitDisplay);
 

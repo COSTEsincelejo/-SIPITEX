@@ -12,11 +12,6 @@
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(Model.Message))
-{
-    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" class="visually-hidden">@Model.Message</div>
-}
-
 <div class="card">
     <div class="card-title"><i class="fas fa-clipboard-list"></i> Crear orden de producción</div>
     <div class="grid-2col">
@@ -46,6 +41,30 @@
                     </div>
                 </div>
                 <div class="form-row">
+                    <div class="field" style="flex:1;">
+                        <label class="field-label">Instructor <span style="font-weight:400;color:var(--text-mut);">(opcional)</span></label>
+                        @if (Model.CurrentUserIsInstructor)
+                        {
+                            <input type="hidden" asp-for="CreateOrder.InstructorId" />
+                            var me = Model.Instructors.FirstOrDefault(i => i.Id == Model.CreateOrder.InstructorId);
+                            <input type="text"
+                                   value="@(me is null ? "Su cuenta de instructor" : $"{me.Nombre} ({me.Email})")"
+                                   style="width:100%"
+                                   readonly />
+                            <small class="field-hint">La orden queda ligada a la cuenta con la que inició sesión.</small>
+                        }
+                        else
+                        {
+                            <select asp-for="CreateOrder.InstructorId" style="width:100%">
+                                <option value="">— Sin instructor —</option>
+                                @foreach (var instructor in Model.Instructors)
+                                {
+                                    <option value="@instructor.Id">@instructor.Nombre (@instructor.Email)</option>
+                                }
+                            </select>
+                            <small class="field-hint">Solo usuarios con rol Instructor (creados en Usuarios).</small>
+                        }
+                    </div>
                     <div class="field">
                         <label class="field-label">Fecha límite</label>
                         <input asp-for="CreateOrder.Deadline" type="date" required />
@@ -62,7 +81,7 @@
     </div>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Orden</th><th>Producto</th><th>Cantidad</th><th>Producido</th><th>Avance</th><th>Estado</th><th>MRP sugerido</th><th></th></tr></thead>
+            <thead><tr><th>Orden</th><th>Producto</th><th>Cantidad</th><th>Producido</th><th>Avance</th><th>Estado</th><th>Instructor</th><th>MRP sugerido</th><th></th></tr></thead>
             <tbody>
             @foreach (var order in Model.Orders)
             {
@@ -76,6 +95,7 @@
                         <div style="font-size:11px;color:var(--text-mut);margin-top:4px;">@order.ProgressPercent%</div>
                     </td>
                     <td><span class="badge @DisplayHelper.BadgeClass(order.Status)">@DisplayHelper.StatusText(order.Status)</span></td>
+                    <td>@(string.IsNullOrWhiteSpace(order.InstructorName) ? "—" : order.InstructorName)</td>
                     <td><small style="color:var(--text-mut);">@order.MrpHint</small></td>
                     <td>
                         @if (order.Status != OrderStatus.Finalizada)
