@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
@@ -7,7 +8,7 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
-// Órdenes de producción: listar, crear, materiales opcionales y registrar avance
+// Órdenes de producción: listar, crear, materiales, flujo MES y registrar avance
 [Authorize]
 public class OrdenesController : Controller
 {
@@ -15,17 +16,23 @@ public class OrdenesController : Controller
     private readonly IBomCatalogService _bomCatalog;
     private readonly IOrderMaterialService _orderMaterialService;
     private readonly IInventoryService _inventoryService;
+    private readonly IProductionFlowService _flowService;
+    private readonly IUserAccountService _users;
 
     public OrdenesController(
         IProductionOrderService orderService,
         IBomCatalogService bomCatalog,
         IOrderMaterialService orderMaterialService,
-        IInventoryService inventoryService)
+        IInventoryService inventoryService,
+        IProductionFlowService flowService,
+        IUserAccountService users)
     {
         _orderService = orderService;
         _bomCatalog = bomCatalog;
         _orderMaterialService = orderMaterialService;
         _inventoryService = inventoryService;
+        _flowService = flowService;
+        _users = users;
     }
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero},{UserRoles.Instructor}")]
@@ -42,18 +49,21 @@ public class OrdenesController : Controller
         });
     }
 
-    // Detalle de materiales asociados (extensión; no altera Create/AddProduction)
+    // Detalle MES completo (materiales + etapas + historial + inventario terminado)
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero},{UserRoles.Instructor}")]
     [HttpGet]
     public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
     {
-        var detail = await _orderMaterialService.GetDetailAsync(id, cancellationToken);
-        if (detail is null) return NotFound();
+        var (userId, role, name) = GetActor();
+        var mes = await _flowService.GetMesDetailAsync(id, userId, role, cancellationToken);
+        if (mes is null) return NotFound();
 
-        return View(new OrdenMaterialDetailViewModel
+        var instructors = await _users.GetUsersAsync(cancellationToken);
+        return View(new OrdenMesDetailViewModel
         {
-            Detail = detail,
+            Mes = mes,
             Materials = await _inventoryService.GetMaterialsAsync(cancellationToken),
+            Instructors = instructors.Where(u => u.Rol == UserRoles.Instructor && u.IsActive).ToList(),
             AddMaterial = new AddOrderMaterialForm { OrderId = id, QuantityRequired = 1 },
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
@@ -66,7 +76,8 @@ public class OrdenesController : Controller
     public async Task<IActionResult> Create([Bind(Prefix = "CreateOrder")] CreateOrderForm form, CancellationToken cancellationToken)
     {
         var result = await _orderService.CreateOrderAsync(
-            new CreateProductionOrderDto(form.ProductName, form.TotalQuantity, form.Deadline), cancellationToken);
+            new CreateProductionOrderDto(form.ProductName, form.TotalQuantity, form.Deadline, form.ClientName),
+            cancellationToken);
 
         TempData["Message"] = result.Message ?? (result.Success ? "Orden creada." : "Error al crear orden.");
         TempData["IsSuccess"] = result.Success;
@@ -117,5 +128,138 @@ public class OrdenesController : Controller
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Detail), new { id });
+    }
+
+    // --- Flujo MES ---
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddStage(int orderId, string name, bool isOptional, CancellationToken cancellationToken)
+    {
+        var (uid, _, uname) = GetActor();
+        Flash(await _flowService.AddStageAsync(new AddOrderStageDto(orderId, name, isOptional), uid, uname, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveStage(int stageId, int orderId, CancellationToken cancellationToken)
+    {
+        var (uid, _, uname) = GetActor();
+        Flash(await _flowService.RemoveStageAsync(stageId, uid, uname, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MoveStage(int stageId, int orderId, int direction, CancellationToken cancellationToken)
+    {
+        var (uid, _, uname) = GetActor();
+        Flash(await _flowService.MoveStageAsync(stageId, direction, uid, uname, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> StartStage(int stageId, int orderId, CancellationToken cancellationToken)
+    {
+        var (uid, role, uname) = GetActor();
+        Flash(await _flowService.StartStageAsync(stageId, uid, uname, role, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> PauseStage(int stageId, int orderId, CancellationToken cancellationToken)
+    {
+        var (uid, role, uname) = GetActor();
+        Flash(await _flowService.PauseStageAsync(stageId, uid, uname, role, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResumeStage(int stageId, int orderId, CancellationToken cancellationToken)
+    {
+        var (uid, role, uname) = GetActor();
+        Flash(await _flowService.ResumeStageAsync(stageId, uid, uname, role, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CompleteStage(int stageId, int orderId, CancellationToken cancellationToken)
+    {
+        var (uid, role, uname) = GetActor();
+        Flash(await _flowService.CompleteStageAsync(stageId, uid, uname, role, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignInstructor(int stageId, int orderId, int? instructorUserId, CancellationToken cancellationToken)
+    {
+        var (uid, _, uname) = GetActor();
+        Flash(await _flowService.AssignInstructorAsync(new AssignStageInstructorDto(stageId, instructorUserId), uid, uname, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ProcessUnits(int stageId, int orderId, int quantity, string? observations, CancellationToken cancellationToken)
+    {
+        var (uid, role, uname) = GetActor();
+        Flash(await _flowService.ProcessUnitsAsync(new ProcessStageUnitsDto(stageId, quantity, observations), uid, uname, role, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SendToNext(int stageId, int orderId, int quantity, string? observations, CancellationToken cancellationToken)
+    {
+        var (uid, role, uname) = GetActor();
+        Flash(await _flowService.SendToNextAsync(new SendToNextStageDto(stageId, quantity, observations), uid, uname, role, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> PartialInventoryIn(int orderId, int stageId, int quantity, string? observations, CancellationToken cancellationToken)
+    {
+        var (uid, role, uname) = GetActor();
+        Flash(await _flowService.PartialInventoryInAsync(new PartialInventoryInDto(orderId, stageId, quantity, observations), uid, uname, role, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> PartialWithdraw(int stageId, int orderId, int quantity, string motive, string? observations, CancellationToken cancellationToken)
+    {
+        var (uid, role, uname) = GetActor();
+        Flash(await _flowService.PartialWithdrawAsync(
+            new PartialWithdrawalDto(stageId, quantity, motive, observations, uid), uid, uname, role, cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetStagePermission(int orderId, int userId, string stageName, bool allowed, CancellationToken cancellationToken)
+    {
+        Flash(await _flowService.SetStagePermissionAsync(new UpsertStagePermissionDto(userId, stageName, allowed), cancellationToken));
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    private void Flash(ServiceResult result)
+    {
+        TempData["Message"] = result.Message;
+        TempData["IsSuccess"] = result.Success;
+    }
+
+    private (int UserId, string Role, string Name) GetActor()
+    {
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id);
+        var role = User.FindFirstValue(ClaimTypes.Role) ?? "";
+        var name = User.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
+        return (id, role, name);
     }
 }

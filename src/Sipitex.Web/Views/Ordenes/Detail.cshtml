@@ -1,18 +1,23 @@
-@model OrdenMaterialDetailViewModel
+@model OrdenMesDetailViewModel
 @{
-    ViewData["Title"] = $"Materiales {Model.Detail.OrderNumber}";
-    ViewData["Breadcrumb"] = "SIPITEX / Operación / Órdenes / Materiales";
+    ViewData["Title"] = $"Orden {Model.Mes.OrderNumber}";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Órdenes / Detalle";
     Layout = "_Layout";
-    var d = Model.Detail;
-    var canManage = User.IsInRole("Administrador") || User.IsInRole("Instructor");
+    var m = Model.Mes;
+    var canManage = m.CanManageFlow;
+    var canOperate = User.IsInRole("Administrador") || User.IsInRole("Instructor");
 }
 
 <div class="page-header">
     <div>
-        <h2>Materiales · @d.OrderNumber</h2>
-        <div class="sub">@d.ProductName · meta @d.TotalQuantity uds · producido @d.ProducedQuantity</div>
+        <h2>@m.OrderNumber · @m.ProductName</h2>
+        <div class="sub">
+            @(string.IsNullOrWhiteSpace(m.ClientName) ? "Sin cliente" : m.ClientName)
+            · meta @m.TotalQuantity · producido @m.ProducedQuantity
+            · etapa actual: @(m.CurrentStageName ?? "—")
+        </div>
     </div>
-    <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver a órdenes</a>
+    <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
@@ -21,104 +26,240 @@
 }
 
 <div class="card">
-    <div class="card-title"><i class="fas fa-info-circle"></i> Estado</div>
+    <div class="card-title"><i class="fas fa-info-circle"></i> Información general</div>
     <div class="solicitud-detail-meta">
-        <div><span class="field-label">Producción</span><br /><span class="badge @DisplayHelper.BadgeClass(d.Status)">@DisplayHelper.StatusText(d.Status)</span></div>
-        <div><span class="field-label">Materiales / bodega</span><br /><span class="badge @DisplayHelper.BadgeClass(d.MaterialsStatus)">@DisplayHelper.StatusText(d.MaterialsStatus)</span></div>
-        <div><span class="field-label">¿Puede producir?</span><br />@(d.CanRegisterProduction ? "Sí" : "No — pendiente entrega")</div>
+        <div><span class="field-label">Estado</span><br /><span class="badge @DisplayHelper.BadgeClass(m.Status)">@DisplayHelper.StatusText(m.Status)</span></div>
+        <div><span class="field-label">Materiales</span><br /><span class="badge @DisplayHelper.BadgeClass(m.MaterialsStatus)">@DisplayHelper.StatusText(m.MaterialsStatus)</span></div>
+        <div><span class="field-label">Fecha límite</span><br />@m.Deadline.ToString("yyyy-MM-dd")</div>
+        <div><span class="field-label">Inventario terminado</span><br /><strong>@m.FinishedGoodStock.ToString("0.##")</strong> uds</div>
+    </div>
+    <div style="margin-top:14px;">
+        <div class="field-label">Avance combinado (flujo @m.FlowProgressPercent% · cantidad @m.QtyProgressPercent%)</div>
+        <div class="progress-track" style="height:10px;margin-top:6px;">
+            <div class="progress-fill" style="width:@m.CombinedProgressPercent%"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-mut);margin-top:4px;">@m.CombinedProgressPercent%</div>
+    </div>
+    <div style="margin-top:10px;"><span class="field-label">MRP</span><br /><small style="color:var(--text-mut);">@m.MrpHint</small></div>
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-diagram-project"></i> Flujo de etapas</div>
+    @if (canManage)
+    {
+        <form asp-action="AddStage" method="post" class="form-row" style="gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="orderId" value="@m.OrderId" />
+            <div class="field"><label class="field-label">Nueva etapa</label><input name="name" required maxlength="80" placeholder="Ej. Bordado" /></div>
+            <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="isOptional" value="true" /> Opcional</label>
+            <button type="submit" class="small primary">Agregar</button>
+        </form>
+    }
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th><th>Etapa</th><th>Estado</th><th>Instructor</th>
+                    <th>Recibida</th><th>Procesada</th><th>Enviada</th><th>Disponible</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var s in m.Stages)
+            {
+                <tr class="@(s.IsCurrent ? "stock-warn-row" : null)">
+                    <td>@s.SortOrder</td>
+                    <td>
+                        <strong>@s.Name</strong>
+                        @if (s.IsCurrent) { <span class="badge badge-info">Actual</span> }
+                        @if (s.IsOptional) { <span class="hint">opcional</span> }
+                    </td>
+                    <td><span class="badge @DisplayHelper.BadgeClass(s.Status)">@DisplayHelper.StatusText(s.Status)</span></td>
+                    <td>
+                        @if (canManage)
+                        {
+                            <form asp-action="AssignInstructor" method="post" class="row-actions">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="stageId" value="@s.Id" />
+                                <input type="hidden" name="orderId" value="@m.OrderId" />
+                                <select name="instructorUserId" style="max-width:160px">
+                                    <option value="">—</option>
+                                    @foreach (var i in Model.Instructors)
+                                    {
+                                        if (s.InstructorUserId == i.Id)
+                                        {
+                                            <option value="@i.Id" selected>@i.Nombre</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@i.Id">@i.Nombre</option>
+                                        }
+                                    }
+                                </select>
+                                <button type="submit" class="small ghost">OK</button>
+                            </form>
+                        }
+                        else
+                        {
+                            @(s.InstructorName ?? "—")
+                        }
+                    </td>
+                    <td>@s.QuantityReceived</td>
+                    <td>@s.QuantityProcessed</td>
+                    <td>@s.QuantitySent</td>
+                    <td>@s.QuantityAvailable</td>
+                    <td>
+                        @if (canOperate && s.Status != ProductionStageStatus.Finalizado)
+                        {
+                            <div class="row-actions" style="justify-content:flex-start;">
+                                @if (s.Status == ProductionStageStatus.Pendiente)
+                                {
+                                    <form asp-action="StartStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><button class="small ghost">Iniciar</button></form>
+                                }
+                                @if (s.Status == ProductionStageStatus.EnProceso)
+                                {
+                                    <form asp-action="PauseStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><button class="small ghost">Pausar</button></form>
+                                    <form asp-action="CompleteStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><button class="small primary">Finalizar</button></form>
+                                }
+                                @if (s.Status == ProductionStageStatus.Pausado)
+                                {
+                                    <form asp-action="ResumeStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><button class="small ghost">Reanudar</button></form>
+                                }
+                                @if (canManage)
+                                {
+                                    <form asp-action="MoveStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><input type="hidden" name="direction" value="-1" /><button class="small ghost" title="Subir">↑</button></form>
+                                    <form asp-action="MoveStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><input type="hidden" name="direction" value="1" /><button class="small ghost" title="Bajar">↓</button></form>
+                                    <form asp-action="RemoveStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><button class="small ghost">Quitar</button></form>
+                                }
+                            </div>
+                            <div class="row-actions" style="margin-top:6px;justify-content:flex-start;">
+                                <form asp-action="ProcessUnits" method="post" class="row-actions">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="stageId" value="@s.Id" />
+                                    <input type="hidden" name="orderId" value="@m.OrderId" />
+                                    <input type="number" name="quantity" min="1" value="1" style="width:64px" aria-label="Procesar" />
+                                    <button class="small ghost">Procesar</button>
+                                </form>
+                                <form asp-action="SendToNext" method="post" class="row-actions">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="stageId" value="@s.Id" />
+                                    <input type="hidden" name="orderId" value="@m.OrderId" />
+                                    <input type="number" name="quantity" min="1" value="1" style="width:64px" aria-label="Enviar" />
+                                    <button class="small ghost">Enviar →</button>
+                                </form>
+                                <form asp-action="PartialInventoryIn" method="post" class="row-actions">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="orderId" value="@m.OrderId" />
+                                    <input type="hidden" name="stageId" value="@s.Id" />
+                                    <input type="number" name="quantity" min="1" value="1" style="width:64px" aria-label="Inventario" />
+                                    <button class="small primary">+ Inventario</button>
+                                </form>
+                                <form asp-action="PartialWithdraw" method="post" class="row-actions">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="stageId" value="@s.Id" />
+                                    <input type="hidden" name="orderId" value="@m.OrderId" />
+                                    <input type="number" name="quantity" min="1" value="1" style="width:64px" aria-label="Retiro" />
+                                    <input type="text" name="motive" required placeholder="Motivo" style="width:110px" />
+                                    <button class="small ghost">Retirar</button>
+                                </form>
+                            </div>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
     </div>
 </div>
 
-@if (canManage && d.CanEditRequirements)
+@if (canManage)
 {
     <div class="card">
-        <div class="card-title"><i class="fas fa-plus"></i> Asociar material del inventario</div>
-        <p class="hint" style="margin-top:0;">Solo materiales existentes. La asociación es opcional; sin materiales la orden produce como hasta ahora.</p>
-        <form asp-action="AddMaterial" method="post" class="form-row" style="align-items:flex-end;flex-wrap:wrap;gap:12px;" data-order-material-form>
+        <div class="card-title"><i class="fas fa-user-lock"></i> Permisos por etapa (instructores)</div>
+        <form asp-action="SetStagePermission" method="post" class="form-row" style="gap:8px;flex-wrap:wrap;align-items:flex-end;">
             @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="AddMaterial.OrderId" />
-            <div class="field" style="min-width:220px;flex:1;">
-                <label class="field-label">Material</label>
-                <select asp-for="AddMaterial.MaterialId" required data-material-select style="width:100%">
-                    <option value="">Seleccione…</option>
-                    @foreach (var m in Model.Materials)
+            <input type="hidden" name="orderId" value="@m.OrderId" />
+            <div class="field">
+                <label class="field-label">Instructor</label>
+                <select name="userId" required>
+                    @foreach (var i in Model.Instructors)
                     {
-                        <option value="@m.Id"
-                                data-stock="@m.Stock.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                                data-unit="@m.UnitDisplay">
-                            @m.Name (@m.UnitDisplay) · stock @m.Stock.ToString("0.##")
-                        </option>
+                        <option value="@i.Id">@i.Nombre</option>
                     }
                 </select>
             </div>
-            <div class="field" style="width:140px;">
-                <label class="field-label">Cantidad requerida</label>
-                <input asp-for="AddMaterial.QuantityRequired" type="number" min="0.01" step="0.01" required data-qty-input />
+            <div class="field">
+                <label class="field-label">Etapa</label>
+                <select name="stageName" required>
+                    @foreach (var s in m.Stages.Select(x => x.Name).Distinct())
+                    {
+                        <option value="@s">@s</option>
+                    }
+                </select>
             </div>
-            <div class="field" style="flex:1;min-width:180px;">
-                <label class="field-label">Observaciones</label>
-                <input asp-for="AddMaterial.Observations" maxlength="500" placeholder="Opcional" />
+            <div class="field">
+                <label class="field-label">Acción</label>
+                <select name="allowed">
+                    <option value="true">Permitir</option>
+                    <option value="false">Revocar</option>
+                </select>
             </div>
-            <button type="submit" class="primary small">Agregar</button>
+            <button type="submit" class="small primary">Guardar permiso</button>
         </form>
-        <div id="stockPreview" class="alert alert-info" style="margin-top:12px;" hidden></div>
-        <form asp-action="ImportBomMaterials" method="post" style="margin-top:12px;">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="id" value="@d.OrderId" />
-            <button type="submit" class="ghost small"><i class="fas fa-file-import"></i> Sugerir desde BOM × cantidad</button>
-        </form>
+        <p class="hint">Admin opera todas las etapas. Instructor: etapa asignada o permiso explícito.</p>
     </div>
 }
 
 <div class="card">
-    <div class="card-title amber"><i class="fas fa-boxes-stacked"></i> Materiales de la orden</div>
-    @if (d.Lines.Count == 0)
+    <div class="card-title"><i class="fas fa-boxes-stacked"></i> Materiales de la orden</div>
+    @if (canOperate && m.Status != OrderStatus.Finalizada)
     {
-        <p class="hint">Sin materiales asociados. La producción no requiere entrega de bodega.</p>
+        <form asp-action="AddMaterial" method="post" class="form-row" style="align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="AddMaterial.OrderId" />
+            <div class="field" style="min-width:200px;flex:1;">
+                <label class="field-label">Material</label>
+                <select asp-for="AddMaterial.MaterialId" required style="width:100%">
+                    <option value="">Seleccione…</option>
+                    @foreach (var mat in Model.Materials)
+                    {
+                        <option value="@mat.Id">@mat.Name · stock @mat.Stock.ToString("0.##") @mat.UnitDisplay</option>
+                    }
+                </select>
+            </div>
+            <div class="field" style="width:120px;">
+                <label class="field-label">Cantidad</label>
+                <input asp-for="AddMaterial.QuantityRequired" type="number" min="0.01" step="0.01" required />
+            </div>
+            <div class="field" style="flex:1;">
+                <label class="field-label">Observaciones</label>
+                <input asp-for="AddMaterial.Observations" maxlength="500" />
+            </div>
+            <button type="submit" class="primary small">Agregar</button>
+        </form>
+        <form asp-action="ImportBomMaterials" method="post" style="margin-bottom:12px;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@m.OrderId" />
+            <button type="submit" class="ghost small">Sugerir desde BOM</button>
+        </form>
+    }
+    @if (m.MaterialLines.Count == 0)
+    {
+        <p class="hint">Sin materiales asociados (opcional).</p>
     }
     else
     {
         <div class="table-wrap">
             <table>
-                <thead>
-                    <tr>
-                        <th>Material</th>
-                        <th>Requerido</th>
-                        <th>Entregado</th>
-                        <th>Pendiente</th>
-                        <th>Stock</th>
-                        <th>Diferencia</th>
-                        <th>Estado</th>
-                        <th>Obs.</th>
-                        @if (canManage) { <th></th> }
-                    </tr>
-                </thead>
+                <thead><tr><th>Material</th><th>Req.</th><th>Entregado</th><th>Stock</th><th>Estado</th></tr></thead>
                 <tbody>
-                @foreach (var line in d.Lines)
+                @foreach (var line in m.MaterialLines)
                 {
-                    <tr class="@(line.Availability != MaterialStockAvailability.Suficiente && !line.IsFullyDelivered ? "stock-warn-row" : null)">
-                        <td><strong>@line.MaterialName</strong><div class="hint">@line.MaterialCode</div></td>
+                    <tr>
+                        <td>@line.MaterialName</td>
                         <td>@line.QuantityRequired.ToString("0.##") @line.UnitDisplay</td>
                         <td>@line.QuantityDelivered.ToString("0.##")</td>
-                        <td>@line.QuantityPending.ToString("0.##")</td>
                         <td>@line.StockAvailable.ToString("0.##")</td>
-                        <td>@line.Difference.ToString("0.##")</td>
                         <td><span class="badge @DisplayHelper.BadgeClass(line.Availability)">@DisplayHelper.StatusText(line.Availability)</span></td>
-                        <td><small>@(line.Observations ?? "—")</small></td>
-                        @if (canManage)
-                        {
-                            <td>
-                                @if (line.QuantityDelivered == 0 && d.CanEditRequirements)
-                                {
-                                    <form asp-action="RemoveMaterial" method="post" style="display:inline;">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="lineId" value="@line.Id" />
-                                        <input type="hidden" name="orderId" value="@d.OrderId" />
-                                        <button type="submit" class="small ghost">Quitar</button>
-                                    </form>
-                                }
-                            </td>
-                        }
                     </tr>
                 }
                 </tbody>
@@ -127,32 +268,65 @@
     }
 </div>
 
-@section Scripts {
-<script>
-(function () {
-    const select = document.querySelector('[data-material-select]');
-    const qty = document.querySelector('[data-qty-input]');
-    const preview = document.getElementById('stockPreview');
-    if (!select || !qty || !preview) return;
-
-    function refresh() {
-        const opt = select.options[select.selectedIndex];
-        if (!opt || !opt.value) { preview.hidden = true; return; }
-        const stock = parseFloat(opt.getAttribute('data-stock') || '0');
-        const unit = opt.getAttribute('data-unit') || '';
-        const required = parseFloat(qty.value || '0');
-        const diff = stock - required;
-        let label = 'Stock suficiente';
-        let cls = 'alert alert-info';
-        if (stock <= 0) { label = 'Sin existencias'; cls = 'alert alert-danger'; }
-        else if (required > 0 && stock < required) { label = 'Stock insuficiente'; cls = 'alert alert-warning'; }
-        preview.className = cls;
-        preview.hidden = false;
-        preview.textContent = label + ' · stock ' + stock.toFixed(2) + ' ' + unit
-            + (required > 0 ? ' · requerido ' + required.toFixed(2) + ' · diferencia ' + diff.toFixed(2) : '');
-    }
-    select.addEventListener('change', refresh);
-    qty.addEventListener('input', refresh);
-})();
-</script>
-}
+<div class="grid-2col">
+    <div class="card">
+        <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Historial</div>
+        @if (m.History.Count == 0)
+        {
+            <p class="hint">Sin eventos aún.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Fecha</th><th>Evento</th><th>Usuario</th></tr></thead>
+                    <tbody>
+                    @foreach (var h in m.History.Take(40))
+                    {
+                        <tr>
+                            <td><small>@h.AtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</small></td>
+                            <td>@h.Message</td>
+                            <td>@(h.ActorUserName ?? "—")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+    <div class="card">
+        <div class="card-title"><i class="fas fa-right-left"></i> Movimientos / inventario</div>
+        @if (m.Movements.Count == 0 && m.InventoryIns.Count == 0)
+        {
+            <p class="hint">Sin movimientos.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Fecha</th><th>Tipo</th><th>Cant.</th><th>Detalle</th></tr></thead>
+                    <tbody>
+                    @foreach (var mv in m.Movements.Take(30))
+                    {
+                        <tr>
+                            <td><small>@mv.AtUtc.ToLocalTime().ToString("HH:mm")</small></td>
+                            <td>@mv.MovementType</td>
+                            <td>@mv.Quantity</td>
+                            <td>@(mv.FromStage ?? "—") → @(mv.ToStage ?? "Inventario/Retiro")</td>
+                        </tr>
+                    }
+                    @foreach (var fg in m.InventoryIns.Take(20))
+                    {
+                        <tr>
+                            <td><small>@fg.AtUtc.ToLocalTime().ToString("HH:mm")</small></td>
+                            <td>InventoryIn</td>
+                            <td>+@fg.Quantity.ToString("0.##")</td>
+                            <td>@fg.ProductName · @fg.ActorName</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

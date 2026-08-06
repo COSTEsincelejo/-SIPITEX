@@ -2,6 +2,7 @@ using Moq;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
+using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
@@ -145,9 +146,12 @@ public class OrderMaterialServiceTests
         var boms = new Mock<IBomRepository>();
         var snapshots = new Mock<IProductionOrderBomSnapshotRepository>();
         var reqs = new Mock<IOrderMaterialRequirementRepository>();
+        var flowRepo = new Mock<IProductionFlowRepository>();
+        var flowService = new Mock<IProductionFlowService>();
         var uow = new Mock<IUnitOfWork>();
         var materials = new Mock<IMaterialRepository>();
         reqs.Setup(r => r.GetByOrderIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        flowRepo.Setup(r => r.GetStagesByOrderAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
         var order = new ProductionOrder
         {
@@ -160,7 +164,8 @@ public class OrderMaterialServiceTests
         orders.Setup(o => o.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(order);
 
         var sut = new ProductionOrderService(
-            orders.Object, boms.Object, snapshots.Object, reqs.Object, uow.Object,
+            orders.Object, boms.Object, snapshots.Object, reqs.Object,
+            flowRepo.Object, flowService.Object, uow.Object,
             new ProductionConsumptionService(boms.Object, materials.Object));
 
         var result = await sut.RegisterProductionAsync(2, 5);

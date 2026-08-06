@@ -16,6 +16,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IProductionOrderService, ProductionOrderService>();
         services.AddScoped<IOrderMaterialService, OrderMaterialService>();
+        services.AddScoped<IProductionFlowService, ProductionFlowService>();
 
         // SolicitudMaterial (flujo Ficha multi-ítem; paralelo a MaterialRequest)
         services.AddScoped<ICodigoGeneradorService, CodigoGeneradorService>();

@@ -50,10 +50,14 @@ public record ProductionOrderDto(
     string MrpHint,
     OrderMaterialsStatus MaterialsStatus = OrderMaterialsStatus.NoAplica,
     bool HasMaterialRequirements = false,
-    bool CanRegisterProduction = true);
+    bool CanRegisterProduction = true,
+    string? ClientName = null,
+    string? CurrentStageName = null,
+    int FlowProgressPercent = 0,
+    int CombinedProgressPercent = 0);
 
 // Alta de orden nueva
-public record CreateProductionOrderDto(string ProductName, int TotalQuantity, DateOnly Deadline);
+public record CreateProductionOrderDto(string ProductName, int TotalQuantity, DateOnly Deadline, string? ClientName = null);
 
 // --- MRP / BOM ---
 
@@ -335,3 +339,87 @@ public record DeliverOrderMaterialsDto(
     int OrderId,
     IReadOnlyList<DeliverOrderMaterialItemDto> Items,
     string? Observations);
+
+// --- Flujo MES de producción ---
+
+public record OrderStageDto(
+    int Id,
+    string Name,
+    int SortOrder,
+    bool IsOptional,
+    ProductionStageStatus Status,
+    int? InstructorUserId,
+    string? InstructorName,
+    DateTime? StartedAtUtc,
+    DateTime? CompletedAtUtc,
+    string? Observations,
+    int QuantityReceived,
+    int QuantityProcessed,
+    int QuantitySent,
+    int QuantityWithdrawn,
+    int QuantityAvailable,
+    bool IsCurrent);
+
+public record OrderHistoryDto(
+    int Id,
+    DateTime AtUtc,
+    ProductionHistoryEventType EventType,
+    string Message,
+    string? ActorUserName,
+    string? StageName,
+    int? Quantity);
+
+public record OrderStageMovementDto(
+    int Id,
+    string MovementType,
+    int Quantity,
+    DateTime AtUtc,
+    string ActorName,
+    string? FromStage,
+    string? ToStage,
+    string? Motive,
+    string? Observations);
+
+public record FinishedGoodMovementDto(
+    int Id,
+    string ProductName,
+    decimal Quantity,
+    DateTime AtUtc,
+    string ActorName,
+    string? Observations);
+
+public record OrderMesDetailDto(
+    int OrderId,
+    string OrderNumber,
+    string ProductName,
+    string? ClientName,
+    OrderStatus Status,
+    OrderMaterialsStatus MaterialsStatus,
+    int TotalQuantity,
+    int ProducedQuantity,
+    int QtyProgressPercent,
+    int FlowProgressPercent,
+    int CombinedProgressPercent,
+    string? CurrentStageName,
+    DateOnly Deadline,
+    string MrpHint,
+    decimal FinishedGoodStock,
+    bool CanManageFlow,
+    IReadOnlyList<OrderStageDto> Stages,
+    IReadOnlyList<OrderMaterialLineDto> MaterialLines,
+    IReadOnlyList<OrderHistoryDto> History,
+    IReadOnlyList<OrderStageMovementDto> Movements,
+    IReadOnlyList<FinishedGoodMovementDto> InventoryIns);
+
+public record AddOrderStageDto(int OrderId, string Name, bool IsOptional = false);
+public record AssignStageInstructorDto(int StageId, int? InstructorUserId);
+public record ProcessStageUnitsDto(int StageId, int Quantity, string? Observations);
+public record SendToNextStageDto(int FromStageId, int Quantity, string? Observations);
+public record PartialInventoryInDto(int OrderId, int StageId, int Quantity, string? Observations);
+public record PartialWithdrawalDto(
+    int StageId,
+    int Quantity,
+    string Motive,
+    string? Observations,
+    int? AuthorizedByUserId);
+public record UpsertStagePermissionDto(int UserId, string StageName, bool Allowed);

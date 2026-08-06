@@ -2,6 +2,7 @@ using Moq;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
+using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
@@ -14,6 +15,8 @@ public class ProductionOrderServiceTests
     private readonly Mock<IBomRepository> _boms = new();
     private readonly Mock<IProductionOrderBomSnapshotRepository> _snapshots = new();
     private readonly Mock<IOrderMaterialRequirementRepository> _requirements = new();
+    private readonly Mock<IProductionFlowRepository> _flowRepo = new();
+    private readonly Mock<IProductionFlowService> _flowService = new();
     private readonly Mock<IUnitOfWork> _uow = new();
     private readonly Mock<IMaterialRepository> _materials = new();
 
@@ -21,7 +24,14 @@ public class ProductionOrderServiceTests
     {
         _requirements.Setup(r => r.GetByOrderIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
-        return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object, _uow.Object,
+        _flowRepo.Setup(r => r.GetStagesByOrderAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        _flowService.Setup(s => s.EnsureStagesForOrderAsync(It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _flowService.Setup(s => s.LogProductionRegisteredAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object,
+            _flowRepo.Object, _flowService.Object, _uow.Object,
             new ProductionConsumptionService(_boms.Object, _materials.Object));
     }
 

@@ -41,6 +41,10 @@
                         <label class="field-label">Cantidad total</label>
                         <input asp-for="CreateOrder.TotalQuantity" type="number" min="1" required />
                     </div>
+                    <div class="field" style="width:180px;">
+                        <label class="field-label">Cliente (opc.)</label>
+                        <input asp-for="CreateOrder.ClientName" maxlength="120" placeholder="Cliente" />
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="field">
@@ -68,14 +72,23 @@
                 <tr>
                     <td>
                         <strong>@order.OrderNumber</strong>
-                        <div><a class="hint" asp-action="Detail" asp-route-id="@order.Id">Materiales</a></div>
+                        <div><a class="hint" asp-action="Detail" asp-route-id="@order.Id">Ver detalle / flujo</a></div>
                     </td>
                     <td>@order.ProductName</td>
                     <td>@order.TotalQuantity</td>
                     <td>@order.ProducedQuantity</td>
                     <td style="min-width:120px;">
-                        <div class="progress-track"><div class="progress-fill" style="width:@order.ProgressPercent%"></div></div>
-                        <div style="font-size:11px;color:var(--text-mut);margin-top:4px;">@order.ProgressPercent%</div>
+                        @{
+                            var bar = order.CombinedProgressPercent > 0 ? order.CombinedProgressPercent : order.ProgressPercent;
+                        }
+                        <div class="progress-track"><div class="progress-fill" style="width:@bar%"></div></div>
+                        <div style="font-size:11px;color:var(--text-mut);margin-top:4px;">
+                            @bar%
+                            @if (!string.IsNullOrWhiteSpace(order.CurrentStageName))
+                            {
+                                <span>· @order.CurrentStageName</span>
+                            }
+                        </div>
                     </td>
                     <td><span class="badge @DisplayHelper.BadgeClass(order.Status)">@DisplayHelper.StatusText(order.Status)</span></td>
                     <td><span class="badge @DisplayHelper.BadgeClass(order.MaterialsStatus)">@DisplayHelper.StatusText(order.MaterialsStatus)</span></td>
