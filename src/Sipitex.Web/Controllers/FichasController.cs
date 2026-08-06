@@ -47,14 +47,15 @@ public class FichasController : Controller
             ? userId
             : null;
 
-        // El servicio valida código único y guarda en BD
+        // El servicio valida código único, exclusividad orden/texto y guarda en BD
         var result = await _fichaService.CreateFichaAsync(
             new CreateFichaDto(
                 form.FichaCode,
                 form.ProcessName,
                 form.InstructorName,
                 form.Turno,
-                form.ProductionOrderId is > 0 ? form.ProductionOrderId : null),
+                form.ProductionOrderId is > 0 ? form.ProductionOrderId : null,
+                form.AssignedOrderText),
             instructorUserId,
             cancellationToken);
 

@@ -74,6 +74,7 @@ public class SipitexDbContext : DbContext
             e.HasKey(f => f.Id); // PK de la ficha
             e.Property(f => f.FichaCode).HasMaxLength(30).IsRequired(); // FICHA-T1, FICHA-C2...
             e.Property(f => f.Turno).HasMaxLength(20).IsRequired(); // Mañana, Tarde...
+            e.Property(f => f.AssignedOrderText).HasMaxLength(100); // Orden escrita a mano
             // Cada ficha está ligada a una orden de producción
             e.HasOne(f => f.ProductionOrder).WithMany(o => o.Fichas).HasForeignKey(f => f.ProductionOrderId);
             // Si borran el usuario instructor, dejo la ficha pero sin vínculo

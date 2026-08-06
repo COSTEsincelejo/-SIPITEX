@@ -55,15 +55,25 @@
                         <option value="Noche"></option>
                     </datalist>
                 </div>
-                <div class="field" style="width:160px;">
+                <div class="field" style="width:200px;">
                     <label class="field-label">Orden asignada</label>
-                    <select asp-for="CreateFicha.ProductionOrderId">
-                        <option value="">— Opcional —</option>
+                    <select id="createFichaOrderSelect" aria-label="Orden asignada">
+                        <option value="" data-mode="none">— Opcional —</option>
                         @foreach (var o in Model.Orders)
                         {
-                            <option value="@o.Id">@o.OrderNumber</option>
+                            <option value="@o.Id" data-mode="existing">@o.OrderNumber</option>
                         }
+                        <option value="__manual__" data-mode="manual">Otro / Escribir manualmente</option>
                     </select>
+                    <input type="hidden" asp-for="CreateFicha.ProductionOrderId" id="createFichaOrderId" />
+                    <div id="createFichaOrderManualWrap" class="field" style="margin-top:8px;display:none;">
+                        <label class="field-label" for="createFichaOrderText">Orden manual</label>
+                        <input asp-for="CreateFicha.AssignedOrderText"
+                               id="createFichaOrderText"
+                               maxlength="100"
+                               placeholder="Ej. OP-EXT-01"
+                               style="width:100%" />
+                    </div>
                 </div>
                 <button type="submit" class="primary"><i class="fas fa-save"></i> Registrar ficha</button>
             </div>

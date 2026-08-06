@@ -90,7 +90,8 @@ public record CreateFichaDto(
     string ProcessName,
     string InstructorName,
     string Turno,
-    int? ProductionOrderId = null);
+    int? ProductionOrderId = null,
+    string? AssignedOrderText = null);
 
 // Sesión diaria registrada por el instructor
 public record ProductionSessionDto(

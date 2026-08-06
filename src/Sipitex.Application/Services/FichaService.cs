@@ -48,13 +48,13 @@ public class FichaService : IFichaService
                 .ToList();
         }
 
-        // Mapeo a DTO para la vista
+        // Mapeo a DTO para la vista (orden real o texto manual)
         return fichas.Select(f => new FichaDto(
             f.Id,
             f.FichaCode,
             f.ProcessName,
             f.InstructorName,
-            f.ProductionOrder?.OrderNumber,
+            f.ProductionOrder?.OrderNumber ?? f.AssignedOrderText,
             f.InstructorUserId,
             f.Turno)).ToList();
     }
@@ -183,6 +183,10 @@ public class FichaService : IFichaService
         var process = (dto.ProcessName ?? string.Empty).Trim();
         var instructor = (dto.InstructorName ?? string.Empty).Trim();
         var turno = (dto.Turno ?? string.Empty).Trim();
+        var orderText = string.IsNullOrWhiteSpace(dto.AssignedOrderText)
+            ? null
+            : dto.AssignedOrderText.Trim();
+        var orderId = dto.ProductionOrderId is > 0 ? dto.ProductionOrderId : null;
 
         // Validaciones campo por campo
         if (string.IsNullOrWhiteSpace(code))
@@ -197,15 +201,21 @@ public class FichaService : IFichaService
             return ServiceResult.Fail("El código de ficha no puede superar 30 caracteres.");
         if (turno.Length > 20)
             return ServiceResult.Fail("El turno no puede superar 20 caracteres.");
+        if (orderText is { Length: > 100 })
+            return ServiceResult.Fail("La orden manual no puede superar 100 caracteres.");
+
+        // Mutuamente excluyentes: FK de orden o texto manual, nunca ambos
+        if (orderId is not null && orderText is not null)
+            return ServiceResult.Fail("No puedes seleccionar una orden y escribir una manual al mismo tiempo");
 
         // No puede repetirse el código
         if (await _fichaRepository.ExistsByCodeAsync(code, cancellationToken))
             return ServiceResult.Fail("Ya existe una ficha con ese código.");
 
-        // Si mandan orden, verifico que exista
-        if (dto.ProductionOrderId is int orderId)
+        // Si mandan orden existente, verifico que exista
+        if (orderId is int existingOrderId)
         {
-            var order = await _orderRepository.GetByIdAsync(orderId, cancellationToken);
+            var order = await _orderRepository.GetByIdAsync(existingOrderId, cancellationToken);
             if (order is null)
                 return ServiceResult.Fail("Orden de producción no encontrada.");
         }
@@ -217,7 +227,8 @@ public class FichaService : IFichaService
             ProcessName = process,
             InstructorName = instructor,
             Turno = turno,
-            ProductionOrderId = dto.ProductionOrderId is > 0 ? dto.ProductionOrderId : null,
+            ProductionOrderId = orderId,
+            AssignedOrderText = orderText,
             InstructorUserId = instructorUserId is > 0 ? instructorUserId : null
         }, cancellationToken);
 
