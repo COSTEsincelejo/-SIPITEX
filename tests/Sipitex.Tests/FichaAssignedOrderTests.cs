@@ -13,16 +13,25 @@ public class FichaAssignedOrderTests
     private readonly Mock<IFichaRepository> _fichas = new();
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IProductionSessionRepository> _sessions = new();
+    private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IProductionOrderService> _orderService = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private FichaService CreateSut() =>
-        new(_fichas.Object, _orders.Object, _sessions.Object, _orderService.Object, _uow.Object);
+        new(_fichas.Object, _orders.Object, _sessions.Object, _users.Object, _orderService.Object, _uow.Object);
 
     public FichaAssignedOrderTests()
     {
         _fichas.Setup(r => r.ExistsByCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        _users.Setup(r => r.GetByIdAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(new User
+        {
+            Id = 10,
+            Nombre = "Laura Gómez",
+            Rol = UserRoles.Instructor,
+            IsActive = true,
+            PasswordHash = "x"
+        });
     }
 
     [Fact]
@@ -37,7 +46,7 @@ public class FichaAssignedOrderTests
             .Returns(Task.CompletedTask);
 
         var result = await CreateSut().CreateFichaAsync(
-            new CreateFichaDto("FICHA-A1", "Corte", "Laura Gómez", "Mañana", 7, null));
+            new CreateFichaDto("FICHA-A1", "Corte", [10], "Mañana", 7, null));
 
         Assert.True(result.Success);
         Assert.NotNull(saved);
@@ -54,7 +63,7 @@ public class FichaAssignedOrderTests
             .Returns(Task.CompletedTask);
 
         var result = await CreateSut().CreateFichaAsync(
-            new CreateFichaDto("FICHA-A2", "Trazo", "Laura Gómez", "Tarde", null, "  OP-EXT-01  "));
+            new CreateFichaDto("FICHA-A2", "Trazo", [10], "Tarde", null, "  OP-EXT-01  "));
 
         Assert.True(result.Success);
         Assert.NotNull(saved);
@@ -67,7 +76,7 @@ public class FichaAssignedOrderTests
     public async Task CreateFicha_BothOrderIdAndText_FailsValidation()
     {
         var result = await CreateSut().CreateFichaAsync(
-            new CreateFichaDto("FICHA-A3", "Corte", "Laura Gómez", "Mañana", 7, "OP-MANUAL"));
+            new CreateFichaDto("FICHA-A3", "Corte", [10], "Mañana", 7, "OP-MANUAL"));
 
         Assert.False(result.Success);
         Assert.Equal(
@@ -85,7 +94,7 @@ public class FichaAssignedOrderTests
             .Returns(Task.CompletedTask);
 
         var result = await CreateSut().CreateFichaAsync(
-            new CreateFichaDto("FICHA-A4", "Calidad", "Laura Gómez", "Noche", null, "   "));
+            new CreateFichaDto("FICHA-A4", "Calidad", [10], "Noche", null, "   "));
 
         Assert.True(result.Success);
         Assert.NotNull(saved);
