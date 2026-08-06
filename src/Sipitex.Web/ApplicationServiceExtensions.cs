@@ -23,6 +23,7 @@ public static class ApplicationServiceExtensions
 
         // MRP y fichas de producción
         services.AddScoped<IMrpService, MrpService>();
+        services.AddScoped<IBomCatalogService, BomCatalogService>();
         services.AddScoped<IFichaService, FichaService>();
 
         // Control de calidad y estadísticas del dashboard

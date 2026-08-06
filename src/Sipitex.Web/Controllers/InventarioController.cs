@@ -133,6 +133,18 @@ public class InventarioController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // Elimina material del catálogo (bloqueado si está en alguna ficha técnica)
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteMaterial(int id, CancellationToken cancellationToken)
+    {
+        var result = await _inventoryService.DeleteMaterialAsync(id, cancellationToken);
+        TempData["Message"] = result.Message ?? (result.Success ? "Material eliminado." : "No se pudo eliminar.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index));
+    }
+
     // Arma el ViewModel completo de la pantalla (materiales + solicitudes + combos)
     private async Task<InventarioIndexViewModel> BuildViewModel(CancellationToken cancellationToken)
     {

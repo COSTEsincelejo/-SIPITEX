@@ -34,4 +34,7 @@ public class ProductionOrder
 
     // Fichas que están trabajando esta orden
     public ICollection<Ficha> Fichas { get; set; } = [];
+
+    // Receta congelada al crear la orden (independiente del BOM vigente)
+    public ICollection<ProductionOrderBomSnapshot> BomSnapshots { get; set; } = [];
 }

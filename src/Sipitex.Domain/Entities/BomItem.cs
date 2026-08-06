@@ -8,7 +8,11 @@ public class BomItem
     // PK
     public int Id { get; set; }
 
-    // Nombre del producto terminado (ej: "Camisa")
+    // FK a la cabecera de ficha técnica
+    public int BomProductId { get; set; }
+    public BomProduct BomProduct { get; set; } = null!;
+
+    // Nombre del producto (denormalizado; se mantiene alineado con BomProduct.ProductName)
     public string ProductName { get; set; } = string.Empty;
 
     // FK al material que se consume

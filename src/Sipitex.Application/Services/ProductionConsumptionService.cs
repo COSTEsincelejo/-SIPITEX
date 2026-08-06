@@ -4,7 +4,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
-// Descuenta materiales del inventario cuando se registra producción (según BOM)
+// Descuenta materiales del inventario cuando se registra producción
 public class ProductionConsumptionService
 {
     private readonly IBomRepository _bomRepository;
@@ -16,30 +16,46 @@ public class ProductionConsumptionService
         _materialRepository = materialRepository;
     }
 
+    // Línea de receta genérica (snapshot o BOM vivo)
+    public readonly record struct RecipeLine(int MaterialId, decimal QuantityPerUnit);
+
     // Solo revisa si alcanza el stock, no modifica nada
     public async Task<bool> CanConsumeAsync(string productName, int units, CancellationToken cancellationToken = default)
     {
-        // Receta del producto en el BOM
         var recipe = await _bomRepository.GetByProductAsync(productName, cancellationToken);
+        return await CanConsumeRecipeAsync(
+            recipe.Select(i => new RecipeLine(i.MaterialId, i.QuantityPerUnit)).ToList(),
+            units,
+            cancellationToken);
+    }
+
+    public async Task<bool> CanConsumeRecipeAsync(IReadOnlyList<RecipeLine> recipe, int units, CancellationToken cancellationToken = default)
+    {
+        if (recipe.Count == 0) return false;
         foreach (var item in recipe)
         {
-            // Cargo el material de cada línea del BOM
             var material = await _materialRepository.GetByIdAsync(item.MaterialId, cancellationToken);
-            // Si falta material o no alcanza stock, no se puede consumir
             if (material is null || material.Stock < item.QuantityPerUnit * units)
                 return false;
         }
-        // También tiene que haber receta (producto válido en BOM)
-        return recipe.Count > 0;
+        return true;
     }
 
-    // Descuenta materiales; devuelve false si no alcanza o no hay receta
+    // Descuenta materiales según BOM vivo del producto (legado / simulación)
     public async Task<bool> ConsumeAsync(string productName, int units, CancellationToken cancellationToken = default)
     {
         var recipe = await _bomRepository.GetByProductAsync(productName, cancellationToken);
+        return await ConsumeRecipeAsync(
+            recipe.Select(i => new RecipeLine(i.MaterialId, i.QuantityPerUnit)).ToList(),
+            units,
+            cancellationToken);
+    }
+
+    // Descuenta según receta explícita (snapshot de la orden)
+    public async Task<bool> ConsumeRecipeAsync(IReadOnlyList<RecipeLine> recipe, int units, CancellationToken cancellationToken = default)
+    {
         if (recipe.Count == 0) return false;
 
-        // Primero valido todo para no dejar stock a medias
         foreach (var item in recipe)
         {
             var material = await _materialRepository.GetByIdAsync(item.MaterialId, cancellationToken);
@@ -47,12 +63,9 @@ public class ProductionConsumptionService
                 return false;
         }
 
-        // Si pasó validación, ahora sí descuento cada material
         foreach (var item in recipe)
         {
-            // Vuelvo a cargar porque EF puede haber trackeado la entidad
             var material = (await _materialRepository.GetByIdAsync(item.MaterialId, cancellationToken))!;
-            // Esto descuenta según cantidad por unidad × unidades producidas
             material.Stock -= item.QuantityPerUnit * units;
             _materialRepository.Update(material);
         }
@@ -63,9 +76,7 @@ public class ProductionConsumptionService
     // Suma unidades producidas y cierra la orden si ya llegó a la meta
     public static void UpdateOrderProgress(ProductionOrder order, int units)
     {
-        // Sumo lo producido en esta operación
         order.ProducedQuantity += units;
-        // Si ya cumplió la meta, la orden queda finalizada
         if (order.ProducedQuantity >= order.TotalQuantity)
             order.Status = OrderStatus.Finalizada;
     }

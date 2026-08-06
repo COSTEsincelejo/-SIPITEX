@@ -11,6 +11,7 @@ public static class UnitHelper
         MaterialUnit.Metros => "m",
         MaterialUnit.Unidades => "ud",
         MaterialUnit.Kg => "kg",
+        MaterialUnit.Gramos => "g",
         _ => unit.ToString()
     };
 }

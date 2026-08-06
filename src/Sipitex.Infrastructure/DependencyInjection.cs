@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<IMaterialRepository, MaterialRepository>();
         services.AddScoped<IProductionOrderRepository, ProductionOrderRepository>();
         services.AddScoped<IBomRepository, BomRepository>();
+        services.AddScoped<IProductionOrderBomSnapshotRepository, ProductionOrderBomSnapshotRepository>();
         services.AddScoped<IMaterialRequestRepository, MaterialRequestRepository>();
         services.AddScoped<IFichaRepository, FichaRepository>();
         services.AddScoped<IQualityRepository, QualityRepository>();

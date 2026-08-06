@@ -4,15 +4,86 @@
     ViewData["Title"] = "MRP / Materiales";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / MRP";
     Layout = "_Layout";
-    // La simulación no la ven todos, depende de política
     var puedeSimular = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeSimularMrp)).Succeeded;
+    var puedeGestionar = User.IsInRole("Administrador") || User.IsInRole("Bodeguero");
 }
 
 <div class="page-header">
     <div>
         <h2>MRP / Materiales</h2>
-        <div class="sub">Lista de materiales (BOM) y simulación de requerimiento neto</div>
+        <div class="sub">Fichas técnicas (BOM) y simulación de requerimiento neto</div>
     </div>
+    @if (puedeGestionar)
+    {
+        <a class="primary" asp-action="Create"><i class="fas fa-plus"></i> Nueva ficha técnica</a>
+    }
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-clipboard-list"></i> Fichas técnicas por producto</div>
+    @if (!Model.Products.Any())
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-diagram-project", Title = "Sin fichas técnicas", Text = "Todavía no hay productos con BOM.", ActionText = puedeGestionar ? "Cree la primera ficha técnica." : null }' />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Materiales</th>
+                        <th>Estado</th>
+                        <th>Notas</th>
+                        @if (puedeGestionar) { <th></th> }
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var p in Model.Products)
+                {
+                    <tr>
+                        <td><strong>@p.ProductName</strong></td>
+                        <td>@p.MaterialCount</td>
+                        <td>
+                            @if (p.IsReference)
+                            {
+                                <span class="badge badge-warning">Referencia</span>
+                            }
+                            @if (!p.HabilitadoParaOrdenes)
+                            {
+                                <span class="badge badge-danger">No habilitado para órdenes</span>
+                            }
+                            else if (!p.IsReference)
+                            {
+                                <span class="badge badge-success">Habilitado</span>
+                            }
+                        </td>
+                        <td><small style="color:var(--text-mut);">@(p.Notes ?? "—")</small></td>
+                        @if (puedeGestionar)
+                        {
+                            <td class="row-actions">
+                                <a class="small ghost" asp-action="Edit" asp-route-id="@p.Id"><i class="fas fa-pen"></i> Editar</a>
+                                @if (User.IsInRole("Administrador"))
+                                {
+                                    <form asp-action="Delete" method="post" style="display:inline;" onsubmit="return confirm('¿Eliminar la ficha técnica de «@p.ProductName»? Quedará sin BOM.');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@p.Id" />
+                                        <button type="submit" class="small ghost danger"><i class="fas fa-trash"></i> Eliminar</button>
+                                    </form>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
 <div class="card">
@@ -44,8 +115,10 @@
         <div class="field">
             <label class="field-label">Producto</label>
             <select asp-for="Simulation.ProductName">
-                <option value="Camisa">Camisa</option>
-                <option value="Pantalón">Pantalón</option>
+                @foreach (var name in Model.ProductNames)
+                {
+                    <option value="@name">@name</option>
+                }
             </select>
         </div>
         <div class="field" style="width:160px;">
@@ -54,7 +127,6 @@
         </div>
         <button type="submit" class="primary"><i class="fas fa-play"></i> Calcular MRP y alerta stock</button>
     </form>
-    @* Resultado de la última simulación (viene en el modelo después del POST) *@
     @if (Model.Result is not null)
     {
         <div class="alert alert-info">

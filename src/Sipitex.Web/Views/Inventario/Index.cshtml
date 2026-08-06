@@ -103,6 +103,15 @@
                                     <button type="submit" class="small ghost"><i class="fas fa-pen"></i> Ajustar</button>
                                 </form>
                             }
+                            @if (User.IsInRole("Administrador"))
+                            {
+                                <form asp-action="DeleteMaterial" method="post" class="row-actions" style="margin-top:4px;"
+                                      onsubmit="return confirm('¿Eliminar «@mat.Name» del catálogo?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@mat.Id" />
+                                    <button type="submit" class="small ghost danger"><i class="fas fa-trash"></i> Eliminar</button>
+                                </form>
+                            }
                         </td>
                     </tr>
                 }
