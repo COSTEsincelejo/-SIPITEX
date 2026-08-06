@@ -38,7 +38,17 @@ dotnet run
 
 Abrir `https://localhost:5xxx` (el puerto se muestra en consola). La ruta por defecto es **Inventario** (requiere autenticación).
 
-La base de datos SQLite (`sipitex.db`) se crea automáticamente al iniciar mediante **migraciones EF Core** (`MigrateAsync`), con datos de demostración.
+Por defecto usa **SQLite** (`sipitex.db`), creada automáticamente con **migraciones EF Core** y datos de demostración.
+
+### PostgreSQL
+
+También soporta **PostgreSQL 16**. Scripts, dump y guía en [`docs/database/postgres/`](docs/database/postgres/).
+
+```powershell
+# App local contra PostgreSQL (requiere BD creada; ver docs/database/postgres/README.md)
+cd src/Sipitex.Web
+dotnet run --environment PostgreSQL
+```
 
 ### Usuarios demo
 
@@ -54,7 +64,7 @@ La base de datos SQLite (`sipitex.db`) se crea automáticamente al iniciar media
 docker compose up --build
 ```
 
-Abrir `http://localhost:8080`. La base de datos persiste en el volumen `sipitex-data`.
+Abre `http://localhost:8080`. Levanta **PostgreSQL** (`db`) + la app; los datos persisten en el volumen `sipitex-pgdata`.
 
 ## Módulos
 

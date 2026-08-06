@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Sipitex.Application\Sipitex.Application.csproj" />
     <ProjectReference Include="..\Sipitex.Infrastructure\Sipitex.Infrastructure.csproj" />
+    <ProjectReference Include="..\Sipitex.Infrastructure.Migrations.PostgreSQL\Sipitex.Infrastructure.Migrations.PostgreSQL.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

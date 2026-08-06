@@ -12,12 +12,19 @@ public static class DbInitializer
     // Lo llama Program.cs al iniciar — deja la BD lista con datos de demo
     public static async Task InitializeAsync(SipitexDbContext context)
     {
-        // Primero reviso si hay una BD vieja sin historial de migraciones
-        await MigrationBaseline.EnsureBaselineAsync(context);
-        // BD que ya tenían columnas vía EnsureColumnAsync (antes de migraciones EF):
-        // evita "duplicate column name" al aplicar AddFichaTurno.
-        await EnsureAddFichaTurnoCompatibleAsync(context);
-        // Aplico las migraciones pendientes de EF Core
+        var isPostgres = context.Database.IsNpgsql();
+
+        // Baseline legacy y parches SQLite no aplican a PostgreSQL
+        if (!isPostgres)
+        {
+            // Primero reviso si hay una BD vieja sin historial de migraciones
+            await MigrationBaseline.EnsureBaselineAsync(context);
+            // BD que ya tenían columnas vía EnsureColumnAsync (antes de migraciones EF):
+            // evita "duplicate column name" al aplicar AddFichaTurno.
+            await EnsureAddFichaTurnoCompatibleAsync(context);
+        }
+
+        // Aplico las migraciones pendientes de EF Core (SQLite o PostgreSQL)
         await context.Database.MigrateAsync();
 
         // Solo meto datos de demo si la tabla está vacía
@@ -220,26 +227,39 @@ public static class DbInitializer
         await context.Database.ExecuteSqlRawAsync(alterSql); // Creo la columna
     }
 
-    // Consulto sqlite_master para ver si la tabla existe
-    private static async Task<bool> TableExistsAsync(SipitexDbContext context, string table)
-    {
-        var connection = context.Database.GetDbConnection(); // Conexión ADO.NET subyacente
-        await context.Database.OpenConnectionAsync(); // La abro si estaba cerrada
-        await using var command = connection.CreateCommand(); // Comando SQL crudo
-        command.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name=$n LIMIT 1;";
-        var p = command.CreateParameter(); // Parámetro para evitar inyección
-        p.ParameterName = "$n";
-        p.Value = table; // Nombre de la tabla a buscar
-        command.Parameters.Add(p);
-        return await command.ExecuteScalarAsync() is not null and not DBNull; // Si devuelve algo, existe
-    }
+    // Delegado al helper multi-proveedor (SQLite / PostgreSQL)
+    private static Task<bool> TableExistsAsync(SipitexDbContext context, string table) =>
+        MigrationBaseline.TableExistsAsync(context, table);
 
-    // Revisa columnas de una tabla con PRAGMA table_info
+    // Revisa columnas de una tabla (SQLite PRAGMA o information_schema en PostgreSQL)
     private static async Task<bool> ColumnExistsAsync(SipitexDbContext context, string table, string column)
     {
         var connection = context.Database.GetDbConnection();
         await context.Database.OpenConnectionAsync();
         await using var command = connection.CreateCommand();
+
+        if (context.Database.IsNpgsql())
+        {
+            command.CommandText =
+                """
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = @table
+                  AND column_name = @column
+                LIMIT 1;
+                """;
+            var tableParam = command.CreateParameter();
+            tableParam.ParameterName = "@table";
+            tableParam.Value = table;
+            command.Parameters.Add(tableParam);
+            var columnParam = command.CreateParameter();
+            columnParam.ParameterName = "@column";
+            columnParam.Value = column;
+            command.Parameters.Add(columnParam);
+            return await command.ExecuteScalarAsync() is not null and not DBNull;
+        }
+
         command.CommandText = $"PRAGMA table_info(\"{table}\")"; // Lista columnas de la tabla
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync()) // Recorro cada columna
@@ -447,7 +467,7 @@ public static class DbInitializer
             ("RNF05", "Interfaz responsiva e intuitiva", ComplianceStatus.Cumple, "Layout adaptable."),
             ("RNF06", "Código modular y documentado", ComplianceStatus.Parcial, "Arquitectura por capas."),
             ("RNF07", "Despliegue con Docker Compose", ComplianceStatus.Cumple, "Dockerfile + docker-compose.yml."),
-            ("RNF08", "Integridad transaccional", ComplianceStatus.Parcial, "SQLite con EF Core.")
+            ("RNF08", "Integridad transaccional", ComplianceStatus.Parcial, "EF Core con SQLite o PostgreSQL.")
         };
 
         foreach (var (code, desc, status, obs) in rnf)

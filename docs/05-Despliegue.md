@@ -15,15 +15,25 @@ Copiar carpeta `publish` al servidor IIS o ejecutar:
 
 ## 5.2 Configuración
 
-`appsettings.json`:
+SQLite (desarrollo local):
 
 ```json
+"Database": { "Provider": "Sqlite" },
 "ConnectionStrings": {
   "DefaultConnection": "Data Source=sipitex.db"
 }
 ```
 
-Para producción, usar ruta absoluta a la BD en el servidor.
+PostgreSQL (producción / Docker — ver `docs/database/postgres/`):
+
+```json
+"Database": { "Provider": "PostgreSQL" },
+"ConnectionStrings": {
+  "DefaultConnection": "Host=localhost;Port=5432;Database=sipitex;Username=sipitex;Password=sipitex"
+}
+```
+
+Para producción SQLite, usar ruta absoluta a la BD en el servidor. Para PostgreSQL, preferir variables de entorno (`ConnectionStrings__DefaultConnection`, `Database__Provider`).
 
 ## 5.3 IIS (opcional)
 

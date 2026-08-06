@@ -1,0 +1,22 @@
+{
+  "dotnet.defaultSolution": "Sipitex.slnx",
+  "remote.autoForwardPorts": true,
+  "remote.portsAttributes": {
+    "5240": {
+      "label": "SIPITEX Web",
+      "onAutoForward": "notify",
+      "visibility": "public",
+      "requireLocalPort": true
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    },
+    "8080": {
+      "label": "SIPITEX Docker",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    }
+  }
+}
