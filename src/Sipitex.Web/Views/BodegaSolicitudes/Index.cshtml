@@ -1,0 +1,79 @@
+@model BodegaSolicitudesIndexViewModel
+@{
+    ViewData["Title"] = "Solicitudes de materiales";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Solicitudes de materiales";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Solicitudes de materiales</h2>
+        <div class="sub">Revise y resuelva pedidos multi-ítem ligados a fichas</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title teal"><i class="fas fa-warehouse"></i> Cola de bodega</div>
+    <form method="get" class="form-row" style="margin-bottom:14px;">
+        <div class="field">
+            <label class="field-label">Filtro</label>
+            <select name="estado" onchange="this.form.submit()" aria-label="Filtro de estado">
+                @if (Model.SoloPendientes)
+                {
+                    <option value="pendientes" selected>Solo pendientes</option>
+                    <option value="todas">Todas (incluye resueltas)</option>
+                }
+                else
+                {
+                    <option value="pendientes">Solo pendientes</option>
+                    <option value="todas" selected>Todas (incluye resueltas)</option>
+                }
+            </select>
+        </div>
+    </form>
+
+    @if (!Model.Solicitudes.Any())
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-clipboard-list", Title = "Sin solicitudes", Text = Model.SoloPendientes ? "No hay solicitudes pendientes." : "No hay solicitudes registradas.", ActionText = null }' />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Ficha</th>
+                        <th>Solicitante</th>
+                        <th>Fecha de solicitud</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var s in Model.Solicitudes)
+                {
+                    <tr>
+                        <td><strong>@s.Codigo</strong></td>
+                        <td>@s.FichaCode</td>
+                        <td>@s.SolicitanteNombre</td>
+                        <td>@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></td>
+                        <td>
+                            <a class="small @(s.Estado == SolicitudMaterialEstado.Pendiente ? "primary" : "ghost")"
+                               asp-action="Detail" asp-route-id="@s.Id">
+                                @(s.Estado == SolicitudMaterialEstado.Pendiente ? "Resolver" : "Ver")
+                            </a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

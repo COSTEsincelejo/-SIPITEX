@@ -78,7 +78,9 @@ public class FichasIndexViewModel
 {
     public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<InstructorOptionDto> Instructors { get; set; } = [];
     public IReadOnlyList<ProductionSessionDto> Sessions { get; set; } = [];
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = []; // dropdown solicitud materiales
     public CreateFichaForm CreateFicha { get; set; } = new();
     public RegisterProductionForm Register { get; set; } = new();
     public bool IsAdministrator { get; set; } // cambia textos y alcance de datos
@@ -95,10 +97,72 @@ public class CreateFichaForm
 {
     public string FichaCode { get; set; } = string.Empty;
     public string ProcessName { get; set; } = string.Empty;
-    public string InstructorName { get; set; } = string.Empty;
+    // IDs de usuarios con rol Instructor (multi-select)
+    public List<int> InstructorUserIds { get; set; } = [];
     public string Turno { get; set; } = "Mañana";
     public int? ProductionOrderId { get; set; } // opcional (orden existente)
     public string? AssignedOrderText { get; set; } // opcional (texto manual)
+}
+
+// Formulario multi-ítem para crear SolicitudMaterial desde Fichas
+public class CreateSolicitudMaterialForm
+{
+    public int FichaId { get; set; }
+    public string? Observaciones { get; set; }
+    public List<CreateDetalleSolicitudForm> Detalles { get; set; } = [new()];
+}
+
+public class CreateDetalleSolicitudForm
+{
+    public int MaterialId { get; set; }
+    public decimal CantidadSolicitada { get; set; }
+}
+
+// Listado "Mis solicitudes"
+public class SolicitudesMaterialIndexViewModel
+{
+    public IReadOnlyList<SolicitudMaterialListItemDto> Solicitudes { get; set; } = [];
+    public bool IsAdministrator { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+// Detalle de una SolicitudMaterial
+public class SolicitudMaterialDetailViewModel
+{
+    public SolicitudMaterialDetailDto Solicitud { get; set; } = null!;
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+// Listado Bodeguero: solicitudes de materiales
+public class BodegaSolicitudesIndexViewModel
+{
+    public IReadOnlyList<SolicitudMaterialListItemDto> Solicitudes { get; set; } = [];
+    public bool SoloPendientes { get; set; } = true;
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+// Detalle / resolución Bodeguero
+public class BodegaSolicitudDetailViewModel
+{
+    public SolicitudMaterialResolucionDto Solicitud { get; set; } = null!;
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class ResolveSolicitudForm
+{
+    public int SolicitudId { get; set; }
+    public string? Observaciones { get; set; }
+    public List<ResolveDetalleFormItem> Items { get; set; } = [];
+}
+
+public class ResolveDetalleFormItem
+{
+    public int DetalleId { get; set; }
+    public decimal CantidadAprobada { get; set; }
 }
 
 // Registro formal de sesión de producción

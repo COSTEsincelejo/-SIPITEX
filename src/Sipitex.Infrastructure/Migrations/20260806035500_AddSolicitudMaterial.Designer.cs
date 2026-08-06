@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Sipitex.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Sipitex.Infrastructure.Persistence;
 namespace Sipitex.Infrastructure.Migrations
 {
     [DbContext(typeof(SipitexDbContext))]
-    partial class SipitexDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260806035500_AddSolicitudMaterial")]
+    partial class AddSolicitudMaterial
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
@@ -181,10 +184,6 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("AssignedOrderText")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
 
                     b.Property<string>("FichaCode")
                         .IsRequired()

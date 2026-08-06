@@ -31,6 +31,25 @@ public static class DisplayHelper
         _ => "badge-info"
     };
 
+    // Colores para SolicitudMaterial (flujo Ficha multi-ítem)
+    public static string BadgeClass(SolicitudMaterialEstado status) => status switch
+    {
+        SolicitudMaterialEstado.Pendiente => "badge-warning",
+        SolicitudMaterialEstado.AprobadaTotal => "badge-success",
+        SolicitudMaterialEstado.AprobadaParcial => "badge-info",
+        SolicitudMaterialEstado.Rechazada => "badge-danger",
+        _ => "badge-info"
+    };
+
+    public static string BadgeClass(DetalleSolicitudEstado status) => status switch
+    {
+        DetalleSolicitudEstado.Pendiente => "badge-warning",
+        DetalleSolicitudEstado.Aprobado => "badge-success",
+        DetalleSolicitudEstado.AprobadoParcial => "badge-info",
+        DetalleSolicitudEstado.Rechazado => "badge-danger",
+        _ => "badge-info"
+    };
+
     // Colores para resultados de inspección de calidad
     public static string BadgeClass(QualityResult result) => result switch
     {
@@ -57,6 +76,14 @@ public static class DisplayHelper
         RequestStatus.Pendiente => "Pendiente",
         RequestStatus.Aprobada => "Aprobada",
         RequestStatus.Rechazada => "Rechazada",
+        SolicitudMaterialEstado.Pendiente => "Pendiente",
+        SolicitudMaterialEstado.AprobadaTotal => "Aprobada total",
+        SolicitudMaterialEstado.AprobadaParcial => "Aprobada parcial",
+        SolicitudMaterialEstado.Rechazada => "Rechazada",
+        DetalleSolicitudEstado.Pendiente => "Pendiente",
+        DetalleSolicitudEstado.Aprobado => "Aprobado",
+        DetalleSolicitudEstado.AprobadoParcial => "Aprobado parcial",
+        DetalleSolicitudEstado.Rechazado => "Rechazado",
         MaterialStatus.Bueno => "Bueno",
         MaterialStatus.Regular => "Regular",
         MaterialStatus.Deteriorado => "Deteriorado",

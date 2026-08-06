@@ -48,10 +48,16 @@
             <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
             <a class="@NavClass("Ordenes")" asp-controller="Ordenes" asp-action="Index"><i class="fas fa-clipboard-list"></i> Órdenes de producción</a>
             <a class="@NavClass("Mrp")" asp-controller="Mrp" asp-action="Index"><i class="fas fa-diagram-project"></i> MRP / Materiales</a>
+            @* Cola de SolicitudMaterial solo Bodeguero *@
+            @if (User.IsInRole("Bodeguero"))
+            {
+                <a class="@NavClass("BodegaSolicitudes")" asp-controller="BodegaSolicitudes" asp-action="Index"><i class="fas fa-truck-ramp-box"></i> Solicitudes de materiales</a>
+            }
             @* Fichas y calidad solo para admin e instructor *@
             @if (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
             {
                 <a class="@NavClass("Fichas")" asp-controller="Fichas" asp-action="Index"><i class="fas fa-people-group"></i> Fichas & producción</a>
+                <a class="@NavClass("SolicitudesMaterial")" asp-controller="SolicitudesMaterial" asp-action="Index"><i class="fas fa-clipboard-list"></i> Mis solicitudes</a>
                 <a class="@NavClass("Calidad")" asp-controller="Calidad" asp-action="Index"><i class="fas fa-clipboard-check"></i> Control de calidad</a>
             }
         </nav>

@@ -13,11 +13,12 @@ public class FichaServiceScopeTests
     private readonly Mock<IFichaRepository> _fichas = new();
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IProductionSessionRepository> _sessions = new();
+    private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IProductionOrderService> _orderService = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private FichaService CreateSut() =>
-        new(_fichas.Object, _orders.Object, _sessions.Object, _orderService.Object, _uow.Object);
+        new(_fichas.Object, _orders.Object, _sessions.Object, _users.Object, _orderService.Object, _uow.Object);
 
     [Fact]
     public async Task GetFichasAsync_Instructor_SeesOnlyOwnFichas()

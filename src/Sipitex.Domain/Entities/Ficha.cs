@@ -12,17 +12,20 @@ public class Ficha
     // Qué proceso hacen (confección, corte, etc.)
     public string ProcessName { get; set; } = string.Empty;
 
-    // Nombre del instructor en texto (legacy / respaldo si no hay FK)
+    // Nombres de instructores concatenados (compatibilidad / filtros / reportes)
     public string InstructorName { get; set; } = string.Empty;
 
     // Turno: mañana, tarde o noche (sirve para filtrar en la vista)
     public string Turno { get; set; } = string.Empty;
 
-    // FK al usuario instructor dueño de la ficha (preferible al nombre)
+    // FK al instructor "principal" (primer asignado); se mantiene sincronizado con Instructors
     public int? InstructorUserId { get; set; }
 
-    // Navegación al User instructor
+    // Navegación al instructor principal
     public User? InstructorUser { get; set; }
+
+    // Relación muchos-a-muchos con usuarios Instructor
+    public ICollection<FichaInstructor> Instructors { get; set; } = new List<FichaInstructor>();
 
     // FK a la orden en la que trabaja esta ficha (puede ser null al crear)
     public int? ProductionOrderId { get; set; }

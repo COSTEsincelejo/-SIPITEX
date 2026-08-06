@@ -12,9 +12,14 @@ public static class ApplicationServiceExtensions
         // Consumo de materiales en producción
         services.AddScoped<ProductionConsumptionService>();
 
-        // Inventario y solicitudes de material
+        // Inventario y solicitudes de material (MaterialRequest legacy)
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IProductionOrderService, ProductionOrderService>();
+
+        // SolicitudMaterial (flujo Ficha multi-ítem; paralelo a MaterialRequest)
+        services.AddScoped<ICodigoGeneradorService, CodigoGeneradorService>();
+        services.AddScoped<ISolicitudMaterialApprovalService, SolicitudMaterialApprovalService>();
+        services.AddScoped<ISolicitudMaterialService, SolicitudMaterialService>();
 
         // MRP y fichas de producción
         services.AddScoped<IMrpService, MrpService>();

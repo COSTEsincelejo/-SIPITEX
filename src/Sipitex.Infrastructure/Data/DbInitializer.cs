@@ -212,32 +212,72 @@ public static class DbInitializer
         await context.SaveChangesAsync();
     }
 
-    // Une fichas con usuarios instructor por nombre (datos viejos solo tenían InstructorName texto)
+    // Une fichas con usuarios instructor por nombre y rellena la tabla M2M FichaInstructors
     private static async Task LinkFichasToInstructorUsersAsync(SipitexDbContext context)
     {
         var instructors = await context.Users
-            .Where(u => u.Rol == UserRoles.Instructor && u.IsActive) // Solo instructores activos
+            .Where(u => u.Rol == UserRoles.Instructor && u.IsActive)
             .ToListAsync();
-        if (instructors.Count == 0) return; // No hay a quién vincular
+        if (instructors.Count == 0) return;
 
-        var fichas = await context.Fichas.Where(f => f.InstructorUserId == null).ToListAsync(); // Fichas sin FK a usuario
-        var changed = false; // Flag para saber si guardo al final
+        var fichas = await context.Fichas
+            .Include(f => f.Instructors)
+            .ToListAsync();
+        var changed = false;
+
         foreach (var ficha in fichas)
         {
-            // Busco instructor con el mismo nombre (case insensitive)
-            var match = instructors.FirstOrDefault(u =>
-                string.Equals(u.Nombre, ficha.InstructorName, StringComparison.OrdinalIgnoreCase));
-            if (match is null) continue; // No hay match, sigo con la siguiente ficha
+            // Datos viejos: solo InstructorName texto → intentar FK
+            if (ficha.InstructorUserId is null)
+            {
+                var match = instructors.FirstOrDefault(u =>
+                    string.Equals(u.Nombre, ficha.InstructorName, StringComparison.OrdinalIgnoreCase)
+                    || ficha.InstructorName.Contains(u.Nombre, StringComparison.OrdinalIgnoreCase));
+                if (match is not null)
+                {
+                    ficha.InstructorUserId = match.Id;
+                    if (match.FichaAsignadaId is null)
+                        match.FichaAsignadaId = ficha.Id;
+                    changed = true;
+                }
+            }
 
-            ficha.InstructorUserId = match.Id; // Vinculo la FK
-            ficha.InstructorName = match.Nombre; // Normalizo el nombre
-            if (match.FichaAsignadaId is null)
-                match.FichaAsignadaId = ficha.Id; // Primera ficha que encuentre queda como "principal"
-            changed = true;
+            // Asegura fila en FichaInstructors a partir del instructor principal
+            if (ficha.InstructorUserId is int uid
+                && !ficha.Instructors.Any(i => i.UserId == uid))
+            {
+                ficha.Instructors.Add(new FichaInstructor
+                {
+                    FichaId = ficha.Id,
+                    UserId = uid,
+                    AssignedAtUtc = DateTime.UtcNow
+                });
+                changed = true;
+            }
+
+            // Sincroniza InstructorName con los asignados
+            if (ficha.Instructors.Count > 0)
+            {
+                var names = ficha.Instructors
+                    .Select(i => instructors.FirstOrDefault(u => u.Id == i.UserId)?.Nombre)
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(n => n)
+                    .ToList();
+                if (names.Count > 0)
+                {
+                    var joined = string.Join(", ", names!);
+                    if (!string.Equals(ficha.InstructorName, joined, StringComparison.Ordinal))
+                    {
+                        ficha.InstructorName = joined;
+                        changed = true;
+                    }
+                }
+            }
         }
 
         if (changed)
-            await context.SaveChangesAsync(); // Solo guardo si hubo cambios
+            await context.SaveChangesAsync();
     }
 
     // Crea preferencias de alerta por defecto para cada usuario según su rol

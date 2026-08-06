@@ -25,6 +25,8 @@ public static class AlertCatalog
         (AlertType.SolicitudPendiente, "Solicitudes pendientes", "Solicitudes de material sin aprobar/rechazar.", [UserRoles.Administrador, UserRoles.Bodeguero]),
         (AlertType.OrdenPorVencer, "Órdenes por vencer", "Órdenes activas con fecha límite en 7 días o menos.", [UserRoles.Administrador, UserRoles.Instructor]),
         (AlertType.ReprocesoCalidad, "Reprocesos de calidad", "Inspecciones recientes con resultado Reproceso.", [UserRoles.Administrador, UserRoles.Instructor]),
-        (AlertType.OrdenAtrasada, "Órdenes atrasadas", "Órdenes con avance menor al 50% y plazo cercano.", [UserRoles.Administrador, UserRoles.Instructor])
+        (AlertType.OrdenAtrasada, "Órdenes atrasadas", "Órdenes con avance menor al 50% y plazo cercano.", [UserRoles.Administrador, UserRoles.Instructor]),
+        (AlertType.SolicitudMaterialNueva, "Nueva solicitud de materiales (ficha)", "Aviso inmediato al crear una SolicitudMaterial ligada a ficha.", [UserRoles.Bodeguero]),
+        (AlertType.SolicitudMaterialResuelta, "Solicitud de materiales resuelta", "Aviso al solicitante cuando bodega resuelve su pedido.", [UserRoles.Instructor, UserRoles.Administrador])
     ];
 }

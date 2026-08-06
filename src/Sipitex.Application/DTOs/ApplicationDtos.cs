@@ -74,6 +74,12 @@ public record MrpLineDto(
 
 // --- Fichas y sesiones ---
 
+// Instructor asignado a una ficha (para chips / quitar / editar proceso)
+public record FichaInstructorDto(int UserId, string Nombre, string? Proceso = null);
+
+// Opción de instructor activo para selects
+public record InstructorOptionDto(int Id, string Nombre);
+
 // Ficha de formación / grupo de producción
 public record FichaDto(
     int Id,
@@ -82,13 +88,14 @@ public record FichaDto(
     string InstructorName,
     string? AssignedOrderNumber,
     int? InstructorUserId = null,
-    string Turno = "");
+    string Turno = "",
+    IReadOnlyList<FichaInstructorDto>? Instructors = null);
 
-// Datos para crear ficha
+// Datos para crear ficha (instructores = IDs de usuarios con rol Instructor)
 public record CreateFichaDto(
     string FichaCode,
     string ProcessName,
-    string InstructorName,
+    IReadOnlyList<int> InstructorUserIds,
     string Turno,
     int? ProductionOrderId = null,
     string? AssignedOrderText = null);
@@ -166,6 +173,72 @@ public record RequirementsViewDto(
     RequirementSummaryDto NonFunctionalSummary,
     IReadOnlyList<FunctionalRequirementDto> Functional,
     IReadOnlyList<NonFunctionalRequirementDto> NonFunctional);
+
+// --- SolicitudMaterial (flujo Ficha multi-ítem; paralelo a MaterialRequest) ---
+
+// Ítem al crear una solicitud
+public record CreateDetalleSolicitudDto(int MaterialId, decimal CantidadSolicitada);
+
+// Alta de solicitud ligada a Ficha
+public record CreateSolicitudMaterialDto(
+    int FichaId,
+    IReadOnlyList<CreateDetalleSolicitudDto> Detalles,
+    string? Observaciones = null);
+
+// Fila del listado "Mis solicitudes"
+public record SolicitudMaterialListItemDto(
+    int Id,
+    string Codigo,
+    string FichaCode,
+    SolicitudMaterialEstado Estado,
+    DateTime FechaSolicitud,
+    string SolicitanteNombre);
+
+// Ítem en el detalle de una solicitud
+public record DetalleSolicitudMaterialDto(
+    int Id,
+    string MaterialName,
+    string UnitDisplay,
+    decimal CantidadSolicitada,
+    decimal? CantidadAprobada,
+    DetalleSolicitudEstado EstadoItem);
+
+// Detalle completo (cabecera + líneas)
+public record SolicitudMaterialDetailDto(
+    int Id,
+    string Codigo,
+    string FichaCode,
+    string SolicitanteNombre,
+    SolicitudMaterialEstado Estado,
+    DateTime FechaSolicitud,
+    DateTime? FechaResolucion,
+    string? Observaciones,
+    IReadOnlyList<DetalleSolicitudMaterialDto> Detalles);
+
+// Ítem para resolución en bodega (incluye stock actual)
+public record DetalleResolucionDto(
+    int Id,
+    string MaterialName,
+    string UnitDisplay,
+    decimal CantidadSolicitada,
+    decimal StockDisponible,
+    decimal? CantidadAprobada,
+    DetalleSolicitudEstado EstadoItem);
+
+// Detalle para Bodeguero (resolución)
+public record SolicitudMaterialResolucionDto(
+    int Id,
+    string Codigo,
+    string FichaCode,
+    string SolicitanteNombre,
+    SolicitudMaterialEstado Estado,
+    DateTime FechaSolicitud,
+    string? Observaciones,
+    string? EntregaCodigo,
+    IReadOnlyList<DetalleResolucionDto> Detalles);
+
+// Una línea del formulario de resolución
+public record ResolveDetalleDto(int DetalleId, decimal CantidadAprobada);
 
 // Resultado genérico de operaciones del servicio (éxito/error + mensaje)
 public record ServiceResult(bool Success, string? Message = null)

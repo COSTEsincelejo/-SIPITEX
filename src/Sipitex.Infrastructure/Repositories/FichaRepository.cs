@@ -12,17 +12,21 @@ public class FichaRepository : IFichaRepository
 
     public FichaRepository(SipitexDbContext context) => _context = context;
 
-    // Todas las fichas con su orden de producción, ordenadas por código
+    // Todas las fichas con orden e instructores, ordenadas por código
     public async Task<IReadOnlyList<Ficha>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await _context.Fichas
             .Include(f => f.ProductionOrder) // Para mostrar OP-xxx en la lista
+            .Include(f => f.Instructors)
+                .ThenInclude(i => i.User)
             .OrderBy(f => f.FichaCode)
             .ToListAsync(cancellationToken);
 
-    // Busca una ficha por Id (para editar o ver detalle)
+    // Busca una ficha por Id (para editar, asignar instructores o registrar)
     public Task<Ficha?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _context.Fichas
             .Include(f => f.ProductionOrder)
+            .Include(f => f.Instructors)
+                .ThenInclude(i => i.User)
             .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 
     // Para validar que no se repita el código al crear/editar

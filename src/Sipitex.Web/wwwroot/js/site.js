@@ -96,5 +96,128 @@
         setTimeout(() => loader.classList.remove('show'), 1800);
       });
     });
+
+    // Chip instructor: toggle lectura / edición de Proceso
+    document.querySelectorAll('[data-instructor-chip]').forEach((chip) => {
+      const view = chip.querySelector('[data-chip-view]');
+      const form = chip.querySelector('[data-chip-edit-form]');
+      const editBtn = chip.querySelector('[data-chip-edit]');
+      const cancelBtn = chip.querySelector('[data-chip-cancel]');
+      const input = form?.querySelector('.chip-proceso-input');
+      if (!view || !form || !editBtn || !cancelBtn || !input) return;
+
+      const original = () => input.getAttribute('data-original-proceso') ?? '';
+
+      editBtn.addEventListener('click', () => {
+        view.hidden = true;
+        form.hidden = false;
+        input.value = original();
+        input.focus();
+      });
+
+      cancelBtn.addEventListener('click', () => {
+        input.value = original();
+        form.hidden = true;
+        view.hidden = false;
+      });
+    });
+
+    // SolicitudMaterial: mostrar/ocultar formulario expandible por ficha
+    document.querySelectorAll('[data-solicitud-toggle]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const sel = btn.getAttribute('data-solicitud-toggle');
+        const panel = sel ? document.querySelector(sel) : null;
+        if (!panel) return;
+        const open = panel.hidden;
+        panel.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    });
+
+    // SolicitudMaterial: filas dinámicas (agregar / quitar / reindexar)
+    document.querySelectorAll('[data-solicitud-form]').forEach((form) => {
+      const rowsHost = form.querySelector('[data-solicitud-rows]');
+      const template = form.querySelector('template[data-solicitud-row-template]');
+      const addBtn = form.querySelector('[data-solicitud-add]');
+      const cancelBtn = form.querySelector('[data-solicitud-cancel]');
+      if (!rowsHost || !template || !addBtn) return;
+
+      const reindex = () => {
+        const rows = [...rowsHost.querySelectorAll('[data-solicitud-row]')];
+        rows.forEach((row, i) => {
+          row.querySelectorAll('[name], [data-name-template]').forEach((el) => {
+            const tpl = el.getAttribute('data-name-template');
+            if (tpl) {
+              el.setAttribute('name', tpl.replace('{i}', String(i)));
+            } else if (el.name) {
+              el.name = el.name.replace(/Detalles\[\d+]/, `Detalles[${i}]`);
+            }
+          });
+          const removeBtn = row.querySelector('[data-solicitud-remove]');
+          if (removeBtn) removeBtn.hidden = rows.length <= 1;
+        });
+      };
+
+      addBtn.addEventListener('click', () => {
+        const node = template.content.cloneNode(true);
+        rowsHost.appendChild(node);
+        reindex();
+      });
+
+      rowsHost.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('[data-solicitud-remove]');
+        if (!removeBtn || !rowsHost.contains(removeBtn)) return;
+        const row = removeBtn.closest('[data-solicitud-row]');
+        const rows = rowsHost.querySelectorAll('[data-solicitud-row]');
+        if (!row || rows.length <= 1) return;
+        row.remove();
+        reindex();
+      });
+
+      cancelBtn?.addEventListener('click', () => {
+        const panel = form.closest('.solicitud-form-row');
+        if (panel) panel.hidden = true;
+        const id = panel?.id ? `#${panel.id}` : null;
+        if (id) {
+          document.querySelectorAll(`[data-solicitud-toggle="${id}"]`).forEach((b) => {
+            b.setAttribute('aria-expanded', 'false');
+          });
+        }
+      });
+
+      form.addEventListener('submit', (e) => {
+        const rows = [...rowsHost.querySelectorAll('[data-solicitud-row]')];
+        const valid = rows.some((row) => {
+          const mat = Number(row.querySelector('select')?.value || 0);
+          const qty = Number(row.querySelector('input[type="number"]')?.value || 0);
+          return mat > 0 && qty > 0;
+        });
+        if (!valid) {
+          e.preventDefault();
+          window.SipitexToast('Agregue al menos un material con cantidad mayor a cero.', 'warning');
+        }
+      });
+
+      reindex();
+    });
+
+    // Bodega: validar CantidadAprobada <= max (min solicitada, stock) antes de enviar
+    document.querySelectorAll('[data-resolucion-form]').forEach((form) => {
+      form.addEventListener('submit', (e) => {
+        const inputs = [...form.querySelectorAll('input[data-max-aprobada]')];
+        for (const input of inputs) {
+          const max = Number(input.getAttribute('data-max-aprobada') || 0);
+          const value = Number(input.value || 0);
+          if (value < 0 || value > max) {
+            e.preventDefault();
+            window.SipitexToast(
+              `La cantidad aprobada no puede superar ${max} (mínimo entre solicitada y stock).`,
+              'warning');
+            input.focus();
+            return;
+          }
+        }
+      });
+    });
   });
 })();
