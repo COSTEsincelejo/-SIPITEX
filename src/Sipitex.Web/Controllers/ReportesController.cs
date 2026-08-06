@@ -89,6 +89,23 @@ public class ReportesController : Controller
         FileResult(await _reportService.ExportDashboardAsync(
             format, ToFilter(instructorId, fichaId, jornada, fecha, mes, anio), cancellationToken));
 
+    // Reporte NUEVO y aislado: trazabilidad de actividad del instructor
+    [HttpGet]
+    public async Task<IActionResult> ActividadInstructor(
+        string format = "pdf",
+        int? instructorId = null,
+        int? fichaId = null,
+        string? jornada = null,
+        DateOnly? fecha = null,
+        int? mes = null,
+        int? anio = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Instructor es obligatorio para este reporte
+        var filter = new ReportFilterDto(instructorId, fichaId, jornada, fecha, mes, anio);
+        return FileResult(await _reportService.ExportActividadInstructorAsync(format, filter, cancellationToken));
+    }
+
     private static ReportFilterDto? ToFilter(
         int? instructorId,
         int? fichaId,

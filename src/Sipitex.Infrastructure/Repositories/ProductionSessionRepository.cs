@@ -21,6 +21,17 @@ public class ProductionSessionRepository : IProductionSessionRepository
             .Take(take) // Solo las últimas N
             .ToListAsync(cancellationToken);
 
+    // Todas las sesiones con ficha (instructores) y orden — reporte de actividad
+    public async Task<IReadOnlyList<ProductionSession>> GetAllWithDetailsAsync(CancellationToken cancellationToken = default) =>
+        await _context.ProductionSessions
+            .AsNoTracking()
+            .Include(s => s.Ficha)
+                .ThenInclude(f => f.Instructors)
+            .Include(s => s.ProductionOrder)
+            .Include(s => s.RegisteredByUser)
+            .OrderByDescending(s => s.SessionDate)
+            .ToListAsync(cancellationToken);
+
     // Registra una sesión nueva del día
     public async Task AddAsync(ProductionSession session, CancellationToken cancellationToken = default) =>
         await _context.ProductionSessions.AddAsync(session, cancellationToken);

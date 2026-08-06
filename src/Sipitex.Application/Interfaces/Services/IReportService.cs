@@ -25,4 +25,11 @@ public interface IReportService
         string format,
         ReportFilterDto? filter = null,
         CancellationToken cancellationToken = default);
+
+    // Trazabilidad de actividad de un instructor (producción + consumo BOM inferido)
+    // Requiere InstructorId en el filtro
+    Task<ReportFileDto> ExportActividadInstructorAsync(
+        string format,
+        ReportFilterDto filter,
+        CancellationToken cancellationToken = default);
 }
