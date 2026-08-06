@@ -28,7 +28,7 @@ public class CodigoGeneradorService : ICodigoGeneradorService
     }
 
     // Calcula el siguiente consecutivo; si no hay previo o no parsea, arranca en 1
-    internal static string SiguienteCodigo(string prefijo, string? ultimoCodigo)
+    public static string SiguienteCodigo(string prefijo, string? ultimoCodigo)
     {
         var siguiente = 1;
         if (!string.IsNullOrWhiteSpace(ultimoCodigo)
