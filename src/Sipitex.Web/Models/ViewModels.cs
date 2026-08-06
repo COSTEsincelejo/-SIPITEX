@@ -267,3 +267,48 @@ public class ReportesIndexViewModel
     public IReadOnlyList<InstructorOptionDto> Instructors { get; set; } = [];
     public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
 }
+
+// Detalle de materiales asociados a una orden
+public class OrdenMaterialDetailViewModel
+{
+    public OrderMaterialsDetailDto Detail { get; set; } = null!;
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public AddOrderMaterialForm AddMaterial { get; set; } = new();
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class AddOrderMaterialForm
+{
+    public int OrderId { get; set; }
+    public int MaterialId { get; set; }
+    public decimal QuantityRequired { get; set; } = 1;
+    public string? Observations { get; set; }
+}
+
+public class BodegaOrdenesIndexViewModel
+{
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class BodegaOrdenDetailViewModel
+{
+    public OrderMaterialsDetailDto Detail { get; set; } = null!;
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class DeliverOrderMaterialsForm
+{
+    public int OrderId { get; set; }
+    public string? Observations { get; set; }
+    public List<DeliverOrderMaterialItemForm> Items { get; set; } = [];
+}
+
+public class DeliverOrderMaterialItemForm
+{
+    public int LineId { get; set; }
+    public decimal QuantityToDeliver { get; set; }
+}

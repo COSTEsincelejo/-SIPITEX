@@ -53,6 +53,7 @@
             @if (User.IsInRole("Bodeguero"))
             {
                 <a class="@NavClass("BodegaSolicitudes")" asp-controller="BodegaSolicitudes" asp-action="Index"><i class="fas fa-truck-ramp-box"></i> Solicitudes de materiales</a>
+                <a class="@NavClass("BodegaOrdenes")" asp-controller="BodegaOrdenes" asp-action="Index"><i class="fas fa-clipboard-check"></i> Materiales de órdenes</a>
             }
             @* Fichas y calidad solo para admin e instructor *@
             @if (User.IsInRole("Administrador") || User.IsInRole("Instructor"))

@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<IProductionSessionRepository, ProductionSessionRepository>();
         services.AddScoped<IAlertRepository, AlertRepository>();
         services.AddScoped<ISolicitudMaterialRepository, SolicitudMaterialRepository>(); // Flujo SolicitudMaterial (Ficha)
+        services.AddScoped<IOrderMaterialRequirementRepository, OrderMaterialRequirementRepository>(); // Materiales por orden
 
         return services; // Devuelvo la colección ya configurada
     }

@@ -13,12 +13,17 @@ public class ProductionOrderSnapshotTests
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IBomRepository> _boms = new();
     private readonly Mock<IProductionOrderBomSnapshotRepository> _snapshots = new();
+    private readonly Mock<IOrderMaterialRequirementRepository> _requirements = new();
     private readonly Mock<IUnitOfWork> _uow = new();
     private readonly Mock<IMaterialRepository> _materials = new();
 
-    private ProductionOrderService CreateSut() =>
-        new(_orders.Object, _boms.Object, _snapshots.Object, _uow.Object,
+    private ProductionOrderService CreateSut()
+    {
+        _requirements.Setup(r => r.GetByOrderIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object, _uow.Object,
             new ProductionConsumptionService(_boms.Object, _materials.Object));
+    }
 
     private static BomProduct EnabledProduct() => new()
     {

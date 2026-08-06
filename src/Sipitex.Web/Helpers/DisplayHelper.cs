@@ -22,6 +22,24 @@ public static class DisplayHelper
         _ => "badge-danger" // Cancelada
     };
 
+    public static string BadgeClass(OrderMaterialsStatus status) => status switch
+    {
+        OrderMaterialsStatus.NoAplica => "badge-info",
+        OrderMaterialsStatus.ListaParaProduccion => "badge-success",
+        OrderMaterialsStatus.MaterialesValidados => "badge-info",
+        OrderMaterialsStatus.EntregaParcial => "badge-warning",
+        OrderMaterialsStatus.PendienteRevisionBodega => "badge-warning",
+        _ => "badge-info"
+    };
+
+    public static string BadgeClass(MaterialStockAvailability availability) => availability switch
+    {
+        MaterialStockAvailability.Suficiente => "badge-success",
+        MaterialStockAvailability.Insuficiente => "badge-warning",
+        MaterialStockAvailability.SinExistencias => "badge-danger",
+        _ => "badge-info"
+    };
+
     // Colores para solicitudes de material (pendiente/aprobada/rechazada)
     public static string BadgeClass(RequestStatus status) => status switch
     {
@@ -73,6 +91,14 @@ public static class DisplayHelper
         OrderStatus.Pendiente => "Pendiente",
         OrderStatus.Finalizada => "Finalizada",
         OrderStatus.Cancelada => "Cancelada",
+        OrderMaterialsStatus.NoAplica => "Sin materiales",
+        OrderMaterialsStatus.PendienteRevisionBodega => "Pendiente revisión bodega",
+        OrderMaterialsStatus.MaterialesValidados => "Materiales validados",
+        OrderMaterialsStatus.EntregaParcial => "Entrega parcial",
+        OrderMaterialsStatus.ListaParaProduccion => "Lista para producción",
+        MaterialStockAvailability.Suficiente => "Stock suficiente",
+        MaterialStockAvailability.Insuficiente => "Stock insuficiente",
+        MaterialStockAvailability.SinExistencias => "Sin existencias",
         RequestStatus.Pendiente => "Pendiente",
         RequestStatus.Aprobada => "Aprobada",
         RequestStatus.Rechazada => "Rechazada",
