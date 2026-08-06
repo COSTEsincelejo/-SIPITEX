@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
         services.AddScoped<IEmailSender, EmailSender>(); // Un EmailSender por request
         services.AddScoped<IReportService, ReportService>(); // Reportes Excel/PDF
+        services.AddScoped<IFuncionalidadesReportService, FuncionalidadesReportService>(); // Catálogo Word
 
         // Repositorios scoped = una instancia por request HTTP
         services.AddScoped<IUnitOfWork, UnitOfWork>(); // Guarda cambios al final del request

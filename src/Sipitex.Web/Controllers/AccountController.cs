@@ -28,16 +28,19 @@ public class AccountController : Controller
 
     private readonly IUserAccountService _userAccountService;
     private readonly IPasswordResetService _passwordResetService;
+    private readonly IFuncionalidadesReportService _funcionalidadesReportService;
     private readonly IWebHostEnvironment _environment;
 
     // Inyecto los servicios que usa todo el controller
     public AccountController(
         IUserAccountService userAccountService,
         IPasswordResetService passwordResetService,
+        IFuncionalidadesReportService funcionalidadesReportService,
         IWebHostEnvironment environment)
     {
         _userAccountService = userAccountService;
         _passwordResetService = passwordResetService;
+        _funcionalidadesReportService = funcionalidadesReportService;
         _environment = environment;
     }
 
@@ -328,6 +331,15 @@ public class AccountController : Controller
         var result = await _userAccountService.ToggleUserStatusAsync(id, isActive, cancellationToken);
         TempData["Message"] = result.Message;
         return RedirectToAction(nameof(Users));
+    }
+
+    // Descarga Word con el catálogo de funcionalidades del sistema
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpGet]
+    public IActionResult DescargarFuncionalidades()
+    {
+        var file = _funcionalidadesReportService.GenerateDocx();
+        return File(file.Content, file.ContentType, file.FileName);
     }
 
     // Vista cuando el usuario no tiene permiso para entrar
