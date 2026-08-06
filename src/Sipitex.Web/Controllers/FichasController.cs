@@ -66,11 +66,11 @@ public class FichasController : Controller
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AssignInstructor(int fichaId, int instructorUserId, CancellationToken cancellationToken)
+    public async Task<IActionResult> AssignInstructor(int fichaId, int instructorUserId, string? proceso, CancellationToken cancellationToken)
     {
         var (userId, role, name) = CurrentViewer();
         var result = await _fichaService.AssignInstructorAsync(
-            fichaId, instructorUserId, userId, role, name, cancellationToken);
+            fichaId, instructorUserId, userId, role, name, proceso, cancellationToken);
 
         TempData["Message"] = result.Message ?? (result.Success ? "Instructor asignado." : "No se pudo asignar.");
         TempData["IsSuccess"] = result.Success;
@@ -87,6 +87,20 @@ public class FichasController : Controller
             fichaId, instructorUserId, userId, role, name, cancellationToken);
 
         TempData["Message"] = result.Message ?? (result.Success ? "Instructor quitado." : "No se pudo quitar.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index));
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateInstructorProceso(int fichaId, int instructorUserId, string? proceso, CancellationToken cancellationToken)
+    {
+        var (userId, role, name) = CurrentViewer();
+        var result = await _fichaService.UpdateInstructorProcesoAsync(
+            fichaId, instructorUserId, proceso, userId, role, name, cancellationToken);
+
+        TempData["Message"] = result.Message ?? (result.Success ? "Proceso actualizado." : "No se pudo actualizar.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
     }

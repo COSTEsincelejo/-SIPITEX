@@ -88,6 +88,7 @@ public class SipitexDbContext : DbContext
         modelBuilder.Entity<FichaInstructor>(e =>
         {
             e.HasKey(x => new { x.FichaId, x.UserId }); // Un instructor una sola vez por ficha
+            e.Property(x => x.Proceso).HasMaxLength(60); // Proceso del instructor en esa ficha
             e.HasOne(x => x.Ficha)
                 .WithMany(f => f.Instructors)
                 .HasForeignKey(x => x.FichaId)

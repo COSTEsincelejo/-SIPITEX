@@ -136,12 +136,20 @@ label.field-label{font-size:11px;font-weight:700;text-transform:uppercase;letter
 .site-footer{text-align:center;margin-top:32px;font-size:11px;color:var(--text-mut);border-top:1px solid var(--border);padding:20px 0;}
 .logout-form{display:inline;}
 .instructor-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
-.instructor-chip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:4px 8px 4px 10px;font-size:11.5px;font-weight:700;}
+.instructor-chip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:4px 8px 4px 10px;font-size:11.5px;font-weight:700;flex-wrap:wrap;}
+.chip-view{display:inline-flex;align-items:center;gap:4px;}
+.chip-edit{border:none;background:transparent;color:var(--accent);cursor:pointer;font-size:11px;line-height:1;padding:2px 3px;border-radius:4px;}
+.chip-edit:hover{background:rgba(11,111,224,0.12);}
+.chip-edit-form{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;margin:0;}
+.chip-edit-form[hidden]{display:none !important;}
+.chip-proceso-input{width:110px;padding:4px 8px;font-size:11.5px;border-radius:8px;}
+.chip-save,.chip-cancel{padding:4px 8px !important;font-size:11px !important;}
 .chip-remove-form{display:inline;margin:0;}
 .chip-remove{border:none;background:transparent;color:var(--accent);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;border-radius:4px;}
 .chip-remove:hover{color:var(--red);background:var(--red-soft);}
 .assign-instructor-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px;}
 .assign-instructor-form select{min-width:160px;padding:6px 8px;font-size:12px;}
+.assign-instructor-form input[type=text]{min-width:140px;padding:6px 8px;font-size:12px;}
 
 /* Auth / login */
 .auth-body{

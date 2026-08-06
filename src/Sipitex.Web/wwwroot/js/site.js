@@ -66,5 +66,30 @@
         setTimeout(() => loader.classList.remove('show'), 1800);
       });
     });
+
+    // Chip instructor: toggle lectura / edición de Proceso
+    document.querySelectorAll('[data-instructor-chip]').forEach((chip) => {
+      const view = chip.querySelector('[data-chip-view]');
+      const form = chip.querySelector('[data-chip-edit-form]');
+      const editBtn = chip.querySelector('[data-chip-edit]');
+      const cancelBtn = chip.querySelector('[data-chip-cancel]');
+      const input = form?.querySelector('.chip-proceso-input');
+      if (!view || !form || !editBtn || !cancelBtn || !input) return;
+
+      const original = () => input.getAttribute('data-original-proceso') ?? '';
+
+      editBtn.addEventListener('click', () => {
+        view.hidden = true;
+        form.hidden = false;
+        input.value = original();
+        input.focus();
+      });
+
+      cancelBtn.addEventListener('click', () => {
+        input.value = original();
+        form.hidden = true;
+        view.hidden = false;
+      });
+    });
   });
 })();

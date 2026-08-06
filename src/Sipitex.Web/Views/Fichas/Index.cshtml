@@ -1,9 +1,12 @@
+@using System.Security.Claims
 @model FichasIndexViewModel
 @{
     ViewData["Title"] = "Fichas & producción";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Fichas & producción";
     Layout = "_Layout";
     var instructorOptions = Model.Instructors;
+    int? currentUserId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : null;
+    var isAdmin = User.IsInRole("Administrador");
 }
 
 <div class="page-header">
@@ -111,8 +114,47 @@
                                 {
                                     @foreach (var inst in ficha.Instructors)
                                     {
-                                        <span class="instructor-chip">
-                                            @inst.Nombre
+                                        var canEditProceso = isAdmin
+                                            || (User.IsInRole("Instructor") && currentUserId == inst.UserId);
+                                        var label = string.IsNullOrWhiteSpace(inst.Proceso)
+                                            ? inst.Nombre
+                                            : $"{inst.Nombre} ({inst.Proceso})";
+                                        <span class="instructor-chip" data-instructor-chip>
+                                            <span class="chip-view" data-chip-view>
+                                                <span class="chip-label">@label</span>
+                                                @if (canEditProceso)
+                                                {
+                                                    <button type="button"
+                                                            class="chip-edit"
+                                                            data-chip-edit
+                                                            title="Editar proceso"
+                                                            aria-label="Editar proceso de @inst.Nombre">
+                                                        <i class="fas fa-pen" aria-hidden="true"></i>
+                                                    </button>
+                                                }
+                                            </span>
+                                            @if (canEditProceso)
+                                            {
+                                                <form asp-action="UpdateInstructorProceso"
+                                                      method="post"
+                                                      class="chip-edit-form"
+                                                      data-chip-edit-form
+                                                      hidden>
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="fichaId" value="@ficha.Id" />
+                                                    <input type="hidden" name="instructorUserId" value="@inst.UserId" />
+                                                    <input type="text"
+                                                           name="proceso"
+                                                           class="chip-proceso-input"
+                                                           value="@inst.Proceso"
+                                                           data-original-proceso="@inst.Proceso"
+                                                           maxlength="60"
+                                                           placeholder="Proceso"
+                                                           aria-label="Proceso de @inst.Nombre" />
+                                                    <button type="submit" class="small primary chip-save">Guardar</button>
+                                                    <button type="button" class="small ghost chip-cancel" data-chip-cancel>Cancelar</button>
+                                                </form>
+                                            }
                                             <form asp-action="RemoveInstructor" method="post" class="chip-remove-form">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="fichaId" value="@ficha.Id" />
@@ -139,6 +181,7 @@
                                             <option value="@opt.Id">@opt.Nombre</option>
                                         }
                                     </select>
+                                    <input type="text" name="proceso" placeholder="Proceso (opcional)" maxlength="60" aria-label="Proceso del instructor" />
                                     <button type="submit" class="small ghost">Asignar</button>
                                 </form>
                             }
