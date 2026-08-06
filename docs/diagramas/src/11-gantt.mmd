@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f1fb', 'primaryTextColor': '#1a2b3c', 'primaryBorderColor': '#2c5282', 'lineColor': '#2c5282', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+gantt
+  title Cronograma SIPITEX — Metodología Cascada
+  dateFormat  YYYY-MM-DD
+  axisFormat  %b %Y
+
+  section Fase 1 Requisitos
+  Levantamiento de informacion     :a1, 2026-02-01, 14d
+  Informe de requerimientos        :a2, after a1, 14d
+  Aprobacion de requisitos         :milestone, m1, after a2, 0d
+
+  section Fase 2 Diseno
+  Arquitectura y ER                :b1, after a2, 10d
+  Casos de uso y clases            :b2, after b1, 10d
+  Diagramas de flujo y Gantt       :b3, after b2, 7d
+  Aprobacion de diseno             :milestone, m2, after b3, 0d
+
+  section Fase 3 Implementacion
+  Capas Domain Application         :c1, after b3, 21d
+  Inventario Ordenes MRP           :c2, after c1, 21d
+  Fichas Calidad Reportes          :c3, after c2, 14d
+  Auth roles y Docker              :c4, after c3, 10d
+
+  section Fase 4 Pruebas
+  Pruebas unitarias                :d1, after c4, 10d
+  Pruebas funcionales              :d2, after d1, 10d
+  Correcciones                     :d3, after d2, 7d
+
+  section Fase 5 Despliegue
+  Publicacion intranet Docker      :e1, after d3, 7d
+  Capacitacion y entrega           :e2, after e1, 7d
+  Cierre del proyecto              :milestone, m3, after e2, 0d
