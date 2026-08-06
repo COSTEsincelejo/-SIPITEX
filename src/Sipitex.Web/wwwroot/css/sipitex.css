@@ -19,7 +19,7 @@ body{
   font-family:var(--font-ui);color:var(--text);line-height:1.5;font-size:14px;-webkit-font-smoothing:antialiased;
 }
 .shell{display:flex;min-height:100vh;}
-.sidebar{width:var(--sidebar-w);background:linear-gradient(180deg,#0C2C4A 0%,var(--navy) 55%,#071828 100%);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;transition:transform .28s var(--ease);}
+.sidebar{width:var(--sidebar-w);background:linear-gradient(180deg,#0C2C4A 0%,var(--navy) 55%,#071828 100%);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;overflow:hidden;transition:transform .28s var(--ease);}
 .sidebar-brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.08);}
 .sidebar-brand .mark{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
 .sidebar-brand .mark-icon,.mark-icon{
@@ -29,6 +29,11 @@ body{
 .sidebar-brand .mark-icon img,.mark-icon img{width:100%;height:100%;display:block;}
 .sidebar-brand h1{font-size:18px;font-weight:800;letter-spacing:0.4px;}
 .sidebar-brand p{font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.2px;line-height:1.45;}
+.sidebar-nav{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.25) transparent;}
+.sidebar-nav::-webkit-scrollbar{width:6px;}
+.sidebar-nav::-webkit-scrollbar-track{background:transparent;}
+.sidebar-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.22);border-radius:6px;}
+.sidebar-nav::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.35);}
 .nav-group{padding:14px 10px;}
 .nav-group-label{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,0.35);padding:8px 12px 6px;font-weight:700;}
 .nav-item{width:100%;display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:9px;background:transparent;border:none;color:rgba(255,255,255,0.72);font-size:13px;font-weight:600;cursor:pointer;text-align:left;font-family:var(--font-ui);text-decoration:none;transition:background .18s var(--ease),color .18s var(--ease),transform .18s var(--ease);}
