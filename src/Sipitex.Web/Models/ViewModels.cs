@@ -97,7 +97,8 @@ public class CreateFichaForm
     public string ProcessName { get; set; } = string.Empty;
     public string InstructorName { get; set; } = string.Empty;
     public string Turno { get; set; } = "Mañana";
-    public int? ProductionOrderId { get; set; } // opcional
+    public int? ProductionOrderId { get; set; } // opcional (orden existente)
+    public string? AssignedOrderText { get; set; } // opcional (texto manual)
 }
 
 // Registro formal de sesión de producción

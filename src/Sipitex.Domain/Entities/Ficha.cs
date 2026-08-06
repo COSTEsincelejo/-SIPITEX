@@ -29,4 +29,7 @@ public class Ficha
 
     // Navegación a la orden de producción
     public ProductionOrder? ProductionOrder { get; set; }
+
+    // Texto manual cuando la orden no está en ProductionOrders (excluyente con ProductionOrderId)
+    public string? AssignedOrderText { get; set; }
 }

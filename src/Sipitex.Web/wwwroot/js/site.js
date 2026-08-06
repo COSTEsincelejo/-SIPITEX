@@ -42,6 +42,36 @@
       document.getElementById('sidebar')?.classList.toggle('open');
     });
 
+    // Orden asignada: dropdown existente vs texto manual (mutuamente excluyentes)
+    const orderSelect = document.getElementById('createFichaOrderSelect');
+    const orderIdInput = document.getElementById('createFichaOrderId');
+    const orderText = document.getElementById('createFichaOrderText');
+    const orderManualWrap = document.getElementById('createFichaOrderManualWrap');
+    if (orderSelect && orderIdInput && orderText && orderManualWrap) {
+      const syncOrderMode = () => {
+        const option = orderSelect.selectedOptions[0];
+        const mode = option?.dataset?.mode || 'none';
+        if (mode === 'manual') {
+          orderIdInput.value = '';
+          orderManualWrap.style.display = 'block';
+          orderText.disabled = false;
+          orderText.focus();
+        } else if (mode === 'existing') {
+          orderIdInput.value = orderSelect.value;
+          orderText.value = '';
+          orderText.disabled = true;
+          orderManualWrap.style.display = 'none';
+        } else {
+          orderIdInput.value = '';
+          orderText.value = '';
+          orderText.disabled = true;
+          orderManualWrap.style.display = 'none';
+        }
+      };
+      orderSelect.addEventListener('change', syncOrderMode);
+      syncOrderMode();
+    }
+
     // Convert server flash alerts into toasts (keep inline for accessibility if needed)
     document.querySelectorAll('[data-toast]').forEach((node) => {
       const type = node.getAttribute('data-toast-type') || 'info';
