@@ -53,12 +53,23 @@ public interface IFichaService
         int? actorUserId = null,
         string? actorRole = null,
         string? actorName = null,
+        string? proceso = null,
         CancellationToken cancellationToken = default);
 
     // Quitar un instructor de una ficha
     Task<ServiceResult> RemoveInstructorAsync(
         int fichaId,
         int instructorUserId,
+        int? actorUserId = null,
+        string? actorRole = null,
+        string? actorName = null,
+        CancellationToken cancellationToken = default);
+
+    // Actualizar el proceso de un instructor en una ficha (Admin cualquiera; Instructor solo el suyo)
+    Task<ServiceResult> UpdateInstructorProcesoAsync(
+        int fichaId,
+        int instructorUserId,
+        string? proceso,
         int? actorUserId = null,
         string? actorRole = null,
         string? actorName = null,

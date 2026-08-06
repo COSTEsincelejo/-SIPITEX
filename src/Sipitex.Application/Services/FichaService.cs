@@ -232,6 +232,7 @@ public class FichaService : IFichaService
         int? actorUserId = null,
         string? actorRole = null,
         string? actorName = null,
+        string? proceso = null,
         CancellationToken cancellationToken = default)
     {
         var ficha = await _fichaRepository.GetByIdAsync(fichaId, cancellationToken);
@@ -248,18 +249,53 @@ public class FichaService : IFichaService
         if (ficha.Instructors.Any(i => i.UserId == instructorUserId))
             return ServiceResult.Fail("Ese instructor ya está asignado a la ficha.");
 
+        var procesoNorm = NormalizeProceso(proceso);
+        if (procesoNorm is { Length: > 60 })
+            return ServiceResult.Fail("El proceso no puede superar 60 caracteres.");
+
         ficha.Instructors.Add(new FichaInstructor
         {
             FichaId = ficha.Id,
             UserId = instructorUserId,
             User = user!,
-            AssignedAtUtc = DateTime.UtcNow
+            AssignedAtUtc = DateTime.UtcNow,
+            Proceso = procesoNorm
         });
 
         SyncPrimaryInstructorFields(ficha);
         _fichaRepository.Update(ficha);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok($"{user!.Nombre} asignado a la ficha {ficha.FichaCode}.");
+    }
+
+    public async Task<ServiceResult> UpdateInstructorProcesoAsync(
+        int fichaId,
+        int instructorUserId,
+        string? proceso,
+        int? actorUserId = null,
+        string? actorRole = null,
+        string? actorName = null,
+        CancellationToken cancellationToken = default)
+    {
+        var ficha = await _fichaRepository.GetByIdAsync(fichaId, cancellationToken);
+        if (ficha is null) return ServiceResult.Fail("Ficha no encontrada.");
+
+        var assignment = ficha.Instructors.FirstOrDefault(i => i.UserId == instructorUserId);
+        if (assignment is null)
+            return ServiceResult.Fail("Ese instructor no está asignado a la ficha.");
+
+        // Admin: cualquiera. Instructor: solo su propia asignación (y debe pertenecer a la ficha).
+        if (!CanEditInstructorProceso(ficha, instructorUserId, actorUserId, actorRole, actorName))
+            return ServiceResult.Fail("No tiene permiso para editar el proceso de este instructor.");
+
+        var procesoNorm = NormalizeProceso(proceso);
+        if (procesoNorm is { Length: > 60 })
+            return ServiceResult.Fail("El proceso no puede superar 60 caracteres.");
+
+        assignment.Proceso = procesoNorm;
+        _fichaRepository.Update(ficha);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok("Proceso actualizado.");
     }
 
     public async Task<ServiceResult> RemoveInstructorAsync(
@@ -294,7 +330,7 @@ public class FichaService : IFichaService
     {
         var instructors = f.Instructors
             .OrderBy(i => i.User?.Nombre ?? string.Empty)
-            .Select(i => new FichaInstructorDto(i.UserId, i.User?.Nombre ?? string.Empty))
+            .Select(i => new FichaInstructorDto(i.UserId, i.User?.Nombre ?? string.Empty, i.Proceso))
             .Where(i => !string.IsNullOrWhiteSpace(i.Nombre))
             .ToList();
 
@@ -378,6 +414,25 @@ public class FichaService : IFichaService
         return IsInstructorViewer(actorRole, actorUserId)
                && BelongsToInstructor(ficha, actorUserId!.Value, actorName);
     }
+
+    // Editar proceso: Admin cualquiera; Instructor solo su propio UserId en la ficha (vía BelongsToInstructor)
+    private static bool CanEditInstructorProceso(
+        Ficha ficha,
+        int targetInstructorUserId,
+        int? actorUserId,
+        string? actorRole,
+        string? actorName)
+    {
+        if (string.Equals(actorRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return IsInstructorViewer(actorRole, actorUserId)
+               && actorUserId == targetInstructorUserId
+               && BelongsToInstructor(ficha, actorUserId!.Value, actorName);
+    }
+
+    private static string? NormalizeProceso(string? proceso) =>
+        string.IsNullOrWhiteSpace(proceso) ? null : proceso.Trim();
 
     private static bool IsInstructorViewer(string? viewerRole, int? viewerUserId) =>
         viewerUserId is > 0

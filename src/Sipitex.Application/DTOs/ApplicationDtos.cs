@@ -74,8 +74,8 @@ public record MrpLineDto(
 
 // --- Fichas y sesiones ---
 
-// Instructor asignado a una ficha (para chips / quitar)
-public record FichaInstructorDto(int UserId, string Nombre);
+// Instructor asignado a una ficha (para chips / quitar / editar proceso)
+public record FichaInstructorDto(int UserId, string Nombre, string? Proceso = null);
 
 // Opción de instructor activo para selects
 public record InstructorOptionDto(int Id, string Nombre);

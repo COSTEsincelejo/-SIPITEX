@@ -11,4 +11,7 @@ public class FichaInstructor
 
     // Cuándo se asignó (UTC)
     public DateTime AssignedAtUtc { get; set; } = DateTime.UtcNow;
+
+    // Proceso que realiza este instructor en la ficha (opcional; distinto de Ficha.ProcessName)
+    public string? Proceso { get; set; }
 }
