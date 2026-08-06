@@ -14,4 +14,15 @@ public interface IAlertService
     Task<AlertEvaluationResultDto> EvaluateAndSendAsync(CancellationToken cancellationToken = default);
     // Historial de envíos recientes
     Task<IReadOnlyList<AlertDeliveryDto>> GetRecentDeliveriesAsync(int take = 30, CancellationToken cancellationToken = default);
+
+    // Envío inmediato (no espera al poll). Destinatarios por userIds y/o rol.
+    // Respeta AlertPreference: solo envía si el tipo está Enabled para ese usuario.
+    // Devuelve cuántos correos se enviaron (SMTP u Outbox).
+    Task<int> NotifyUsersAsync(
+        AlertType type,
+        string subject,
+        string body,
+        IReadOnlyList<int>? userIds = null,
+        string? role = null,
+        CancellationToken cancellationToken = default);
 }

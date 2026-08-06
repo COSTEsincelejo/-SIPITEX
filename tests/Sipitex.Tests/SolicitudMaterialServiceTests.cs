@@ -15,14 +15,29 @@ public class SolicitudMaterialServiceTests
     private readonly Mock<IFichaRepository> _fichas = new();
     private readonly Mock<IMaterialRepository> _materials = new();
     private readonly Mock<ICodigoGeneradorService> _codigos = new();
+    private readonly Mock<IAlertService> _alerts = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
-    private SolicitudMaterialService CreateSut() => new(
-        _solicitudes.Object,
-        _fichas.Object,
-        _materials.Object,
-        _codigos.Object,
-        _uow.Object);
+    private SolicitudMaterialService CreateSut()
+    {
+        _alerts
+            .Setup(a => a.NotifyUsersAsync(
+                It.IsAny<AlertType>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyList<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        return new(
+            _solicitudes.Object,
+            _fichas.Object,
+            _materials.Object,
+            _codigos.Object,
+            _alerts.Object,
+            _uow.Object);
+    }
 
     private static Ficha FichaConInstructor(int fichaId, int instructorUserId) => new()
     {
@@ -71,6 +86,13 @@ public class SolicitudMaterialServiceTests
         Assert.Null(saved.Detalles.First().CantidadAprobada);
         Assert.Equal(12m, saved.Detalles.First().CantidadSolicitada);
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _alerts.Verify(a => a.NotifyUsersAsync(
+            AlertType.SolicitudMaterialNueva,
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            null,
+            UserRoles.Bodeguero,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

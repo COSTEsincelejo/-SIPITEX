@@ -134,6 +134,36 @@ public class SolicitudMaterialDetailViewModel
     public bool IsSuccess { get; set; }
 }
 
+// Listado Bodeguero: solicitudes de materiales
+public class BodegaSolicitudesIndexViewModel
+{
+    public IReadOnlyList<SolicitudMaterialListItemDto> Solicitudes { get; set; } = [];
+    public bool SoloPendientes { get; set; } = true;
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+// Detalle / resolución Bodeguero
+public class BodegaSolicitudDetailViewModel
+{
+    public SolicitudMaterialResolucionDto Solicitud { get; set; } = null!;
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class ResolveSolicitudForm
+{
+    public int SolicitudId { get; set; }
+    public string? Observaciones { get; set; }
+    public List<ResolveDetalleFormItem> Items { get; set; } = [];
+}
+
+public class ResolveDetalleFormItem
+{
+    public int DetalleId { get; set; }
+    public decimal CantidadAprobada { get; set; }
+}
+
 // Registro formal de sesión de producción
 public class RegisterProductionForm
 {

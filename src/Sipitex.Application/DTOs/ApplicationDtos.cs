@@ -214,6 +214,31 @@ public record SolicitudMaterialDetailDto(
     string? Observaciones,
     IReadOnlyList<DetalleSolicitudMaterialDto> Detalles);
 
+// Ítem para resolución en bodega (incluye stock actual)
+public record DetalleResolucionDto(
+    int Id,
+    string MaterialName,
+    string UnitDisplay,
+    decimal CantidadSolicitada,
+    decimal StockDisponible,
+    decimal? CantidadAprobada,
+    DetalleSolicitudEstado EstadoItem);
+
+// Detalle para Bodeguero (resolución)
+public record SolicitudMaterialResolucionDto(
+    int Id,
+    string Codigo,
+    string FichaCode,
+    string SolicitanteNombre,
+    SolicitudMaterialEstado Estado,
+    DateTime FechaSolicitud,
+    string? Observaciones,
+    string? EntregaCodigo,
+    IReadOnlyList<DetalleResolucionDto> Detalles);
+
+// Una línea del formulario de resolución
+public record ResolveDetalleDto(int DetalleId, decimal CantidadAprobada);
+
 // Resultado genérico de operaciones del servicio (éxito/error + mensaje)
 public record ServiceResult(bool Success, string? Message = null)
 {

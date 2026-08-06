@@ -1,0 +1,141 @@
+@model BodegaSolicitudDetailViewModel
+@{
+    ViewData["Title"] = $"Solicitud {Model.Solicitud.Codigo}";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Solicitudes de materiales / Detalle";
+    Layout = "_Layout";
+    var s = Model.Solicitud;
+    var puedeResolver = s.Estado == SolicitudMaterialEstado.Pendiente;
+}
+
+<div class="page-header">
+    <div>
+        <h2>@s.Codigo</h2>
+        <div class="sub">Ficha @s.FichaCode · @s.SolicitanteNombre · @s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+    </div>
+    <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver al listado</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-info-circle"></i> Cabecera</div>
+    <div class="solicitud-detail-meta">
+        <div><span class="field-label">Estado</span><br /><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></div>
+        <div><span class="field-label">Ficha</span><br /><strong>@s.FichaCode</strong></div>
+        <div><span class="field-label">Solicitante</span><br />@s.SolicitanteNombre</div>
+        <div><span class="field-label">Fecha solicitud</span><br />@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+        @if (!string.IsNullOrWhiteSpace(s.EntregaCodigo))
+        {
+            <div><span class="field-label">Entrega</span><br /><strong>@s.EntregaCodigo</strong></div>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-boxes-stacked"></i> Materiales a resolver</div>
+
+    @if (puedeResolver)
+    {
+        <form asp-action="Resolve" method="post" class="resolucion-form" data-resolucion-form>
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="Resolve.SolicitudId" value="@s.Id" />
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Solicitada</th>
+                            <th>Stock disponible</th>
+                            <th>Cantidad a aprobar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @{ var idx = 0; }
+                    @foreach (var d in s.Detalles)
+                    {
+                        var maxAprobar = Math.Min(d.CantidadSolicitada, d.StockDisponible);
+                        var stockBajo = d.StockDisponible < d.CantidadSolicitada;
+                        var defaultAprobar = maxAprobar;
+                        <tr class="@(stockBajo ? "stock-warn-row" : null)">
+                            <td>
+                                <strong>@d.MaterialName</strong>
+                                @if (stockBajo)
+                                {
+                                    <span class="stock-warn" title="Stock menor a lo solicitado">⚠</span>
+                                }
+                            </td>
+                            <td>@d.CantidadSolicitada.ToString("0.##") @d.UnitDisplay</td>
+                            <td class="@(stockBajo ? "stock-warn-text" : null)">@d.StockDisponible.ToString("0.##") @d.UnitDisplay</td>
+                            <td>
+                                <input type="hidden" name="Resolve.Items[@idx].DetalleId" value="@d.Id" />
+                                @if (d.StockDisponible <= 0)
+                                {
+                                    <input type="hidden" name="Resolve.Items[@idx].CantidadAprobada" value="0" />
+                                    <input type="number" value="0" min="0" max="0" step="0.01" disabled
+                                           aria-label="Cantidad aprobada de @d.MaterialName (sin stock)" />
+                                    <div class="hint">Sin stock — ítem se rechazará</div>
+                                }
+                                else
+                                {
+                                    <input type="number"
+                                           name="Resolve.Items[@idx].CantidadAprobada"
+                                           value="@defaultAprobar.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           min="0"
+                                           max="@maxAprobar.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           step="0.01"
+                                           required
+                                           data-max-aprobada="@maxAprobar.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           aria-label="Cantidad aprobada de @d.MaterialName" />
+                                    <span class="hint">@d.UnitDisplay · máx. @maxAprobar.ToString("0.##")</span>
+                                }
+                            </td>
+                        </tr>
+                        idx++;
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="field" style="margin-top:14px;max-width:480px;">
+                <label class="field-label">Observaciones (opcional)</label>
+                <input type="text" name="Resolve.Observaciones" maxlength="500" value="@s.Observaciones" placeholder="Notas de resolución" />
+            </div>
+            <div class="form-actions" style="margin-top:14px;">
+                <button type="submit" class="primary" data-confirm="¿Confirmar resolución de esta solicitud?">Confirmar resolución</button>
+                <a class="ghost" asp-action="Index">Cancelar</a>
+            </div>
+        </form>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Solicitada</th>
+                        <th>Aprobada</th>
+                        <th>Estado ítem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var d in s.Detalles)
+                {
+                    <tr>
+                        <td><strong>@d.MaterialName</strong></td>
+                        <td>@d.CantidadSolicitada.ToString("0.##") @d.UnitDisplay</td>
+                        <td>@(d.CantidadAprobada?.ToString("0.##") ?? "—") @d.UnitDisplay</td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(d.EstadoItem)">@DisplayHelper.StatusText(d.EstadoItem)</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(s.Observaciones))
+        {
+            <p class="hint" style="margin-top:12px;"><strong>Observaciones:</strong> @s.Observaciones</p>
+        }
+    }
+</div>

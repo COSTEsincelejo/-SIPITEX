@@ -170,5 +170,24 @@
 
       reindex();
     });
+
+    // Bodega: validar CantidadAprobada <= max (min solicitada, stock) antes de enviar
+    document.querySelectorAll('[data-resolucion-form]').forEach((form) => {
+      form.addEventListener('submit', (e) => {
+        const inputs = [...form.querySelectorAll('input[data-max-aprobada]')];
+        for (const input of inputs) {
+          const max = Number(input.getAttribute('data-max-aprobada') || 0);
+          const value = Number(input.value || 0);
+          if (value < 0 || value > max) {
+            e.preventDefault();
+            window.SipitexToast(
+              `La cantidad aprobada no puede superar ${max} (mínimo entre solicitada y stock).`,
+              'warning');
+            input.focus();
+            return;
+          }
+        }
+      });
+    });
   });
 })();

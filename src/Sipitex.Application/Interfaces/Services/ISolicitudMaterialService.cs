@@ -22,4 +22,14 @@ public interface ISolicitudMaterialService
         int? viewerUserId,
         string? viewerRole,
         CancellationToken cancellationToken = default);
+
+    // Listado para Bodeguero (todas las fichas); soloPendientes=true filtra Estado=Pendiente
+    Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForBodegaAsync(
+        bool soloPendientes = true,
+        CancellationToken cancellationToken = default);
+
+    // Detalle con stock actual para resolución en bodega
+    Task<SolicitudMaterialResolucionDto?> GetResolucionDetailAsync(
+        int id,
+        CancellationToken cancellationToken = default);
 }

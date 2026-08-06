@@ -8,13 +8,14 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
-// Crear y consultar SolicitudMaterial (scope Admin / Instructor)
+// Crear y consultar SolicitudMaterial (scope Admin / Instructor / Bodega)
 public class SolicitudMaterialService : ISolicitudMaterialService
 {
     private readonly ISolicitudMaterialRepository _solicitudRepository;
     private readonly IFichaRepository _fichaRepository;
     private readonly IMaterialRepository _materialRepository;
     private readonly ICodigoGeneradorService _codigoGenerador;
+    private readonly IAlertService _alertService;
     private readonly IUnitOfWork _unitOfWork;
 
     public SolicitudMaterialService(
@@ -22,12 +23,14 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         IFichaRepository fichaRepository,
         IMaterialRepository materialRepository,
         ICodigoGeneradorService codigoGenerador,
+        IAlertService alertService,
         IUnitOfWork unitOfWork)
     {
         _solicitudRepository = solicitudRepository;
         _fichaRepository = fichaRepository;
         _materialRepository = materialRepository;
         _codigoGenerador = codigoGenerador;
+        _alertService = alertService;
         _unitOfWork = unitOfWork;
     }
 
@@ -88,6 +91,16 @@ public class SolicitudMaterialService : ISolicitudMaterialService
 
         await _solicitudRepository.AddAsync(solicitud, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Notifica a Bodegueros (inmediato; respeta preferencias)
+        await _alertService.NotifyUsersAsync(
+            AlertType.SolicitudMaterialNueva,
+            $"SIPITEX · Nueva solicitud {codigo}",
+            $"Se creó la solicitud {codigo} para la ficha {ficha.FichaCode} ({lineas.Count} material(es)).\n\nRevise Solicitudes de materiales en bodega.",
+            userIds: null,
+            role: UserRoles.Bodeguero,
+            cancellationToken);
+
         return ServiceResult.Ok($"Solicitud {codigo} creada.");
     }
 
@@ -104,15 +117,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         else if (!IsAdmin(viewerRole))
             scoped = [];
 
-        return scoped
-            .Select(s => new SolicitudMaterialListItemDto(
-                s.Id,
-                s.Codigo,
-                s.Ficha?.FichaCode ?? "—",
-                s.Estado,
-                s.FechaSolicitud,
-                s.Solicitante?.Nombre ?? "—"))
-            .ToList();
+        return scoped.Select(MapListItem).ToList();
     }
 
     public async Task<SolicitudMaterialDetailDto?> GetDetailAsync(
@@ -131,7 +136,56 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         if (!IsAdmin(viewerRole) && !IsInstructor(viewerRole, viewerUserId))
             return null;
 
-        return new SolicitudMaterialDetailDto(
+        return MapDetail(solicitud);
+    }
+
+    public async Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForBodegaAsync(
+        bool soloPendientes = true,
+        CancellationToken cancellationToken = default)
+    {
+        var all = await _solicitudRepository.GetAllWithFichaAsync(cancellationToken);
+        IEnumerable<SolicitudMaterial> scoped = all;
+        if (soloPendientes)
+            scoped = all.Where(s => s.Estado == SolicitudMaterialEstado.Pendiente);
+
+        return scoped.Select(MapListItem).ToList();
+    }
+
+    public async Task<SolicitudMaterialResolucionDto?> GetResolucionDetailAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var solicitud = await _solicitudRepository.GetByIdWithDetallesAsync(id, cancellationToken);
+        if (solicitud is null)
+            return null;
+
+        return new SolicitudMaterialResolucionDto(
+            solicitud.Id,
+            solicitud.Codigo,
+            solicitud.Ficha?.FichaCode ?? "—",
+            solicitud.Solicitante?.Nombre ?? "—",
+            solicitud.Estado,
+            solicitud.FechaSolicitud,
+            solicitud.Observaciones,
+            solicitud.Entrega?.Codigo,
+            solicitud.Detalles
+                .OrderBy(d => d.Id)
+                .Select(d => new DetalleResolucionDto(
+                    d.Id,
+                    d.Material?.Name ?? "—",
+                    d.Material is null ? "—" : UnitHelper.ToDisplay(d.Material.Unit),
+                    d.CantidadSolicitada,
+                    d.Material?.Stock ?? 0,
+                    d.CantidadAprobada,
+                    d.EstadoItem))
+                .ToList());
+    }
+
+    private static SolicitudMaterialListItemDto MapListItem(SolicitudMaterial s) =>
+        new(s.Id, s.Codigo, s.Ficha?.FichaCode ?? "—", s.Estado, s.FechaSolicitud, s.Solicitante?.Nombre ?? "—");
+
+    private static SolicitudMaterialDetailDto MapDetail(SolicitudMaterial solicitud) =>
+        new(
             solicitud.Id,
             solicitud.Codigo,
             solicitud.Ficha?.FichaCode ?? "—",
@@ -150,9 +204,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
                     d.CantidadAprobada,
                     d.EstadoItem))
                 .ToList());
-    }
 
-    // Admin: cualquier ficha. Instructor: solo si está asignado (misma regla M2M/legacy que Fichas)
     private static bool CanRequestOnFicha(
         Ficha ficha,
         int actorUserId,
