@@ -24,6 +24,9 @@ public class SipitexDbContext : DbContext
     public DbSet<AlertPreference> AlertPreferences => Set<AlertPreference>(); // Qué alertas quiere cada usuario
     public DbSet<AlertDelivery> AlertDeliveries => Set<AlertDelivery>(); // Historial de alertas enviadas
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>(); // Tokens para recuperar contraseña
+    public DbSet<SolicitudMaterial> SolicitudesMaterial => Set<SolicitudMaterial>(); // Solicitudes multi-ítem ligadas a Ficha
+    public DbSet<DetalleSolicitudMaterial> DetallesSolicitudMaterial => Set<DetalleSolicitudMaterial>(); // Ítems de SolicitudMaterial
+    public DbSet<EntregaMaterial> EntregasMaterial => Set<EntregaMaterial>(); // Entrega 1:1 de una solicitud resuelta
 
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -178,6 +181,69 @@ public class SipitexDbContext : DbContext
             e.Property(a => a.Channel).HasMaxLength(40).IsRequired(); // Email, etc.
             // Borrar usuario = borrar su historial de alertas
             e.HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+
+        // --- SolicitudMaterial (flujo Ficha multi-ítem; paralelo a MaterialRequest) ---
+        modelBuilder.Entity<SolicitudMaterial>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Codigo).HasMaxLength(20).IsRequired();
+            e.HasIndex(s => s.Codigo).IsUnique();
+            e.Property(s => s.Observaciones).HasMaxLength(500);
+            e.Property(s => s.Estado).HasConversion<string>().HasMaxLength(30);
+            e.HasOne(s => s.Ficha)
+                .WithMany()
+                .HasForeignKey(s => s.FichaId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(s => s.Solicitante)
+                .WithMany()
+                .HasForeignKey(s => s.SolicitanteId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(s => s.ResueltoPor)
+                .WithMany()
+                .HasForeignKey(s => s.ResueltoPorId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(s => s.FichaId);
+            e.HasIndex(s => s.SolicitanteId);
+            e.HasIndex(s => s.Estado);
+        });
+
+        // --- DetalleSolicitudMaterial ---
+        modelBuilder.Entity<DetalleSolicitudMaterial>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.CantidadSolicitada).HasPrecision(18, 2);
+            e.Property(d => d.CantidadAprobada).HasPrecision(18, 2);
+            e.Property(d => d.EstadoItem).HasConversion<string>().HasMaxLength(30);
+            e.HasOne(d => d.SolicitudMaterial)
+                .WithMany(s => s.Detalles)
+                .HasForeignKey(d => d.SolicitudMaterialId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // Sin colección inversa en Material (no se modifica esa entidad)
+            e.HasOne(d => d.Material)
+                .WithMany()
+                .HasForeignKey(d => d.MaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(d => d.MaterialId);
+        });
+
+        // --- EntregaMaterial (1:1 con SolicitudMaterial) ---
+        modelBuilder.Entity<EntregaMaterial>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Codigo).HasMaxLength(20).IsRequired();
+            e.HasIndex(x => x.Codigo).IsUnique();
+            e.Property(x => x.Observaciones).HasMaxLength(500);
+            e.HasOne(x => x.SolicitudMaterial)
+                .WithOne(s => s.Entrega)
+                .HasForeignKey<EntregaMaterial>(x => x.SolicitudMaterialId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.SolicitudMaterialId).IsUnique();
+            e.HasOne(x => x.Bodeguero)
+                .WithMany()
+                .HasForeignKey(x => x.BodegueroId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Tokens para recuperar contraseña (guardamos el hash, no el token en claro)

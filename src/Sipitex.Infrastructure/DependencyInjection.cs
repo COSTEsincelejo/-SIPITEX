@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IProductionSessionRepository, ProductionSessionRepository>();
         services.AddScoped<IAlertRepository, AlertRepository>();
+        services.AddScoped<ISolicitudMaterialRepository, SolicitudMaterialRepository>(); // Flujo SolicitudMaterial (Ficha)
 
         return services; // Devuelvo la colección ya configurada
     }
