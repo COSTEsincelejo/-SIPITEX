@@ -26,8 +26,9 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IBomCatalogService, BomCatalogService>();
         services.AddScoped<IFichaService, FichaService>();
 
-        // Control de calidad y estadísticas del dashboard
+        // Control de calidad, actas de verificación y estadísticas del dashboard
         services.AddScoped<IQualityService, QualityService>();
+        services.AddScoped<IActaVerificacionService, ActaVerificacionService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
 
         // Cuentas de usuario y recuperar contraseña

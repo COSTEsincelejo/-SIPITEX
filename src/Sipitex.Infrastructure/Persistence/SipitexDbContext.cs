@@ -19,6 +19,7 @@ public class SipitexDbContext : DbContext
     public DbSet<Ficha> Fichas => Set<Ficha>(); // Fichas de proceso (trazo, corte, confección...)
     public DbSet<FichaInstructor> FichaInstructors => Set<FichaInstructor>(); // M2M ficha ↔ instructor
     public DbSet<QualityRecord> QualityRecords => Set<QualityRecord>(); // Inspecciones de calidad
+    public DbSet<ActaVerificacion> ActasVerificacion => Set<ActaVerificacion>(); // Actas con observación y firma
     public DbSet<FunctionalRequirement> FunctionalRequirements => Set<FunctionalRequirement>(); // RF del proyecto
     public DbSet<NonFunctionalRequirement> NonFunctionalRequirements => Set<NonFunctionalRequirement>(); // RNF del proyecto
     public DbSet<User> Users => Set<User>(); // Usuarios del sistema con roles
@@ -146,6 +147,29 @@ public class SipitexDbContext : DbContext
             e.Property(q => q.Responsable).HasMaxLength(120); // Quién responde por el reproceso
             // Inspección ligada a una orden
             e.HasOne(q => q.ProductionOrder).WithMany(o => o.QualityRecords).HasForeignKey(q => q.ProductionOrderId);
+        });
+
+        // --- ActaVerificacion ---
+        modelBuilder.Entity<ActaVerificacion>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Observacion).HasMaxLength(2000).IsRequired();
+            e.Property(a => a.NombreFirmante).HasMaxLength(120);
+            e.HasOne(a => a.ProductionOrder)
+                .WithMany(o => o.ActasVerificacion)
+                .HasForeignKey(a => a.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(a => a.Ficha)
+                .WithMany()
+                .HasForeignKey(a => a.FichaId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(a => a.Instructor)
+                .WithMany()
+                .HasForeignKey(a => a.InstructorId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(a => a.ProductionOrderId);
+            e.HasIndex(a => a.FichaId);
+            e.HasIndex(a => a.InstructorId);
         });
 
         // --- ProductionSession ---

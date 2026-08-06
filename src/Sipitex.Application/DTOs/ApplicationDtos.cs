@@ -177,6 +177,40 @@ public record CreateQualityRecordDto(
     string? MotivoReproceso = null,
     string? Responsable = null);
 
+// --- Acta de verificación ---
+
+// Acta en listado / detalle
+public record ActaVerificacionDto(
+    int Id,
+    int ProductionOrderId,
+    string OrderNumber,
+    string ProductName,
+    int FichaId,
+    string FichaCode,
+    int InstructorId,
+    string InstructorNombre,
+    string Observacion,
+    bool CumpleEspecificaciones,
+    bool CumpleAcabados,
+    bool CumpleSinDefectos,
+    bool ChecklistCumpleRequisitos,
+    DateTime FechaObservacion,
+    DateTime? FechaFirma,
+    bool Firmado,
+    string? NombreFirmante,
+    bool PuedeFirmarse,
+    bool PuedeEditar);
+
+// Crear o actualizar observación + checklist
+public record GuardarActaVerificacionDto(
+    int ProductionOrderId,
+    int FichaId,
+    string Observacion,
+    bool CumpleEspecificaciones,
+    bool CumpleAcabados,
+    bool CumpleSinDefectos,
+    bool ChecklistCumpleRequisitos);
+
 // --- Dashboard ---
 
 // KPIs del home

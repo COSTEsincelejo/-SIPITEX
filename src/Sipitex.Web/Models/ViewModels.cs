@@ -260,3 +260,44 @@ public class EmptyStateModel
     public string? ActionText { get; set; } // texto del botón o hint
     public string? ActionHref { get; set; } // link del botón (opcional)
 }
+
+// Listado de actas de verificación + formulario de alta
+public class ActasVerificacionIndexViewModel
+{
+    public IReadOnlyList<ActaVerificacionDto> Actas { get; set; } = [];
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
+    public CreateActaVerificacionForm Create { get; set; } = new();
+    public bool PuedeCrear { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class CreateActaVerificacionForm
+{
+    public int ProductionOrderId { get; set; }
+    public int FichaId { get; set; }
+    public string Observacion { get; set; } = string.Empty;
+    public bool CumpleEspecificaciones { get; set; }
+    public bool CumpleAcabados { get; set; }
+    public bool CumpleSinDefectos { get; set; }
+    public bool ChecklistCumpleRequisitos { get; set; }
+}
+
+// Detalle / edición / firma de un acta
+public class ActaVerificacionDetailViewModel
+{
+    public ActaVerificacionDto Acta { get; set; } = null!;
+    public EditActaVerificacionForm Edit { get; set; } = new();
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class EditActaVerificacionForm
+{
+    public string Observacion { get; set; } = string.Empty;
+    public bool CumpleEspecificaciones { get; set; }
+    public bool CumpleAcabados { get; set; }
+    public bool CumpleSinDefectos { get; set; }
+    public bool ChecklistCumpleRequisitos { get; set; }
+}

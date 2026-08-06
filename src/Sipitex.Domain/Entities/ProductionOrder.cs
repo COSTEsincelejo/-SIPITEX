@@ -32,6 +32,9 @@ public class ProductionOrder
     // Inspecciones de calidad de esta orden
     public ICollection<QualityRecord> QualityRecords { get; set; } = [];
 
+    // Actas de verificación firmadas / en borrador sobre esta orden
+    public ICollection<ActaVerificacion> ActasVerificacion { get; set; } = [];
+
     // Fichas que están trabajando esta orden
     public ICollection<Ficha> Fichas { get; set; } = [];
 
