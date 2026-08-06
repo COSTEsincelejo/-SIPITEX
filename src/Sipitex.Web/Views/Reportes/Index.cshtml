@@ -16,7 +16,9 @@
 <div class="card" id="reportFiltersCard">
     <div class="card-title"><i class="fas fa-filter"></i> Filtros de búsqueda</div>
     <p class="hint" style="margin-top:0;">
-        Combinables y opcionales. Si un filtro no aplica al tipo de reporte (p. ej. Instructor en Inventario), se ignora en esa descarga.
+        Combinables y opcionales para Inventario, Órdenes, Calidad y Dashboard.
+        En <strong>Actividad del instructor</strong> el filtro Instructor es obligatorio.
+        Si un filtro no aplica al tipo de reporte (p. ej. Instructor en Inventario), se ignora en esa descarga.
     </p>
     <div class="form-row" id="reportFilters">
         <div class="field">
@@ -128,6 +130,15 @@
             <a class="btn ghost small js-download js-report-download" asp-action="Dashboard" asp-route-format="excel" data-report-base="@Url.Action("Dashboard")" data-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
         </div>
     </div>
+    <div class="module-link report-card">
+        <i class="fas fa-user-check"></i>
+        <h3>Actividad del instructor</h3>
+        <p>Producción por ficha/jornada y materiales consumidos (BOM × unidades).</p>
+        <div class="report-actions">
+            <a class="btn primary small js-download js-report-download" asp-action="ActividadInstructor" asp-route-format="pdf" data-report-base="@Url.Action("ActividadInstructor")" data-format="pdf" data-requires-instructor="true"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn ghost small js-download js-report-download" asp-action="ActividadInstructor" asp-route-format="excel" data-report-base="@Url.Action("ActividadInstructor")" data-format="excel" data-requires-instructor="true"><i class="fas fa-file-excel"></i> Excel</a>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -216,6 +227,18 @@
             a.href = path + '?' + buildParams(fmt).toString();
         });
     }
+
+    document.querySelectorAll('.js-report-download[data-requires-instructor="true"]').forEach((a) => {
+        a.addEventListener('click', (e) => {
+            if (instructor?.value) return;
+            e.preventDefault();
+            if (window.SipitexToast) {
+                window.SipitexToast('Seleccione un instructor para el reporte de actividad.', 'warning');
+            } else {
+                alert('Seleccione un instructor para el reporte de actividad.');
+            }
+        });
+    });
 
     [instructor, ficha, jornada, fecha, mes, anio].forEach((el) => {
         el?.addEventListener('change', refresh);

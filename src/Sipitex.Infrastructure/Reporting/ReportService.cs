@@ -17,6 +17,9 @@ public class ReportService : IReportService
     private readonly IProductionOrderRepository _orderRepository; // Órdenes OP-xxx
     private readonly IQualityRepository _qualityRepository; // Inspecciones de calidad
     private readonly IFichaRepository _fichaRepository; // Para filtrar por instructor/ficha/jornada
+    private readonly IProductionSessionRepository _sessionRepository; // Sesiones de producción
+    private readonly IProductionOrderBomSnapshotRepository _snapshotRepository; // Consumo BOM
+    private readonly IUserRepository _userRepository; // Nombre del instructor
     private readonly IStatisticsService _statisticsService; // KPIs del dashboard
 
     static ReportService()
@@ -31,12 +34,18 @@ public class ReportService : IReportService
         IProductionOrderRepository orderRepository,
         IQualityRepository qualityRepository,
         IFichaRepository fichaRepository,
+        IProductionSessionRepository sessionRepository,
+        IProductionOrderBomSnapshotRepository snapshotRepository,
+        IUserRepository userRepository,
         IStatisticsService statisticsService)
     {
         _materialRepository = materialRepository;
         _orderRepository = orderRepository;
         _qualityRepository = qualityRepository;
         _fichaRepository = fichaRepository;
+        _sessionRepository = sessionRepository;
+        _snapshotRepository = snapshotRepository;
+        _userRepository = userRepository;
         _statisticsService = statisticsService;
     }
 
@@ -184,6 +193,147 @@ public class ReportService : IReportService
 
         var headers = new[] { "Indicador", "Valor / Orden", "Producido", "Meta", "" };
         return Build("Dashboard", "Reporte KPI SIPITEX", headers, rows, format, filter);
+    }
+
+    // Actividad del instructor: sesiones + consumo inferido (unidades × snapshot BOM)
+    // Aislado de Inventario/Órdenes/Calidad/Dashboard — no altera esos métodos
+    public async Task<ReportFileDto> ExportActividadInstructorAsync(
+        string format,
+        ReportFilterDto filter,
+        CancellationToken cancellationToken = default)
+    {
+        var headers = new[] { "Sección", "Detalle", "Cantidad", "Unidad / Jornada", "Fecha", "Orden" };
+
+        if (filter.InstructorId is not int instructorId || instructorId <= 0)
+        {
+            return Build(
+                "ActividadInstructor",
+                "Actividad del instructor SIPITEX",
+                headers,
+                [new[] { "Aviso", "Debe seleccionar un instructor para generar este reporte.", "", "", "", "" }],
+                format,
+                filter);
+        }
+
+        var instructor = await _userRepository.GetByIdAsync(instructorId, cancellationToken);
+        var instructorName = instructor?.Nombre ?? $"Instructor #{instructorId}";
+
+        var sessions = await _sessionRepository.GetAllWithDetailsAsync(cancellationToken);
+        var scoped = sessions
+            .Where(s =>
+                s.RegisteredByUserId == instructorId
+                || ReportFilterHelper.MatchesFicha(s.Ficha, new ReportFilterDto(InstructorId: instructorId)))
+            .Where(s => filter.FichaId is not int fid || fid <= 0 || s.FichaId == fid)
+            .Where(s => string.IsNullOrWhiteSpace(filter.Jornada)
+                        || string.Equals(s.Ficha.Turno, filter.Jornada.Trim(), StringComparison.OrdinalIgnoreCase))
+            .Where(s => ReportFilterHelper.MatchesDateTime(s.SessionDate, filter))
+            .OrderBy(s => s.SessionDate)
+            .ToList();
+
+        if (scoped.Count == 0)
+        {
+            return Build(
+                "ActividadInstructor",
+                $"Actividad del instructor — {instructorName}",
+                headers,
+                [new[]
+                {
+                    "Aviso",
+                    "Sin actividad registrada para este instructor en el periodo seleccionado",
+                    "", "", "", ""
+                }],
+                format,
+                filter);
+        }
+
+        var rows = new List<string[]>();
+        rows.Add(["Instructor", instructorName, "", "", "", ""]);
+        rows.Add(["", "", "", "", "", ""]);
+        rows.Add(["PRODUCCIÓN", "Ficha / proceso", "Unidades", "Jornada", "Fecha", "Orden"]);
+
+        foreach (var s in scoped)
+        {
+            rows.Add([
+                "Producción",
+                $"{s.Ficha.FichaCode} · {s.Ficha.ProcessName}",
+                s.Units.ToString(),
+                string.IsNullOrWhiteSpace(s.Ficha.Turno) ? "—" : s.Ficha.Turno,
+                s.SessionDate.ToString("yyyy-MM-dd HH:mm"),
+                s.ProductionOrder.OrderNumber
+            ]);
+        }
+
+        // Consumo inferido: Units × QuantityPerUnit del snapshot de la orden
+        var materialTotals = new Dictionary<int, (string Name, string Code, string Unit, decimal Qty)>();
+        var snapshotCache = new Dictionary<int, IReadOnlyList<Domain.Entities.ProductionOrderBomSnapshot>>();
+
+        foreach (var s in scoped)
+        {
+            if (!snapshotCache.TryGetValue(s.ProductionOrderId, out var snaps))
+            {
+                snaps = await _snapshotRepository.GetByOrderIdAsync(s.ProductionOrderId, cancellationToken);
+                snapshotCache[s.ProductionOrderId] = snaps;
+            }
+
+            foreach (var line in snaps)
+            {
+                var used = line.QuantityPerUnit * s.Units;
+                if (materialTotals.TryGetValue(line.MaterialId, out var cur))
+                    materialTotals[line.MaterialId] = (cur.Name, cur.Code, cur.Unit, cur.Qty + used);
+                else
+                    materialTotals[line.MaterialId] = (
+                        line.MaterialName,
+                        line.MaterialCode,
+                        UnitHelper.ToDisplay(line.Unit),
+                        used);
+            }
+        }
+
+        rows.Add(["", "", "", "", "", ""]);
+        rows.Add(["MATERIALES", "Material", "Cantidad usada", "Unidad", "", ""]);
+
+        if (materialTotals.Count == 0)
+        {
+            rows.Add(["Materiales", "Sin snapshot BOM para las órdenes de estas sesiones", "0", "", "", ""]);
+        }
+        else
+        {
+            foreach (var m in materialTotals.Values.OrderBy(x => x.Name))
+            {
+                rows.Add([
+                    "Material",
+                    $"{m.Name} ({m.Code})",
+                    m.Qty.ToString("0.##"),
+                    m.Unit,
+                    "",
+                    ""
+                ]);
+            }
+        }
+
+        var totalProduced = scoped.Sum(s => s.Units);
+        var totalMaterials = materialTotals.Values.Sum(m => m.Qty);
+        var jornadas = scoped
+            .Select(s => s.SessionDate.Date)
+            .Distinct()
+            .Count();
+        var fichasTrabajadas = scoped.Select(s => s.FichaId).Distinct().Count();
+
+        rows.Add(["", "", "", "", "", ""]);
+        rows.Add(["RESUMEN", "Indicador", "Valor", "", "", ""]);
+        rows.Add(["Resumen", "Total producido (unidades)", totalProduced.ToString(), "", "", ""]);
+        rows.Add(["Resumen", "Total materiales consumidos", totalMaterials.ToString("0.##"), "", "", ""]);
+        rows.Add(["Resumen", "Jornadas trabajadas (días)", jornadas.ToString(), "", "", ""]);
+        rows.Add(["Resumen", "Fichas con actividad", fichasTrabajadas.ToString(), "", "", ""]);
+        rows.Add(["Resumen", "Sesiones registradas", scoped.Count.ToString(), "", "", ""]);
+
+        return Build(
+            "ActividadInstructor",
+            $"Actividad del instructor — {instructorName}",
+            headers,
+            rows,
+            format,
+            filter);
     }
 
     private async Task<IReadOnlyList<Domain.Entities.ProductionOrder>> FilterOrdersAsync(
