@@ -1,0 +1,105 @@
+@model ActasVerificacionIndexViewModel
+@{
+    ViewData["Title"] = "Actas de verificación";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Actas de verificación";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Actas de verificación</h2>
+        <div class="sub">El instructor deja una observación sobre la orden, completa el checklist y firma cuando cumple los requisitos.</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+@if (Model.PuedeCrear)
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-pen-to-square"></i> Nueva observación</div>
+        <form asp-action="Create" method="post" id="actaCreateForm">
+            @Html.AntiForgeryToken()
+            <div class="form-row">
+                <div class="field">
+                    <label class="field-label">Orden</label>
+                    <select asp-for="Create.ProductionOrderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber"))" required></select>
+                </div>
+                <div class="field">
+                    <label class="field-label">Ficha</label>
+                    <select asp-for="Create.FichaId" asp-items="@(new SelectList(Model.Fichas, "Id", "FichaCode"))" required></select>
+                </div>
+            </div>
+            <div class="field" style="margin-bottom:14px;">
+                <label class="field-label">Observación</label>
+                <textarea asp-for="Create.Observacion" rows="3" maxlength="2000" required placeholder="Describa el estado del producto / orden"></textarea>
+            </div>
+            <div class="checklist" style="display:grid;gap:8px;margin-bottom:14px;">
+                <label class="field-label">Checklist de requisitos</label>
+                <label><input asp-for="Create.CumpleEspecificaciones" class="checklist-item" /> Cumple especificaciones del producto</label>
+                <label><input asp-for="Create.CumpleAcabados" class="checklist-item" /> Cumple acabados y presentación</label>
+                <label><input asp-for="Create.CumpleSinDefectos" class="checklist-item" /> Sin defectos críticos</label>
+                <label><input asp-for="Create.ChecklistCumpleRequisitos" id="Create_ChecklistCumpleRequisitos" /> Confirmo que cumple todos los requisitos</label>
+            </div>
+            <button type="submit" class="primary"><i class="fas fa-plus"></i> Registrar observación</button>
+        </form>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="sub">Como administrador puede consultar las actas. La creación y firma corresponden al instructor de la ficha.</div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-file-signature"></i> Historial de actas</div>
+    @if (!Model.Actas.Any())
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-file-signature", Title = "Sin actas", Text = "Aún no hay actas de verificación registradas.", ActionText = Model.PuedeCrear ? "Complete el formulario para registrar la primera observación." : null }' />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Orden</th>
+                        <th>Producto</th>
+                        <th>Ficha</th>
+                        <th>Instructor</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var a in Model.Actas)
+                {
+                    <tr>
+                        <td>@a.OrderNumber</td>
+                        <td>@a.ProductName</td>
+                        <td>@a.FichaCode</td>
+                        <td>@(a.Firmado ? (a.NombreFirmante ?? a.InstructorNombre) : a.InstructorNombre)</td>
+                        <td>
+                            @if (a.Firmado)
+                            {
+                                <span class="badge badge-success">Firmada</span>
+                            }
+                            else
+                            {
+                                <span class="badge">Borrador</span>
+                            }
+                        </td>
+                        <td>@a.FechaObservacion.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td><a asp-action="Detail" asp-route-id="@a.Id" class="btn small ghost">Ver</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,106 @@
+@model ActaVerificacionDetailViewModel
+@{
+    ViewData["Title"] = "Acta de verificación";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Actas de verificación / Detalle";
+    Layout = "_Layout";
+    var a = Model.Acta;
+    var readOnly = a.Firmado || !a.PuedeEditar;
+}
+
+<div class="page-header">
+    <div>
+        <h2>Acta · @a.OrderNumber</h2>
+        <div class="sub">@a.ProductName · Ficha @a.FichaCode · @(a.Firmado ? "Firmada" : "Borrador")</div>
+    </div>
+    <a asp-action="Index" class="btn ghost"><i class="fas fa-arrow-left"></i> Volver</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-clipboard-list"></i> Observación y checklist</div>
+
+    @if (readOnly)
+    {
+        <div class="field" style="margin-bottom:14px;">
+            <label class="field-label">Observación</label>
+            <p>@a.Observacion</p>
+        </div>
+        <div class="checklist" style="display:grid;gap:8px;margin-bottom:14px;">
+            <label class="field-label">Checklist</label>
+            <div>@(a.CumpleEspecificaciones ? "✓" : "✗") Cumple especificaciones del producto</div>
+            <div>@(a.CumpleAcabados ? "✓" : "✗") Cumple acabados y presentación</div>
+            <div>@(a.CumpleSinDefectos ? "✓" : "✗") Sin defectos críticos</div>
+            <div>@(a.ChecklistCumpleRequisitos ? "✓" : "✗") Confirmación de cumplimiento</div>
+        </div>
+        @if (a.Firmado)
+        {
+            <div class="field">
+                <label class="field-label">Firma</label>
+                <p><strong>@a.NombreFirmante</strong> · @(a.FechaFirma?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "—")</p>
+            </div>
+        }
+        else if (!a.PuedeEditar)
+        {
+            <p class="sub">Solo el instructor asignado a la ficha puede editar o firmar este acta.</p>
+        }
+    }
+    else
+    {
+        <form method="post" id="actaEditForm">
+            @Html.AntiForgeryToken()
+            <div class="field" style="margin-bottom:14px;">
+                <label class="field-label">Observación</label>
+                <textarea asp-for="Edit.Observacion" rows="4" maxlength="2000" required></textarea>
+            </div>
+            <div class="checklist" style="display:grid;gap:8px;margin-bottom:14px;">
+                <label class="field-label">Checklist de requisitos</label>
+                <label><input asp-for="Edit.CumpleEspecificaciones" class="checklist-item" /> Cumple especificaciones del producto</label>
+                <label><input asp-for="Edit.CumpleAcabados" class="checklist-item" /> Cumple acabados y presentación</label>
+                <label><input asp-for="Edit.CumpleSinDefectos" class="checklist-item" /> Sin defectos críticos</label>
+                <label><input asp-for="Edit.ChecklistCumpleRequisitos" id="Edit_ChecklistCumpleRequisitos" /> Confirmo que cumple todos los requisitos</label>
+            </div>
+            <div class="row-actions">
+                <button type="submit" formaction="@Url.Action("Guardar", new { id = a.Id })" class="primary">
+                    <i class="fas fa-save"></i> Guardar observación
+                </button>
+                <button type="submit" formaction="@Url.Action("Firmar", new { id = a.Id })" class="primary" id="btnFirmar" disabled
+                        data-confirm="¿Confirma firmar esta acta? Quedará bloqueada y no podrá editarse.">
+                    <i class="fas fa-file-signature"></i> Firmar
+                </button>
+                <span class="sub" id="firmarHint">Complete y marque el checklist para habilitar la firma.</span>
+            </div>
+        </form>
+    }
+</div>
+
+@section Scripts {
+@if (!readOnly)
+{
+<script>
+(function () {
+    const items = Array.from(document.querySelectorAll('#actaEditForm .checklist-item'));
+    const confirmBox = document.getElementById('Edit_ChecklistCumpleRequisitos');
+    const btn = document.getElementById('btnFirmar');
+    const hint = document.getElementById('firmarHint');
+
+    function allReady() {
+        return items.every(i => i.checked) && !!(confirmBox && confirmBox.checked);
+    }
+
+    function sync() {
+        const ok = allReady();
+        if (btn) btn.disabled = !ok;
+        if (hint) hint.style.display = ok ? 'none' : '';
+    }
+
+    items.forEach(i => i.addEventListener('change', sync));
+    confirmBox?.addEventListener('change', sync);
+    sync();
+})();
+</script>
+}
+}
