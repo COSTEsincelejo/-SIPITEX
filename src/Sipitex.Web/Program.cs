@@ -57,6 +57,7 @@ app.UseAuthentication(); // tiene que ir antes de Authorization
 app.UseAuthorization(); // revisa roles y políticas
 
 app.MapHealthChecks("/health").AllowAnonymous(); // endpoint público de salud
+app.MapControllers(); // rutas por atributo (ej. /api/busqueda)
 // Ruta por defecto: al entrar va a Inventario
 app.MapControllerRoute(
     name: "default",

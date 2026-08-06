@@ -269,5 +269,219 @@
         }
       });
     });
+
+    // Buscador global del header (módulos estáticos + /api/busqueda)
+    initGlobalSearch();
   });
+
+  function initGlobalSearch() {
+    const root = document.getElementById('globalSearch');
+    const input = document.getElementById('globalSearchInput');
+    const dropdown = document.getElementById('globalSearchResults');
+    if (!root || !input || !dropdown) return;
+
+    const apiUrl = root.getAttribute('data-search-api') || '/api/busqueda';
+    const modules = [
+      { texto: 'Inventario', url: '/Inventario', keywords: 'inventario materiales stock bodega', icon: 'fa-boxes-stacked' },
+      { texto: 'Órdenes de producción', url: '/Ordenes', keywords: 'ordenes órdenes producción op', icon: 'fa-clipboard-list' },
+      { texto: 'MRP / Materiales', url: '/Mrp', keywords: 'mrp bom materiales requerimientos ficha técnica', icon: 'fa-diagram-project' },
+      { texto: 'Fichas & producción', url: '/Fichas', keywords: 'fichas producción instructor turno', icon: 'fa-people-group' },
+      { texto: 'Mis solicitudes', url: '/SolicitudesMaterial', keywords: 'solicitudes material pedido', icon: 'fa-clipboard-list' },
+      { texto: 'Solicitudes de materiales', url: '/BodegaSolicitudes', keywords: 'bodega solicitudes materiales cola', icon: 'fa-truck-ramp-box' },
+      { texto: 'Control de calidad', url: '/Calidad', keywords: 'calidad inspección reproceso', icon: 'fa-clipboard-check' },
+      { texto: 'Estadísticas', url: '/Estadisticas', keywords: 'estadísticas kpi dashboard gráficos', icon: 'fa-chart-line' },
+      { texto: 'Reportes', url: '/Reportes', keywords: 'reportes pdf excel exportar', icon: 'fa-file-export' },
+      { texto: 'Alertas', url: '/Alertas', keywords: 'alertas notificaciones correo', icon: 'fa-bell' },
+      { texto: 'Usuarios', url: '/Account/Users', keywords: 'usuarios administración cuentas', icon: 'fa-users-gear' },
+      { texto: 'Mi perfil', url: '/Account/Profile', keywords: 'perfil cuenta foto contraseña', icon: 'fa-user' }
+    ];
+
+    const categoryIcons = {
+      'Módulos': 'fa-compass',
+      'Materiales': 'fa-boxes-stacked',
+      'Órdenes': 'fa-clipboard-list',
+      'Fichas': 'fa-people-group',
+      'Solicitudes': 'fa-truck-ramp-box'
+    };
+
+    let debounceTimer = null;
+    let activeIndex = -1;
+    let flatItems = [];
+    let abortController = null;
+    const DEBOUNCE_MS = 300;
+
+    function normalize(text) {
+      return (text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function matchModules(query) {
+      const nq = normalize(query);
+      if (!nq) return [];
+      return modules
+        .filter((m) => normalize(m.texto).includes(nq) || normalize(m.keywords).includes(nq))
+        .slice(0, 8)
+        .map((m) => ({
+          texto: m.texto,
+          url: m.url,
+          categoria: 'Módulos',
+          icon: m.icon
+        }));
+    }
+
+    function closeDropdown() {
+      dropdown.hidden = true;
+      dropdown.innerHTML = '';
+      input.setAttribute('aria-expanded', 'false');
+      activeIndex = -1;
+      flatItems = [];
+    }
+
+    function openDropdown() {
+      dropdown.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+    }
+
+    function setActive(index) {
+      const nodes = dropdown.querySelectorAll('[data-search-item]');
+      nodes.forEach((el) => el.classList.remove('is-active'));
+      if (index < 0 || index >= nodes.length) {
+        activeIndex = -1;
+        return;
+      }
+      activeIndex = index;
+      nodes[index].classList.add('is-active');
+      nodes[index].scrollIntoView({ block: 'nearest' });
+    }
+
+    function goTo(url) {
+      if (!url) return;
+      window.location.href = url;
+    }
+
+    function render(query, entityItems) {
+      const moduleItems = matchModules(query);
+      const all = [...moduleItems, ...(entityItems || [])];
+      flatItems = all;
+
+      if (!all.length) {
+        const safe = query.replace(/[<>&"]/g, '');
+        dropdown.innerHTML = `<div class="search-empty">Sin resultados para '<strong></strong>'</div>`;
+        dropdown.querySelector('strong').textContent = safe;
+        openDropdown();
+        activeIndex = -1;
+        return;
+      }
+
+      const groups = new Map();
+      all.forEach((item, idx) => {
+        const cat = item.categoria || 'Otros';
+        if (!groups.has(cat)) groups.set(cat, []);
+        groups.get(cat).push({ ...item, _idx: idx });
+      });
+
+      const parts = [];
+      for (const [cat, items] of groups) {
+        parts.push(`<div class="search-group-label">${cat}</div>`);
+        items.forEach((item) => {
+          const icon = item.icon || categoryIcons[cat] || 'fa-search';
+          parts.push(
+            `<a class="search-item" role="option" href="${item.url}" data-search-item data-index="${item._idx}">` +
+            `<i class="fas ${icon}" aria-hidden="true"></i><span></span></a>`
+          );
+        });
+      }
+      dropdown.innerHTML = parts.join('');
+      dropdown.querySelectorAll('[data-search-item]').forEach((el) => {
+        const idx = Number(el.getAttribute('data-index'));
+        const span = el.querySelector('span');
+        if (span && flatItems[idx]) span.textContent = flatItems[idx].texto;
+        el.addEventListener('mouseenter', () => setActive(idx));
+      });
+      openDropdown();
+      setActive(all.length ? 0 : -1);
+    }
+
+    async function runSearch(query) {
+      const q = (query || '').trim();
+      if (!q) {
+        closeDropdown();
+        return;
+      }
+
+      const modulesOnly = matchModules(q);
+      // Feedback inmediato con módulos; "sin resultados" solo tras la API
+      if (modulesOnly.length) render(q, []);
+
+      if (abortController) abortController.abort();
+      abortController = new AbortController();
+
+      try {
+        const res = await fetch(`${apiUrl}?q=${encodeURIComponent(q)}`, {
+          headers: { Accept: 'application/json' },
+          signal: abortController.signal,
+          credentials: 'same-origin'
+        });
+        if (!res.ok) {
+          if (!modulesOnly.length) {
+            dropdown.innerHTML = `<div class="search-empty">Sin resultados para '<strong></strong>'</div>`;
+            dropdown.querySelector('strong').textContent = q;
+            openDropdown();
+          }
+          return;
+        }
+        const data = await res.json();
+        const entities = Array.isArray(data?.resultados) ? data.resultados : [];
+        render(q, entities);
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+        if (!modulesOnly.length) {
+          dropdown.innerHTML = `<div class="search-empty">Sin resultados para '<strong></strong>'</div>`;
+          dropdown.querySelector('strong').textContent = q;
+          openDropdown();
+        }
+      }
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const value = input.value;
+      debounceTimer = setTimeout(() => runSearch(value), DEBOUNCE_MS);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (dropdown.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        if (input.value.trim()) runSearch(input.value);
+        return;
+      }
+      if (dropdown.hidden) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActive(Math.min(activeIndex + 1, flatItems.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActive(Math.max(activeIndex - 1, 0));
+      } else if (e.key === 'Enter') {
+        if (activeIndex >= 0 && flatItems[activeIndex]) {
+          e.preventDefault();
+          goTo(flatItems[activeIndex].url);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDropdown();
+        input.blur();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!root.contains(e.target)) closeDropdown();
+    });
+
+    input.addEventListener('focus', () => {
+      if (input.value.trim() && flatItems.length) openDropdown();
+    });
+  }
 })();
