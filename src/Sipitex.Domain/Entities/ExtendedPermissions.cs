@@ -11,6 +11,7 @@ public static class ExtendedPermissions
     public const string SolicitudesAprobar = "Solicitudes.Aprobar";
     public const string MrpSimular = "Mrp.Simular";
     public const string MrpGestionarFichas = "Mrp.GestionarFichas";
+    public const string OrdenesCrear = "Ordenes.Crear";
     public const string AlertasConfigurar = "Alertas.Configurar";
 
     // Lista blanca: si no está acá, Parse lo tira
@@ -20,6 +21,7 @@ public static class ExtendedPermissions
         SolicitudesAprobar,    // puede aprobar/rechazar pedidos a bodega
         MrpSimular,            // puede correr la simulación MRP
         MrpGestionarFichas,    // puede crear/editar fichas técnicas (BOM)
+        OrdenesCrear,          // puede crear órdenes de producción
         AlertasConfigurar      // puede disparar evaluación de alertas
     ];
 
@@ -30,6 +32,7 @@ public static class ExtendedPermissions
         (SolicitudesAprobar, "Aprobar / rechazar solicitudes"),
         (MrpSimular, "Simular MRP"),
         (MrpGestionarFichas, "Crear / editar fichas técnicas (BOM)"),
+        (OrdenesCrear, "Crear órdenes de producción"),
         (AlertasConfigurar, "Configurar / evaluar alertas")
     ];
 

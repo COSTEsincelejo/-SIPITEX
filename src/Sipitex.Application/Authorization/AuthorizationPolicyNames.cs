@@ -11,6 +11,8 @@ public static class AuthorizationPolicyNames
     public const string PuedeSimularMrp = "PuedeSimularMrp";
     // Quién puede crear/editar fichas técnicas (BOM)
     public const string PuedeGestionarFichasTecnicas = "PuedeGestionarFichasTecnicas";
+    // Quién puede crear órdenes de producción
+    public const string PuedeCrearOrdenes = "PuedeCrearOrdenes";
     // Quién puede configurar alertas por correo
     public const string PuedeConfigurarAlertas = "PuedeConfigurarAlertas";
 }
