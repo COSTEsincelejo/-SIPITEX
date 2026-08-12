@@ -87,6 +87,8 @@ public class MrpIndexViewModel
     public IReadOnlyList<BomItemDto> Bom { get; set; } = [];
     public IReadOnlyList<BomProductListItemDto> Products { get; set; } = [];
     public IReadOnlyList<string> ProductNames { get; set; } = [];
+    public IReadOnlyList<InstructorOptionDto> Instructors { get; set; } = [];
+    public bool IsAdministrator { get; set; }
     public MrpSimulationForm Simulation { get; set; } = new();
     public MrpSimulationResultDto? Result { get; set; }
     public string? Message { get; set; }

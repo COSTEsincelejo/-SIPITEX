@@ -8,33 +8,36 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
-// Gestión de fichas técnicas (CRUD de BomProduct + líneas)
+// Gestión de fichas técnicas (CRUD de BomProduct + líneas) y asignación a instructores
 public class BomCatalogService : IBomCatalogService
 {
     private readonly IBomRepository _bomRepository;
     private readonly IMaterialRepository _materialRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public BomCatalogService(
         IBomRepository bomRepository,
         IMaterialRepository materialRepository,
+        IUserRepository userRepository,
         IUnitOfWork unitOfWork)
     {
         _bomRepository = bomRepository;
         _materialRepository = materialRepository;
+        _userRepository = userRepository;
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IReadOnlyList<BomProductListItemDto>> GetProductsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BomProductListItemDto>> GetProductsAsync(
+        int? assignedInstructorUserId = null,
+        CancellationToken cancellationToken = default)
     {
         var products = await _bomRepository.GetProductsAsync(cancellationToken);
-        return products.Select(p => new BomProductListItemDto(
-            p.Id,
-            p.ProductName,
-            p.Items.Count,
-            p.IsReference,
-            p.HabilitadoParaOrdenes,
-            p.Notes)).ToList();
+        IEnumerable<BomProduct> query = products;
+        if (assignedInstructorUserId is int instructorId)
+            query = query.Where(p => p.Instructors.Any(i => i.UserId == instructorId));
+
+        return query.Select(MapListItem).ToList();
     }
 
     public async Task<BomProductDetailDto?> GetProductAsync(int id, CancellationToken cancellationToken = default)
@@ -158,6 +161,77 @@ public class BomCatalogService : IBomCatalogService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok($"Ficha técnica «{name}» eliminada. El producto queda sin BOM.");
     }
+
+    public async Task<ServiceResult> AssignInstructorAsync(
+        int bomProductId,
+        int instructorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var product = await _bomRepository.GetProductByIdAsync(bomProductId, cancellationToken);
+        if (product is null) return ServiceResult.Fail("Ficha técnica no encontrada.");
+
+        var user = await _userRepository.GetByIdAsync(instructorUserId, cancellationToken);
+        if (user is null || !user.IsActive)
+            return ServiceResult.Fail("Instructor no encontrado o inactivo.");
+        if (!string.Equals(user.Rol, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase))
+            return ServiceResult.Fail("Solo se pueden asignar usuarios con rol Instructor.");
+
+        if (product.Instructors.Any(i => i.UserId == instructorUserId))
+            return ServiceResult.Fail("Ese instructor ya está asignado a la ficha técnica.");
+
+        product.Instructors.Add(new BomProductInstructor
+        {
+            BomProductId = product.Id,
+            UserId = instructorUserId,
+            User = user,
+            AssignedAtUtc = DateTime.UtcNow
+        });
+
+        _bomRepository.UpdateProduct(product);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok($"{user.Nombre} asignado a la ficha técnica «{product.ProductName}».");
+    }
+
+    public async Task<ServiceResult> RemoveInstructorAsync(
+        int bomProductId,
+        int instructorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var product = await _bomRepository.GetProductByIdAsync(bomProductId, cancellationToken);
+        if (product is null) return ServiceResult.Fail("Ficha técnica no encontrada.");
+
+        var assignment = product.Instructors.FirstOrDefault(i => i.UserId == instructorUserId);
+        if (assignment is null)
+            return ServiceResult.Fail("Ese instructor no está asignado a la ficha técnica.");
+
+        product.Instructors.Remove(assignment);
+        _bomRepository.UpdateProduct(product);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok("Instructor quitado de la ficha técnica.");
+    }
+
+    public async Task<IReadOnlyList<InstructorOptionDto>> GetAssignableInstructorsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var users = await _userRepository.GetAllAsync(cancellationToken);
+        return users
+            .Where(u => u.IsActive && string.Equals(u.Rol, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(u => u.Nombre)
+            .Select(u => new InstructorOptionDto(u.Id, u.Nombre))
+            .ToList();
+    }
+
+    private static BomProductListItemDto MapListItem(BomProduct p) => new(
+        p.Id,
+        p.ProductName,
+        p.Items.Count,
+        p.IsReference,
+        p.HabilitadoParaOrdenes,
+        p.Notes,
+        p.Instructors
+            .OrderBy(i => i.User?.Nombre ?? string.Empty)
+            .Select(i => new BomProductInstructorDto(i.UserId, i.User?.Nombre ?? $"#{i.UserId}"))
+            .ToList());
 
     private static ServiceResult? ValidateDto(UpsertBomProductDto dto)
     {

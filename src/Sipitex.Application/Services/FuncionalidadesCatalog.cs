@@ -56,7 +56,7 @@ public static class FuncionalidadesCatalog
 
         // --- MRP ---
         new("MRP / Materiales", "Consultar BOM",
-            "Lista productos BOM (fichas técnicas) y sus componentes.",
+            "Lista productos BOM (fichas técnicas) y sus componentes. Instructor: solo las asignadas.",
             $"{UserRoles.Administrador}, {UserRoles.Bodeguero}, {UserRoles.Instructor}"),
         new("MRP / Materiales", "Simular requerimientos",
             "Calcula necesidad de materiales según producto y cantidad a producir.",
@@ -64,6 +64,9 @@ public static class FuncionalidadesCatalog
         new("MRP / Materiales", "Crear / editar producto BOM",
             "Mantiene el catálogo de productos y componentes de la ficha técnica.",
             $"{UserRoles.Administrador}, {UserRoles.Bodeguero}"),
+        new("MRP / Materiales", "Asignar instructor a ficha técnica",
+            "Asigna o quita instructores autorizados a consultar una ficha técnica (BOM).",
+            UserRoles.Administrador),
         new("MRP / Materiales", "Eliminar producto BOM",
             "Quita un producto del catálogo BOM.",
             UserRoles.Administrador),

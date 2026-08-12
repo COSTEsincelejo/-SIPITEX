@@ -40,12 +40,15 @@
                         <th>Materiales</th>
                         <th>Estado</th>
                         <th>Notas</th>
+                        @if (Model.IsAdministrator) { <th>Instructores</th> }
                         @if (puedeGestionar) { <th></th> }
                     </tr>
                 </thead>
                 <tbody>
                 @foreach (var p in Model.Products)
                 {
+                    var assignedIds = (p.Instructors ?? []).Select(i => i.UserId).ToHashSet();
+                    var availableToAssign = Model.Instructors.Where(i => !assignedIds.Contains(i.Id)).ToList();
                     <tr>
                         <td><strong>@p.ProductName</strong></td>
                         <td>@p.MaterialCount</td>
@@ -64,6 +67,47 @@
                             }
                         </td>
                         <td><small style="color:var(--text-mut);">@(p.Notes ?? "—")</small></td>
+                        @if (Model.IsAdministrator)
+                        {
+                            <td>
+                                <div class="chip-row" style="flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                                    @if (p.Instructors is { Count: > 0 })
+                                    {
+                                        @foreach (var inst in p.Instructors)
+                                        {
+                                            <span class="badge badge-info" style="display:inline-flex;align-items:center;gap:4px;">
+                                                @inst.Nombre
+                                                <form asp-action="RemoveInstructor" method="post" style="display:inline;margin:0;">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="bomProductId" value="@p.Id" />
+                                                    <input type="hidden" name="instructorUserId" value="@inst.UserId" />
+                                                    <button type="submit" class="chip-remove" title="Quitar instructor" aria-label="Quitar @inst.Nombre">&times;</button>
+                                                </form>
+                                            </span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="hint">Sin instructores</span>
+                                    }
+                                </div>
+                                @if (availableToAssign.Count > 0)
+                                {
+                                    <form asp-action="AssignInstructor" method="post" class="row-actions" style="flex-wrap:wrap;gap:6px;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="bomProductId" value="@p.Id" />
+                                        <select name="instructorUserId" required aria-label="Asignar instructor a @p.ProductName">
+                                            <option value="">— Asignar instructor —</option>
+                                            @foreach (var opt in availableToAssign)
+                                            {
+                                                <option value="@opt.Id">@opt.Nombre</option>
+                                            }
+                                        </select>
+                                        <button type="submit" class="small ghost">Asignar</button>
+                                    </form>
+                                }
+                            </td>
+                        }
                         @if (puedeGestionar)
                         {
                             <td class="row-actions">

@@ -31,6 +31,8 @@ public class BomRepository : IBomRepository
         await _context.BomProducts
             .Include(p => p.Items)
                 .ThenInclude(i => i.Material)
+            .Include(p => p.Instructors)
+                .ThenInclude(i => i.User)
             .OrderBy(p => p.ProductName)
             .ToListAsync(cancellationToken);
 
@@ -38,6 +40,8 @@ public class BomRepository : IBomRepository
         _context.BomProducts
             .Include(p => p.Items)
                 .ThenInclude(i => i.Material)
+            .Include(p => p.Instructors)
+                .ThenInclude(i => i.User)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
     public Task<BomProduct?> GetProductByNameAsync(string productName, CancellationToken cancellationToken = default) =>

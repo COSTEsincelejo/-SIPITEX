@@ -80,6 +80,8 @@ public class UserRepository : IUserRepository
             blockers.Add("fichas con instructor principal asignado");
         if (await _context.FichaInstructors.AnyAsync(fi => fi.UserId == userId, cancellationToken))
             blockers.Add("asignaciones instructor–ficha");
+        if (await _context.BomProductInstructors.AnyAsync(bi => bi.UserId == userId, cancellationToken))
+            blockers.Add("asignaciones instructor–ficha técnica (BOM)");
         if (await _context.ProductionOrderStages.AnyAsync(s => s.InstructorUserId == userId, cancellationToken))
             blockers.Add("etapas MES con instructor asignado");
         if (await _context.ProductionSessions.AnyAsync(s => s.RegisteredByUserId == userId, cancellationToken))
