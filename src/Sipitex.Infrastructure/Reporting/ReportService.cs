@@ -141,7 +141,7 @@ public class ReportService : IReportService
         // Sin filtros: comportamiento idéntico al actual (StatisticsService)
         if (filter is null || !filter.HasAny)
         {
-            var dash = await _statisticsService.GetDashboardAsync(cancellationToken);
+            var dash = await _statisticsService.GetDashboardAsync(cancellationToken: cancellationToken);
             var rowsFull = new List<string[]>
             {
                 new[] { "Prendas producidas", dash.TotalProduced.ToString(), "", "", "" },
