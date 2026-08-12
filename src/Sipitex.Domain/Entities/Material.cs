@@ -34,4 +34,7 @@ public class Material
 
     // Relación 1-N: solicitudes de este material hechas por producción
     public ICollection<MaterialRequest> Requests { get; set; } = [];
+
+    // Historial de movimientos de stock de este material
+    public ICollection<StockMovement> StockMovements { get; set; } = [];
 }

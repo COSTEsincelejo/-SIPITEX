@@ -15,6 +15,7 @@ public class InventoryService : IInventoryService
     private readonly IMaterialRequestRepository _requestRepository;
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IBomRepository _bomRepository;
+    private readonly IStockMovementRepository _stockMovements;
     private readonly IUnitOfWork _unitOfWork;
 
     public InventoryService(
@@ -22,12 +23,14 @@ public class InventoryService : IInventoryService
         IMaterialRequestRepository requestRepository,
         IProductionOrderRepository orderRepository,
         IBomRepository bomRepository,
+        IStockMovementRepository stockMovements,
         IUnitOfWork unitOfWork)
     {
         _materialRepository = materialRepository;
         _requestRepository = requestRepository;
         _orderRepository = orderRepository;
         _bomRepository = bomRepository;
+        _stockMovements = stockMovements;
         _unitOfWork = unitOfWork;
     }
 
@@ -41,11 +44,17 @@ public class InventoryService : IInventoryService
     }
 
     // Crea un material nuevo con código autogenerado
-    public async Task<ServiceResult> AddMaterialAsync(CreateMaterialDto dto, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult> AddMaterialAsync(
+        CreateMaterialDto dto,
+        int actorUserId,
+        CancellationToken cancellationToken = default)
     {
         // Acá reviso nombre y que el stock no sea negativo
         if (string.IsNullOrWhiteSpace(dto.Name) || dto.Stock < 0)
             return ServiceResult.Fail("Ingrese nombre y stock válidos.");
+
+        if (actorUserId <= 0)
+            return ServiceResult.Fail("Usuario responsable no válido.");
 
         // Armo la entidad con valores iniciales
         var material = new Material
@@ -62,24 +71,55 @@ public class InventoryService : IInventoryService
 
         // INSERT en el contexto de EF
         await _materialRepository.AddAsync(material, cancellationToken);
-        // Persisto en la BD
+        await _unitOfWork.SaveChangesAsync(cancellationToken); // Necesito material.Id para el ledger
+
+        await _stockMovements.AddAsync(new StockMovement
+        {
+            MaterialId = material.Id,
+            FechaUtc = DateTime.UtcNow,
+            UsuarioId = actorUserId,
+            TipoMovimiento = StockMovementType.Entrada,
+            Cantidad = material.Stock,
+            StockResultante = material.Stock,
+            Referencia = $"Material:{material.Id}"
+        }, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok("Material agregado.");
     }
 
     // Ajuste manual de stock (no deja negativo)
-    public async Task<ServiceResult> AdjustStockAsync(AdjustStockDto dto, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult> AdjustStockAsync(
+        AdjustStockDto dto,
+        int actorUserId,
+        CancellationToken cancellationToken = default)
     {
+        if (actorUserId <= 0)
+            return ServiceResult.Fail("Usuario responsable no válido.");
+
         // Busco el material por id del form
         var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
         if (material is null) return ServiceResult.Fail("Material no encontrado.");
 
+        var previous = material.Stock;
         // Math.Max evita stock negativo
         material.Stock = Math.Max(0, dto.NewStock);
         // Actualizo fecha de última entrada
         material.LastEntryDate = DateOnly.FromDateTime(DateTime.Today);
         // Marco la entidad como modificada
         _materialRepository.Update(material);
+
+        var delta = material.Stock - previous;
+        await _stockMovements.AddAsync(new StockMovement
+        {
+            MaterialId = material.Id,
+            FechaUtc = DateTime.UtcNow,
+            UsuarioId = actorUserId,
+            TipoMovimiento = StockMovementType.Ajuste,
+            Cantidad = Math.Abs(delta),
+            StockResultante = material.Stock,
+            Referencia = $"Ajuste:{material.Id}"
+        }, cancellationToken);
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok("Stock actualizado.");
     }
@@ -136,8 +176,14 @@ public class InventoryService : IInventoryService
     }
 
     // Bodega aprueba: descuenta stock y marca la solicitud
-    public async Task<ServiceResult> ApproveRequestAsync(int requestId, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult> ApproveRequestAsync(
+        int requestId,
+        int actorUserId,
+        CancellationToken cancellationToken = default)
     {
+        if (actorUserId <= 0)
+            return ServiceResult.Fail("Usuario responsable no válido.");
+
         // Cargo solicitud con navegación a Material
         var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
         // Solo se aprueban solicitudes pendientes
@@ -153,6 +199,18 @@ public class InventoryService : IInventoryService
         request.Status = RequestStatus.Aprobada;
         _materialRepository.Update(request.Material);
         _requestRepository.Update(request);
+
+        await _stockMovements.AddAsync(new StockMovement
+        {
+            MaterialId = request.MaterialId,
+            FechaUtc = DateTime.UtcNow,
+            UsuarioId = actorUserId,
+            TipoMovimiento = StockMovementType.AprobacionSolicitud,
+            Cantidad = request.Quantity,
+            StockResultante = request.Material.Stock,
+            Referencia = $"MaterialRequest:{request.Id}"
+        }, cancellationToken);
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok("Solicitud aprobada.");
     }

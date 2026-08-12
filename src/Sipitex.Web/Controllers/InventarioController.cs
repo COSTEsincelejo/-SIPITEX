@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.Authorization;
@@ -17,14 +18,19 @@ public class InventarioController : Controller
     private readonly IInventoryService _inventoryService;
     // Lo necesito para el combo de órdenes al pedir material
     private readonly IProductionOrderService _orderService;
+    private readonly IStockMovementService _stockMovements;
 
     // ASP.NET inyecta los servicios por constructor
-    public InventarioController(IInventoryService inventoryService, IProductionOrderService orderService)
+    public InventarioController(
+        IInventoryService inventoryService,
+        IProductionOrderService orderService,
+        IStockMovementService stockMovements)
     {
         // Guardo referencia al servicio de inventario
         _inventoryService = inventoryService;
         // Guardo referencia al servicio de órdenes
         _orderService = orderService;
+        _stockMovements = stockMovements;
     }
 
     // Pantalla principal del inventario
@@ -35,15 +41,42 @@ public class InventarioController : Controller
         return View(await BuildViewModel(cancellationToken));
     }
 
+    // Historial de movimientos de stock (solo Admin / Bodeguero)
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [HttpGet]
+    public async Task<IActionResult> Movimientos(
+        DateOnly? desde,
+        DateOnly? hasta,
+        int? materialId,
+        CancellationToken cancellationToken)
+    {
+        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
+        var movements = await _stockMovements.GetHistoryAsync(desde, hasta, materialId, cancellationToken);
+        return View(new InventarioMovimientosViewModel
+        {
+            Movimientos = movements,
+            Materials = materials,
+            Desde = desde,
+            Hasta = hasta,
+            MaterialId = materialId
+        });
+    }
+
     // Agrega un material nuevo al catálogo
     [Authorize(Policy = AuthorizationPolicyNames.PuedeRegistrarMateriales)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddMaterial([Bind(Prefix = "CreateMaterial")] CreateMaterialForm form, CancellationToken cancellationToken)
     {
+        if (!TryGetActorUserId(out var actorId))
+        {
+            ModelState.AddModelError(string.Empty, "Sesión no válida.");
+            return View("Index", await BuildViewModel(cancellationToken));
+        }
+
         // Llamo al servicio con los datos del formulario
         var result = await _inventoryService.AddMaterialAsync(
-            new CreateMaterialDto(form.Name, form.Stock, form.Unit), cancellationToken);
+            new CreateMaterialDto(form.Name, form.Stock, form.Unit), actorId, cancellationToken);
 
         // Vuelvo a cargar la pantalla completa para mostrar la tabla actualizada
         var vm = await BuildViewModel(cancellationToken);
@@ -61,9 +94,16 @@ public class InventarioController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AdjustStock(AdjustStockForm form, CancellationToken cancellationToken)
     {
+        if (!TryGetActorUserId(out var actorId))
+        {
+            TempData["Message"] = "Sesión no válida.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Index));
+        }
+
         // El servicio busca el material y pone el stock nuevo
         var result = await _inventoryService.AdjustStockAsync(
-            new AdjustStockDto(form.MaterialId, form.NewStock), cancellationToken);
+            new AdjustStockDto(form.MaterialId, form.NewStock), actorId, cancellationToken);
 
         // Guardo mensaje para después del redirect
         TempData["Message"] = result.Message ?? (result.Success ? "Stock actualizado." : "Error al ajustar stock.");
@@ -113,8 +153,15 @@ public class InventarioController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveRequest(int id, CancellationToken cancellationToken)
     {
+        if (!TryGetActorUserId(out var actorId))
+        {
+            TempData["Message"] = "Sesión no válida.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Index));
+        }
+
         // id es el de la solicitud; el servicio valida stock y descuenta
-        var result = await _inventoryService.ApproveRequestAsync(id, cancellationToken);
+        var result = await _inventoryService.ApproveRequestAsync(id, actorId, cancellationToken);
         TempData["Message"] = result.Message ?? (result.Success ? "Solicitud aprobada." : "No se pudo aprobar.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
@@ -178,5 +225,11 @@ public class InventarioController : Controller
             // Si el último POST fue exitoso
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         };
+    }
+
+    private bool TryGetActorUserId(out int userId)
+    {
+        userId = 0;
+        return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId) && userId > 0;
     }
 }

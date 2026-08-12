@@ -18,6 +18,16 @@ public class InventarioIndexViewModel
     public bool IsSuccess { get; set; } // true = toast verde, false = rojo
 }
 
+// Historial de movimientos de inventario (Admin / Bodeguero)
+public class InventarioMovimientosViewModel
+{
+    public IReadOnlyList<StockMovementDto> Movimientos { get; set; } = [];
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public DateOnly? Desde { get; set; }
+    public DateOnly? Hasta { get; set; }
+    public int? MaterialId { get; set; }
+}
+
 // Formulario para agregar un material nuevo
 public class CreateMaterialForm
 {

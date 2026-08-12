@@ -14,6 +14,7 @@ public static class ApplicationServiceExtensions
 
         // Inventario y solicitudes de material (MaterialRequest legacy)
         services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IStockMovementService, StockMovementService>();
         services.AddScoped<IProductionOrderService, ProductionOrderService>();
         services.AddScoped<IOrderMaterialService, OrderMaterialService>();
         services.AddScoped<IProductionFlowService, ProductionFlowService>();

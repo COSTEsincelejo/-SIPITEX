@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<ISolicitudMaterialRepository, SolicitudMaterialRepository>(); // Flujo SolicitudMaterial (Ficha)
         services.AddScoped<IOrderMaterialRequirementRepository, OrderMaterialRequirementRepository>(); // Materiales por orden
         services.AddScoped<IProductionFlowRepository, ProductionFlowRepository>(); // Flujo MES
+        services.AddScoped<IStockMovementRepository, StockMovementRepository>(); // Historial de stock
 
         return services; // Devuelvo la colección ya configurada
     }

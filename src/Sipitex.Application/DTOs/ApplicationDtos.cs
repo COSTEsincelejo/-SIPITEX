@@ -35,6 +35,19 @@ public record MaterialRequestDto(
 // Crear solicitud: orden + material + cantidad
 public record CreateMaterialRequestDto(int ProductionOrderId, int MaterialId, decimal Quantity);
 
+// Movimiento del ledger de inventario (consulta de historial)
+public record StockMovementDto(
+    int Id,
+    DateTime FechaUtc,
+    string UsuarioNombre,
+    int UsuarioId,
+    StockMovementType TipoMovimiento,
+    int MaterialId,
+    string MaterialName,
+    decimal Cantidad,
+    decimal StockResultante,
+    string? Referencia);
+
 // --- Producción ---
 
 // Orden de producción con avance y hint del BOM

@@ -12,6 +12,7 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
 {
     private readonly ISolicitudMaterialRepository _solicitudRepository;
     private readonly IMaterialRepository _materialRepository;
+    private readonly IStockMovementRepository _stockMovements;
     private readonly ICodigoGeneradorService _codigoGenerador;
     private readonly IAlertService _alertService;
     private readonly IUnitOfWork _unitOfWork;
@@ -19,12 +20,14 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
     public SolicitudMaterialApprovalService(
         ISolicitudMaterialRepository solicitudRepository,
         IMaterialRepository materialRepository,
+        IStockMovementRepository stockMovements,
         ICodigoGeneradorService codigoGenerador,
         IAlertService alertService,
         IUnitOfWork unitOfWork)
     {
         _solicitudRepository = solicitudRepository;
         _materialRepository = materialRepository;
+        _stockMovements = stockMovements;
         _codigoGenerador = codigoGenerador;
         _alertService = alertService;
         _unitOfWork = unitOfWork;
@@ -54,14 +57,16 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
         {
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
-                var applyError = AplicarDecisionDetalle(detalle, cantidadAprobada);
+                var (applyError, movement) = AplicarDecisionDetalle(detalle, cantidadAprobada, resueltoPorId);
                 if (applyError is not null)
                     throw new InvalidOperationException(applyError);
 
                 _materialRepository.Update(detalle.Material);
+                if (movement is not null)
+                    await _stockMovements.AddAsync(movement, ct);
+
                 ActualizarEstadoSolicitud(detalle.SolicitudMaterial, resueltoPorId);
                 _solicitudRepository.Update(detalle.SolicitudMaterial);
-                await Task.CompletedTask;
             }, cancellationToken);
         }
         catch (InvalidOperationException ex)
@@ -122,16 +127,23 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
         {
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
+                var movements = new List<StockMovement>();
                 foreach (var detalle in solicitud.Detalles)
                 {
                     var cantidad = decisions[detalle.Id];
-                    var applyError = AplicarDecisionDetalle(detalle, cantidad);
+                    var (applyError, movement) = AplicarDecisionDetalle(detalle, cantidad, bodegueroId);
                     if (applyError is not null)
                         throw new InvalidOperationException(applyError);
 
                     if (cantidad > 0)
                         _materialRepository.Update(detalle.Material);
+
+                    if (movement is not null)
+                        movements.Add(movement);
                 }
+
+                if (movements.Count > 0)
+                    await _stockMovements.AddRangeAsync(movements, ct);
 
                 if (!string.IsNullOrWhiteSpace(observaciones))
                     solicitud.Observaciones = observaciones.Trim();
@@ -194,28 +206,32 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
     }
 
     // Aplica decisión a un ítem (0 = rechazo sin stock; >0 = descuento). Reutilizado por Approve y Resolve.
-    internal static string? AplicarDecisionDetalle(DetalleSolicitudMaterial detalle, decimal cantidadAprobada)
+    // También arma el StockMovement cuando hay descuento (gap #15 auditoría).
+    internal static (string? Error, StockMovement? Movement) AplicarDecisionDetalle(
+        DetalleSolicitudMaterial detalle,
+        decimal cantidadAprobada,
+        int actorUserId)
     {
         if (detalle.EstadoItem != DetalleSolicitudEstado.Pendiente)
-            return "El ítem ya fue resuelto.";
+            return ("El ítem ya fue resuelto.", null);
 
         if (cantidadAprobada < 0)
-            return "La cantidad aprobada no puede ser negativa.";
+            return ("La cantidad aprobada no puede ser negativa.", null);
 
         if (cantidadAprobada == 0)
         {
             detalle.CantidadAprobada = 0;
             detalle.EstadoItem = DetalleSolicitudEstado.Rechazado;
-            return null;
+            return (null, null);
         }
 
         var error = ValidarCantidadAprobada(detalle, cantidadAprobada);
         if (error is not null)
-            return error;
+            return (error, null);
 
         // Revalidación de stock en el momento de aplicar (carrera)
         if (cantidadAprobada > detalle.Material.Stock)
-            return "Stock insuficiente para aprobar la cantidad indicada.";
+            return ("Stock insuficiente para aprobar la cantidad indicada.", null);
 
         detalle.Material.Stock -= cantidadAprobada;
         detalle.CantidadAprobada = cantidadAprobada;
@@ -223,7 +239,18 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
             ? DetalleSolicitudEstado.Aprobado
             : DetalleSolicitudEstado.AprobadoParcial;
 
-        return null;
+        var movement = new StockMovement
+        {
+            MaterialId = detalle.MaterialId,
+            FechaUtc = DateTime.UtcNow,
+            UsuarioId = actorUserId,
+            TipoMovimiento = StockMovementType.AprobacionSolicitud,
+            Cantidad = cantidadAprobada,
+            StockResultante = detalle.Material.Stock,
+            Referencia = $"SolicitudMaterial:{detalle.SolicitudMaterialId}"
+        };
+
+        return (null, movement);
     }
 
     // Recalcula Estado global; FechaResolucion solo cuando no quedan ítems Pendiente

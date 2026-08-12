@@ -76,6 +76,24 @@ public static class DisplayHelper
         _ => "badge-info"
     };
 
+    public static string BadgeClass(StockMovementType type) => type switch
+    {
+        StockMovementType.Entrada => "badge-success",
+        StockMovementType.Salida => "badge-warning",
+        StockMovementType.Ajuste => "badge-info",
+        StockMovementType.AprobacionSolicitud => "badge-warning",
+        _ => "badge-info"
+    };
+
+    public static string Label(StockMovementType type) => type switch
+    {
+        StockMovementType.Entrada => "Entrada",
+        StockMovementType.Salida => "Salida",
+        StockMovementType.Ajuste => "Ajuste",
+        StockMovementType.AprobacionSolicitud => "Aprobación solicitud",
+        _ => type.ToString()
+    };
+
     // Colores para resultados de inspección de calidad
     public static string BadgeClass(QualityResult result) => result switch
     {
