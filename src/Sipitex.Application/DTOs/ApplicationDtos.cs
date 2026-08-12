@@ -127,7 +127,7 @@ public record BomRecipeLineDto(
     decimal QuantityPerUnit,
     MaterialUnit Unit);
 
-// Alta / edición de ficha técnica (Fase A: metadatos + tallas opcionales)
+// Alta / edición de ficha técnica (Fase A metadatos/tallas + Fase B piezas/medidas)
 public record UpsertBomProductDto(
     string ProductName,
     bool IsReference,
@@ -148,10 +148,33 @@ public record UpsertBomProductDto(
     string? Disenador = null,
     string? Patronista = null,
     string? Digitacion = null,
-    IReadOnlyList<BomProductTallaDto>? Tallas = null);
+    IReadOnlyList<BomProductTallaDto>? Tallas = null,
+    IReadOnlyList<BomProductPiezaDto>? Piezas = null,
+    IReadOnlyList<BomProductMedidaDto>? Medidas = null);
 
 // Talla de ficha técnica (Fase A)
 public record BomProductTallaDto(int? Id, string Nombre, int Orden);
+
+// Pieza del patrón (Fase B)
+public record BomProductPiezaDto(int? Id, string Nombre, int Cantidad, string Tela, int Orden);
+
+// Valor de medida por talla (Fase B). TallaOrden/TallaNombre resuelven antes de persistir IDs.
+public record BomProductMedidaValorDto(
+    int? TallaId,
+    int TallaOrden,
+    string? TallaNombre,
+    decimal? Valor);
+
+// Fila de tabla de medidas (Fase B)
+public record BomProductMedidaDto(
+    int? Id,
+    BomMedidaTipo Tipo,
+    string Codigo,
+    string Descripcion,
+    string? Tolerancia,
+    string? ComoMedir,
+    int Orden,
+    IReadOnlyList<BomProductMedidaValorDto> Valores);
 
 // Detalle para la pantalla de edición
 public record BomProductDetailDto(
@@ -175,7 +198,9 @@ public record BomProductDetailDto(
     string? Disenador = null,
     string? Patronista = null,
     string? Digitacion = null,
-    IReadOnlyList<BomProductTallaDto>? Tallas = null);
+    IReadOnlyList<BomProductTallaDto>? Tallas = null,
+    IReadOnlyList<BomProductPiezaDto>? Piezas = null,
+    IReadOnlyList<BomProductMedidaDto>? Medidas = null);
 
 public record BomRecipeLineDetailDto(
     int ItemId,

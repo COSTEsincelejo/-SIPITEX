@@ -235,6 +235,18 @@ public class MrpController : Controller
                         Nombre = t.Nombre,
                         Orden = t.Orden
                     }).ToList(),
+                Piezas = (detail.Piezas ?? [])
+                    .OrderBy(p => p.Orden)
+                    .Select(p => new BomProductPiezaForm
+                    {
+                        Id = p.Id,
+                        Nombre = p.Nombre,
+                        Cantidad = p.Cantidad,
+                        Tela = p.Tela,
+                        Orden = p.Orden
+                    }).ToList(),
+                MedidasPatron = MapMedidaForms(detail, BomMedidaTipo.Patron),
+                MedidasPrenda = MapMedidaForms(detail, BomMedidaTipo.PrendaTerminada),
                 Lines = detail.Lines.Select(l => new BomRecipeLineForm
                 {
                     ItemId = l.ItemId,
@@ -252,8 +264,50 @@ public class MrpController : Controller
         };
     }
 
-    private static UpsertBomProductDto MapForm(BomProductEditForm form) =>
-        new(
+    private static List<BomProductMedidaForm> MapMedidaForms(BomProductDetailDto detail, BomMedidaTipo tipo)
+    {
+        var tallas = (detail.Tallas ?? []).OrderBy(t => t.Orden).ToList();
+        return (detail.Medidas ?? [])
+            .Where(m => m.Tipo == tipo)
+            .OrderBy(m => m.Orden)
+            .Select(m =>
+            {
+                var byTallaId = m.Valores.Where(v => v.TallaId is > 0)
+                    .ToDictionary(v => v.TallaId!.Value, v => v.Valor);
+                var byOrden = m.Valores.ToDictionary(v => v.TallaOrden, v => v.Valor);
+                return new BomProductMedidaForm
+                {
+                    Id = m.Id,
+                    Codigo = m.Codigo,
+                    Descripcion = m.Descripcion,
+                    Tolerancia = m.Tolerancia,
+                    ComoMedir = m.ComoMedir,
+                    Orden = m.Orden,
+                    Valores = tallas.Select((t, i) => new BomProductMedidaValorForm
+                    {
+                        TallaId = t.Id,
+                        TallaOrden = t.Orden,
+                        TallaNombre = t.Nombre,
+                        Valor = (t.Id is int tid && byTallaId.TryGetValue(tid, out var v1))
+                            ? v1
+                            : (byOrden.TryGetValue(t.Orden, out var v2) ? v2
+                                : (byOrden.TryGetValue(i, out var v3) ? v3 : null))
+                    }).ToList()
+                };
+            }).ToList();
+    }
+
+    private static UpsertBomProductDto MapForm(BomProductEditForm form)
+    {
+        var tallas = form.Tallas
+            .Select((t, i) => new BomProductTallaDto(t.Id, t.Nombre, t.Orden >= 0 ? t.Orden : i))
+            .ToList();
+
+        var medidas = MapMedidaDtos(form.MedidasPatron, BomMedidaTipo.Patron)
+            .Concat(MapMedidaDtos(form.MedidasPrenda, BomMedidaTipo.PrendaTerminada))
+            .ToList();
+
+        return new(
             form.ProductName,
             form.IsReference,
             form.Notes,
@@ -279,10 +333,28 @@ public class MrpController : Controller
             form.Disenador,
             form.Patronista,
             form.Digitacion,
-            form.Tallas
-                .Select((t, i) => new BomProductTallaDto(
-                    t.Id,
-                    t.Nombre,
-                    t.Orden > 0 ? t.Orden : i))
-                .ToList());
+            tallas,
+            form.Piezas
+                .Select((p, i) => new BomProductPiezaDto(
+                    p.Id, p.Nombre, p.Cantidad, p.Tela, p.Orden >= 0 ? p.Orden : i))
+                .ToList(),
+            medidas);
+    }
+
+    private static IEnumerable<BomProductMedidaDto> MapMedidaDtos(
+        IEnumerable<BomProductMedidaForm> forms,
+        BomMedidaTipo tipo) =>
+        forms.Select((m, i) => new BomProductMedidaDto(
+            m.Id,
+            tipo,
+            m.Codigo,
+            m.Descripcion,
+            m.Tolerancia,
+            m.ComoMedir,
+            m.Orden >= 0 ? m.Orden : i,
+            m.Valores.Select(v => new BomProductMedidaValorDto(
+                v.TallaId,
+                v.TallaOrden,
+                v.TallaNombre,
+                v.Valor)).ToList()));
 }

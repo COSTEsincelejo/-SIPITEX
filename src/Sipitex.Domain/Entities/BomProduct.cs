@@ -41,4 +41,8 @@ public class BomProduct
 
     // Tallas de la ficha (Fase A)
     public ICollection<BomProductTalla> Tallas { get; set; } = [];
+
+    // Piezas del patrón y tablas de medidas (Fase B)
+    public ICollection<BomProductPieza> Piezas { get; set; } = [];
+    public ICollection<BomProductMedida> Medidas { get; set; } = [];
 }

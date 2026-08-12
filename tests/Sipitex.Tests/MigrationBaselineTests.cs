@@ -56,8 +56,8 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
             Assert.True(await TableExistsAsync(dbPath, "Users"));
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            // ... + AddStockEntryOrigin + AddBomProductInstructors + AddBomProductMetadataAndTallas = 17
-            Assert.Equal(17, await CountMigrationRowsAsync(dbPath));
+            // ... + MetadataAndTallas + PatronajePiezasMedidas = 18
+            Assert.Equal(18, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "DetallesSolicitudMaterial"));
@@ -65,6 +65,9 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
             Assert.True(await TableExistsAsync(dbPath, "BomProductInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "BomProductTallas"));
+            Assert.True(await TableExistsAsync(dbPath, "BomProductPiezas"));
+            Assert.True(await TableExistsAsync(dbPath, "BomProductMedidas"));
+            Assert.True(await TableExistsAsync(dbPath, "BomProductMedidaValores"));
             Assert.True(await TableExistsAsync(dbPath, "ProductionOrderMaterialRequirements"));
             Assert.True(await TableExistsAsync(dbPath, "ProductionOrderStages"));
             Assert.True(await TableExistsAsync(dbPath, "ProductionOrderBomSnapshots"));
@@ -108,12 +111,15 @@ public class MigrationBaselineTests
             }
 
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(17, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(18, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
             Assert.True(await TableExistsAsync(dbPath, "BomProductInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "BomProductTallas"));
+            Assert.True(await TableExistsAsync(dbPath, "BomProductPiezas"));
+            Assert.True(await TableExistsAsync(dbPath, "BomProductMedidas"));
+            Assert.True(await TableExistsAsync(dbPath, "BomProductMedidaValores"));
             Assert.True(await TableExistsAsync(dbPath, "ProductionOrderMaterialRequirements"));
             Assert.True(await TableExistsAsync(dbPath, "StockMovements"));
             Assert.True(await TableExistsAsync(dbPath, "OrderChangeLogs"));
@@ -145,6 +151,7 @@ public class MigrationBaselineTests
                 Assert.Contains(ids, id => id.Contains("AddStockEntryOrigin", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddBomProductInstructors", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddBomProductMetadataAndTallas", StringComparison.Ordinal));
+                Assert.Contains(ids, id => id.Contains("AddBomProductPatronajePiezasMedidas", StringComparison.Ordinal));
             }
         }
         finally
@@ -165,7 +172,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(17, before);
+            Assert.Equal(18, before);
 
             await using (var context = CreateContext(dbPath))
             {

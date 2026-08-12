@@ -34,6 +34,9 @@ public class BomRepository : IBomRepository
             .Include(p => p.Instructors)
                 .ThenInclude(i => i.User)
             .Include(p => p.Tallas)
+            .Include(p => p.Piezas)
+            .Include(p => p.Medidas)
+                .ThenInclude(m => m.Valores)
             .OrderBy(p => p.ProductName)
             .ToListAsync(cancellationToken);
 
@@ -44,6 +47,10 @@ public class BomRepository : IBomRepository
             .Include(p => p.Instructors)
                 .ThenInclude(i => i.User)
             .Include(p => p.Tallas)
+            .Include(p => p.Piezas)
+            .Include(p => p.Medidas)
+                .ThenInclude(m => m.Valores)
+                    .ThenInclude(v => v.Talla)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
     public Task<BomProduct?> GetProductByNameAsync(string productName, CancellationToken cancellationToken = default) =>
@@ -51,6 +58,9 @@ public class BomRepository : IBomRepository
             .Include(p => p.Items)
                 .ThenInclude(i => i.Material)
             .Include(p => p.Tallas)
+            .Include(p => p.Piezas)
+            .Include(p => p.Medidas)
+                .ThenInclude(m => m.Valores)
             .FirstOrDefaultAsync(p => p.ProductName == productName, cancellationToken);
 
     public async Task AddProductAsync(BomProduct product, CancellationToken cancellationToken = default) =>
@@ -68,6 +78,10 @@ public class BomRepository : IBomRepository
     public void RemoveItem(BomItem item) => _context.BomItems.Remove(item);
 
     public void RemoveTalla(BomProductTalla talla) => _context.BomProductTallas.Remove(talla);
+
+    public void RemovePieza(BomProductPieza pieza) => _context.BomProductPiezas.Remove(pieza);
+
+    public void RemoveMedida(BomProductMedida medida) => _context.BomProductMedidas.Remove(medida);
 
     public async Task<IReadOnlyList<string>> GetProductNamesUsingMaterialAsync(int materialId, CancellationToken cancellationToken = default) =>
         await _context.BomItems
