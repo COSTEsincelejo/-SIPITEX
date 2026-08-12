@@ -13,9 +13,17 @@ public class BomCatalogServiceTests
     private readonly Mock<IBomRepository> _boms = new();
     private readonly Mock<IMaterialRepository> _materials = new();
     private readonly Mock<IUserRepository> _users = new();
+    private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
-    private BomCatalogService CreateSut() => new(_boms.Object, _materials.Object, _users.Object, _uow.Object);
+    public BomCatalogServiceTests()
+    {
+        _orders.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+    }
+
+    private BomCatalogService CreateSut() =>
+        new(_boms.Object, _materials.Object, _users.Object, _orders.Object, _uow.Object);
 
     private static Material Mat(int id, string name, MaterialUnit unit = MaterialUnit.Metros) => new()
     {
@@ -185,5 +193,59 @@ public class BomCatalogServiceTests
         Assert.True(result.Success);
         _boms.Verify(r => r.RemoveProduct(product), Times.Once);
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenActiveOrderReferencesProduct_Blocks()
+    {
+        var product = new BomProduct { Id = 9, ProductName = "Camiseta", Items = [] };
+        _boms.Setup(r => r.GetProductByIdAsync(9, It.IsAny<CancellationToken>())).ReturnsAsync(product);
+        _orders.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new ProductionOrder
+            {
+                Id = 1,
+                OrderNumber = "OP-101",
+                ProductName = "Camiseta",
+                Status = OrderStatus.EnProceso
+            }
+        ]);
+
+        var result = await CreateSut().DeleteAsync(9, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Contains("OP-101", result.Message, StringComparison.Ordinal);
+        Assert.Contains("activas", result.Message, StringComparison.OrdinalIgnoreCase);
+        _boms.Verify(r => r.RemoveProduct(It.IsAny<BomProduct>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenOnlyFinishedOrCancelledOrders_Allows()
+    {
+        var product = new BomProduct { Id = 9, ProductName = "Camiseta", Items = [] };
+        _boms.Setup(r => r.GetProductByIdAsync(9, It.IsAny<CancellationToken>())).ReturnsAsync(product);
+        _orders.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new ProductionOrder
+            {
+                Id = 1,
+                OrderNumber = "OP-101",
+                ProductName = "Camiseta",
+                Status = OrderStatus.Finalizada
+            },
+            new ProductionOrder
+            {
+                Id = 2,
+                OrderNumber = "OP-102",
+                ProductName = "Camiseta",
+                Status = OrderStatus.Cancelada
+            }
+        ]);
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().DeleteAsync(9, CancellationToken.None);
+
+        Assert.True(result.Success);
+        _boms.Verify(r => r.RemoveProduct(product), Times.Once);
     }
 }

@@ -131,8 +131,8 @@ public class MrpController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // Delete permanece solo Administrador (conservador; el permiso extendido no lo habilita)
-    [Authorize(Roles = UserRoles.Administrador)]
+    // Delete: misma policy que Create/Edit (Admin, Bodeguero o Instructor con Mrp.GestionarFichas)
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeGestionarFichasTecnicas)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)

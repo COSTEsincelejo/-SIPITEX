@@ -14,17 +14,20 @@ public class BomCatalogService : IBomCatalogService
     private readonly IBomRepository _bomRepository;
     private readonly IMaterialRepository _materialRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IProductionOrderRepository _orderRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public BomCatalogService(
         IBomRepository bomRepository,
         IMaterialRepository materialRepository,
         IUserRepository userRepository,
+        IProductionOrderRepository orderRepository,
         IUnitOfWork unitOfWork)
     {
         _bomRepository = bomRepository;
         _materialRepository = materialRepository;
         _userRepository = userRepository;
+        _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -226,6 +229,20 @@ public class BomCatalogService : IBomCatalogService
     {
         var product = await _bomRepository.GetProductByIdAsync(id, cancellationToken);
         if (product is null) return ServiceResult.Fail("Ficha técnica no encontrada.");
+
+        var orders = await _orderRepository.GetAllAsync(cancellationToken);
+        var activeRefs = orders
+            .Where(o => string.Equals(o.ProductName, product.ProductName, StringComparison.OrdinalIgnoreCase)
+                        && o.Status is not (OrderStatus.Finalizada or OrderStatus.Cancelada))
+            .Select(o => o.OrderNumber)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (activeRefs.Count > 0)
+        {
+            return ServiceResult.Fail(
+                $"No se puede eliminar «{product.ProductName}»: está referenciada por órdenes activas ({string.Join(", ", activeRefs)}).");
+        }
 
         var name = product.ProductName;
         _bomRepository.RemoveProduct(product);

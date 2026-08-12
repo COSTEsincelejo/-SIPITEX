@@ -89,15 +89,46 @@ public class MrpGestionarFichasPermissionTests
     }
 
     [Fact]
-    public void MrpController_Delete_RemainsAdministradorOnly()
+    public void MrpController_Delete_RequiresGestionarFichasPolicy()
     {
         var method = typeof(MrpController)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
             .Single(m => m.Name == nameof(MrpController.Delete));
         var attr = method.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(attr);
-        Assert.Equal(UserRoles.Administrador, attr!.Roles);
-        Assert.NotEqual(AuthorizationPolicyNames.PuedeGestionarFichasTecnicas, attr.Policy);
+        Assert.Equal(AuthorizationPolicyNames.PuedeGestionarFichasTecnicas, attr!.Policy);
+        Assert.True(string.IsNullOrEmpty(attr.Roles));
+    }
+
+    [Fact]
+    public void InstructorWithGestionarFichas_MayDeleteByPolicy()
+    {
+        Assert.True(PermissionRules.PuedeGestionarFichasTecnicas(
+            CreatePrincipal(UserRoles.Instructor, ExtendedPermissions.MrpGestionarFichas)));
+    }
+
+    [Fact]
+    public async Task InstructorWithPermission_CanDeleteBomProductNotInUse()
+    {
+        Assert.True(PermissionRules.PuedeGestionarFichasTecnicas(
+            CreatePrincipal(UserRoles.Instructor, ExtendedPermissions.MrpGestionarFichas)));
+
+        var boms = new Mock<IBomRepository>();
+        var materials = new Mock<IMaterialRepository>();
+        var users = new Mock<IUserRepository>();
+        var orders = new Mock<IProductionOrderRepository>();
+        var uow = new Mock<IUnitOfWork>();
+
+        var product = new BomProduct { Id = 9, ProductName = "Camiseta", Items = [] };
+        boms.Setup(r => r.GetProductByIdAsync(9, It.IsAny<CancellationToken>())).ReturnsAsync(product);
+        orders.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var sut = new BomCatalogService(boms.Object, materials.Object, users.Object, orders.Object, uow.Object);
+        var result = await sut.DeleteAsync(9, CancellationToken.None);
+
+        Assert.True(result.Success);
+        boms.Verify(r => r.RemoveProduct(product), Times.Once);
     }
 
     [Fact]
@@ -110,6 +141,7 @@ public class MrpGestionarFichasPermissionTests
         var boms = new Mock<IBomRepository>();
         var materials = new Mock<IMaterialRepository>();
         var users = new Mock<IUserRepository>();
+        var orders = new Mock<IProductionOrderRepository>();
         var uow = new Mock<IUnitOfWork>();
         materials.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Material
@@ -126,7 +158,7 @@ public class MrpGestionarFichasPermissionTests
             .Returns(Task.CompletedTask);
         uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var sut = new BomCatalogService(boms.Object, materials.Object, users.Object, uow.Object);
+        var sut = new BomCatalogService(boms.Object, materials.Object, users.Object, orders.Object, uow.Object);
         var create = await sut.CreateAsync(new UpsertBomProductDto(
             "Camiseta",
             IsReference: false,
@@ -172,9 +204,54 @@ public class MrpGestionarFichasPermissionTests
     public void InstructorWithoutPermission_IsForbiddenByPolicyGate()
     {
         // Equivalente a Forbid de [Authorize(Policy = PuedeGestionarFichasTecnicas)]
+        // en Create/Edit/Delete (misma policy).
         var user = CreatePrincipal(UserRoles.Instructor);
         Assert.False(PermissionRules.PuedeGestionarFichasTecnicas(user));
         Assert.False(PermissionRules.PuedeGestionarFichasTecnicas(
             CreatePrincipal(UserRoles.Instructor, ExtendedPermissions.MrpSimular)));
+
+        var deleteAttr = typeof(MrpController)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+            .Single(m => m.Name == nameof(MrpController.Delete))
+            .GetCustomAttribute<AuthorizeAttribute>();
+        Assert.Equal(AuthorizationPolicyNames.PuedeGestionarFichasTecnicas, deleteAttr!.Policy);
+    }
+
+    [Fact]
+    public async Task DeleteBlockedWhenActiveOrder_RegardlessOfRole_IncludingAdminAndInstructorWithPermission()
+    {
+        // El bloqueo es de dominio (BomCatalogService), no de rol: Admin e Instructor
+        // con Mrp.GestionarFichas reciben el mismo Fail.
+        Assert.True(PermissionRules.PuedeGestionarFichasTecnicas(
+            CreatePrincipal(UserRoles.Administrador)));
+        Assert.True(PermissionRules.PuedeGestionarFichasTecnicas(
+            CreatePrincipal(UserRoles.Instructor, ExtendedPermissions.MrpGestionarFichas)));
+
+        var boms = new Mock<IBomRepository>();
+        var materials = new Mock<IMaterialRepository>();
+        var users = new Mock<IUserRepository>();
+        var orders = new Mock<IProductionOrderRepository>();
+        var uow = new Mock<IUnitOfWork>();
+
+        var product = new BomProduct { Id = 9, ProductName = "Camiseta", Items = [] };
+        boms.Setup(r => r.GetProductByIdAsync(9, It.IsAny<CancellationToken>())).ReturnsAsync(product);
+        orders.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new ProductionOrder
+            {
+                Id = 1,
+                OrderNumber = "OP-77",
+                ProductName = "Camiseta",
+                Status = OrderStatus.EnProceso
+            }
+        ]);
+
+        var sut = new BomCatalogService(boms.Object, materials.Object, users.Object, orders.Object, uow.Object);
+        var result = await sut.DeleteAsync(9, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Contains("OP-77", result.Message, StringComparison.Ordinal);
+        boms.Verify(r => r.RemoveProduct(It.IsAny<BomProduct>()), Times.Never);
+        uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }
