@@ -4,11 +4,14 @@
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Órdenes / Detalle";
     Layout = "_Layout";
     var m = Model.Mes;
-    var canManage = m.CanManageFlow;
-    var canOperate = (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
-                     && m.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada);
-    var canOperateMes = canOperate && m.Status == OrderStatus.EnProceso;
-    var canPrepareMaterials = canOperate; // Add/Import OK en Pendiente; Deliver se bloquea en servicio/bodega
+    var canOperateProduction = Model.CanOperateProduction;
+    var canManage = m.CanManageFlow && canOperateProduction;
+    var canOperateMes = canOperateProduction
+                        && (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
+                        && m.Status == OrderStatus.EnProceso;
+    var canPrepareMaterials = Model.CanManageMaterials
+                              && (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
+                              && m.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada);
 }
 
 <div class="page-header">

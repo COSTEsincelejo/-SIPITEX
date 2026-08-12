@@ -20,6 +20,14 @@ public interface IProductionOrderService
         string? viewerName = null,
         CancellationToken cancellationToken = default);
 
+    // Gate independiente de materiales: Admin siempre; Instructor si ∈ BomProductInstructor
+    // del producto O ∈ etapa MES de la orden. No abre producción/MES.
+    Task<ServiceResult> AuthorizeOrderMaterialsAsync(
+        int orderId,
+        int? viewerUserId,
+        string? viewerRole,
+        CancellationToken cancellationToken = default);
+
     Task<ServiceResult> CreateOrderAsync(CreateProductionOrderDto dto, CancellationToken cancellationToken = default);
     Task<ServiceResult> ApproveOrderAsync(int orderId, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateOrderAsync(UpdateProductionOrderDto dto, int actorUserId, CancellationToken cancellationToken = default);

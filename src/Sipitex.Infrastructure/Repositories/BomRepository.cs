@@ -57,6 +57,7 @@ public class BomRepository : IBomRepository
         _context.BomProducts
             .Include(p => p.Items)
                 .ThenInclude(i => i.Material)
+            .Include(p => p.Instructors)
             .Include(p => p.Tallas)
             .Include(p => p.Piezas)
             .Include(p => p.Medidas)

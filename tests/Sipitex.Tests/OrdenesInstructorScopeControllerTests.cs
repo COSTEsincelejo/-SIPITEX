@@ -113,6 +113,8 @@ public class OrdenesInstructorScopeControllerTests
     {
         _orders.Setup(s => s.CanAccessOrderAsync(99, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        _orders.Setup(s => s.AuthorizeOrderMaterialsAsync(99, 10, UserRoles.Instructor, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Fail("No autorizado"));
 
         var controller = CreateController(Principal(10, UserRoles.Instructor, "Laura"));
         var result = await controller.Detail(99, CancellationToken.None);
@@ -137,17 +139,19 @@ public class OrdenesInstructorScopeControllerTests
     }
 
     [Fact]
-    public async Task AddMaterial_Instructor_ForeignOrder_ReturnsForbid()
+    public async Task AddMaterial_Instructor_WithoutMaterialsGate_RedirectsWithoutCallingService()
     {
-        _orders.Setup(s => s.CanAccessOrderAsync(99, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _orders.Setup(s => s.AuthorizeOrderMaterialsAsync(99, 10, UserRoles.Instructor, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Fail("No está habilitado en la ficha técnica ni asignado a una etapa de esta orden."));
 
         var controller = CreateController(Principal(10, UserRoles.Instructor, "Laura"));
         var result = await controller.AddMaterial(
             new AddOrderMaterialForm { OrderId = 99, MaterialId = 1, QuantityRequired = 2 },
             CancellationToken.None);
 
-        Assert.IsType<ForbidResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(OrdenesController.Detail), redirect.ActionName);
+        Assert.False((bool)controller.TempData["IsSuccess"]!);
         _materials.Verify(m => m.AddMaterialAsync(
             It.IsAny<AddOrderMaterialDto>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -157,6 +161,8 @@ public class OrdenesInstructorScopeControllerTests
     {
         _orders.Setup(s => s.CanAccessOrderAsync(1, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        _orders.Setup(s => s.AuthorizeOrderMaterialsAsync(1, 10, UserRoles.Instructor, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Ok());
         _flow.Setup(f => f.GetMesDetailAsync(1, 10, UserRoles.Instructor, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OrderMesDetailDto(
                 1, "OP-101", "Camisa", null, OrderStatus.EnProceso, OrderMaterialsStatus.NoAplica,

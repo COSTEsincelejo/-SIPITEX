@@ -108,7 +108,9 @@
                                 </form>
                             }
                         }
-                        else if (order.Status is not (OrderStatus.Finalizada or OrderStatus.Cancelada) && order.CanRegisterProduction)
+                        else if (order.CanOperateProduction
+                                 && order.Status is not (OrderStatus.Finalizada or OrderStatus.Cancelada)
+                                 && order.CanRegisterProduction)
                         {
                             <form asp-action="AddProduction" method="post" class="row-actions">
                                 @Html.AntiForgeryToken()

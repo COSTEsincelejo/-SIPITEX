@@ -54,12 +54,18 @@ public class ProductionOrderService : IProductionOrderService
         CancellationToken cancellationToken = default)
     {
         var orders = await _orderRepository.GetAllAsync(cancellationToken);
+        HashSet<int>? productionIds = null;
+        HashSet<int>? materialsIds = null;
 
         if (IsInstructorViewer(viewerRole, viewerUserId))
         {
-            var assignedIds = await GetAssignedOrderIdsAsync(
+            productionIds = await GetAssignedOrderIdsAsync(
                 viewerUserId!.Value, viewerName, cancellationToken);
-            orders = orders.Where(o => assignedIds.Contains(o.Id)).ToList();
+            materialsIds = await GetMaterialEligibleOrderIdsAsync(
+                viewerUserId.Value, cancellationToken);
+            orders = orders
+                .Where(o => productionIds.Contains(o.Id) || materialsIds.Contains(o.Id))
+                .ToList();
         }
 
         var result = new List<ProductionOrderDto>();
@@ -80,6 +86,10 @@ public class ProductionOrderService : IProductionOrderService
             var currentName = stages.FirstOrDefault(s => s.Id == order.CurrentStageId)?.Name
                               ?? stages.FirstOrDefault(s => s.Status != ProductionStageStatus.Finalizado)?.Name;
 
+            var canOperateProduction = productionIds is null || productionIds.Contains(order.Id);
+            var canManageMaterials = materialsIds is null || materialsIds.Contains(order.Id);
+            // Admin/Bodeguero: ambos true (productionIds/materialsIds null). Instructor: flags por conjunto.
+
             result.Add(new ProductionOrderDto(
                 order.Id,
                 order.OrderNumber,
@@ -96,7 +106,9 @@ public class ProductionOrderService : IProductionOrderService
                 order.ClientName,
                 currentName,
                 flowPct,
-                combined));
+                combined,
+                canManageMaterials,
+                canOperateProduction));
         }
 
         return result;
@@ -119,6 +131,45 @@ public class ProductionOrderService : IProductionOrderService
         var assignedIds = await GetAssignedOrderIdsAsync(
             viewerUserId!.Value, viewerName, cancellationToken);
         return assignedIds.Contains(orderId);
+    }
+
+    public async Task<ServiceResult> AuthorizeOrderMaterialsAsync(
+        int orderId,
+        int? viewerUserId,
+        string? viewerRole,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.Equals(viewerRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase))
+            return ServiceResult.Ok();
+
+        if (!IsInstructorViewer(viewerRole, viewerUserId))
+            return ServiceResult.Fail("No tiene permiso para gestionar materiales de esta orden.");
+
+        var order = await _orderRepository.GetByIdAsync(orderId, cancellationToken);
+        if (order is null)
+            return ServiceResult.Fail("Orden no encontrada.");
+
+        var instructorId = viewerUserId!.Value;
+        var stages = await _flowRepository.GetStagesByOrderAsync(orderId, cancellationToken);
+        var onStage = stages.Any(s => s.InstructorUserId == instructorId);
+        if (onStage)
+            return ServiceResult.Ok();
+
+        var product = await _bomRepository.GetProductByNameAsync(order.ProductName, cancellationToken);
+        var bomInstructors = product?.Instructors ?? [];
+        if (bomInstructors.Any(i => i.UserId == instructorId))
+            return ServiceResult.Ok();
+
+        var anyStageAssignee = stages.Any(s => s.InstructorUserId is > 0);
+        var anyBomInstructor = bomInstructors.Count > 0;
+        if (!anyBomInstructor && !anyStageAssignee)
+        {
+            return ServiceResult.Fail(
+                "La ficha técnica no tiene instructores habilitados y la orden no tiene etapa asignada.");
+        }
+
+        return ServiceResult.Fail(
+            "No está habilitado en la ficha técnica ni asignado a una etapa de esta orden.");
     }
 
     public async Task<ServiceResult> CreateOrderAsync(CreateProductionOrderDto dto, CancellationToken cancellationToken = default)
@@ -429,6 +480,37 @@ public class ProductionOrderService : IProductionOrderService
                 continue;
             if (BelongsToInstructor(ficha, instructorUserId, instructorName))
                 ids.Add(orderId);
+        }
+
+        return ids;
+    }
+
+    // Materiales: etapa MES del instructor ∪ BomProductInstructor del producto de la orden
+    private async Task<HashSet<int>> GetMaterialEligibleOrderIdsAsync(
+        int instructorUserId,
+        CancellationToken cancellationToken)
+    {
+        var ids = new HashSet<int>();
+        var allOrders = await _orderRepository.GetAllAsync(cancellationToken);
+        var products = await _bomRepository.GetProductsAsync(cancellationToken);
+        var bomByName = products
+            .GroupBy(p => p.ProductName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var order in allOrders)
+        {
+            var stages = await _flowRepository.GetStagesByOrderAsync(order.Id, cancellationToken);
+            if (stages.Any(s => s.InstructorUserId == instructorUserId))
+            {
+                ids.Add(order.Id);
+                continue;
+            }
+
+            if (bomByName.TryGetValue(order.ProductName, out var product)
+                && product.Instructors.Any(i => i.UserId == instructorUserId))
+            {
+                ids.Add(order.Id);
+            }
         }
 
         return ids;
