@@ -1,25 +1,26 @@
 ﻿@{
-    // Página de inicio con accesos rápidos a cada módulo
+    // Página de inicio con accesos rápidos a cada módulo (solo lo que el rol puede usar)
     ViewData["Title"] = "Inicio";
     ViewData["Breadcrumb"] = "SIPITEX / Inicio";
+    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Usuario";
+    var name = User.Identity?.Name ?? "Usuario";
+    var isAdmin = User.IsInRole("Administrador");
+    var isBodeguero = User.IsInRole("Bodeguero");
+    var isInstructor = User.IsInRole("Instructor");
+    var canInventario = isAdmin || isBodeguero;
+    var canProduccionDocente = isAdmin || isInstructor;
 }
 
 <div class="page-header">
     <div>
-        <h2>Panel SIPITEX</h2>
-        <div class="sub">Seleccione un módulo operativo para continuar</div>
+        <h2>Hola, @name</h2>
+        <div class="sub">
+            Sesión como <strong>@role</strong>. Elija un módulo para continuar — solo se muestran accesos disponibles para su rol.
+        </div>
     </div>
 </div>
 
 <div class="module-grid">
-    @if (User.IsInRole("Administrador") || User.IsInRole("Bodeguero"))
-    {
-        <a class="module-link" asp-controller="Inventario" asp-action="Index">
-            <i class="fas fa-boxes-stacked"></i>
-            <h3>Inventario</h3>
-            <p>Materiales, stock y solicitudes de bodega.</p>
-        </a>
-    }
     <a class="module-link" asp-controller="Ordenes" asp-action="Index">
         <i class="fas fa-clipboard-list"></i>
         <h3>Órdenes</h3>
@@ -30,16 +31,55 @@
         <h3>MRP</h3>
         <p>BOM y simulación de requerimientos.</p>
     </a>
-    <a class="module-link" asp-controller="Fichas" asp-action="Index">
-        <i class="fas fa-people-group"></i>
-        <h3>Fichas</h3>
-        <p>Registro de producción por ficha.</p>
-    </a>
-    <a class="module-link" asp-controller="Calidad" asp-action="Index">
-        <i class="fas fa-clipboard-check"></i>
-        <h3>Calidad</h3>
-        <p>Inspecciones y resultados.</p>
-    </a>
+    @if (canInventario)
+    {
+        <a class="module-link" asp-controller="Inventario" asp-action="Index">
+            <i class="fas fa-boxes-stacked"></i>
+            <h3>Inventario</h3>
+            <p>Materiales, stock y solicitudes de bodega.</p>
+        </a>
+        <a class="module-link" asp-controller="Inventario" asp-action="Movimientos">
+            <i class="fas fa-clock-rotate-left"></i>
+            <h3>Movimientos</h3>
+            <p>Historial de entradas y salidas de stock.</p>
+        </a>
+    }
+    @if (isBodeguero)
+    {
+        <a class="module-link" asp-controller="BodegaSolicitudes" asp-action="Index">
+            <i class="fas fa-truck-ramp-box"></i>
+            <h3>Solicitudes</h3>
+            <p>Cola de solicitudes de material a bodega.</p>
+        </a>
+        <a class="module-link" asp-controller="BodegaOrdenes" asp-action="Index">
+            <i class="fas fa-clipboard-check"></i>
+            <h3>Materiales de órdenes</h3>
+            <p>Validar stock y entregar materiales.</p>
+        </a>
+        <a class="module-link" asp-controller="BodegaOrdenes" asp-action="Reingreso">
+            <i class="fas fa-rotate-left"></i>
+            <h3>Reingreso</h3>
+            <p>Devolver material desde etapas MES.</p>
+        </a>
+    }
+    @if (canProduccionDocente)
+    {
+        <a class="module-link" asp-controller="Fichas" asp-action="Index">
+            <i class="fas fa-people-group"></i>
+            <h3>Fichas</h3>
+            <p>Registro de producción por ficha.</p>
+        </a>
+        <a class="module-link" asp-controller="SolicitudesMaterial" asp-action="Index">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>Mis solicitudes</h3>
+            <p>Estado de solicitudes de material (ficha).</p>
+        </a>
+        <a class="module-link" asp-controller="Calidad" asp-action="Index">
+            <i class="fas fa-clipboard-check"></i>
+            <h3>Calidad</h3>
+            <p>Inspecciones y resultados.</p>
+        </a>
+    }
     <a class="module-link" asp-controller="Estadisticas" asp-action="Index">
         <i class="fas fa-chart-line"></i>
         <h3>Estadísticas</h3>
@@ -55,4 +95,12 @@
         <h3>Alertas</h3>
         <p>Preferencias de correo por actor.</p>
     </a>
+    @if (isAdmin)
+    {
+        <a class="module-link" asp-controller="Account" asp-action="Users">
+            <i class="fas fa-users-gear"></i>
+            <h3>Usuarios</h3>
+            <p>Cuentas, roles y permisos extendidos.</p>
+        </a>
+    }
 </div>

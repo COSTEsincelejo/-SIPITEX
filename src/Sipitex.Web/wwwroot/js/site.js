@@ -281,20 +281,27 @@
     if (!root || !input || !dropdown) return;
 
     const apiUrl = root.getAttribute('data-search-api') || '/api/busqueda';
-    const modules = [
-      { texto: 'Inventario', url: '/Inventario', keywords: 'inventario materiales stock bodega', icon: 'fa-boxes-stacked' },
-      { texto: 'Órdenes de producción', url: '/Ordenes', keywords: 'ordenes órdenes producción op', icon: 'fa-clipboard-list' },
-      { texto: 'MRP / Materiales', url: '/Mrp', keywords: 'mrp bom materiales requerimientos ficha técnica', icon: 'fa-diagram-project' },
-      { texto: 'Fichas & producción', url: '/Fichas', keywords: 'fichas producción instructor turno', icon: 'fa-people-group' },
-      { texto: 'Mis solicitudes', url: '/SolicitudesMaterial', keywords: 'solicitudes material pedido', icon: 'fa-clipboard-list' },
-      { texto: 'Solicitudes de materiales', url: '/BodegaSolicitudes', keywords: 'bodega solicitudes materiales cola', icon: 'fa-truck-ramp-box' },
-      { texto: 'Control de calidad', url: '/Calidad', keywords: 'calidad inspección reproceso', icon: 'fa-clipboard-check' },
-      { texto: 'Estadísticas', url: '/Estadisticas', keywords: 'estadísticas kpi dashboard gráficos', icon: 'fa-chart-line' },
-      { texto: 'Reportes', url: '/Reportes', keywords: 'reportes pdf excel exportar', icon: 'fa-file-export' },
-      { texto: 'Alertas', url: '/Alertas', keywords: 'alertas notificaciones correo', icon: 'fa-bell' },
-      { texto: 'Usuarios', url: '/Account/Users', keywords: 'usuarios administración cuentas', icon: 'fa-users-gear' },
-      { texto: 'Mi perfil', url: '/Account/Profile', keywords: 'perfil cuenta foto contraseña', icon: 'fa-user' }
+    const role = (root.getAttribute('data-role') || document.body.getAttribute('data-role') || '').trim();
+    // roles: quién puede ver cada acceso rápido (alineado a sidebar / Authorize)
+    const allModules = [
+      { texto: 'Inicio', url: '/', keywords: 'inicio home panel', icon: 'fa-house', roles: ['Administrador', 'Bodeguero', 'Instructor'] },
+      { texto: 'Órdenes de producción', url: '/Ordenes', keywords: 'ordenes órdenes producción op', icon: 'fa-clipboard-list', roles: ['Administrador', 'Bodeguero', 'Instructor'] },
+      { texto: 'MRP / Materiales', url: '/Mrp', keywords: 'mrp bom materiales requerimientos ficha técnica', icon: 'fa-diagram-project', roles: ['Administrador', 'Bodeguero', 'Instructor'] },
+      { texto: 'Inventario', url: '/Inventario', keywords: 'inventario materiales stock bodega', icon: 'fa-boxes-stacked', roles: ['Administrador', 'Bodeguero'] },
+      { texto: 'Movimientos de stock', url: '/Inventario/Movimientos', keywords: 'movimientos historial stock entradas salidas', icon: 'fa-clock-rotate-left', roles: ['Administrador', 'Bodeguero'] },
+      { texto: 'Solicitudes de materiales', url: '/BodegaSolicitudes', keywords: 'bodega solicitudes materiales cola', icon: 'fa-truck-ramp-box', roles: ['Bodeguero'] },
+      { texto: 'Materiales de órdenes', url: '/BodegaOrdenes', keywords: 'bodega órdenes entrega materiales', icon: 'fa-clipboard-check', roles: ['Bodeguero'] },
+      { texto: 'Reingreso desde etapas', url: '/BodegaOrdenes/Reingreso', keywords: 'reingreso etapas mes devolución', icon: 'fa-rotate-left', roles: ['Bodeguero'] },
+      { texto: 'Fichas & producción', url: '/Fichas', keywords: 'fichas producción instructor turno', icon: 'fa-people-group', roles: ['Administrador', 'Instructor'] },
+      { texto: 'Mis solicitudes', url: '/SolicitudesMaterial', keywords: 'solicitudes material pedido', icon: 'fa-clipboard-list', roles: ['Administrador', 'Instructor'] },
+      { texto: 'Control de calidad', url: '/Calidad', keywords: 'calidad inspección reproceso', icon: 'fa-clipboard-check', roles: ['Administrador', 'Instructor'] },
+      { texto: 'Estadísticas', url: '/Estadisticas', keywords: 'estadísticas kpi dashboard gráficos', icon: 'fa-chart-line', roles: ['Administrador', 'Bodeguero', 'Instructor'] },
+      { texto: 'Reportes', url: '/Reportes', keywords: 'reportes pdf excel exportar', icon: 'fa-file-export', roles: ['Administrador', 'Bodeguero', 'Instructor'] },
+      { texto: 'Alertas', url: '/Alertas', keywords: 'alertas notificaciones correo', icon: 'fa-bell', roles: ['Administrador', 'Bodeguero', 'Instructor'] },
+      { texto: 'Usuarios', url: '/Account/Users', keywords: 'usuarios administración cuentas', icon: 'fa-users-gear', roles: ['Administrador'] },
+      { texto: 'Mi perfil', url: '/Account/Profile', keywords: 'perfil cuenta foto contraseña', icon: 'fa-user', roles: ['Administrador', 'Bodeguero', 'Instructor'] }
     ];
+    const modules = allModules.filter((m) => !role || m.roles.includes(role));
 
     const categoryIcons = {
       'Módulos': 'fa-compass',

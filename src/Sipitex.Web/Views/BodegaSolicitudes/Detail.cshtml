@@ -23,7 +23,13 @@
 <div class="card">
     <div class="card-title"><i class="fas fa-info-circle"></i> Cabecera</div>
     <div class="solicitud-detail-meta">
-        <div><span class="field-label">Estado</span><br /><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></div>
+        <div><span class="field-label">Estado</span><br />
+            <partial name="_StatusBadge" model="new StatusBadgeModel {
+                CssClass = DisplayHelper.BadgeClass(s.Estado),
+                Icon = DisplayHelper.StatusIcon(s.Estado),
+                Text = DisplayHelper.StatusText(s.Estado)
+            }" />
+        </div>
         <div><span class="field-label">Ficha</span><br /><strong>@s.FichaCode</strong></div>
         <div><span class="field-label">Solicitante</span><br />@s.SolicitanteNombre</div>
         <div><span class="field-label">Fecha solicitud</span><br />@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
@@ -127,7 +133,13 @@
                         <td><strong>@d.MaterialName</strong></td>
                         <td>@d.CantidadSolicitada.ToString("0.##") @d.UnitDisplay</td>
                         <td>@(d.CantidadAprobada?.ToString("0.##") ?? "—") @d.UnitDisplay</td>
-                        <td><span class="badge @DisplayHelper.BadgeClass(d.EstadoItem)">@DisplayHelper.StatusText(d.EstadoItem)</span></td>
+                        <td>
+                            <partial name="_StatusBadge" model="new StatusBadgeModel {
+                                CssClass = DisplayHelper.BadgeClass(d.EstadoItem),
+                                Icon = DisplayHelper.StatusIcon(d.EstadoItem),
+                                Text = DisplayHelper.StatusText(d.EstadoItem)
+                            }" />
+                        </td>
                     </tr>
                 }
                 </tbody>

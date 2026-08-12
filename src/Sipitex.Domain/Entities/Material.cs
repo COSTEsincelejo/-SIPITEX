@@ -20,7 +20,7 @@ public class Material
     // Cantidad actual en bodega (puede tener decimales)
     public decimal Stock { get; set; }
 
-    // Umbral mínimo; si Stock < MinStock dispara alerta de stock bajo
+    // Umbral mínimo; StockLevelRules: Critico (Stock<=0) o Bajo (0<Stock<MinStock) → IsLowStock
     public decimal MinStock { get; set; }
 
     // Estado físico del material; arranca en Bueno

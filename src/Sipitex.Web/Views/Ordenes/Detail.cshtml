@@ -24,14 +24,6 @@
         </div>
     </div>
     <div class="row-actions">
-        @if (User.IsInRole("Administrador") && m.Status == OrderStatus.Pendiente)
-        {
-            <form asp-action="Approve" method="post" onsubmit="return confirm('¿Aprobar esta orden e iniciar producción/MES?');">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@m.OrderId" />
-                <button type="submit" class="primary"><i class="fas fa-check"></i> Aprobar orden</button>
-            </form>
-        }
         @if (User.IsInRole("Administrador") && m.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada))
         {
             <a class="ghost" asp-action="Edit" asp-route-id="@m.OrderId"><i class="fas fa-pen"></i> Editar</a>
@@ -50,11 +42,68 @@
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
+@if (User.IsInRole("Administrador") && m.Status == OrderStatus.Pendiente)
+{
+    <div class="approve-banner">
+        <div class="approve-copy">
+            <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+            <div>
+                <strong>Esta orden espera su aprobación</strong>
+                <p>Al aprobar pasa a En proceso: se habilitan MES, producción y entrega física de materiales.</p>
+            </div>
+        </div>
+        <form asp-action="Approve" method="post" onsubmit="return confirm('¿Aprobar esta orden e iniciar producción/MES?');">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@m.OrderId" />
+            <button type="submit" class="primary"><i class="fas fa-check"></i> Aprobar orden</button>
+        </form>
+    </div>
+}
+
+@if (User.IsInRole("Instructor"))
+{
+    if (canOperateProduction)
+    {
+        <div class="scope-banner">
+            <i class="fas fa-gears" aria-hidden="true"></i>
+            <div>
+                <strong>Su alcance: Operar</strong>
+                Puede avanzar etapas MES y producción
+                @(canPrepareMaterials ? " · también preparar materiales." : ".")
+            </div>
+        </div>
+    }
+    else if (canPrepareMaterials)
+    {
+        <div class="scope-banner">
+            <i class="fas fa-boxes-stacked" aria-hidden="true"></i>
+            <div>
+                <strong>Su alcance: Solo materiales</strong>
+                Puede añadir/importar materiales de esta orden, pero no operar el flujo MES (no está asignado a etapas de producción).
+            </div>
+        </div>
+    }
+}
+
 <div class="card">
     <div class="card-title"><i class="fas fa-info-circle"></i> Información general</div>
     <div class="solicitud-detail-meta">
-        <div><span class="field-label">Estado</span><br /><span class="badge @DisplayHelper.BadgeClass(m.Status)">@DisplayHelper.StatusText(m.Status)</span></div>
-        <div><span class="field-label">Materiales</span><br /><span class="badge @DisplayHelper.BadgeClass(m.MaterialsStatus)">@DisplayHelper.StatusText(m.MaterialsStatus)</span></div>
+        <div>
+            <span class="field-label">Estado</span><br />
+            <partial name="_StatusBadge" model="new StatusBadgeModel {
+                CssClass = DisplayHelper.BadgeClass(m.Status),
+                Icon = DisplayHelper.StatusIcon(m.Status),
+                Text = DisplayHelper.StatusText(m.Status)
+            }" />
+        </div>
+        <div>
+            <span class="field-label">Materiales</span><br />
+            <partial name="_StatusBadge" model="new StatusBadgeModel {
+                CssClass = DisplayHelper.BadgeClass(m.MaterialsStatus),
+                Icon = DisplayHelper.StatusIcon(m.MaterialsStatus),
+                Text = DisplayHelper.StatusText(m.MaterialsStatus)
+            }" />
+        </div>
         <div><span class="field-label">Fecha límite</span><br />@m.Deadline.ToString("yyyy-MM-dd")</div>
         <div><span class="field-label">Inventario terminado</span><br /><strong>@m.FinishedGoodStock.ToString("0.##")</strong> uds</div>
     </div>
@@ -68,10 +117,11 @@
     <div style="margin-top:10px;"><span class="field-label">MRP</span><br /><small style="color:var(--text-mut);">@m.MrpHint</small></div>
 </div>
 
-@if (m.Status == OrderStatus.Pendiente)
+@if (m.Status == OrderStatus.Pendiente && !User.IsInRole("Administrador"))
 {
-    <div class="card">
-        <p class="hint"><i class="fas fa-hourglass-half"></i> Orden pendiente de aprobación: se pueden preparar materiales (añadir/importar BOM), pero no hay producción, MES ni entrega física hasta que el Administrador apruebe.</p>
+    <div class="alert alert-warning">
+        <i class="fas fa-hourglass-half"></i>
+        Orden pendiente de aprobación: se pueden preparar materiales (añadir/importar BOM), pero no hay producción, MES ni entrega física hasta que el Administrador apruebe.
     </div>
 }
 
@@ -111,7 +161,11 @@
 </div>
 
 <div class="card">
-    <div class="card-title amber"><i class="fas fa-diagram-project"></i> Flujo de etapas</div>
+    <div class="card-title amber"><i class="fas fa-diagram-project"></i> Flujo de etapas (operar / MES)</div>
+    @if (User.IsInRole("Instructor") && !canOperateProduction)
+    {
+        <p class="hint" style="margin-top:0;">Solo lectura: no tiene alcance de operación en esta orden.</p>
+    }
     @if (canManage)
     {
         <form asp-action="AddStage" method="post" class="form-row" style="gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
@@ -277,7 +331,11 @@
 }
 
 <div class="card">
-    <div class="card-title"><i class="fas fa-boxes-stacked"></i> Materiales de la orden</div>
+    <div class="card-title"><i class="fas fa-boxes-stacked"></i> Materiales de la orden (preparar)</div>
+    @if (!canPrepareMaterials && User.IsInRole("Instructor"))
+    {
+        <p class="hint" style="margin-top:0;">No tiene permiso para preparar materiales en esta orden.</p>
+    }
     @if (canPrepareMaterials && m.Status != OrderStatus.Finalizada)
     {
         <form asp-action="AddMaterial" method="post" class="form-row" style="align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:12px;">

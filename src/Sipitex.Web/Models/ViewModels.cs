@@ -343,6 +343,14 @@ public class EmptyStateModel
     public string? ActionHref { get; set; } // link del botón (opcional)
 }
 
+// Modelo para partial _StatusBadge (ícono + color + texto)
+public class StatusBadgeModel
+{
+    public string CssClass { get; set; } = "badge-info";
+    public string Icon { get; set; } = "fa-circle";
+    public string Text { get; set; } = string.Empty;
+}
+
 // Pantalla de reportes con filtros opcionales
 public class ReportesIndexViewModel
 {

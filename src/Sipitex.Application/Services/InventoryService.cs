@@ -3,6 +3,7 @@ using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
@@ -297,16 +298,21 @@ public class InventoryService : IInventoryService
     }
 
     // Armo el DTO e indico si está bajo el mínimo (para pintar en rojo en la vista)
-    private static MaterialDto MapMaterial(Material m) => new(
-        m.Id,
-        m.Name,
-        UnitHelper.ToDisplay(m.Unit),
-        m.Unit,
-        m.Stock,
-        m.Status,
-        m.MinStock,
-        m.Stock < m.MinStock,
-        m.LastEntryDate);
+    private static MaterialDto MapMaterial(Material m)
+    {
+        var level = StockLevelRules.Resolve(m.Stock, m.MinStock);
+        return new MaterialDto(
+            m.Id,
+            m.Name,
+            UnitHelper.ToDisplay(m.Unit),
+            m.Unit,
+            m.Stock,
+            m.Status,
+            m.MinStock,
+            StockLevelRules.IsLowStock(m.Stock, m.MinStock),
+            m.LastEntryDate,
+            level);
+    }
 
     private static bool IsAdmin(string? role) =>
         string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);

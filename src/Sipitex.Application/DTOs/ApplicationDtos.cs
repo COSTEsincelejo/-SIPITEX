@@ -13,8 +13,9 @@ public record MaterialDto(
     decimal Stock,
     MaterialStatus Status,
     decimal MinStock,
-    bool IsLowStock, // true si hay que alertar
-    DateOnly LastEntryDate);
+    bool IsLowStock, // true si Bajo o Critico (atención requerida)
+    DateOnly LastEntryDate,
+    StockLevel StockLevel = StockLevel.Ok);
 
 // Datos para crear material nuevo (origen tipifica la Entrada del ledger)
 public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit, StockEntryOrigin Origen);
@@ -294,13 +295,16 @@ public record CreateQualityRecordDto(
 // --- Dashboard ---
 
 // KPIs del home
+// LowStockCount = Critico + Bajo (compat). Desglose opcional al final.
 public record DashboardKpiDto(
     int TotalProduced,
     decimal QualityRate,
     int ActiveOrders,
     int PendingApprovalOrders,
     int LowStockCount,
-    IReadOnlyList<ChartBarDto> ChartData);
+    IReadOnlyList<ChartBarDto> ChartData,
+    int CriticalStockCount = 0,
+    int BelowMinimumStockCount = 0);
 
 // Una barra del gráfico de órdenes
 public record ChartBarDto(string Label, int Produced, int Target);

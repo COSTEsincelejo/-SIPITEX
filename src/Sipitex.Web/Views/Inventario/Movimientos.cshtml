@@ -3,12 +3,13 @@
     ViewData["Title"] = "Historial de movimientos";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Inventario / Movimientos";
     Layout = "_Layout";
+    var minByMaterial = Model.Materials.ToDictionary(m => m.Id, m => m.MinStock);
 }
 
 <div class="page-header">
     <div>
         <h2>Historial de movimientos</h2>
-        <div class="sub">Consulta entradas, salidas, ajustes y aprobaciones de stock</div>
+        <div class="sub">Consulta entradas, salidas, ajustes y aprobaciones de stock. Las filas en ámbar/rojo indican stock resultante bajo o crítico.</div>
     </div>
     <div>
         <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver a inventario</a>
@@ -58,6 +59,7 @@
                     <th>Material</th>
                     <th>Cantidad</th>
                     <th>Stock resultante</th>
+                    <th>Nivel</th>
                     <th>Referencia</th>
                 </tr>
             </thead>
@@ -65,19 +67,34 @@
             @if (Model.Movimientos.Count == 0)
             {
                 <tr>
-                    <td colspan="8"><span class="hint">No hay movimientos con los filtros seleccionados.</span></td>
+                    <td colspan="9"><span class="hint">No hay movimientos con los filtros seleccionados.</span></td>
                 </tr>
             }
             @foreach (var mov in Model.Movimientos)
             {
-                <tr>
+                var min = minByMaterial.GetValueOrDefault(mov.MaterialId, 0);
+                var level = StockLevelRules.Resolve(mov.StockResultante, min);
+                var rowClass = level == StockLevel.Critico ? "stock-critical-row"
+                    : level == StockLevel.Bajo ? "stock-low-row" : null;
+                <tr class="@rowClass">
                     <td>@mov.FechaUtc.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@mov.UsuarioNombre</td>
                     <td><span class="badge @DisplayHelper.BadgeClass(mov.TipoMovimiento)">@DisplayHelper.Label(mov.TipoMovimiento)</span></td>
                     <td>@DisplayHelper.Label(mov.Origen)</td>
                     <td>@mov.MaterialName</td>
                     <td>@mov.Cantidad.ToString("0.##")</td>
-                    <td>@mov.StockResultante.ToString("0.##")</td>
+                    <td>
+                        <span class="stock-cell @DisplayHelper.StockLevelClass(level)">
+                            <span class="stock-qty">@mov.StockResultante.ToString("0.##")</span>
+                        </span>
+                    </td>
+                    <td>
+                        <partial name="_StatusBadge" model="new StatusBadgeModel {
+                            CssClass = DisplayHelper.StockLevelBadgeClass(level),
+                            Icon = DisplayHelper.StockLevelIcon(level),
+                            Text = DisplayHelper.StockLevelLabel(level)
+                        }" />
+                    </td>
                     <td><span class="hint">@(mov.Referencia ?? "—")</span></td>
                 </tr>
             }

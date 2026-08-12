@@ -21,7 +21,7 @@ public static class AlertCatalog
     // Lista de todas las alertas con título, descripción y roles sugeridos
     public static IReadOnlyList<(AlertType Type, string Title, string Description, string[] Roles)> All { get; } =
     [
-        (AlertType.StockBajo, "Stock bajo mínimo", "Materiales con stock por debajo del mínimo.", [UserRoles.Administrador, UserRoles.Bodeguero]),
+        (AlertType.StockBajo, "Stock bajo / crítico", "Materiales sin existencias o por debajo del mínimo (el aviso desglosa ambos niveles).", [UserRoles.Administrador, UserRoles.Bodeguero]),
         (AlertType.SolicitudPendiente, "Solicitudes pendientes", "Solicitudes de material sin aprobar/rechazar.", [UserRoles.Administrador, UserRoles.Bodeguero]),
         (AlertType.OrdenPorVencer, "Órdenes por vencer", "Órdenes activas con fecha límite en 7 días o menos.", [UserRoles.Administrador, UserRoles.Instructor]),
         (AlertType.ReprocesoCalidad, "Reprocesos de calidad", "Inspecciones recientes con resultado Reproceso.", [UserRoles.Administrador, UserRoles.Instructor]),

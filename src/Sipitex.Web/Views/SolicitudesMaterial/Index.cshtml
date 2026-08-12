@@ -10,7 +10,7 @@
         <h2>Mis solicitudes de materiales</h2>
         <div class="sub">@(Model.IsAdministrator
             ? "Vista global: todas las solicitudes ligadas a fichas"
-            : "Solo las solicitudes que usted ha creado")</div>
+            : "Solo las solicitudes que usted ha creado — el color del estado indica de un vistazo si sigue pendiente o ya se resolvió")</div>
     </div>
 </div>
 
@@ -45,10 +45,19 @@
                 <tbody>
                 @foreach (var s in Model.Solicitudes)
                 {
-                    <tr class="clickable-row" onclick="location.href='@Url.Action("Detail", "SolicitudesMaterial", new { id = s.Id })'">
+                    var rowClass = s.Estado == SolicitudMaterialEstado.Pendiente ? "order-row-pendiente"
+                        : s.Estado == SolicitudMaterialEstado.Rechazada ? "stock-critical-row"
+                        : null;
+                    <tr class="clickable-row @rowClass" onclick="location.href='@Url.Action("Detail", "SolicitudesMaterial", new { id = s.Id })'">
                         <td><strong>@s.Codigo</strong></td>
                         <td>@s.FichaCode</td>
-                        <td><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></td>
+                        <td>
+                            <partial name="_StatusBadge" model="new StatusBadgeModel {
+                                CssClass = DisplayHelper.BadgeClass(s.Estado),
+                                Icon = DisplayHelper.StatusIcon(s.Estado),
+                                Text = DisplayHelper.StatusText(s.Estado)
+                            }" />
+                        </td>
                         <td>@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
                         @if (Model.IsAdministrator)
                         {
