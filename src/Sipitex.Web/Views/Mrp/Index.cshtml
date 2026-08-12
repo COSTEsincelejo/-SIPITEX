@@ -112,14 +112,11 @@
                         {
                             <td class="row-actions">
                                 <a class="small ghost" asp-action="Edit" asp-route-id="@p.Id"><i class="fas fa-pen"></i> Editar</a>
-                                @if (User.IsInRole("Administrador"))
-                                {
-                                    <form asp-action="Delete" method="post" style="display:inline;" onsubmit="return confirm('¿Eliminar la ficha técnica de «@p.ProductName»? Quedará sin BOM.');">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@p.Id" />
-                                        <button type="submit" class="small ghost danger"><i class="fas fa-trash"></i> Eliminar</button>
-                                    </form>
-                                }
+                                <form asp-action="Delete" method="post" style="display:inline;" onsubmit="return confirm('¿Eliminar la ficha técnica de «@p.ProductName»? Quedará sin BOM.');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@p.Id" />
+                                    <button type="submit" class="small ghost danger"><i class="fas fa-trash"></i> Eliminar</button>
+                                </form>
                             </td>
                         }
                     </tr>

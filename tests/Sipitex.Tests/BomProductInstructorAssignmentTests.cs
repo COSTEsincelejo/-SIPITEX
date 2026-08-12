@@ -18,10 +18,11 @@ public class BomProductInstructorAssignmentTests
     private readonly Mock<IBomRepository> _boms = new();
     private readonly Mock<IMaterialRepository> _materials = new();
     private readonly Mock<IUserRepository> _users = new();
+    private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private BomCatalogService CreateSut() =>
-        new(_boms.Object, _materials.Object, _users.Object, _uow.Object);
+        new(_boms.Object, _materials.Object, _users.Object, _orders.Object, _uow.Object);
 
     private static User Instructor(int id, string name, bool active = true) => new()
     {
