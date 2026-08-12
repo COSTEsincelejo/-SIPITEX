@@ -65,9 +65,78 @@ public class OrdenesController : Controller
             Materials = await _inventoryService.GetMaterialsAsync(cancellationToken),
             Instructors = instructors.Where(u => u.Rol == UserRoles.Instructor && u.IsActive).ToList(),
             AddMaterial = new AddOrderMaterialForm { OrderId = id, QuantityRequired = 1 },
+            ChangeLogs = await _orderService.GetChangeLogAsync(id, cancellationToken),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
+    }
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
+    {
+        var orders = await _orderService.GetOrdersAsync(cancellationToken);
+        var order = orders.FirstOrDefault(o => o.Id == id);
+        if (order is null) return NotFound();
+
+        return View(new OrdenEditViewModel
+        {
+            OrderId = order.Id,
+            OrderNumber = order.OrderNumber,
+            Status = order.Status,
+            ProductNames = await _bomCatalog.GetOrderEligibleProductNamesAsync(cancellationToken),
+            Form = new EditOrderForm
+            {
+                OrderId = order.Id,
+                ProductName = order.ProductName,
+                TotalQuantity = order.TotalQuantity,
+                Deadline = order.Deadline,
+                ClientName = order.ClientName
+            },
+            ChangeLogs = await _orderService.GetChangeLogAsync(id, cancellationToken),
+            Message = TempData["Message"] as string,
+            IsSuccess = TempData["IsSuccess"] as bool? ?? false
+        });
+    }
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit([Bind(Prefix = "Form")] EditOrderForm form, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var actorId))
+        {
+            TempData["Message"] = "Sesión no válida.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Edit), new { id = form.OrderId });
+        }
+
+        var result = await _orderService.UpdateOrderAsync(
+            new UpdateProductionOrderDto(form.OrderId, form.ProductName, form.TotalQuantity, form.Deadline, form.ClientName),
+            actorId,
+            cancellationToken);
+
+        TempData["Message"] = result.Message;
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(result.Success ? nameof(Detail) : nameof(Edit), new { id = form.OrderId });
+    }
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(int id, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var actorId))
+        {
+            TempData["Message"] = "Sesión no válida.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+
+        var result = await _orderService.CancelOrderAsync(id, actorId, cancellationToken);
+        TempData["Message"] = result.Message;
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Detail), new { id });
     }
 
     [Authorize(Roles = UserRoles.Administrador)]
@@ -254,6 +323,9 @@ public class OrdenesController : Controller
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
     }
+
+    private bool TryGetUserId(out int userId) =>
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId) && userId > 0;
 
     private (int UserId, string Role, string Name) GetActor()
     {

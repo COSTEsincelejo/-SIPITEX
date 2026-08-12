@@ -7,4 +7,5 @@ public interface IProductionOrderBomSnapshotRepository
 {
     Task<IReadOnlyList<ProductionOrderBomSnapshot>> GetByOrderIdAsync(int productionOrderId, CancellationToken cancellationToken = default);
     Task AddRangeAsync(IEnumerable<ProductionOrderBomSnapshot> snapshots, CancellationToken cancellationToken = default);
+    void RemoveRange(IEnumerable<ProductionOrderBomSnapshot> snapshots);
 }

@@ -296,8 +296,30 @@ public class OrdenMesDetailViewModel
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
     public IReadOnlyList<Sipitex.Domain.Entities.User> Instructors { get; set; } = [];
     public AddOrderMaterialForm AddMaterial { get; set; } = new();
+    public IReadOnlyList<OrderChangeLogDto> ChangeLogs { get; set; } = [];
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
+}
+
+public class OrdenEditViewModel
+{
+    public int OrderId { get; set; }
+    public string OrderNumber { get; set; } = string.Empty;
+    public OrderStatus Status { get; set; }
+    public IReadOnlyList<string> ProductNames { get; set; } = [];
+    public EditOrderForm Form { get; set; } = new();
+    public IReadOnlyList<OrderChangeLogDto> ChangeLogs { get; set; } = [];
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class EditOrderForm
+{
+    public int OrderId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int TotalQuantity { get; set; }
+    public string? ClientName { get; set; }
+    public DateOnly Deadline { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 }
 
 public class AddOrderMaterialForm

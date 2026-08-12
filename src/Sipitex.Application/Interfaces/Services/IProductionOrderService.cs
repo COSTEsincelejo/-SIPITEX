@@ -7,6 +7,9 @@ public interface IProductionOrderService
 {
     Task<IReadOnlyList<ProductionOrderDto>> GetOrdersAsync(CancellationToken cancellationToken = default);
     Task<ServiceResult> CreateOrderAsync(CreateProductionOrderDto dto, CancellationToken cancellationToken = default);
+    Task<ServiceResult> UpdateOrderAsync(UpdateProductionOrderDto dto, int actorUserId, CancellationToken cancellationToken = default);
+    Task<ServiceResult> CancelOrderAsync(int orderId, int actorUserId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<OrderChangeLogDto>> GetChangeLogAsync(int orderId, CancellationToken cancellationToken = default);
     // units = unidades producidas en este registro (descuenta BOM)
     Task<ServiceResult> RegisterProductionAsync(int orderId, int units, CancellationToken cancellationToken = default);
 }

@@ -19,4 +19,7 @@ public class ProductionOrderBomSnapshotRepository : IProductionOrderBomSnapshotR
 
     public async Task AddRangeAsync(IEnumerable<ProductionOrderBomSnapshot> snapshots, CancellationToken cancellationToken = default) =>
         await _context.ProductionOrderBomSnapshots.AddRangeAsync(snapshots, cancellationToken);
+
+    public void RemoveRange(IEnumerable<ProductionOrderBomSnapshot> snapshots) =>
+        _context.ProductionOrderBomSnapshots.RemoveRange(snapshots);
 }

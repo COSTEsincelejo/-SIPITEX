@@ -39,6 +39,7 @@ public class SipitexDbContext : DbContext
     public DbSet<FinishedGoodMovement> FinishedGoodMovements => Set<FinishedGoodMovement>();
     public DbSet<InstructorStagePermission> InstructorStagePermissions => Set<InstructorStagePermission>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<OrderChangeLog> OrderChangeLogs => Set<OrderChangeLog>();
 
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -468,6 +469,25 @@ public class SipitexDbContext : DbContext
             e.HasIndex(m => m.FechaUtc);
             e.HasIndex(m => m.MaterialId);
             e.HasIndex(m => m.UsuarioId);
+        });
+
+        // Auditoría de ediciones de campos de orden (gap #2)
+        modelBuilder.Entity<OrderChangeLog>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Campo).HasMaxLength(80).IsRequired();
+            e.Property(c => c.ValorAnterior).HasMaxLength(500);
+            e.Property(c => c.ValorNuevo).HasMaxLength(500);
+            e.HasOne(c => c.ProductionOrder)
+                .WithMany(o => o.ChangeLogs)
+                .HasForeignKey(c => c.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Usuario)
+                .WithMany()
+                .HasForeignKey(c => c.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(c => c.ProductionOrderId);
+            e.HasIndex(c => c.FechaUtc);
         });
     }
 }

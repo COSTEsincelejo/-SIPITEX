@@ -79,7 +79,7 @@ public class ProductionFlowService : IProductionFlowService
         await EnsureDefaultTemplatesAsync(cancellationToken);
 
         var order = await _orders.GetByIdAsync(orderId, cancellationToken);
-        if (order is null) return;
+        if (order is null || order.Status == OrderStatus.Cancelada) return;
 
         var stages = await _flow.GetStagesByOrderAsync(orderId, cancellationToken);
         if (stages.Count > 0) return;
@@ -156,7 +156,8 @@ public class ProductionFlowService : IProductionFlowService
         var currentName = stages.FirstOrDefault(s => s.Id == order.CurrentStageId)?.Name
                           ?? stages.FirstOrDefault(s => s.Status != ProductionStageStatus.Finalizado)?.Name;
 
-        var canManage = string.Equals(actorRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
+        var canManage = string.Equals(actorRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase)
+                        && order.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada);
 
         var mrp = await BuildMrpHintAsync(order, cancellationToken);
 
@@ -204,7 +205,8 @@ public class ProductionFlowService : IProductionFlowService
 
         var order = await _orders.GetByIdAsync(dto.OrderId, cancellationToken);
         if (order is null) return ServiceResult.Fail("Orden no encontrada.");
-
+        var closed = RejectIfOrderClosed(order);
+        if (closed is not null) return closed;
         var stages = await _flow.GetStagesByOrderAsync(dto.OrderId, cancellationToken);
         var nextOrder = stages.Count == 0 ? 1 : stages.Max(s => s.SortOrder) + 1;
 
@@ -226,11 +228,13 @@ public class ProductionFlowService : IProductionFlowService
     public async Task<ServiceResult> RemoveStageAsync(
         int stageId, int actorUserId, string actorName, CancellationToken cancellationToken = default)
     {
+        var closed = await EnsureOrderNotClosedByStageAsync(stageId, cancellationToken);
+        if (closed is not null) return closed;
+
         var stage = await _flow.GetStageByIdAsync(stageId, cancellationToken);
         if (stage is null) return ServiceResult.Fail("Etapa no encontrada.");
         if (stage.QuantitySent > 0 || stage.QuantityProcessed > 0 || stage.QuantityWithdrawn > 0)
             return ServiceResult.Fail("No se puede eliminar una etapa con movimientos registrados.");
-
         var order = await _orders.GetByIdAsync(stage.ProductionOrderId, cancellationToken);
         var name = stage.Name;
         _flow.RemoveStage(stage);
@@ -250,6 +254,9 @@ public class ProductionFlowService : IProductionFlowService
     public async Task<ServiceResult> MoveStageAsync(
         int stageId, int direction, int actorUserId, string actorName, CancellationToken cancellationToken = default)
     {
+        var closed = await EnsureOrderNotClosedByStageAsync(stageId, cancellationToken);
+        if (closed is not null) return closed;
+
         var stage = await _flow.GetStageByIdAsync(stageId, cancellationToken);
         if (stage is null) return ServiceResult.Fail("Etapa no encontrada.");
 
@@ -321,7 +328,8 @@ public class ProductionFlowService : IProductionFlowService
     {
         var stage = await _flow.GetStageByIdAsync(dto.StageId, cancellationToken);
         if (stage is null) return ServiceResult.Fail("Etapa no encontrada.");
-
+        var closed = await EnsureOrderNotClosedByStageAsync(dto.StageId, cancellationToken);
+        if (closed is not null) return closed;
         if (dto.InstructorUserId is int uid)
         {
             var user = await _users.GetByIdAsync(uid, cancellationToken);
@@ -459,6 +467,11 @@ public class ProductionFlowService : IProductionFlowService
             return ServiceResult.Fail("Solo Bodeguero o Administrador pueden registrar reingresos desde etapas.");
 
         if (dto.Quantity <= 0) return ServiceResult.Fail("Cantidad inválida.");
+
+        var orderGate = await _orders.GetByIdAsync(dto.OrderId, cancellationToken);
+        if (orderGate is null) return ServiceResult.Fail("Orden no encontrada.");
+        var closed = RejectIfOrderClosed(orderGate);
+        if (closed is not null) return closed;
 
         // Bodeguero/Admin: no exige permiso de instructor por etapa (gap #14)
         var stage = await _flow.GetStageByIdAsync(dto.StageId, cancellationToken);
@@ -598,9 +611,31 @@ public class ProductionFlowService : IProductionFlowService
         return ServiceResult.Ok($"Etapa {verb}.");
     }
 
+    private async Task<ServiceResult?> EnsureOrderNotClosedByStageAsync(
+        int stageId, CancellationToken cancellationToken)
+    {
+        var stage = await _flow.GetStageByIdAsync(stageId, cancellationToken);
+        if (stage is null) return ServiceResult.Fail("Etapa no encontrada.");
+        var order = await _orders.GetByIdAsync(stage.ProductionOrderId, cancellationToken);
+        if (order is null) return ServiceResult.Fail("Orden no encontrada.");
+        return RejectIfOrderClosed(order);
+    }
+
+    private static ServiceResult? RejectIfOrderClosed(ProductionOrder order)
+    {
+        if (order.Status == OrderStatus.Cancelada)
+            return ServiceResult.Fail("La orden está cancelada y no admite más operaciones.");
+        if (order.Status == OrderStatus.Finalizada)
+            return ServiceResult.Fail("La orden está finalizada y no admite más operaciones.");
+        return null;
+    }
+
     private async Task<ServiceResult?> EnsureCanActOnStageAsync(
         int stageId, int actorUserId, string actorRole, CancellationToken cancellationToken)
     {
+        var closed = await EnsureOrderNotClosedByStageAsync(stageId, cancellationToken);
+        if (closed is not null) return closed;
+
         if (string.Equals(actorRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase))
             return null;
 

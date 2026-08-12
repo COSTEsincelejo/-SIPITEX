@@ -1,0 +1,95 @@
+@model OrdenEditViewModel
+@{
+    ViewData["Title"] = $"Editar {Model.OrderNumber}";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Órdenes / Editar";
+    Layout = "_Layout";
+    var canEdit = Model.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada);
+}
+
+<div class="page-header">
+    <div>
+        <h2>Editar @Model.OrderNumber</h2>
+        <div class="sub">Estado: <span class="badge @DisplayHelper.BadgeClass(Model.Status)">@DisplayHelper.StatusText(Model.Status)</span></div>
+    </div>
+    <div class="row-actions">
+        <a class="ghost" asp-action="Detail" asp-route-id="@Model.OrderId"><i class="fas fa-arrow-left"></i> Detalle</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+@if (!canEdit)
+{
+    <div class="card">
+        <p class="hint">Esta orden no se puede editar (cancelada o finalizada).</p>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-pen"></i> Datos de la orden</div>
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Form.OrderId" />
+            <div class="form-row">
+                <div class="field" style="flex:1;">
+                    <label class="field-label">Producto</label>
+                    <input asp-for="Form.ProductName" list="productos" required style="width:100%" />
+                    <datalist id="productos">
+                        @foreach (var name in Model.ProductNames)
+                        {
+                            <option value="@name"></option>
+                        }
+                    </datalist>
+                </div>
+                <div class="field" style="width:140px;">
+                    <label class="field-label">Cantidad total</label>
+                    <input asp-for="Form.TotalQuantity" type="number" min="1" required />
+                </div>
+                <div class="field" style="width:180px;">
+                    <label class="field-label">Cliente (opc.)</label>
+                    <input asp-for="Form.ClientName" maxlength="120" />
+                </div>
+                <div class="field">
+                    <label class="field-label">Fecha límite</label>
+                    <input asp-for="Form.Deadline" type="date" required />
+                </div>
+            </div>
+            <button type="submit" class="primary"><i class="fas fa-save"></i> Guardar cambios</button>
+        </form>
+        <p class="hint" style="margin-top:10px;">Cada campo modificado queda registrado en el historial de cambios.</p>
+    </div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Historial de cambios</div>
+    @if (Model.ChangeLogs.Count == 0)
+    {
+        <p class="hint">Sin ediciones registradas.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Fecha (UTC)</th><th>Usuario</th><th>Campo</th><th>Anterior</th><th>Nuevo</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var c in Model.ChangeLogs)
+                {
+                    <tr>
+                        <td>@c.FechaUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@c.UsuarioNombre</td>
+                        <td>@c.Campo</td>
+                        <td>@(c.ValorAnterior ?? "—")</td>
+                        <td>@(c.ValorNuevo ?? "—")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

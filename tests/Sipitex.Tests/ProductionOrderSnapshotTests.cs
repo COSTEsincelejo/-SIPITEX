@@ -17,6 +17,7 @@ public class ProductionOrderSnapshotTests
     private readonly Mock<IOrderMaterialRequirementRepository> _requirements = new();
     private readonly Mock<IProductionFlowRepository> _flowRepo = new();
     private readonly Mock<IProductionFlowService> _flowService = new();
+    private readonly Mock<IOrderChangeLogRepository> _changeLogs = new();
     private readonly Mock<IUnitOfWork> _uow = new();
     private readonly Mock<IMaterialRepository> _materials = new();
 
@@ -31,7 +32,7 @@ public class ProductionOrderSnapshotTests
         _flowService.Setup(s => s.LogProductionRegisteredAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object,
-            _flowRepo.Object, _flowService.Object, _uow.Object,
+            _flowRepo.Object, _flowService.Object, _changeLogs.Object, _uow.Object,
             new ProductionConsumptionService(_boms.Object, _materials.Object));
     }
 

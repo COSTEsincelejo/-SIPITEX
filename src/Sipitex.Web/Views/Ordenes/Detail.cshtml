@@ -5,7 +5,8 @@
     Layout = "_Layout";
     var m = Model.Mes;
     var canManage = m.CanManageFlow;
-    var canOperate = User.IsInRole("Administrador") || User.IsInRole("Instructor");
+    var canOperate = (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
+                     && m.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada);
 }
 
 <div class="page-header">
@@ -17,7 +18,18 @@
             · etapa actual: @(m.CurrentStageName ?? "—")
         </div>
     </div>
-    <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
+    <div class="row-actions">
+        @if (User.IsInRole("Administrador") && m.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada))
+        {
+            <a class="ghost" asp-action="Edit" asp-route-id="@m.OrderId"><i class="fas fa-pen"></i> Editar</a>
+            <form asp-action="Cancel" method="post" onsubmit="return confirm('¿Cancelar esta orden? El stock entregado no se revierte.');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@m.OrderId" />
+                <button type="submit" class="ghost small"><i class="fas fa-ban"></i> Cancelar orden</button>
+            </form>
+        }
+        <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
@@ -41,6 +53,41 @@
         <div style="font-size:12px;color:var(--text-mut);margin-top:4px;">@m.CombinedProgressPercent%</div>
     </div>
     <div style="margin-top:10px;"><span class="field-label">MRP</span><br /><small style="color:var(--text-mut);">@m.MrpHint</small></div>
+</div>
+
+@if (m.Status == OrderStatus.Cancelada)
+{
+    <div class="card">
+        <p class="hint"><i class="fas fa-ban"></i> Orden cancelada: no admite ediciones, entregas de material ni avance de etapas. El stock ya entregado no se revierte automáticamente.</p>
+    </div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-clock-rotate-left"></i> Historial de cambios (edición)</div>
+    @if (Model.ChangeLogs.Count == 0)
+    {
+        <p class="hint">Sin ediciones de campos registradas.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Fecha (UTC)</th><th>Usuario</th><th>Campo</th><th>Anterior</th><th>Nuevo</th></tr></thead>
+                <tbody>
+                @foreach (var c in Model.ChangeLogs.Take(40))
+                {
+                    <tr>
+                        <td>@c.FechaUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@c.UsuarioNombre</td>
+                        <td>@c.Campo</td>
+                        <td>@(c.ValorAnterior ?? "—")</td>
+                        <td>@(c.ValorNuevo ?? "—")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
 <div class="card">
