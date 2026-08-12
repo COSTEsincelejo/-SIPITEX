@@ -9,17 +9,21 @@ public record MaterialDto(
     int Id,
     string Name,
     string UnitDisplay, // unidad legible (m, kg, ud)
+    MaterialUnit Unit,
     decimal Stock,
     MaterialStatus Status,
     decimal MinStock,
     bool IsLowStock, // true si hay que alertar
     DateOnly LastEntryDate);
 
-// Datos para crear material nuevo
-public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit);
+// Datos para crear material nuevo (origen tipifica la Entrada del ledger)
+public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit, StockEntryOrigin Origen);
 
-// Ajuste manual de stock por id de material
-public record AdjustStockDto(int MaterialId, decimal NewStock);
+// Ajuste manual de stock; Origen obligatorio cuando NewStock > stock actual
+public record AdjustStockDto(int MaterialId, decimal NewStock, StockEntryOrigin? Origen = null);
+
+// Edición de metadatos del material (nombre, unidad, mínimo) — no toca stock
+public record UpdateMaterialDto(int MaterialId, string Name, MaterialUnit Unit, decimal MinStock);
 
 // Cambiar estado físico del material
 public record UpdateMaterialStatusDto(int MaterialId, MaterialStatus Status);
@@ -42,6 +46,7 @@ public record StockMovementDto(
     string UsuarioNombre,
     int UsuarioId,
     StockMovementType TipoMovimiento,
+    StockEntryOrigin? Origen,
     int MaterialId,
     string MaterialName,
     decimal Cantidad,

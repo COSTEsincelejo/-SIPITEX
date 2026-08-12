@@ -53,6 +53,9 @@ public class InventoryService : IInventoryService
         if (string.IsNullOrWhiteSpace(dto.Name) || dto.Stock < 0)
             return ServiceResult.Fail("Ingrese nombre y stock válidos.");
 
+        if (!Enum.IsDefined(dto.Origen))
+            return ServiceResult.Fail("Seleccione el origen de la entrada (compra, devolución u otra fuente autorizada).");
+
         if (actorUserId <= 0)
             return ServiceResult.Fail("Usuario responsable no válido.");
 
@@ -79,6 +82,7 @@ public class InventoryService : IInventoryService
             FechaUtc = DateTime.UtcNow,
             UsuarioId = actorUserId,
             TipoMovimiento = StockMovementType.Entrada,
+            Origen = dto.Origen,
             Cantidad = material.Stock,
             StockResultante = material.Stock,
             Referencia = $"Material:{material.Id}"
@@ -87,7 +91,7 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok("Material agregado.");
     }
 
-    // Ajuste manual de stock (no deja negativo)
+    // Ajuste manual de stock (no deja negativo). Origen obligatorio si el stock sube.
     public async Task<ServiceResult> AdjustStockAsync(
         AdjustStockDto dto,
         int actorUserId,
@@ -101,8 +105,14 @@ public class InventoryService : IInventoryService
         if (material is null) return ServiceResult.Fail("Material no encontrado.");
 
         var previous = material.Stock;
+        var newStock = Math.Max(0, dto.NewStock);
+        var isIncrease = newStock > previous;
+
+        if (isIncrease && (dto.Origen is null || !Enum.IsDefined(dto.Origen.Value)))
+            return ServiceResult.Fail("Indique el origen de la entrada (compra, devolución u otra fuente autorizada).");
+
         // Math.Max evita stock negativo
-        material.Stock = Math.Max(0, dto.NewStock);
+        material.Stock = newStock;
         // Actualizo fecha de última entrada
         material.LastEntryDate = DateOnly.FromDateTime(DateTime.Today);
         // Marco la entidad como modificada
@@ -115,6 +125,7 @@ public class InventoryService : IInventoryService
             FechaUtc = DateTime.UtcNow,
             UsuarioId = actorUserId,
             TipoMovimiento = StockMovementType.Ajuste,
+            Origen = isIncrease ? dto.Origen : null,
             Cantidad = Math.Abs(delta),
             StockResultante = material.Stock,
             Referencia = $"Ajuste:{material.Id}"
@@ -122,6 +133,31 @@ public class InventoryService : IInventoryService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok("Stock actualizado.");
+    }
+
+    // Edición completa de metadatos (nombre, unidad, mínimo). No modifica stock.
+    public async Task<ServiceResult> UpdateMaterialAsync(
+        UpdateMaterialDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return ServiceResult.Fail("Ingrese un nombre válido.");
+
+        if (dto.MinStock < 0)
+            return ServiceResult.Fail("El stock mínimo no puede ser negativo.");
+
+        if (!Enum.IsDefined(dto.Unit))
+            return ServiceResult.Fail("Unidad no válida.");
+
+        var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
+        if (material is null) return ServiceResult.Fail("Material no encontrado.");
+
+        material.Name = dto.Name.Trim();
+        material.Unit = dto.Unit;
+        material.MinStock = dto.MinStock;
+        _materialRepository.Update(material);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok($"Material «{material.Name}» actualizado.");
     }
 
     // Cambia el estado físico: Bueno / Regular / Deteriorado
@@ -252,6 +288,7 @@ public class InventoryService : IInventoryService
         m.Id,
         m.Name,
         UnitHelper.ToDisplay(m.Unit),
+        m.Unit,
         m.Stock,
         m.Status,
         m.MinStock,

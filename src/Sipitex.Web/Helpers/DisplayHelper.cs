@@ -94,6 +94,15 @@ public static class DisplayHelper
         _ => type.ToString()
     };
 
+    public static string Label(StockEntryOrigin? origin) => origin switch
+    {
+        StockEntryOrigin.Compra => "Compra",
+        StockEntryOrigin.Devolucion => "Devolución",
+        StockEntryOrigin.OtraFuenteAutorizada => "Otra fuente autorizada",
+        null => "—",
+        _ => origin.Value.ToString()
+    };
+
     // Colores para resultados de inspección de calidad
     public static string BadgeClass(QualityResult result) => result switch
     {

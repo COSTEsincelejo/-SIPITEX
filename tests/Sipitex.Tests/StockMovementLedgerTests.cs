@@ -44,7 +44,7 @@ public class StockMovementLedgerTests
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var result = await CreateInventorySut().AddMaterialAsync(
-            new CreateMaterialDto("Tela Jersey", 25m, MaterialUnit.Metros),
+            new CreateMaterialDto("Tela Jersey", 25m, MaterialUnit.Metros, StockEntryOrigin.Compra),
             actorUserId: 7);
 
         Assert.True(result.Success);
@@ -52,6 +52,7 @@ public class StockMovementLedgerTests
         Assert.Equal(11, captured!.MaterialId);
         Assert.Equal(7, captured.UsuarioId);
         Assert.Equal(StockMovementType.Entrada, captured.TipoMovimiento);
+        Assert.Equal(StockEntryOrigin.Compra, captured.Origen);
         Assert.Equal(25m, captured.Cantidad);
         Assert.Equal(25m, captured.StockResultante);
         _stockMovements.Verify(
@@ -79,7 +80,7 @@ public class StockMovementLedgerTests
             .Returns(Task.CompletedTask);
 
         var result = await CreateInventorySut().AdjustStockAsync(
-            new AdjustStockDto(4, 18m),
+            new AdjustStockDto(4, 18m, StockEntryOrigin.OtraFuenteAutorizada),
             actorUserId: 3);
 
         Assert.True(result.Success);
@@ -88,6 +89,7 @@ public class StockMovementLedgerTests
         Assert.Equal(4, captured!.MaterialId);
         Assert.Equal(3, captured.UsuarioId);
         Assert.Equal(StockMovementType.Ajuste, captured.TipoMovimiento);
+        Assert.Equal(StockEntryOrigin.OtraFuenteAutorizada, captured.Origen);
         Assert.Equal(8m, captured.Cantidad);
         Assert.Equal(18m, captured.StockResultante);
         _stockMovements.Verify(

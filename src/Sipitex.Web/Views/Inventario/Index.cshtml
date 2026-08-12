@@ -51,6 +51,14 @@
                 <label class="field-label">Unidad</label>
                 <select asp-for="CreateMaterial.Unit" asp-items="Html.GetEnumSelectList<MaterialUnit>()"></select>
             </div>
+            <div class="field" style="min-width:180px;">
+                <label class="field-label">Origen de entrada</label>
+                <select asp-for="CreateMaterial.Origen" required>
+                    <option value="@StockEntryOrigin.Compra">Compra</option>
+                    <option value="@StockEntryOrigin.Devolucion">Devolución</option>
+                    <option value="@StockEntryOrigin.OtraFuenteAutorizada">Otra fuente autorizada</option>
+                </select>
+            </div>
             <button type="submit" class="primary"><i class="fas fa-plus"></i> Agregar material</button>
         </form>
     }
@@ -100,12 +108,41 @@
                         <td>@mat.LastEntryDate.ToString("yyyy-MM-dd")</td>
                         <td>@mat.MinStock</td>
                         <td>
+                            @if (User.IsInRole("Administrador"))
+                            {
+                                <form asp-action="EditMaterial" method="post" class="row-actions" style="flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="MaterialId" value="@mat.Id" />
+                                    <input type="text" name="Name" value="@mat.Name" required style="width:140px" aria-label="Nombre" />
+                                    <select name="Unit" aria-label="Unidad">
+                                        @foreach (MaterialUnit u in Enum.GetValues<MaterialUnit>())
+                                        {
+                                            if (u == mat.Unit)
+                                            {
+                                                <option value="@u" selected>@u</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@u">@u</option>
+                                            }
+                                        }
+                                    </select>
+                                    <input type="number" name="MinStock" value="@mat.MinStock.ToString("0.##")" step="0.1" min="0" style="width:72px" aria-label="Stock mínimo" />
+                                    <button type="submit" class="small ghost"><i class="fas fa-floppy-disk"></i> Guardar</button>
+                                </form>
+                            }
                             @if (canManageStock)
                             {
-                                <form asp-action="AdjustStock" method="post" class="row-actions">
+                                <form asp-action="AdjustStock" method="post" class="row-actions" style="flex-wrap:wrap;gap:6px;">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="MaterialId" value="@mat.Id" />
                                     <input type="number" name="NewStock" value="@mat.Stock.ToString("0.##")" step="0.1" min="0" style="width:88px" aria-label="Nuevo stock" />
+                                    <select name="Origen" aria-label="Origen si aumenta stock">
+                                        <option value="">Origen (si sube)</option>
+                                        <option value="@StockEntryOrigin.Compra">Compra</option>
+                                        <option value="@StockEntryOrigin.Devolucion">Devolución</option>
+                                        <option value="@StockEntryOrigin.OtraFuenteAutorizada">Otra fuente autorizada</option>
+                                    </select>
                                     <button type="submit" class="small ghost"><i class="fas fa-pen"></i> Ajustar</button>
                                 </form>
                             }

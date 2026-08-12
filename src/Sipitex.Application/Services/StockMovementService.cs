@@ -31,6 +31,7 @@ public class StockMovementService : IStockMovementService
             m.Usuario?.Nombre ?? $"#{m.UsuarioId}",
             m.UsuarioId,
             m.TipoMovimiento,
+            m.Origen,
             m.MaterialId,
             m.Material?.Name ?? $"#{m.MaterialId}",
             m.Cantidad,

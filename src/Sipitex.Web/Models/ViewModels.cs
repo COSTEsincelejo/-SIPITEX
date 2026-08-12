@@ -34,6 +34,7 @@ public class CreateMaterialForm
     public string Name { get; set; } = string.Empty;
     public decimal Stock { get; set; }
     public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
+    public StockEntryOrigin Origen { get; set; } = StockEntryOrigin.Compra;
 }
 
 // Formulario para pedir material a bodega
@@ -44,11 +45,21 @@ public class CreateRequestForm
     public decimal Quantity { get; set; }
 }
 
-// Ajuste manual de stock (bodeguero/admin)
+// Ajuste manual de stock (bodeguero/admin); Origen requerido si sube el stock
 public class AdjustStockForm
 {
     public int MaterialId { get; set; }
     public decimal NewStock { get; set; }
+    public StockEntryOrigin? Origen { get; set; }
+}
+
+// Edición de metadatos de material (solo Administrador)
+public class EditMaterialForm
+{
+    public int MaterialId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public MaterialUnit Unit { get; set; }
+    public decimal MinStock { get; set; }
 }
 
 // Pantalla de órdenes de producción

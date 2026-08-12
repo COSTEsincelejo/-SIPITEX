@@ -17,6 +17,9 @@ public class StockMovement
 
     public StockMovementType TipoMovimiento { get; set; }
 
+    // Origen de la entrada (compra/devolución/otra). Null en salidas, aprobaciones y ajustes a la baja.
+    public StockEntryOrigin? Origen { get; set; }
+
     // Magnitud del movimiento (siempre >= 0)
     public decimal Cantidad { get; set; }
 
