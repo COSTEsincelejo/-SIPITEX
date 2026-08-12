@@ -32,6 +32,11 @@ public static class PermissionRules
         || user.IsInRole(UserRoles.Bodeguero)
         || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.MrpGestionarFichas));
 
+    // Crear órdenes: Admin o Instructor con Ordenes.Crear (gap #7). Bodeguero no crea órdenes.
+    public static bool PuedeCrearOrdenes(ClaimsPrincipal user) =>
+        user.IsInRole(UserRoles.Administrador)
+        || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.OrdenesCrear));
+
     // Alertas: admin o cualquier rol con claim AlertasConfigurar
     public static bool PuedeConfigurarAlertas(ClaimsPrincipal user) =>
         user.IsInRole(UserRoles.Administrador)

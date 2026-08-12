@@ -26,6 +26,10 @@ public static class SipitexAuthorizationExtensions
         options.AddPolicy(AuthorizationPolicyNames.PuedeGestionarFichasTecnicas,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeGestionarFichasTecnicas(ctx.User)));
 
+        // Quién puede crear órdenes de producción (Admin o Instructor con Ordenes.Crear)
+        options.AddPolicy(AuthorizationPolicyNames.PuedeCrearOrdenes,
+            policy => policy.RequireAssertion(ctx => PermissionRules.PuedeCrearOrdenes(ctx.User)));
+
         // Quién puede disparar la evaluación manual de alertas
         options.AddPolicy(AuthorizationPolicyNames.PuedeConfigurarAlertas,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeConfigurarAlertas(ctx.User)));

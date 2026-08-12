@@ -43,7 +43,7 @@ public static class FuncionalidadesCatalog
             $"{UserRoles.Administrador}, {UserRoles.Bodeguero}, {UserRoles.Instructor}"),
         new("Órdenes de producción", "Crear orden",
             "Registra una nueva orden de producción con producto y cantidades. Al crear queda EnProceso (aprobación implícita; no hay acción aparte de aprobar).",
-            UserRoles.Administrador),
+            $"{UserRoles.Administrador} (+ permiso extendido Ordenes.Crear para Instructor)"),
         new("Órdenes de producción", "Editar orden",
             "Modifica producto, cantidad, fecha límite y cliente; cada campo cambia genera OrderChangeLog.",
             UserRoles.Administrador),

@@ -75,7 +75,13 @@ public record ProductionOrderDto(
     int CombinedProgressPercent = 0);
 
 // Alta de orden nueva
-public record CreateProductionOrderDto(string ProductName, int TotalQuantity, DateOnly Deadline, string? ClientName = null);
+public record CreateProductionOrderDto(
+    string ProductName,
+    int TotalQuantity,
+    DateOnly Deadline,
+    string? ClientName = null,
+    // Si lo crea un Instructor, se asigna como responsable en etapas MES (visible vía scope gap #12/#7)
+    int? ResponsibleInstructorUserId = null);
 
 // Edición de los mismos campos de Create (gap #2)
 public record UpdateProductionOrderDto(

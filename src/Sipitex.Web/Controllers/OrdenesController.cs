@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Sipitex.Application.Authorization;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
@@ -139,13 +140,26 @@ public class OrdenesController : Controller
         return RedirectToAction(nameof(Detail), new { id });
     }
 
-    [Authorize(Roles = UserRoles.Administrador)]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeCrearOrdenes)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind(Prefix = "CreateOrder")] CreateOrderForm form, CancellationToken cancellationToken)
     {
+        int? responsibleInstructorId = null;
+        if (User.IsInRole(UserRoles.Instructor)
+            && !User.IsInRole(UserRoles.Administrador)
+            && TryGetUserId(out var instructorId))
+        {
+            responsibleInstructorId = instructorId;
+        }
+
         var result = await _orderService.CreateOrderAsync(
-            new CreateProductionOrderDto(form.ProductName, form.TotalQuantity, form.Deadline, form.ClientName),
+            new CreateProductionOrderDto(
+                form.ProductName,
+                form.TotalQuantity,
+                form.Deadline,
+                form.ClientName,
+                responsibleInstructorId),
             cancellationToken);
 
         TempData["Message"] = result.Message ?? (result.Success ? "Orden creada." : "Error al crear orden.");

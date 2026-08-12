@@ -135,6 +135,20 @@ public class ProductionOrderService : IProductionOrderService
         // Inicializa flujo MES (plantilla del producto o default) — no altera BOM/MRP
         await _flowService.EnsureStagesForOrderAsync(order.Id, "Sistema", cancellationToken);
 
+        // Instructor creador: responsable en todas las etapas (compatible con filtro de alcance por InstructorUserId)
+        if (dto.ResponsibleInstructorUserId is int instructorId && instructorId > 0)
+        {
+            var stages = await _flowRepository.GetStagesByOrderAsync(order.Id, cancellationToken);
+            foreach (var stage in stages)
+            {
+                stage.InstructorUserId = instructorId;
+                _flowRepository.UpdateStage(stage);
+            }
+
+            if (stages.Count > 0)
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
         return ServiceResult.Ok($"Orden {orderNumber} creada.");
     }
 

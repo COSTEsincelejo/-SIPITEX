@@ -1,8 +1,10 @@
 @model OrdenesIndexViewModel
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = "Órdenes de producción";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Órdenes de producción";
     Layout = "_Layout";
+    var puedeCrear = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeCrearOrdenes)).Succeeded;
 }
 
 <div class="page-header">
@@ -17,8 +19,8 @@
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
-@* Solo el admin puede crear órdenes nuevas *@
-@if (User.IsInRole("Administrador"))
+@* Admin o Instructor con Ordenes.Crear *@
+@if (puedeCrear)
 {
 <div class="card">
     <div class="card-title"><i class="fas fa-clipboard-list"></i> Crear orden de producción</div>
