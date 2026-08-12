@@ -72,7 +72,11 @@ public record ProductionOrderDto(
     string? ClientName = null,
     string? CurrentStageName = null,
     int FlowProgressPercent = 0,
-    int CombinedProgressPercent = 0);
+    int CombinedProgressPercent = 0,
+    // Viewer: preparar materiales (BomProductInstructor ∪ etapa MES). Default true p/ Admin listados sin viewer.
+    bool CanManageMaterials = true,
+    // Viewer: producción/MES (CanAccessOrderAsync). Default true.
+    bool CanOperateProduction = true);
 
 // Alta de orden nueva
 public record CreateProductionOrderDto(

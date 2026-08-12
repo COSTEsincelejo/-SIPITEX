@@ -58,8 +58,13 @@ public class OrdenesController : Controller
     public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
     {
         var (userId, role, name) = GetActor();
-        if (!await _orderService.CanAccessOrderAsync(
-                id, userId > 0 ? userId : null, role, name, cancellationToken))
+        var canOperateProduction = await _orderService.CanAccessOrderAsync(
+            id, userId > 0 ? userId : null, role, name, cancellationToken);
+        var materialsAuth = await _orderService.AuthorizeOrderMaterialsAsync(
+            id, userId > 0 ? userId : null, role, cancellationToken);
+        var canManageMaterials = materialsAuth.Success;
+
+        if (!canOperateProduction && !canManageMaterials)
             return Forbid();
 
         var mes = await _flowService.GetMesDetailAsync(id, userId, role, cancellationToken);
@@ -73,6 +78,8 @@ public class OrdenesController : Controller
             Instructors = instructors.Where(u => u.Rol == UserRoles.Instructor && u.IsActive).ToList(),
             AddMaterial = new AddOrderMaterialForm { OrderId = id, QuantityRequired = 1 },
             ChangeLogs = await _orderService.GetChangeLogAsync(id, cancellationToken),
+            CanManageMaterials = canManageMaterials,
+            CanOperateProduction = canOperateProduction,
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -212,10 +219,15 @@ public class OrdenesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddMaterial([Bind(Prefix = "AddMaterial")] AddOrderMaterialForm form, CancellationToken cancellationToken)
     {
-        var (userId, role, name) = GetActor();
-        if (!await _orderService.CanAccessOrderAsync(
-                form.OrderId, userId > 0 ? userId : null, role, name, cancellationToken))
-            return Forbid();
+        var (userId, role, _) = GetActor();
+        var auth = await _orderService.AuthorizeOrderMaterialsAsync(
+            form.OrderId, userId > 0 ? userId : null, role, cancellationToken);
+        if (!auth.Success)
+        {
+            TempData["Message"] = auth.Message;
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Detail), new { id = form.OrderId });
+        }
 
         var result = await _orderMaterialService.AddMaterialAsync(
             new AddOrderMaterialDto(form.OrderId, form.MaterialId, form.QuantityRequired, form.Observations),
@@ -230,6 +242,16 @@ public class OrdenesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveMaterial(int lineId, int orderId, CancellationToken cancellationToken)
     {
+        var (userId, role, _) = GetActor();
+        var auth = await _orderService.AuthorizeOrderMaterialsAsync(
+            orderId, userId > 0 ? userId : null, role, cancellationToken);
+        if (!auth.Success)
+        {
+            TempData["Message"] = auth.Message;
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Detail), new { id = orderId });
+        }
+
         var result = await _orderMaterialService.RemoveMaterialAsync(lineId, cancellationToken);
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
@@ -241,6 +263,16 @@ public class OrdenesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ImportBomMaterials(int id, CancellationToken cancellationToken)
     {
+        var (userId, role, _) = GetActor();
+        var auth = await _orderService.AuthorizeOrderMaterialsAsync(
+            id, userId > 0 ? userId : null, role, cancellationToken);
+        if (!auth.Success)
+        {
+            TempData["Message"] = auth.Message;
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+
         var result = await _orderMaterialService.ImportFromBomAsync(id, cancellationToken);
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;

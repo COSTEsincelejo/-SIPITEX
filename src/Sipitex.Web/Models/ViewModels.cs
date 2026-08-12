@@ -371,6 +371,8 @@ public class OrdenMesDetailViewModel
     public IReadOnlyList<Sipitex.Domain.Entities.User> Instructors { get; set; } = [];
     public AddOrderMaterialForm AddMaterial { get; set; } = new();
     public IReadOnlyList<OrderChangeLogDto> ChangeLogs { get; set; } = [];
+    public bool CanManageMaterials { get; set; }
+    public bool CanOperateProduction { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
