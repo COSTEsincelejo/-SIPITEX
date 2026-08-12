@@ -1,6 +1,7 @@
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
@@ -8,47 +9,56 @@ namespace Sipitex.Application.Services;
 // KPIs del dashboard principal
 public class StatisticsService : IStatisticsService
 {
-    private readonly IProductionOrderRepository _orderRepository;
+    private readonly IProductionOrderService _orderService;
     private readonly IMaterialRepository _materialRepository;
     private readonly IQualityRepository _qualityRepository;
 
     public StatisticsService(
-        IProductionOrderRepository orderRepository,
+        IProductionOrderService orderService,
         IMaterialRepository materialRepository,
         IQualityRepository qualityRepository)
     {
-        _orderRepository = orderRepository;
+        _orderService = orderService;
         _materialRepository = materialRepository;
         _qualityRepository = qualityRepository;
     }
 
-    // Junta datos de órdenes, inventario y calidad para el home
-    public async Task<DashboardKpiDto> GetDashboardAsync(CancellationToken cancellationToken = default)
+    // Junta datos de órdenes, inventario y calidad para el home.
+    // Instructor: órdenes/calidad acotadas (GetOrdersAsync). Materiales: sin filtro por instructor
+    // (igual que ReportService.ExportDashboardAsync con InstructorId).
+    public async Task<DashboardKpiDto> GetDashboardAsync(
+        int? viewerUserId = null,
+        string? viewerRole = null,
+        string? viewerName = null,
+        CancellationToken cancellationToken = default)
     {
-        // Query de órdenes de producción
-        var orders = await _orderRepository.GetAllAsync(cancellationToken);
-        // Query de materiales para stock bajo
-        var materials = await _materialRepository.GetAllAsync(cancellationToken);
-        // Query de inspecciones de calidad
-        var quality = await _qualityRepository.GetAllAsync(cancellationToken);
+        var orders = await _orderService.GetOrdersAsync(
+            viewerUserId, viewerRole, viewerName, cancellationToken);
+        var orderIds = orders.Select(o => o.Id).ToHashSet();
 
-        // Total de unidades producidas en todas las órdenes
+        var materials = await _materialRepository.GetAllAsync(cancellationToken);
+        var qualityAll = await _qualityRepository.GetAllAsync(cancellationToken);
+
+        IEnumerable<QualityRecord> quality = qualityAll;
+        if (IsInstructorViewer(viewerRole, viewerUserId))
+            quality = qualityAll.Where(q => orderIds.Contains(q.ProductionOrderId));
+
         var totalProduced = orders.Sum(o => o.ProducedQuantity);
-        // Unidades aprobadas en inspección
         var approved = quality.Where(q => q.Result == QualityResult.Aprobada).Sum(q => q.UnitsInspected);
-        // Todas las unidades que pasaron por inspección
         var inspected = quality.Sum(q => q.UnitsInspected);
-        // Tasa de calidad en porcentaje (0 si no hubo inspecciones)
         var qualityRate = inspected > 0 ? Math.Round(approved * 100m / inspected, 1) : 0;
-        // Órdenes que siguen activas (no finalizadas ni canceladas)
-        var activeOrders = orders.Count(o => o.Status != OrderStatus.Finalizada && o.Status != OrderStatus.Cancelada);
-        // Materiales bajo mínimo
+        var activeOrders = orders.Count(o =>
+            o.Status != OrderStatus.Finalizada && o.Status != OrderStatus.Cancelada);
         var lowStock = materials.Count(m => m.Stock < m.MinStock);
 
-        // Datos para el gráfico de barras (producido vs meta por orden)
-        var chart = orders.Select(o => new ChartBarDto(o.OrderNumber, o.ProducedQuantity, o.TotalQuantity)).ToList();
+        var chart = orders
+            .Select(o => new ChartBarDto(o.OrderNumber, o.ProducedQuantity, o.TotalQuantity))
+            .ToList();
 
-        // Empaqueto todo en un solo DTO para la vista del dashboard
         return new DashboardKpiDto(totalProduced, qualityRate, activeOrders, lowStock, chart);
     }
+
+    private static bool IsInstructorViewer(string? viewerRole, int? viewerUserId) =>
+        viewerUserId is > 0
+        && string.Equals(viewerRole, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase);
 }
