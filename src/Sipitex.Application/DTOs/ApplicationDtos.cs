@@ -294,6 +294,7 @@ public record DashboardKpiDto(
     int TotalProduced,
     decimal QualityRate,
     int ActiveOrders,
+    int PendingApprovalOrders,
     int LowStockCount,
     IReadOnlyList<ChartBarDto> ChartData);
 

@@ -157,7 +157,7 @@ public class ProductionFlowService : IProductionFlowService
                           ?? stages.FirstOrDefault(s => s.Status != ProductionStageStatus.Finalizado)?.Name;
 
         var canManage = string.Equals(actorRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase)
-                        && order.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada);
+                        && order.Status == OrderStatus.EnProceso;
 
         var mrp = await BuildMrpHintAsync(order, cancellationToken);
 
@@ -623,6 +623,9 @@ public class ProductionFlowService : IProductionFlowService
 
     private static ServiceResult? RejectIfOrderClosed(ProductionOrder order)
     {
+        if (order.Status == OrderStatus.Pendiente)
+            return ServiceResult.Fail(
+                "La orden está pendiente de aprobación del Administrador y no admite operaciones MES.");
         if (order.Status == OrderStatus.Cancelada)
             return ServiceResult.Fail("La orden está cancelada y no admite más operaciones.");
         if (order.Status == OrderStatus.Finalizada)

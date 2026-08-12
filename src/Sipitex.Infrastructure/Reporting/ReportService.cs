@@ -147,6 +147,7 @@ public class ReportService : IReportService
                 new[] { "Prendas producidas", dash.TotalProduced.ToString(), "", "", "" },
                 new[] { "Tasa de calidad", $"{dash.QualityRate}%", "", "", "" },
                 new[] { "Órdenes activas", dash.ActiveOrders.ToString(), "", "", "" },
+                new[] { "Pendientes de aprobación", dash.PendingApprovalOrders.ToString(), "", "", "" },
                 new[] { "Materiales bajo mínimo", dash.LowStockCount.ToString(), "", "", "" }
             };
             rowsFull.AddRange(dash.ChartData.Select(c => new[] { "Orden", c.Label, c.Produced.ToString(), c.Target.ToString(), "" }));
@@ -175,7 +176,8 @@ public class ReportService : IReportService
         var approved = quality.Where(q => q.Result == QualityResult.Aprobada).Sum(q => q.UnitsInspected);
         var inspected = quality.Sum(q => q.UnitsInspected);
         var qualityRate = inspected > 0 ? Math.Round(approved * 100m / inspected, 1) : 0;
-        var activeOrders = orders.Count(o => o.Status != OrderStatus.Finalizada && o.Status != OrderStatus.Cancelada);
+        var activeOrders = orders.Count(o => o.Status == OrderStatus.EnProceso);
+        var pendingApproval = orders.Count(o => o.Status == OrderStatus.Pendiente);
         var lowStock = materials.Count(m => m.Stock < m.MinStock);
 
         var rows = new List<string[]>
@@ -183,6 +185,7 @@ public class ReportService : IReportService
             new[] { "Prendas producidas", totalProduced.ToString(), "", "", "" },
             new[] { "Tasa de calidad", $"{qualityRate}%", "", "", "" },
             new[] { "Órdenes activas", activeOrders.ToString(), "", "", "" },
+            new[] { "Pendientes de aprobación", pendingApproval.ToString(), "", "", "" },
             new[] { "Materiales bajo mínimo", lowStock.ToString(), "", "", "" }
         };
         rows.AddRange(orders.Select(o => new[]

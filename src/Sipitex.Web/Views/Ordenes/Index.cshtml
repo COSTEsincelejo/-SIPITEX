@@ -96,8 +96,19 @@
                     <td><span class="badge @DisplayHelper.BadgeClass(order.MaterialsStatus)">@DisplayHelper.StatusText(order.MaterialsStatus)</span></td>
                     <td><small style="color:var(--text-mut);">@order.MrpHint</small></td>
                     <td>
-                        @* Campo libre: sumar N unidades (mín. 1) si la orden no está finalizada/cancelada y materiales listos *@
-                        @if (order.Status is not (OrderStatus.Finalizada or OrderStatus.Cancelada) && order.CanRegisterProduction)
+                        @if (order.Status == OrderStatus.Pendiente)
+                        {
+                            <span class="hint">Pendiente aprobación</span>
+                            @if (User.IsInRole("Administrador"))
+                            {
+                                <form asp-action="Approve" method="post" class="row-actions" style="margin-top:4px;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@order.Id" />
+                                    <button type="submit" class="small primary">Aprobar</button>
+                                </form>
+                            }
+                        }
+                        else if (order.Status is not (OrderStatus.Finalizada or OrderStatus.Cancelada) && order.CanRegisterProduction)
                         {
                             <form asp-action="AddProduction" method="post" class="row-actions">
                                 @Html.AntiForgeryToken()

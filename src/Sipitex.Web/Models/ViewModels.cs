@@ -314,7 +314,7 @@ public class CreateQualityForm
 // Dashboard de KPIs (estadísticas)
 public class EstadisticasIndexViewModel
 {
-    public DashboardKpiDto Dashboard { get; set; } = new(0, 0, 0, 0, []);
+    public DashboardKpiDto Dashboard { get; set; } = new(0, 0, 0, 0, 0, []);
 }
 
 // Preferencias de alertas por correo

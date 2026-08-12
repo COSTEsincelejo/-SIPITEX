@@ -4,7 +4,8 @@
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Bodega · Órdenes / Detalle";
     Layout = "_Layout";
     var d = Model.Detail;
-    var puedeEntregar = d.MaterialsStatus is OrderMaterialsStatus.PendienteRevisionBodega
+    var puedeEntregar = d.Status == OrderStatus.EnProceso
+        && d.MaterialsStatus is OrderMaterialsStatus.PendienteRevisionBodega
         or OrderMaterialsStatus.MaterialesValidados
         or OrderMaterialsStatus.EntregaParcial;
 }
@@ -45,7 +46,14 @@
 
     @if (!puedeEntregar)
     {
-        <p class="hint">Esta orden ya no admite entregas (completa o cerrada).</p>
+        @if (d.Status == OrderStatus.Pendiente)
+        {
+            <p class="hint">Orden pendiente de aprobación: se pueden asociar materiales, pero la entrega física solo es posible tras aprobar.</p>
+        }
+        else
+        {
+            <p class="hint">Esta orden ya no admite entregas (completa o cerrada).</p>
+        }
         <div class="table-wrap">
             <table>
                 <thead><tr><th>Material</th><th>Requerido</th><th>Entregado</th><th>Pendiente</th><th>Stock</th><th>Estado</th></tr></thead>

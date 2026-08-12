@@ -42,8 +42,11 @@ public static class FuncionalidadesCatalog
             "Muestra órdenes OP con meta, avance, estado y fecha límite.",
             $"{UserRoles.Administrador}, {UserRoles.Bodeguero}, {UserRoles.Instructor}"),
         new("Órdenes de producción", "Crear orden",
-            "Registra una nueva orden de producción con producto y cantidades. Al crear queda EnProceso (aprobación implícita; no hay acción aparte de aprobar).",
+            "Registra una nueva orden de producción con producto y cantidades. Al crear queda Pendiente hasta que el Administrador la apruebe.",
             $"{UserRoles.Administrador} (+ permiso extendido Ordenes.Crear para Instructor)"),
+        new("Órdenes de producción", "Aprobar orden",
+            "Pasa una orden de Pendiente a EnProceso; habilita producción, MES y entrega física de materiales.",
+            UserRoles.Administrador),
         new("Órdenes de producción", "Editar orden",
             "Modifica producto, cantidad, fecha límite y cliente; cada campo cambia genera OrderChangeLog.",
             UserRoles.Administrador),
@@ -51,7 +54,7 @@ public static class FuncionalidadesCatalog
             "Pasa la orden a Cancelada sin revertir stock ni generar movimientos de inventario.",
             UserRoles.Administrador),
         new("Órdenes de producción", "Registrar avance",
-            "Suma unidades producidas a una orden activa.",
+            "Suma unidades producidas a una orden en proceso (aprobada).",
             $"{UserRoles.Administrador}, {UserRoles.Instructor}"),
 
         // --- MRP ---

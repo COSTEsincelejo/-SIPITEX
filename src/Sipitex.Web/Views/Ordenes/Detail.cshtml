@@ -7,6 +7,8 @@
     var canManage = m.CanManageFlow;
     var canOperate = (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
                      && m.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada);
+    var canOperateMes = canOperate && m.Status == OrderStatus.EnProceso;
+    var canPrepareMaterials = canOperate; // Add/Import OK en Pendiente; Deliver se bloquea en servicio/bodega
 }
 
 <div class="page-header">
@@ -19,6 +21,14 @@
         </div>
     </div>
     <div class="row-actions">
+        @if (User.IsInRole("Administrador") && m.Status == OrderStatus.Pendiente)
+        {
+            <form asp-action="Approve" method="post" onsubmit="return confirm('¿Aprobar esta orden e iniciar producción/MES?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@m.OrderId" />
+                <button type="submit" class="primary"><i class="fas fa-check"></i> Aprobar orden</button>
+            </form>
+        }
         @if (User.IsInRole("Administrador") && m.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada))
         {
             <a class="ghost" asp-action="Edit" asp-route-id="@m.OrderId"><i class="fas fa-pen"></i> Editar</a>
@@ -54,6 +64,13 @@
     </div>
     <div style="margin-top:10px;"><span class="field-label">MRP</span><br /><small style="color:var(--text-mut);">@m.MrpHint</small></div>
 </div>
+
+@if (m.Status == OrderStatus.Pendiente)
+{
+    <div class="card">
+        <p class="hint"><i class="fas fa-hourglass-half"></i> Orden pendiente de aprobación: se pueden preparar materiales (añadir/importar BOM), pero no hay producción, MES ni entrega física hasta que el Administrador apruebe.</p>
+    </div>
+}
 
 @if (m.Status == OrderStatus.Cancelada)
 {
@@ -155,7 +172,7 @@
                     <td>@s.QuantitySent</td>
                     <td>@s.QuantityAvailable</td>
                     <td>
-                        @if (canOperate && s.Status != ProductionStageStatus.Finalizado)
+                        @if (canOperateMes && s.Status != ProductionStageStatus.Finalizado)
                         {
                             <div class="row-actions" style="justify-content:flex-start;">
                                 @if (s.Status == ProductionStageStatus.Pendiente)
@@ -258,7 +275,7 @@
 
 <div class="card">
     <div class="card-title"><i class="fas fa-boxes-stacked"></i> Materiales de la orden</div>
-    @if (canOperate && m.Status != OrderStatus.Finalizada)
+    @if (canPrepareMaterials && m.Status != OrderStatus.Finalizada)
     {
         <form asp-action="AddMaterial" method="post" class="form-row" style="align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
             @Html.AntiForgeryToken()

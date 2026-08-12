@@ -145,7 +145,7 @@ public class ProductionOrderService : IProductionOrderService
             ClientName = string.IsNullOrWhiteSpace(dto.ClientName) ? null : dto.ClientName.Trim(),
             TotalQuantity = dto.TotalQuantity,
             ProducedQuantity = 0,
-            Status = OrderStatus.EnProceso,
+            Status = OrderStatus.Pendiente,
             MaterialsStatus = OrderMaterialsStatus.NoAplica,
             Deadline = dto.Deadline
         };
@@ -183,7 +183,47 @@ public class ProductionOrderService : IProductionOrderService
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
-        return ServiceResult.Ok($"Orden {orderNumber} creada.");
+        return ServiceResult.Ok($"Orden {orderNumber} creada (pendiente de aprobación).");
+    }
+
+    // Administrador: Pendiente → EnProceso (sin pasos adicionales sobre MES/materiales)
+    public async Task<ServiceResult> ApproveOrderAsync(
+        int orderId,
+        int actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        if (actorUserId <= 0)
+            return ServiceResult.Fail("Usuario responsable no válido.");
+
+        var order = await _orderRepository.GetByIdAsync(orderId, cancellationToken);
+        if (order is null)
+            return ServiceResult.Fail("Orden no encontrada.");
+
+        if (order.Status != OrderStatus.Pendiente)
+            return ServiceResult.Fail(
+                order.Status == OrderStatus.EnProceso
+                    ? "La orden ya está aprobada y en proceso."
+                    : $"No se puede aprobar una orden en estado {order.Status}.");
+
+        var previous = order.Status.ToString();
+        order.Status = OrderStatus.EnProceso;
+        _orderRepository.Update(order);
+
+        await _changeLogs.AddRangeAsync(
+        [
+            new OrderChangeLog
+            {
+                ProductionOrderId = order.Id,
+                UsuarioId = actorUserId,
+                FechaUtc = DateTime.UtcNow,
+                Campo = nameof(ProductionOrder.Status),
+                ValorAnterior = previous,
+                ValorNuevo = OrderStatus.EnProceso.ToString()
+            }
+        ], cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok($"Orden {order.OrderNumber} aprobada. Ya puede iniciar producción y MES.");
     }
 
     // Gap #2: editar campos de Create; un OrderChangeLog por campo modificado
@@ -337,6 +377,8 @@ public class ProductionOrderService : IProductionOrderService
         var order = await _orderRepository.GetByIdAsync(orderId, cancellationToken);
         if (order is null)
             return ServiceResult.Fail("Orden no encontrada.");
+        if (order.Status == OrderStatus.Pendiente)
+            return ServiceResult.Fail("La orden está pendiente de aprobación del Administrador.");
         if (order.Status is OrderStatus.Finalizada or OrderStatus.Cancelada)
             return ServiceResult.Fail("Orden finalizada o cancelada.");
 

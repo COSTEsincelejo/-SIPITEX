@@ -23,8 +23,8 @@ public class ProductionOrder
     // Avance acumulado (se suma al registrar sesiones/producción)
     public int ProducedQuantity { get; set; }
 
-    // Estado actual; arranca EnProceso
-    public OrderStatus Status { get; set; } = OrderStatus.EnProceso;
+    // Estado actual; nace Pendiente hasta aprobación del Administrador
+    public OrderStatus Status { get; set; } = OrderStatus.Pendiente;
 
     // Flujo de materiales de bodega (NoAplica si la orden no asocia insumos)
     public OrderMaterialsStatus MaterialsStatus { get; set; } = OrderMaterialsStatus.NoAplica;

@@ -78,8 +78,12 @@ public class ProductionOrderServiceTests
 
         Assert.True(result.Success);
         Assert.Contains("OP-", result.Message);
+        Assert.Contains("pendiente", result.Message, StringComparison.OrdinalIgnoreCase);
         _orders.Verify(r => r.AddAsync(
-            It.Is<ProductionOrder>(o => o.ProductName == "Camisa" && o.TotalQuantity == 50),
+            It.Is<ProductionOrder>(o =>
+                o.ProductName == "Camisa"
+                && o.TotalQuantity == 50
+                && o.Status == OrderStatus.Pendiente),
             It.IsAny<CancellationToken>()), Times.Once);
         _snapshots.Verify(r => r.AddRangeAsync(It.IsAny<IEnumerable<ProductionOrderBomSnapshot>>(), It.IsAny<CancellationToken>()), Times.Once);
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));

@@ -131,6 +131,24 @@ public class OrdenesController : Controller
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Approve(int id, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var actorId))
+        {
+            TempData["Message"] = "Sesión no válida.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+
+        var result = await _orderService.ApproveOrderAsync(id, actorId, cancellationToken);
+        TempData["Message"] = result.Message;
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Detail), new { id });
+    }
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(int id, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var actorId))
