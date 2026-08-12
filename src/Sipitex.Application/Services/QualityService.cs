@@ -12,25 +12,41 @@ public class QualityService : IQualityService
 {
     private readonly IQualityRepository _qualityRepository;
     private readonly IProductionOrderRepository _orderRepository;
+    private readonly IProductionOrderService _orderService;
     private readonly IUnitOfWork _unitOfWork;
 
     public QualityService(
         IQualityRepository qualityRepository,
         IProductionOrderRepository orderRepository,
+        IProductionOrderService orderService,
         IUnitOfWork unitOfWork)
     {
         _qualityRepository = qualityRepository;
         _orderRepository = orderRepository;
+        _orderService = orderService;
         _unitOfWork = unitOfWork;
     }
 
-    // Lista de inspecciones, las más recientes primero
-    public async Task<IReadOnlyList<QualityRecordDto>> GetRecordsAsync(CancellationToken cancellationToken = default)
+    // Lista de inspecciones, las más recientes primero (Instructor: solo órdenes asignadas)
+    public async Task<IReadOnlyList<QualityRecordDto>> GetRecordsAsync(
+        int? viewerUserId = null,
+        string? viewerRole = null,
+        string? viewerName = null,
+        CancellationToken cancellationToken = default)
     {
-        // Con esto traigo todas las inspecciones de BD
         var records = await _qualityRepository.GetAllAsync(cancellationToken);
-        // Ordeno por fecha descendente y mapeo a DTO
-        return records
+        var filtered = new List<QualityRecord>();
+
+        foreach (var r in records)
+        {
+            if (await _orderService.CanAccessOrderAsync(
+                    r.ProductionOrderId, viewerUserId, viewerRole, viewerName, cancellationToken))
+            {
+                filtered.Add(r);
+            }
+        }
+
+        return filtered
             .OrderByDescending(r => r.InspectionDate)
             .Select(r => new QualityRecordDto(
                 r.ProductionOrder.OrderNumber,
@@ -43,8 +59,17 @@ public class QualityService : IQualityService
     }
 
     // Guarda una inspección; si es reproceso pide motivo y responsable
-    public async Task<ServiceResult> AddRecordAsync(CreateQualityRecordDto dto, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult> AddRecordAsync(
+        CreateQualityRecordDto dto,
+        int? viewerUserId = null,
+        string? viewerRole = null,
+        string? viewerName = null,
+        CancellationToken cancellationToken = default)
     {
+        if (!await _orderService.CanAccessOrderAsync(
+                dto.ProductionOrderId, viewerUserId, viewerRole, viewerName, cancellationToken))
+            return ServiceResult.Fail("No tiene acceso a esta orden de producción.");
+
         // Acá reviso que la orden exista y las unidades sean válidas
         var order = await _orderRepository.GetByIdAsync(dto.ProductionOrderId, cancellationToken);
         if (order is null || dto.Units <= 0)

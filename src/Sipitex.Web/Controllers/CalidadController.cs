@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
@@ -26,19 +27,14 @@ public class CalidadController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        // Necesito las órdenes para el dropdown del form
-        var orders = await _orderService.GetOrdersAsync(cancellationToken);
-        // Armo el ViewModel de la pantalla completa
+        var (userId, role, name) = CurrentViewer();
+        // Instructor: solo órdenes asignadas (mismo alcance que PR #47)
+        var orders = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken);
         return View(new CalidadIndexViewModel
         {
-            // Historial de inspecciones
-            Records = await _qualityService.GetRecordsAsync(cancellationToken),
-            // Combo de órdenes de producción
+            Records = await _qualityService.GetRecordsAsync(userId, role, name, cancellationToken),
             Orders = orders,
-            // Form con la primera orden ya elegida
-            // Preselecciono la primera orden para que el combo no quede en cero
             Create = new CreateQualityForm { ProductionOrderId = orders.FirstOrDefault()?.Id ?? 0 },
-            // Mensaje del último POST
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -50,7 +46,10 @@ public class CalidadController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind(Prefix = "Create")] CreateQualityForm form, CancellationToken cancellationToken)
     {
-        // Mando el DTO al servicio para guardar la inspección
+        var (userId, role, name) = CurrentViewer();
+        if (!await _orderService.CanAccessOrderAsync(form.ProductionOrderId, userId, role, name, cancellationToken))
+            return Forbid();
+
         var result = await _qualityService.AddRecordAsync(
             new CreateQualityRecordDto(
                 form.ProductionOrderId,
@@ -58,12 +57,24 @@ public class CalidadController : Controller
                 form.Result,
                 form.MotivoReproceso,
                 form.Responsable),
+            userId,
+            role,
+            name,
             cancellationToken);
 
-        // Mensaje flash según resultado del servicio
         TempData["Message"] = result.Message ?? (result.Success ? "Inspección registrada." : "Error al registrar.");
         TempData["IsSuccess"] = result.Success;
-        // Vuelvo al listado para ver la nueva fila
         return RedirectToAction(nameof(Index));
+    }
+
+    private (int? UserId, string? Role, string? Name) CurrentViewer()
+    {
+        int? userId = null;
+        if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id))
+            userId = id;
+
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        var name = User.FindFirstValue(ClaimTypes.Name);
+        return (userId, role, name);
     }
 }

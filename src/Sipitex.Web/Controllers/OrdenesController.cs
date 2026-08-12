@@ -42,7 +42,7 @@ public class OrdenesController : Controller
     {
         return View(new OrdenesIndexViewModel
         {
-            Orders = await _orderService.GetOrdersAsync(cancellationToken),
+            Orders = await _orderService.GetOrdersAsync(cancellationToken: cancellationToken),
             ProductNames = await _bomCatalog.GetOrderEligibleProductNamesAsync(cancellationToken),
             CreateOrder = new CreateOrderForm(),
             Message = TempData["Message"] as string,
@@ -76,7 +76,7 @@ public class OrdenesController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
     {
-        var orders = await _orderService.GetOrdersAsync(cancellationToken);
+        var orders = await _orderService.GetOrdersAsync(cancellationToken: cancellationToken);
         var order = orders.FirstOrDefault(o => o.Id == id);
         if (order is null) return NotFound();
 

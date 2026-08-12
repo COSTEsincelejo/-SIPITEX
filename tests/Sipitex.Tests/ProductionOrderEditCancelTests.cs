@@ -25,6 +25,7 @@ public class ProductionOrderEditCancelTests
     private readonly Mock<IProductionFlowRepository> _flowRepo = new();
     private readonly Mock<IProductionFlowService> _flowService = new();
     private readonly Mock<IOrderChangeLogRepository> _changeLogs = new();
+    private readonly Mock<IFichaRepository> _fichas = new();
     private readonly Mock<IUnitOfWork> _uow = new();
     private readonly Mock<IMaterialRepository> _materials = new();
     private readonly Mock<IStockMovementRepository> _stockMovements = new();
@@ -37,7 +38,7 @@ public class ProductionOrderEditCancelTests
             .ReturnsAsync([]);
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object,
-            _flowRepo.Object, _flowService.Object, _changeLogs.Object, _uow.Object,
+            _flowRepo.Object, _flowService.Object, _changeLogs.Object, _fichas.Object, _uow.Object,
             new ProductionConsumptionService(_boms.Object, _materials.Object));
     }
 

@@ -136,7 +136,7 @@ public class BodegaOrdenesController : Controller
         int? orderId,
         CancellationToken cancellationToken)
     {
-        var orders = await _orderService.GetOrdersAsync(cancellationToken);
+        var orders = await _orderService.GetOrdersAsync(cancellationToken: cancellationToken);
         var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
         IReadOnlyList<OrderStageDto> stages = [];
 

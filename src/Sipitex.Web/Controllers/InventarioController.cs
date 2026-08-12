@@ -212,7 +212,7 @@ public class InventarioController : Controller
         // Lista de materiales para la tabla principal
         var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
         // Órdenes para el dropdown al crear solicitud
-        var orders = await _orderService.GetOrdersAsync(cancellationToken);
+        var orders = await _orderService.GetOrdersAsync(cancellationToken: cancellationToken);
 
         // Objeto que la vista Razor consume
         return new InventarioIndexViewModel

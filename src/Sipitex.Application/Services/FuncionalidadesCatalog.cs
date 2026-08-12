@@ -106,10 +106,10 @@ public static class FuncionalidadesCatalog
 
         // --- Calidad ---
         new("Control de calidad", "Consultar inspecciones",
-            "Historial de inspecciones con resultado y motivo de reproceso.",
+            "Historial de inspecciones con resultado y motivo de reproceso. Instructor: solo órdenes asignadas.",
             $"{UserRoles.Administrador}, {UserRoles.Instructor}"),
         new("Control de calidad", "Registrar inspección",
-            "Registra unidades inspeccionadas y resultado (Aprobado / Reproceso).",
+            "Registra unidades inspeccionadas y resultado (Aprobado / Reproceso) sobre órdenes propias (Instructor) o todas (Admin).",
             $"{UserRoles.Administrador}, {UserRoles.Instructor}"),
 
         // --- Estadísticas ---
