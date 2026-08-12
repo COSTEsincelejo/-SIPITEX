@@ -6,6 +6,7 @@ using Sipitex.Application.DTOs; // ReportFileDto, ReportFilterDto
 using Sipitex.Application.Helpers; // UnitHelper, ReportFilterHelper
 using Sipitex.Application.Interfaces.Repositories; // Repos para sacar datos
 using Sipitex.Application.Interfaces.Services; // IReportService, IStatisticsService
+using Sipitex.Domain; // StockLevelRules
 using Sipitex.Domain.Enums; // Enums que salen en las columnas
 
 namespace Sipitex.Infrastructure.Reporting;
@@ -64,18 +65,23 @@ public class ReportService : IReportService
             .Where(m => ReportFilterHelper.MatchesDate(m.LastEntryDate, filter))
             .ToList();
 
-        var rows = filtered.Select(m => new[]
+        var rows = filtered.Select(m =>
         {
-            m.Name,
-            UnitHelper.ToDisplay(m.Unit),
-            m.Stock.ToString("0.##"),
-            m.MinStock.ToString("0.##"),
-            m.Status.ToString(),
-            m.LastEntryDate.ToString("yyyy-MM-dd"),
-            m.Stock < m.MinStock ? "Sí" : "No"
+            var level = StockLevelRules.Resolve(m.Stock, m.MinStock);
+            return new[]
+            {
+                m.Name,
+                UnitHelper.ToDisplay(m.Unit),
+                m.Stock.ToString("0.##"),
+                m.MinStock.ToString("0.##"),
+                m.Status.ToString(),
+                m.LastEntryDate.ToString("yyyy-MM-dd"),
+                StockLevelRules.IsLowStock(m.Stock, m.MinStock) ? "Sí" : "No",
+                level.ToString()
+            };
         }).ToList();
 
-        var headers = new[] { "Material", "Unidad", "Stock", "Mínimo", "Estado", "Última entrada", "Bajo mínimo" };
+        var headers = new[] { "Material", "Unidad", "Stock", "Mínimo", "Estado", "Última entrada", "Requiere atención", "Nivel" };
         return Build("Inventario", "Reporte de inventario SIPITEX", headers, rows, format, filter);
     }
 
@@ -148,7 +154,9 @@ public class ReportService : IReportService
                 new[] { "Tasa de calidad", $"{dash.QualityRate}%", "", "", "" },
                 new[] { "Órdenes activas", dash.ActiveOrders.ToString(), "", "", "" },
                 new[] { "Pendientes de aprobación", dash.PendingApprovalOrders.ToString(), "", "", "" },
-                new[] { "Materiales bajo mínimo", dash.LowStockCount.ToString(), "", "", "" }
+                new[] { "Materiales requieren atención", dash.LowStockCount.ToString(), "", "", "" },
+                new[] { "  · Crítico (sin existencias)", dash.CriticalStockCount.ToString(), "", "", "" },
+                new[] { "  · Bajo (bajo mínimo)", dash.BelowMinimumStockCount.ToString(), "", "", "" }
             };
             rowsFull.AddRange(dash.ChartData.Select(c => new[] { "Orden", c.Label, c.Produced.ToString(), c.Target.ToString(), "" }));
             var headersFull = new[] { "Indicador", "Valor / Orden", "Producido", "Meta", "" };
@@ -178,7 +186,9 @@ public class ReportService : IReportService
         var qualityRate = inspected > 0 ? Math.Round(approved * 100m / inspected, 1) : 0;
         var activeOrders = orders.Count(o => o.Status == OrderStatus.EnProceso);
         var pendingApproval = orders.Count(o => o.Status == OrderStatus.Pendiente);
-        var lowStock = materials.Count(m => m.Stock < m.MinStock);
+        var criticalStock = materials.Count(m => StockLevelRules.IsCritical(m.Stock, m.MinStock));
+        var belowMin = materials.Count(m => StockLevelRules.IsBelowMinimum(m.Stock, m.MinStock));
+        var lowStock = criticalStock + belowMin;
 
         var rows = new List<string[]>
         {
@@ -186,7 +196,9 @@ public class ReportService : IReportService
             new[] { "Tasa de calidad", $"{qualityRate}%", "", "", "" },
             new[] { "Órdenes activas", activeOrders.ToString(), "", "", "" },
             new[] { "Pendientes de aprobación", pendingApproval.ToString(), "", "", "" },
-            new[] { "Materiales bajo mínimo", lowStock.ToString(), "", "", "" }
+            new[] { "Materiales requieren atención", lowStock.ToString(), "", "", "" },
+            new[] { "  · Crítico (sin existencias)", criticalStock.ToString(), "", "", "" },
+            new[] { "  · Bajo (bajo mínimo)", belowMin.ToString(), "", "", "" }
         };
         rows.AddRange(orders.Select(o => new[]
         {

@@ -2,6 +2,7 @@ using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
@@ -230,18 +231,27 @@ public class AlertService : IAlertService
         // Fecha de hoy para comparar plazos
         var today = DateOnly.FromDateTime(DateTime.Today);
 
-        // --- Stock bajo mínimo ---
+        // --- Stock bajo mínimo / sin existencias (un solo AlertType.StockBajo, desglose en cuerpo) ---
         var materials = await _materialRepository.GetAllAsync(cancellationToken);
-        // Filtro los que están por debajo del mínimo
-        var low = materials.Where(m => m.Stock < m.MinStock).ToList();
-        if (low.Count > 0)
+        var attention = materials.Where(m => StockLevelRules.IsLowStock(m.Stock, m.MinStock)).ToList();
+        if (attention.Count > 0)
         {
-            // Armo líneas de texto para el cuerpo del correo
-            var lines = string.Join("\n", low.Select(m => $"- {m.Name}: {m.Stock:0.##}/{m.MinStock:0.##}"));
+            var critical = attention.Where(m => StockLevelRules.IsCritical(m.Stock, m.MinStock)).ToList();
+            var below = attention.Where(m => StockLevelRules.IsBelowMinimum(m.Stock, m.MinStock)).ToList();
+
+            static string FormatLines(IEnumerable<Material> list) =>
+                string.Join("\n", list.Select(m => $"- {m.Name}: {m.Stock:0.##}/{m.MinStock:0.##}"));
+
+            var bodyParts = new List<string>();
+            if (critical.Count > 0)
+                bodyParts.Add($"Crítico (sin existencias) — {critical.Count}:\n{FormatLines(critical)}");
+            if (below.Count > 0)
+                bodyParts.Add($"Bajo (por debajo del mínimo) — {below.Count}:\n{FormatLines(below)}");
+
             events.Add(new AlertEvent(
                 AlertType.StockBajo,
-                $"SIPITEX · {low.Count} material(es) bajo mínimo",
-                $"Se detectó stock bajo:\n{lines}\n\nRevise Inventario."));
+                $"SIPITEX · {attention.Count} material(es) requieren atención de stock",
+                $"{string.Join("\n\n", bodyParts)}\n\nRevise Inventario."));
         }
 
         // --- Solicitudes de material sin aprobar ---

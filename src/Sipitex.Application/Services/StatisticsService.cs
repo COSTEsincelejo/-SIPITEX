@@ -1,6 +1,7 @@
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
@@ -49,13 +50,23 @@ public class StatisticsService : IStatisticsService
         var qualityRate = inspected > 0 ? Math.Round(approved * 100m / inspected, 1) : 0;
         var activeOrders = orders.Count(o => o.Status == OrderStatus.EnProceso);
         var pendingApproval = orders.Count(o => o.Status == OrderStatus.Pendiente);
-        var lowStock = materials.Count(m => m.Stock < m.MinStock);
+        var criticalStock = materials.Count(m => StockLevelRules.IsCritical(m.Stock, m.MinStock));
+        var belowMin = materials.Count(m => StockLevelRules.IsBelowMinimum(m.Stock, m.MinStock));
+        var lowStock = criticalStock + belowMin; // == IsLowStock total
 
         var chart = orders
             .Select(o => new ChartBarDto(o.OrderNumber, o.ProducedQuantity, o.TotalQuantity))
             .ToList();
 
-        return new DashboardKpiDto(totalProduced, qualityRate, activeOrders, pendingApproval, lowStock, chart);
+        return new DashboardKpiDto(
+            totalProduced,
+            qualityRate,
+            activeOrders,
+            pendingApproval,
+            lowStock,
+            chart,
+            criticalStock,
+            belowMin);
     }
 
     private static bool IsInstructorViewer(string? viewerRole, int? viewerUserId) =>
