@@ -107,6 +107,8 @@ public static class DbInitializer
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
         await EnsureBomProductsAndSnapshotsAsync(context);
+        // Fichas técnicas CMTC + materiales faltantes (Stock/MinStock 0); no toca Camisa/Pantalón
+        await CmtcBomCatalogSeed.EnsureAsync(context);
     }
 
     // BD antiguas: crea BomProduct por ProductName distinto y backfill de snapshots faltantes
