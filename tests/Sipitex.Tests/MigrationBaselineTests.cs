@@ -56,8 +56,8 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
             Assert.True(await TableExistsAsync(dbPath, "Users"));
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            // ... + AddProductionOrderMesFlow + AddStockMovements = 13
-            Assert.Equal(13, await CountMigrationRowsAsync(dbPath));
+            // ... + AddStockMovements + AddOrderChangeLogs = 14
+            Assert.Equal(14, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "DetallesSolicitudMaterial"));
@@ -67,6 +67,7 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "ProductionOrderStages"));
             Assert.True(await TableExistsAsync(dbPath, "ProductionOrderBomSnapshots"));
             Assert.True(await TableExistsAsync(dbPath, "StockMovements"));
+            Assert.True(await TableExistsAsync(dbPath, "OrderChangeLogs"));
         }
         finally
         {
@@ -105,12 +106,13 @@ public class MigrationBaselineTests
             }
 
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(13, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(14, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
             Assert.True(await TableExistsAsync(dbPath, "ProductionOrderMaterialRequirements"));
             Assert.True(await TableExistsAsync(dbPath, "StockMovements"));
+            Assert.True(await TableExistsAsync(dbPath, "OrderChangeLogs"));
 
             await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
             {
@@ -135,6 +137,7 @@ public class MigrationBaselineTests
                 Assert.Contains(ids, id => id.Contains("AddOrderMaterialRequirements", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddProductionOrderMesFlow", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddStockMovements", StringComparison.Ordinal));
+                Assert.Contains(ids, id => id.Contains("AddOrderChangeLogs", StringComparison.Ordinal));
             }
         }
         finally
@@ -155,7 +158,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(13, before);
+            Assert.Equal(14, before);
 
             await using (var context = CreateContext(dbPath))
             {

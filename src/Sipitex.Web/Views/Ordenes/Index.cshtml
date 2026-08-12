@@ -94,8 +94,8 @@
                     <td><span class="badge @DisplayHelper.BadgeClass(order.MaterialsStatus)">@DisplayHelper.StatusText(order.MaterialsStatus)</span></td>
                     <td><small style="color:var(--text-mut);">@order.MrpHint</small></td>
                     <td>
-                        @* Campo libre: sumar N unidades (mín. 1) si la orden no está finalizada y materiales listos *@
-                        @if (order.Status != OrderStatus.Finalizada && order.CanRegisterProduction)
+                        @* Campo libre: sumar N unidades (mín. 1) si la orden no está finalizada/cancelada y materiales listos *@
+                        @if (order.Status is not (OrderStatus.Finalizada or OrderStatus.Cancelada) && order.CanRegisterProduction)
                         {
                             <form asp-action="AddProduction" method="post" class="row-actions">
                                 @Html.AntiForgeryToken()
@@ -104,9 +104,19 @@
                                 <button type="submit" class="small ghost">+ uds</button>
                             </form>
                         }
+                        else if (order.Status == OrderStatus.Cancelada)
+                        {
+                            <span class="hint">Cancelada</span>
+                        }
                         else if (order.Status != OrderStatus.Finalizada && !order.CanRegisterProduction)
                         {
                             <span class="hint">Pendiente bodega</span>
+                        }
+                        @if (User.IsInRole("Administrador") && order.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada))
+                        {
+                            <div style="margin-top:4px;">
+                                <a class="hint" asp-action="Edit" asp-route-id="@order.Id">Editar</a>
+                            </div>
                         }
                     </td>
                 </tr>

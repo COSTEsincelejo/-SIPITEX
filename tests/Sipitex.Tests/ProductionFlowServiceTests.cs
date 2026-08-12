@@ -113,6 +113,8 @@ public class ProductionFlowServiceTests
             Id = 9, ProductionOrderId = 1, Name = "Corte", InstructorUserId = 99
         };
         _flow.Setup(f => f.GetStageByIdAsync(9, It.IsAny<CancellationToken>())).ReturnsAsync(stage);
+        _orders.Setup(o => o.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 1, Status = OrderStatus.EnProceso, ProductName = "Camisa" });
         _flow.Setup(f => f.HasStagePermissionAsync(3, "Corte", It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         var result = await CreateSut().StartStageAsync(9, 3, "Otro", UserRoles.Instructor);

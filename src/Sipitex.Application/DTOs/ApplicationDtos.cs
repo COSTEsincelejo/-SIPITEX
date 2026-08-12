@@ -72,6 +72,23 @@ public record ProductionOrderDto(
 // Alta de orden nueva
 public record CreateProductionOrderDto(string ProductName, int TotalQuantity, DateOnly Deadline, string? ClientName = null);
 
+// Edición de los mismos campos de Create (gap #2)
+public record UpdateProductionOrderDto(
+    int OrderId,
+    string ProductName,
+    int TotalQuantity,
+    DateOnly Deadline,
+    string? ClientName = null);
+
+public record OrderChangeLogDto(
+    int Id,
+    DateTime FechaUtc,
+    string UsuarioNombre,
+    int UsuarioId,
+    string Campo,
+    string? ValorAnterior,
+    string? ValorNuevo);
+
 // --- MRP / BOM ---
 
 // Una línea del listado BOM

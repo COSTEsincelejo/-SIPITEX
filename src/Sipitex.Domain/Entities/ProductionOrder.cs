@@ -55,4 +55,7 @@ public class ProductionOrder
     public ICollection<ProductionOrderStage> Stages { get; set; } = [];
     public ICollection<ProductionOrderStageMovement> StageMovements { get; set; } = [];
     public ICollection<ProductionOrderHistoryEntry> HistoryEntries { get; set; } = [];
+
+    // Auditoría de ediciones de campos (gap #2)
+    public ICollection<OrderChangeLog> ChangeLogs { get; set; } = [];
 }
