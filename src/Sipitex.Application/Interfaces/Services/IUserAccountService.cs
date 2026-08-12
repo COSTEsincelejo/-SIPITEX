@@ -28,6 +28,10 @@ public interface IUserAccountService
         bool isActive,
         CancellationToken cancellationToken = default);
     Task<ServiceResult> ToggleUserStatusAsync(int id, bool isActive, CancellationToken cancellationToken = default);
+
+    // Hard delete (gap #1). actorUserId = quien ejecuta la acción (anti auto-borrado).
+    Task<ServiceResult> DeleteUserAsync(int id, int actorUserId, CancellationToken cancellationToken = default);
+
     // removePhoto = quitar foto del perfil sin subir una nueva
     Task<ServiceResult> UpdateProfileAsync(
         int id,

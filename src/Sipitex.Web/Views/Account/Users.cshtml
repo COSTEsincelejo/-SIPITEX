@@ -4,22 +4,23 @@
     ViewData["Title"] = "Usuarios";
     ViewData["Breadcrumb"] = "SIPITEX / Administración / Usuarios";
     Layout = "_Layout";
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
 <div class="page-header">
     <div>
         <h2>Gestión de usuarios</h2>
-        <div class="sub">Solo el administrador crea cuentas de Instructor y Bodeguero. Cada usuario gestiona su foto y contraseña en Mi perfil.</div>
+        <div class="sub">El administrador crea y gestiona cuentas de Administrador, Instructor y Bodeguero. Preferir desactivar si hay historial.</div>
     </div>
     <div class="row-actions">
         <a asp-action="DescargarFuncionalidades" class="btn ghost"><i class="fas fa-file-word"></i> Descargar reporte de funcionalidades</a>
-        <a asp-action="CreateUser" class="primary"><i class="fas fa-user-plus"></i> Crear instructor / bodeguero</a>
+        <a asp-action="CreateUser" class="primary"><i class="fas fa-user-plus"></i> Crear usuario</a>
     </div>
 </div>
 
 @if (TempData["Message"] is string msg)
 {
-    <div data-toast data-toast-type="success" style="position:absolute;left:-9999px;">@msg</div>
+    <div data-toast data-toast-type="@((TempData["IsSuccess"] as bool? ?? true) ? "success" : "danger")" style="position:absolute;left:-9999px;">@msg</div>
 }
 
 <div class="card">
@@ -39,6 +40,7 @@
             <tbody>
                 @foreach (var u in Model)
                 {
+                    var isSelf = currentUserId == u.Id.ToString();
                     <tr>
                         <td>
                             <div class="user-cell">
@@ -70,6 +72,15 @@
                                     <input type="hidden" name="isActive" value="@(!u.IsActive)" />
                                     <button type="submit" class="small @(u.IsActive ? "danger" : "ghost")">@(u.IsActive ? "Desactivar" : "Activar")</button>
                                 </form>
+                                @if (!isSelf)
+                                {
+                                    <form asp-action="DeleteUser" method="post"
+                                          data-confirm="¿Eliminar permanentemente a «@u.Nombre»? Esta acción no se puede deshacer. Si tiene historial, el sistema bloqueará el borrado y deberá desactivar la cuenta.">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@u.Id" />
+                                        <button type="submit" class="small danger">Eliminar</button>
+                                    </form>
+                                }
                             </div>
                         </td>
                     </tr>

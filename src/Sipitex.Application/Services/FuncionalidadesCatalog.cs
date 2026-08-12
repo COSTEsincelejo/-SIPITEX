@@ -135,10 +135,10 @@ public static class FuncionalidadesCatalog
 
         // --- Administración ---
         new("Administración", "Gestión de usuarios",
-            "Lista, crea, edita y activa/desactiva cuentas del sistema.",
+            "Lista, crea, edita, activa/desactiva y elimina (hard delete si no hay dependencias) cuentas del sistema, incluidos Administradores.",
             UserRoles.Administrador),
         new("Administración", "Asignar roles y permisos",
-            "Define rol (Instructor/Bodeguero), ficha y permisos extendidos.",
+            "Define rol (Administrador/Instructor/Bodeguero), ficha y permisos extendidos.",
             UserRoles.Administrador),
         new("Administración", "Descargar reporte de funcionalidades",
             "Genera un documento Word con el catálogo de módulos del sistema.",

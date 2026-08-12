@@ -53,9 +53,10 @@ public static class UserRoles
         Bodeguero
     ];
 
-    // Roles que el admin puede crear desde la UI (el admin inicial sale del seed)
+    // Roles que el admin puede crear/asignar desde la UI (incluye Administrador — gap #1)
     public static readonly string[] CreatableByAdmin =
     [
+        Administrador,
         Instructor,
         Bodeguero
     ];
