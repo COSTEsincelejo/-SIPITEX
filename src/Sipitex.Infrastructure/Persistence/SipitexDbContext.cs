@@ -38,6 +38,7 @@ public class SipitexDbContext : DbContext
     public DbSet<FinishedGoodStock> FinishedGoodStocks => Set<FinishedGoodStock>();
     public DbSet<FinishedGoodMovement> FinishedGoodMovements => Set<FinishedGoodMovement>();
     public DbSet<InstructorStagePermission> InstructorStagePermissions => Set<InstructorStagePermission>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -446,6 +447,27 @@ public class SipitexDbContext : DbContext
                 .HasForeignKey(p => p.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(p => new { p.UserId, p.StageName }).IsUnique();
+        });
+
+        // Ledger de movimientos de inventario (append-only)
+        modelBuilder.Entity<StockMovement>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Cantidad).HasPrecision(18, 2);
+            e.Property(m => m.StockResultante).HasPrecision(18, 2);
+            e.Property(m => m.TipoMovimiento).HasConversion<string>().HasMaxLength(40);
+            e.Property(m => m.Referencia).HasMaxLength(120);
+            e.HasOne(m => m.Material)
+                .WithMany(mat => mat.StockMovements)
+                .HasForeignKey(m => m.MaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.Usuario)
+                .WithMany()
+                .HasForeignKey(m => m.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(m => m.FechaUtc);
+            e.HasIndex(m => m.MaterialId);
+            e.HasIndex(m => m.UsuarioId);
         });
     }
 }

@@ -13,6 +13,7 @@ public class SolicitudMaterialApprovalServiceTests
 {
     private readonly Mock<ISolicitudMaterialRepository> _solicitudRepository = new();
     private readonly Mock<IMaterialRepository> _materialRepository = new();
+    private readonly Mock<IStockMovementRepository> _stockMovements = new();
     private readonly Mock<ICodigoGeneradorService> _codigoGenerador = new();
     private readonly Mock<IAlertService> _alertService = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
@@ -44,6 +45,7 @@ public class SolicitudMaterialApprovalServiceTests
         return new SolicitudMaterialApprovalService(
             _solicitudRepository.Object,
             _materialRepository.Object,
+            _stockMovements.Object,
             _codigoGenerador.Object,
             _alertService.Object,
             _unitOfWork.Object);

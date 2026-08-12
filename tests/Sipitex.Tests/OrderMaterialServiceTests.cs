@@ -15,13 +15,14 @@ public class OrderMaterialServiceTests
     private readonly Mock<IOrderMaterialRequirementRepository> _reqs = new();
     private readonly Mock<IMaterialRepository> _materials = new();
     private readonly Mock<IProductionOrderBomSnapshotRepository> _snapshots = new();
+    private readonly Mock<IStockMovementRepository> _stockMovements = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private OrderMaterialService CreateSut()
     {
         _uow.Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
             .Returns<Func<CancellationToken, Task>, CancellationToken>(async (action, ct) => await action(ct));
-        return new(_orders.Object, _reqs.Object, _materials.Object, _snapshots.Object, _uow.Object);
+        return new(_orders.Object, _reqs.Object, _materials.Object, _snapshots.Object, _stockMovements.Object, _uow.Object);
     }
 
     [Fact]

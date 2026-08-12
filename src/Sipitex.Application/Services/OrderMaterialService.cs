@@ -15,6 +15,7 @@ public class OrderMaterialService : IOrderMaterialService
     private readonly IOrderMaterialRequirementRepository _requirementRepository;
     private readonly IMaterialRepository _materialRepository;
     private readonly IProductionOrderBomSnapshotRepository _snapshotRepository;
+    private readonly IStockMovementRepository _stockMovements;
     private readonly IUnitOfWork _unitOfWork;
 
     public OrderMaterialService(
@@ -22,12 +23,14 @@ public class OrderMaterialService : IOrderMaterialService
         IOrderMaterialRequirementRepository requirementRepository,
         IMaterialRepository materialRepository,
         IProductionOrderBomSnapshotRepository snapshotRepository,
+        IStockMovementRepository stockMovements,
         IUnitOfWork unitOfWork)
     {
         _orderRepository = orderRepository;
         _requirementRepository = requirementRepository;
         _materialRepository = materialRepository;
         _snapshotRepository = snapshotRepository;
+        _stockMovements = stockMovements;
         _unitOfWork = unitOfWork;
     }
 
@@ -261,6 +264,7 @@ public class OrderMaterialService : IOrderMaterialService
         {
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
+                var movements = new List<StockMovement>();
                 foreach (var line in lines)
                 {
                     if (!decisions.TryGetValue(line.Id, out var qty) || qty <= 0)
@@ -282,11 +286,24 @@ public class OrderMaterialService : IOrderMaterialService
                     line.QuantityDelivered += qty;
                     _materialRepository.Update(line.Material);
                     _requirementRepository.Update(line);
+
+                    movements.Add(new StockMovement
+                    {
+                        MaterialId = line.MaterialId,
+                        FechaUtc = DateTime.UtcNow,
+                        UsuarioId = bodegueroId,
+                        TipoMovimiento = StockMovementType.Salida,
+                        Cantidad = qty,
+                        StockResultante = line.Material.Stock,
+                        Referencia = $"Orden:{order.Id}"
+                    });
                 }
+
+                if (movements.Count > 0)
+                    await _stockMovements.AddRangeAsync(movements, ct);
 
                 RecalcMaterialsStatus(order, lines);
                 _orderRepository.Update(order);
-                await Task.CompletedTask;
             }, cancellationToken);
         }
         catch (InvalidOperationException ex)

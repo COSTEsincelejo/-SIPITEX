@@ -226,6 +226,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
         ApprovalService = new SolicitudMaterialApprovalService(
             solicitudRepo,
             materialRepo,
+            new StockMovementRepository(Context),
             CodigoGenerador,
             AlertService,
             uow);

@@ -19,6 +19,12 @@
         <h2>Inventario de materias primas</h2>
         <div class="sub">Controla niveles de stock, mínimos y solicitudes de bodega</div>
     </div>
+    @if (canManageStock)
+    {
+        <div>
+            <a class="ghost" asp-action="Movimientos"><i class="fas fa-clock-rotate-left"></i> Historial de movimientos</a>
+        </div>
+    }
 </div>
 
 @* Toast después de crear material, aprobar solicitud, etc. *@

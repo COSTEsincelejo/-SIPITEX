@@ -13,6 +13,7 @@ public class InventoryApproveRejectTests
     private readonly Mock<IMaterialRequestRepository> _requestRepository = new();
     private readonly Mock<IProductionOrderRepository> _orderRepository = new();
     private readonly Mock<IBomRepository> _bomRepository = new();
+    private readonly Mock<IStockMovementRepository> _stockMovements = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
     private InventoryService CreateSut() => new(
@@ -20,6 +21,7 @@ public class InventoryApproveRejectTests
         _requestRepository.Object,
         _orderRepository.Object,
         _bomRepository.Object,
+        _stockMovements.Object,
         _unitOfWork.Object);
 
     private static MaterialRequest CreatePendingRequest(decimal stock, decimal quantity)
@@ -54,7 +56,7 @@ public class InventoryApproveRejectTests
             .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
-        var result = await CreateSut().ApproveRequestAsync(10);
+        var result = await CreateSut().ApproveRequestAsync(10, actorUserId: 7);
 
         Assert.True(result.Success);
         Assert.Equal(38m, request.Material.Stock);
@@ -93,7 +95,7 @@ public class InventoryApproveRejectTests
             .Setup(r => r.GetByIdAsync(10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(request);
 
-        var result = await CreateSut().ApproveRequestAsync(10);
+        var result = await CreateSut().ApproveRequestAsync(10, actorUserId: 7);
 
         Assert.False(result.Success);
         Assert.Equal(5m, request.Material.Stock);

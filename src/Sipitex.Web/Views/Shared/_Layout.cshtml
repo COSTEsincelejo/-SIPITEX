@@ -55,6 +55,11 @@
                 <a class="@NavClass("BodegaSolicitudes")" asp-controller="BodegaSolicitudes" asp-action="Index"><i class="fas fa-truck-ramp-box"></i> Solicitudes de materiales</a>
                 <a class="@NavClass("BodegaOrdenes")" asp-controller="BodegaOrdenes" asp-action="Index"><i class="fas fa-clipboard-check"></i> Materiales de órdenes</a>
             }
+            @if (User.IsInRole("Administrador") || User.IsInRole("Bodeguero"))
+            {
+                <a class="@(controller.Equals("Inventario", StringComparison.OrdinalIgnoreCase) && action.Equals("Movimientos", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
+                   asp-controller="Inventario" asp-action="Movimientos"><i class="fas fa-clock-rotate-left"></i> Movimientos de stock</a>
+            }
             @* Fichas y calidad solo para admin e instructor *@
             @if (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
             {
