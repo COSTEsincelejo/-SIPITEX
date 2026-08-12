@@ -14,7 +14,7 @@ using Sipitex.Web.Controllers;
 namespace Sipitex.Tests;
 
 /// <summary>
-/// Gap #2: editar/cancelar órdenes. Aprobar = implícito al Create (EnProceso).
+/// Gap #2: editar/cancelar órdenes. Aprobar = Admin (Pendiente → EnProceso).
 /// </summary>
 public class ProductionOrderEditCancelTests
 {

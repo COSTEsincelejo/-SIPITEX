@@ -59,7 +59,13 @@ public class ProductionFlowServiceTests
             Id = 11, ProductionOrderId = 1, Name = "Corte", SortOrder = 2,
             QuantityReceived = 0, Status = ProductionStageStatus.Pendiente
         };
-        var order = new ProductionOrder { Id = 1, OrderNumber = "OP-001", ProductName = "Camisa" };
+        var order = new ProductionOrder
+        {
+            Id = 1,
+            OrderNumber = "OP-001",
+            ProductName = "Camisa",
+            Status = OrderStatus.EnProceso
+        };
 
         _flow.Setup(f => f.GetStageByIdAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(from);
         _flow.Setup(f => f.GetStagesByOrderAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([from, to]);

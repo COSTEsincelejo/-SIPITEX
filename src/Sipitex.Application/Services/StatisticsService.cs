@@ -47,15 +47,15 @@ public class StatisticsService : IStatisticsService
         var approved = quality.Where(q => q.Result == QualityResult.Aprobada).Sum(q => q.UnitsInspected);
         var inspected = quality.Sum(q => q.UnitsInspected);
         var qualityRate = inspected > 0 ? Math.Round(approved * 100m / inspected, 1) : 0;
-        var activeOrders = orders.Count(o =>
-            o.Status != OrderStatus.Finalizada && o.Status != OrderStatus.Cancelada);
+        var activeOrders = orders.Count(o => o.Status == OrderStatus.EnProceso);
+        var pendingApproval = orders.Count(o => o.Status == OrderStatus.Pendiente);
         var lowStock = materials.Count(m => m.Stock < m.MinStock);
 
         var chart = orders
             .Select(o => new ChartBarDto(o.OrderNumber, o.ProducedQuantity, o.TotalQuantity))
             .ToList();
 
-        return new DashboardKpiDto(totalProduced, qualityRate, activeOrders, lowStock, chart);
+        return new DashboardKpiDto(totalProduced, qualityRate, activeOrders, pendingApproval, lowStock, chart);
     }
 
     private static bool IsInstructorViewer(string? viewerRole, int? viewerUserId) =>

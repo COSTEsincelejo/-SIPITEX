@@ -21,6 +21,7 @@ public interface IProductionOrderService
         CancellationToken cancellationToken = default);
 
     Task<ServiceResult> CreateOrderAsync(CreateProductionOrderDto dto, CancellationToken cancellationToken = default);
+    Task<ServiceResult> ApproveOrderAsync(int orderId, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateOrderAsync(UpdateProductionOrderDto dto, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> CancelOrderAsync(int orderId, int actorUserId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OrderChangeLogDto>> GetChangeLogAsync(int orderId, CancellationToken cancellationToken = default);

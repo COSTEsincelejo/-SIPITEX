@@ -248,6 +248,9 @@ public class OrderMaterialService : IOrderMaterialService
 
         if (order.Status is OrderStatus.Finalizada or OrderStatus.Cancelada)
             return ServiceResult.Fail("No se pueden entregar materiales a una orden cerrada.");
+        if (order.Status == OrderStatus.Pendiente)
+            return ServiceResult.Fail(
+                "No se pueden entregar materiales: la orden está pendiente de aprobación del Administrador.");
 
         var lines = (await _requirementRepository.GetByOrderIdAsync(dto.OrderId, cancellationToken)).ToList();
         if (lines.Count == 0)
@@ -321,8 +324,7 @@ public class OrderMaterialService : IOrderMaterialService
     }
 
     internal static bool CanRegisterProduction(ProductionOrder order) =>
-        order.Status != OrderStatus.Finalizada
-        && order.Status != OrderStatus.Cancelada
+        order.Status == OrderStatus.EnProceso
         && (order.MaterialsStatus == OrderMaterialsStatus.NoAplica
             || order.MaterialsStatus == OrderMaterialsStatus.ListaParaProduccion);
 

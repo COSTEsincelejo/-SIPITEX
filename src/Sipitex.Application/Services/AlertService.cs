@@ -258,8 +258,8 @@ public class AlertService : IAlertService
 
         // Traigo todas las órdenes para revisar plazos
         var orders = await _orderRepository.GetAllAsync(cancellationToken);
-        // Solo las que no están finalizadas ni canceladas
-        var active = orders.Where(o => o.Status is not OrderStatus.Finalizada and not OrderStatus.Cancelada).ToList();
+        // Vencimiento/atraso solo desde EnProceso (excluye Pendiente de aprobación)
+        var active = orders.Where(o => o.Status == OrderStatus.EnProceso).ToList();
 
         // Órdenes que vencen en 7 días o menos
         var dueSoon = active.Where(o => o.Deadline <= today.AddDays(7)).ToList();

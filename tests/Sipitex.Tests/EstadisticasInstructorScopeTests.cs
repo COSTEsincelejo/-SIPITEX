@@ -116,7 +116,7 @@ public class EstadisticasInstructorScopeTests
     {
         var stats = new Mock<IStatisticsService>();
         stats.Setup(s => s.GetDashboardAsync(10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DashboardKpiDto(3, 100m, 1, 0, []));
+            .ReturnsAsync(new DashboardKpiDto(3, 100m, 1, 0, 0, []));
 
         var controller = new EstadisticasController(stats.Object)
         {
