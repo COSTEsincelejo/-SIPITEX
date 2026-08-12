@@ -25,6 +25,13 @@ public static class PermissionRules
         || user.IsInRole(UserRoles.Bodeguero)
         || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.MrpSimular));
 
+    // Crear/editar fichas técnicas: admin, bodeguero o instructor con Mrp.GestionarFichas (gap #6)
+    // Delete permanece solo Admin en MrpController.
+    public static bool PuedeGestionarFichasTecnicas(ClaimsPrincipal user) =>
+        user.IsInRole(UserRoles.Administrador)
+        || user.IsInRole(UserRoles.Bodeguero)
+        || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.MrpGestionarFichas));
+
     // Alertas: admin o cualquier rol con claim AlertasConfigurar
     public static bool PuedeConfigurarAlertas(ClaimsPrincipal user) =>
         user.IsInRole(UserRoles.Administrador)

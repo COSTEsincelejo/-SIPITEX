@@ -63,7 +63,7 @@ public static class FuncionalidadesCatalog
             $"{UserRoles.Administrador}, {UserRoles.Bodeguero} (+ permiso extendido)"),
         new("MRP / Materiales", "Crear / editar producto BOM",
             "Mantiene el catálogo de productos y componentes de la ficha técnica.",
-            $"{UserRoles.Administrador}, {UserRoles.Bodeguero}"),
+            $"{UserRoles.Administrador}, {UserRoles.Bodeguero} (+ permiso extendido Mrp.GestionarFichas)"),
         new("MRP / Materiales", "Asignar instructor a ficha técnica",
             "Asigna o quita instructores autorizados a consultar una ficha técnica (BOM).",
             UserRoles.Administrador),
