@@ -290,6 +290,9 @@ public class ReportesIndexViewModel
 {
     public IReadOnlyList<InstructorOptionDto> Instructors { get; set; } = [];
     public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
+    // Gap #11: Instructor no elige otro instructor ni ve Inventario global
+    public bool IsInstructorScoped { get; set; }
+    public int? ForcedInstructorId { get; set; }
 }
 
 // Detalle de materiales asociados a una orden (legacy VM; Detail usa OrdenMesDetailViewModel)

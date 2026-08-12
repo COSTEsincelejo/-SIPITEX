@@ -4,32 +4,71 @@
     ViewData["Breadcrumb"] = "SIPITEX / Análisis / Reportes";
     Layout = "_Layout";
     var yearNow = DateTime.Today.Year;
+    var instructorScoped = Model.IsInstructorScoped;
 }
 
 <div class="page-header">
     <div>
         <h2>Reportes</h2>
-        <div class="sub">Descargue reportes operativos en PDF o Excel. Los filtros son opcionales y se aplican a cada descarga.</div>
+        <div class="sub">
+            @if (instructorScoped)
+            {
+                <text>Descargue reportes de sus fichas, órdenes y procesos en PDF o Excel.</text>
+            }
+            else
+            {
+                <text>Descargue reportes operativos en PDF o Excel. Los filtros son opcionales y se aplican a cada descarga.</text>
+            }
+        </div>
     </div>
 </div>
 
 <div class="card" id="reportFiltersCard">
     <div class="card-title"><i class="fas fa-filter"></i> Filtros de búsqueda</div>
     <p class="hint" style="margin-top:0;">
-        Combinables y opcionales para Inventario, Órdenes, Calidad y Dashboard.
-        En <strong>Actividad del instructor</strong> el filtro Instructor es obligatorio.
-        Si un filtro no aplica al tipo de reporte (p. ej. Instructor en Inventario), se ignora en esa descarga.
+        @if (instructorScoped)
+        {
+            <text>
+                Su alcance está limitado a sus fichas y órdenes asignadas.
+                El filtro de instructor no se puede cambiar.
+                Combinables: ficha, jornada y fecha (Órdenes, Calidad, Dashboard, Actividad).
+            </text>
+        }
+        else
+        {
+            <text>
+                Combinables y opcionales para Inventario, Órdenes, Calidad y Dashboard.
+                En <strong>Actividad del instructor</strong> el filtro Instructor es obligatorio.
+                Si un filtro no aplica al tipo de reporte (p. ej. Instructor en Inventario), se ignora en esa descarga.
+            </text>
+        }
     </p>
     <div class="form-row" id="reportFilters">
         <div class="field">
             <label class="field-label" for="filterInstructor">Instructor</label>
-            <select id="filterInstructor" data-filter="instructorId">
-                <option value="">Todos</option>
+            <select id="filterInstructor" data-filter="instructorId"
+                    @(instructorScoped ? "disabled" : null)>
+                @if (!instructorScoped)
+                {
+                    <option value="">Todos</option>
+                }
                 @foreach (var i in Model.Instructors)
                 {
-                    <option value="@i.Id">@i.Nombre</option>
+                    var selected = instructorScoped && Model.ForcedInstructorId == i.Id;
+                    if (selected)
+                    {
+                        <option value="@i.Id" selected>@i.Nombre</option>
+                    }
+                    else
+                    {
+                        <option value="@i.Id">@i.Nombre</option>
+                    }
                 }
             </select>
+            @if (instructorScoped && Model.ForcedInstructorId is int forcedId)
+            {
+                <input type="hidden" id="filterInstructorForced" value="@forcedId" />
+            }
         </div>
         <div class="field">
             <label class="field-label" for="filterFicha">Ficha</label>
@@ -94,15 +133,18 @@
 </div>
 
 <div class="module-grid">
-    <div class="module-link report-card">
-        <i class="fas fa-boxes-stacked"></i>
-        <h3>Inventario</h3>
-        <p>Stock, estado, mínimos y última entrada.</p>
-        <div class="report-actions">
-            <a class="btn primary small js-download js-report-download" asp-action="Inventario" asp-route-format="pdf" data-report-base="@Url.Action("Inventario")" data-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
-            <a class="btn ghost small js-download js-report-download" asp-action="Inventario" asp-route-format="excel" data-report-base="@Url.Action("Inventario")" data-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
+    @if (!instructorScoped)
+    {
+        <div class="module-link report-card">
+            <i class="fas fa-boxes-stacked"></i>
+            <h3>Inventario</h3>
+            <p>Stock, estado, mínimos y última entrada.</p>
+            <div class="report-actions">
+                <a class="btn primary small js-download js-report-download" asp-action="Inventario" asp-route-format="pdf" data-report-base="@Url.Action("Inventario")" data-format="pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+                <a class="btn ghost small js-download js-report-download" asp-action="Inventario" asp-route-format="excel" data-report-base="@Url.Action("Inventario")" data-format="excel"><i class="fas fa-file-excel"></i> Excel</a>
+            </div>
         </div>
-    </div>
+    }
     <div class="module-link report-card">
         <i class="fas fa-clipboard-list"></i>
         <h3>Órdenes</h3>
@@ -135,8 +177,8 @@
         <h3>Actividad del instructor</h3>
         <p>Producción por ficha/jornada y materiales consumidos (BOM × unidades).</p>
         <div class="report-actions">
-            <a class="btn primary small js-download js-report-download" asp-action="ActividadInstructor" asp-route-format="pdf" data-report-base="@Url.Action("ActividadInstructor")" data-format="pdf" data-requires-instructor="true"><i class="fas fa-file-pdf"></i> PDF</a>
-            <a class="btn ghost small js-download js-report-download" asp-action="ActividadInstructor" asp-route-format="excel" data-report-base="@Url.Action("ActividadInstructor")" data-format="excel" data-requires-instructor="true"><i class="fas fa-file-excel"></i> Excel</a>
+            <a class="btn primary small js-download js-report-download" asp-action="ActividadInstructor" asp-route-format="pdf" data-report-base="@Url.Action("ActividadInstructor")" data-format="pdf" data-requires-instructor="@(instructorScoped ? "false" : "true")"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn ghost small js-download js-report-download" asp-action="ActividadInstructor" asp-route-format="excel" data-report-base="@Url.Action("ActividadInstructor")" data-format="excel" data-requires-instructor="@(instructorScoped ? "false" : "true")"><i class="fas fa-file-excel"></i> Excel</a>
         </div>
     </div>
 </div>
@@ -145,6 +187,7 @@
 <script>
 (function () {
     const instructor = document.getElementById('filterInstructor');
+    const instructorForced = document.getElementById('filterInstructorForced');
     const ficha = document.getElementById('filterFicha');
     const jornada = document.getElementById('filterJornada');
     const dateMode = document.getElementById('filterDateMode');
@@ -158,6 +201,11 @@
     const summaryText = document.getElementById('activeFiltersText');
     const clearBtn = document.getElementById('clearReportFilters');
     const links = document.querySelectorAll('.js-report-download');
+
+    function instructorValue() {
+        if (instructorForced?.value) return instructorForced.value;
+        return instructor?.value || '';
+    }
 
     function syncDateMode() {
         const mode = dateMode?.value || 'none';
@@ -186,7 +234,8 @@
     function buildParams(format) {
         const params = new URLSearchParams();
         params.set('format', format);
-        if (instructor?.value) params.set('instructorId', instructor.value);
+        const iid = instructorValue();
+        if (iid) params.set('instructorId', iid);
         if (ficha?.value) params.set('fichaId', ficha.value);
         if (jornada?.value) params.set('jornada', jornada.value);
         const mode = dateMode?.value || 'none';
@@ -200,7 +249,14 @@
 
     function refresh() {
         const parts = [];
-        if (instructor?.value) parts.push('Instructor ' + selectedLabel(instructor));
+        const iid = instructorValue();
+        if (iid) {
+            if (instructorForced) {
+                parts.push('Instructor (su alcance)');
+            } else if (instructor) {
+                parts.push('Instructor ' + selectedLabel(instructor));
+            }
+        }
         if (ficha?.value) parts.push('Ficha ' + selectedLabel(ficha).split('—')[0].trim());
         if (jornada?.value) parts.push('Jornada ' + jornada.value);
         const mode = dateMode?.value || 'none';
@@ -230,7 +286,7 @@
 
     document.querySelectorAll('.js-report-download[data-requires-instructor="true"]').forEach((a) => {
         a.addEventListener('click', (e) => {
-            if (instructor?.value) return;
+            if (instructorValue()) return;
             e.preventDefault();
             if (window.SipitexToast) {
                 window.SipitexToast('Seleccione un instructor para el reporte de actividad.', 'warning');
@@ -246,7 +302,7 @@
     });
     dateMode?.addEventListener('change', syncDateMode);
     clearBtn?.addEventListener('click', () => {
-        if (instructor) instructor.value = '';
+        if (instructor && !instructorForced) instructor.value = '';
         if (ficha) ficha.value = '';
         if (jornada) jornada.value = '';
         if (dateMode) dateMode.value = 'none';

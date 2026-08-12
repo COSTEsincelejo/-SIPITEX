@@ -17,6 +17,7 @@ public class ReportService : IReportService
     private readonly IProductionOrderRepository _orderRepository; // Órdenes OP-xxx
     private readonly IQualityRepository _qualityRepository; // Inspecciones de calidad
     private readonly IFichaRepository _fichaRepository; // Para filtrar por instructor/ficha/jornada
+    private readonly IProductionFlowRepository _flowRepository; // Etapas MES (mismo alcance que CanAccessOrderAsync)
     private readonly IProductionSessionRepository _sessionRepository; // Sesiones de producción
     private readonly IProductionOrderBomSnapshotRepository _snapshotRepository; // Consumo BOM
     private readonly IUserRepository _userRepository; // Nombre del instructor
@@ -34,6 +35,7 @@ public class ReportService : IReportService
         IProductionOrderRepository orderRepository,
         IQualityRepository qualityRepository,
         IFichaRepository fichaRepository,
+        IProductionFlowRepository flowRepository,
         IProductionSessionRepository sessionRepository,
         IProductionOrderBomSnapshotRepository snapshotRepository,
         IUserRepository userRepository,
@@ -43,6 +45,7 @@ public class ReportService : IReportService
         _orderRepository = orderRepository;
         _qualityRepository = qualityRepository;
         _fichaRepository = fichaRepository;
+        _flowRepository = flowRepository;
         _sessionRepository = sessionRepository;
         _snapshotRepository = snapshotRepository;
         _userRepository = userRepository;
@@ -353,6 +356,9 @@ public class ReportService : IReportService
         return query.ToList();
     }
 
+    // Órdenes en alcance: fichas (BelongsToInstructor / ficha / jornada) ∪ etapas MES
+    // con InstructorUserId, mismo criterio que ProductionOrderService.GetAssignedOrderIdsAsync.
+    // Si hay FichaId/Jornada, no se amplía con etapas sueltas (respeta el filtro explícito).
     private async Task<HashSet<int>> ResolveOrderScopeAsync(
         ReportFilterDto? filter,
         CancellationToken cancellationToken)
@@ -361,7 +367,22 @@ public class ReportService : IReportService
             return [];
 
         var fichas = await _fichaRepository.GetAllAsync(cancellationToken);
-        return ReportFilterHelper.MatchingOrderIds(fichas, filter);
+        var ids = ReportFilterHelper.MatchingOrderIds(fichas, filter);
+
+        if (filter?.InstructorId is int instructorId and > 0
+            && filter.FichaId is not > 0
+            && string.IsNullOrWhiteSpace(filter.Jornada))
+        {
+            var orders = await _orderRepository.GetAllAsync(cancellationToken);
+            foreach (var order in orders)
+            {
+                var stages = await _flowRepository.GetStagesByOrderAsync(order.Id, cancellationToken);
+                if (stages.Any(s => s.InstructorUserId == instructorId))
+                    ids.Add(order.Id);
+            }
+        }
+
+        return ids;
     }
 
     // Arma el archivo final — excel con ClosedXML o pdf con QuestPDF

@@ -13,6 +13,7 @@ public class ReportActividadInstructorTests
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IQualityRepository> _quality = new();
     private readonly Mock<IFichaRepository> _fichas = new();
+    private readonly Mock<IProductionFlowRepository> _flow = new();
     private readonly Mock<IProductionSessionRepository> _sessions = new();
     private readonly Mock<IProductionOrderBomSnapshotRepository> _snapshots = new();
     private readonly Mock<IUserRepository> _users = new();
@@ -23,6 +24,7 @@ public class ReportActividadInstructorTests
         _orders.Object,
         _quality.Object,
         _fichas.Object,
+        _flow.Object,
         _sessions.Object,
         _snapshots.Object,
         _users.Object,
