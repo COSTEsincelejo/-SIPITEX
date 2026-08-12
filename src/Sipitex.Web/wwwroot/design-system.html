@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SIPITEX · Design System (Fase 1)</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="/css/sipitex.css" />
+  <style>
+    /* Solo para esta guía estática — no forma parte del producto */
+    .ds-page{max-width:1100px;margin:0 auto;padding:32px 20px 64px;}
+    .ds-hero{margin-bottom:28px;}
+    .ds-hero h1{font-size:28px;font-weight:800;letter-spacing:-0.4px;color:var(--brand);}
+    .ds-hero p{color:var(--text-mut);max-width:60ch;margin-top:8px;}
+    .ds-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:16px 0 8px;}
+    .ds-swatch{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm);}
+    .ds-swatch .chip{height:56px;}
+    .ds-swatch .meta{padding:10px 12px;font-size:12px;}
+    .ds-swatch code{font-family:var(--font-mono);font-size:11px;color:var(--text-mut);}
+    .ds-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0;}
+    .ds-note{font-size:12.5px;color:var(--text-mut);margin-top:8px;}
+    .ds-kicker{font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-mut);margin-bottom:6px;}
+  </style>
+</head>
+<body>
+  <div class="ds-page">
+    <div class="ds-hero">
+      <div class="ds-kicker">Fase 1 · Solo tokens + componentes base</div>
+      <h1>Sistema de diseño SIPITEX</h1>
+      <p>
+        Guía estática (no es un módulo del sistema). Brand fijo
+        <strong>#1F3864</strong> / <strong>#DCE6F1</strong>.
+        Tipografía: Plus Jakarta Sans + JetBrains Mono. Sin Bootstrap en el shell autenticado.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-palette"></i> Paleta</div>
+      <div class="ds-swatches">
+        <div class="ds-swatch"><div class="chip" style="background:#1F3864"></div><div class="meta"><strong>Brand / Primary</strong><br /><code>#1F3864</code></div></div>
+        <div class="ds-swatch"><div class="chip" style="background:#DCE6F1"></div><div class="meta"><strong>Brand soft</strong><br /><code>#DCE6F1</code></div></div>
+        <div class="ds-swatch"><div class="chip" style="background:#2A4A7A"></div><div class="meta"><strong>Navy 2</strong><br /><code>#2A4A7A</code></div></div>
+        <div class="ds-swatch"><div class="chip" style="background:#0F8C7E"></div><div class="meta"><strong>Success</strong><br /><code>#0F8C7E</code></div></div>
+        <div class="ds-swatch"><div class="chip" style="background:#C8770A"></div><div class="meta"><strong>Warning</strong><br /><code>#C8770A</code></div></div>
+        <div class="ds-swatch"><div class="chip" style="background:#C0392B"></div><div class="meta"><strong>Danger</strong><br /><code>#C0392B</code></div></div>
+        <div class="ds-swatch"><div class="chip" style="background:#EEF2F7;border-bottom:1px solid #C9D5E5"></div><div class="meta"><strong>Background</strong><br /><code>#EEF2F7</code></div></div>
+        <div class="ds-swatch"><div class="chip" style="background:#FFFFFF;border-bottom:1px solid #C9D5E5"></div><div class="meta"><strong>Surface</strong><br /><code>#FFFFFF</code></div></div>
+      </div>
+      <p class="ds-note">Tokens en <code>:root</code> de <code>wwwroot/css/sipitex.css</code> (<code>--brand</code>, <code>--brand-soft</code>, alias <code>--navy</code>/<code>--accent</code> para no romper vistas).</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-hand-pointer"></i> Botones</div>
+      <div class="ds-row">
+        <button type="button" class="primary"><i class="fas fa-check"></i> Primario</button>
+        <button type="button">Secundario</button>
+        <button type="button" class="ghost">Ghost</button>
+        <button type="button" class="danger"><i class="fas fa-trash"></i> Peligro</button>
+        <button type="button" class="primary small">Pequeño</button>
+        <button type="button" class="primary" disabled>Deshabilitado</button>
+      </div>
+      <p class="ds-note">Clases existentes: <code>.primary</code> · <code>.ghost</code> · <code>.danger</code> · <code>.small</code>. Primario = brand navy.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title amber"><i class="fas fa-tags"></i> Badges de estado</div>
+      <div class="ds-row">
+        <span class="badge badge-warning">Pendiente</span>
+        <span class="badge badge-info">En proceso</span>
+        <span class="badge badge-success">Finalizada</span>
+        <span class="badge badge-danger">Cancelada</span>
+        <span class="badge badge-warning">Solicitud pendiente</span>
+        <span class="badge badge-success">Stock OK</span>
+        <span class="badge badge-danger">Sin existencias</span>
+      </div>
+      <p class="ds-note">Mapeo vía <code>DisplayHelper.BadgeClass</code> (sin cambios de lógica en Fase 1).</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title teal"><i class="fas fa-square"></i> Tarjeta</div>
+      <p class="hint" style="margin:0 0 12px;">Contenedor estándar <code>.card</code> + <code>.card-title</code>. Usar una idea por sección.</p>
+      <div class="grid-2col">
+        <div style="padding:14px;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--brand-soft);">
+          <strong>Superficie suave</strong>
+          <div class="ds-note" style="margin:0;">Fondo <code>--brand-soft</code> para resaltar contexto sin cards anidadas.</div>
+        </div>
+        <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);">
+          <strong>Contenido</strong>
+          <div class="ds-note" style="margin:0;">Texto cuerpo 14px · muted para apoyo.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-table"></i> Tabla</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Orden</th><th>Producto</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>OP-101</strong></td>
+              <td>Camisa</td>
+              <td><span class="badge badge-warning">Pendiente</span></td>
+              <td class="row-actions"><button type="button" class="small primary">Aprobar</button></td>
+            </tr>
+            <tr>
+              <td><strong>OP-102</strong></td>
+              <td>Pantalón</td>
+              <td><span class="badge badge-info">En proceso</span></td>
+              <td class="row-actions"><button type="button" class="small ghost">+ uds</button></td>
+            </tr>
+            <tr>
+              <td><strong>OP-103</strong></td>
+              <td>Chaqueta</td>
+              <td><span class="badge badge-success">Finalizada</span></td>
+              <td class="row-actions"><span class="hint">—</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-bell"></i> Alertas</div>
+      <div class="alert alert-info"><i class="fas fa-circle-info"></i> Info: la orden espera aprobación del Administrador.</div>
+      <div class="alert alert-success"><i class="fas fa-circle-check"></i> Éxito: materiales asociados correctamente.</div>
+      <div class="alert alert-warning"><i class="fas fa-triangle-exclamation"></i> Advertencia: stock bajo el mínimo.</div>
+      <div class="alert alert-danger"><i class="fas fa-circle-xmark"></i> Error: no se puede eliminar la ficha en uso.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-chart-simple"></i> KPI (referencia)</div>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Órdenes activas</div>
+          <div class="kpi-value">12</div>
+          <div class="kpi-trend">En proceso</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">Pendientes</div>
+          <div class="kpi-value">3</div>
+          <div class="kpi-trend">Esperan Admin</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Stock bajo</div>
+          <div class="kpi-value">5</div>
+          <div class="kpi-trend">Requieren reposición</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="ds-note">
+      Abrir en el host local: <code>/design-system.html</code>.
+      Fase 1 no modifica vistas Razor de módulos ni lógica. Tras tu OK, Fase 2 = navegación.
+    </p>
+  </div>
+</body>
+</html>
