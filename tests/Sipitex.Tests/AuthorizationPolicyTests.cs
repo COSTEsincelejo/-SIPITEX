@@ -48,4 +48,18 @@ public class AuthorizationPolicyTests
         var user = CreateInstructor(ExtendedPermissions.SolicitudesAprobar);
         Assert.True(PermissionRules.PuedeAprobarSolicitudes(user));
     }
+
+    [Fact]
+    public void PuedeAccederInventario_InstructorWithoutClaim_IsDenied()
+    {
+        var user = CreateInstructor();
+        Assert.False(PermissionRules.PuedeAccederInventario(user));
+    }
+
+    [Fact]
+    public void PuedeAccederInventario_InstructorWithClaim_IsAllowed()
+    {
+        var user = CreateInstructor(ExtendedPermissions.InventarioRegistrar);
+        Assert.True(PermissionRules.PuedeAccederInventario(user));
+    }
 }

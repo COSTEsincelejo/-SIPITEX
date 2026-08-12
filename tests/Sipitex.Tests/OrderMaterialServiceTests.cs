@@ -148,6 +148,7 @@ public class OrderMaterialServiceTests
         var reqs = new Mock<IOrderMaterialRequirementRepository>();
         var flowRepo = new Mock<IProductionFlowRepository>();
         var flowService = new Mock<IProductionFlowService>();
+        var fichas = new Mock<IFichaRepository>();
         var uow = new Mock<IUnitOfWork>();
         var materials = new Mock<IMaterialRepository>();
         reqs.Setup(r => r.GetByOrderIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
@@ -165,7 +166,7 @@ public class OrderMaterialServiceTests
 
         var sut = new ProductionOrderService(
             orders.Object, boms.Object, snapshots.Object, reqs.Object,
-            flowRepo.Object, flowService.Object, uow.Object,
+            flowRepo.Object, flowService.Object, fichas.Object, uow.Object,
             new ProductionConsumptionService(boms.Object, materials.Object));
 
         var result = await sut.RegisterProductionAsync(2, 5);

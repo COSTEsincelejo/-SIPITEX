@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
@@ -26,8 +27,9 @@ public class CalidadController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        // Necesito las órdenes para el dropdown del form
-        var orders = await _orderService.GetOrdersAsync(cancellationToken);
+        var (userId, role, name) = CurrentViewer();
+        // Necesito las órdenes para el dropdown del form (Instructor: solo asignadas)
+        var orders = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken);
         // Armo el ViewModel de la pantalla completa
         return View(new CalidadIndexViewModel
         {
@@ -50,6 +52,10 @@ public class CalidadController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind(Prefix = "Create")] CreateQualityForm form, CancellationToken cancellationToken)
     {
+        var (userId, role, name) = CurrentViewer();
+        if (!await _orderService.CanAccessOrderAsync(form.ProductionOrderId, userId, role, name, cancellationToken))
+            return Forbid();
+
         // Mando el DTO al servicio para guardar la inspección
         var result = await _qualityService.AddRecordAsync(
             new CreateQualityRecordDto(
@@ -65,5 +71,16 @@ public class CalidadController : Controller
         TempData["IsSuccess"] = result.Success;
         // Vuelvo al listado para ver la nueva fila
         return RedirectToAction(nameof(Index));
+    }
+
+    private (int? UserId, string? Role, string? Name) CurrentViewer()
+    {
+        int? userId = null;
+        if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id))
+            userId = id;
+
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        var name = User.FindFirstValue(ClaimTypes.Name);
+        return (userId, role, name);
     }
 }

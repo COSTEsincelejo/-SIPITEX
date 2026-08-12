@@ -10,7 +10,8 @@ using Sipitex.Web.Models;
 namespace Sipitex.Web.Controllers;
 
 // Materiales, stock, solicitudes y aprobaciones del inventario
-[Authorize]
+// Instructor sin Inventario.Registrar → 403 / AccessDenied (excepción solo con permiso Admin)
+[Authorize(Policy = AuthorizationPolicyNames.PuedeAccederInventario)]
 public class InventarioController : Controller
 {
     // Servicio que habla con la BD de materiales y solicitudes
@@ -150,8 +151,13 @@ public class InventarioController : Controller
     {
         // Lista de materiales para la tabla principal
         var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
-        // Órdenes para el dropdown al crear solicitud
-        var orders = await _orderService.GetOrdersAsync(cancellationToken);
+        // Órdenes para el dropdown al crear solicitud (scoped si el viewer es Instructor)
+        int? viewerId = null;
+        if (int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid))
+            viewerId = uid;
+        var viewerRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        var viewerName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+        var orders = await _orderService.GetOrdersAsync(viewerId, viewerRole, viewerName, cancellationToken);
 
         // Objeto que la vista Razor consume
         return new InventarioIndexViewModel
