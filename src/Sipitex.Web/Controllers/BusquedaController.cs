@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Sipitex.Application.Authorization;
 using Sipitex.Application.Interfaces.Services;
 
 namespace Sipitex.Web.Controllers;
@@ -24,6 +25,15 @@ public class BusquedaController : ControllerBase
             return Ok(new { resultados = Array.Empty<object>() });
 
         var items = await _busquedaService.SearchAsync(query, cancellationToken);
+
+        // Instructor sin excepción de inventario no debe ver resultados de materiales
+        if (!PermissionRules.PuedeAccederInventario(User))
+        {
+            items = items
+                .Where(i => !string.Equals(i.Categoria, "Materiales", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         return Ok(new
         {
             resultados = items.Select(i => new
