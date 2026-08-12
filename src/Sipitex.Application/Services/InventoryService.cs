@@ -173,13 +173,22 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok($"Estado actualizado a {dto.Status}.");
     }
 
-    // Solicitudes de material (pendientes, aprobadas, rechazadas)
-    public async Task<IReadOnlyList<MaterialRequestDto>> GetRequestsAsync(CancellationToken cancellationToken = default)
+    // Solicitudes de material (pendientes, aprobadas, rechazadas).
+    // Instructor: solo las propias (SolicitanteId), igual que SolicitudMaterialService.GetListAsync.
+    public async Task<IReadOnlyList<MaterialRequestDto>> GetRequestsAsync(
+        int? viewerUserId = null,
+        string? viewerRole = null,
+        CancellationToken cancellationToken = default)
     {
-        // Traigo solicitudes con Material y Orden incluidos
         var requests = await _requestRepository.GetAllAsync(cancellationToken);
-        // Proyecto a DTO plano para la vista
-        return requests.Select(r => new MaterialRequestDto(
+
+        IEnumerable<MaterialRequest> scoped = requests;
+        if (IsInstructor(viewerRole, viewerUserId))
+            scoped = requests.Where(r => r.SolicitanteId == viewerUserId);
+        else if (!IsAdmin(viewerRole) && !IsBodeguero(viewerRole))
+            scoped = [];
+
+        return scoped.Select(r => new MaterialRequestDto(
             r.Id,
             r.Material.Name,
             r.Quantity,
@@ -187,8 +196,11 @@ public class InventoryService : IInventoryService
             r.Status)).ToList();
     }
 
-    // Instructor pide material para una orden
-    public async Task<ServiceResult> CreateRequestAsync(CreateMaterialRequestDto dto, CancellationToken cancellationToken = default)
+    // Instructor/Admin pide material para una orden
+    public async Task<ServiceResult> CreateRequestAsync(
+        CreateMaterialRequestDto dto,
+        int? solicitanteId = null,
+        CancellationToken cancellationToken = default)
     {
         // Verifico que el material exista
         var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
@@ -204,7 +216,8 @@ public class InventoryService : IInventoryService
             MaterialId = dto.MaterialId,
             ProductionOrderId = dto.ProductionOrderId,
             Quantity = dto.Quantity,
-            Status = RequestStatus.Pendiente
+            Status = RequestStatus.Pendiente,
+            SolicitanteId = solicitanteId is > 0 ? solicitanteId : null
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -294,4 +307,14 @@ public class InventoryService : IInventoryService
         m.MinStock,
         m.Stock < m.MinStock,
         m.LastEntryDate);
+
+    private static bool IsAdmin(string? role) =>
+        string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsBodeguero(string? role) =>
+        string.Equals(role, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsInstructor(string? role, int? userId) =>
+        userId is > 0
+        && string.Equals(role, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase);
 }

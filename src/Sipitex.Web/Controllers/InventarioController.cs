@@ -33,10 +33,15 @@ public class InventarioController : Controller
         _stockMovements = stockMovements;
     }
 
-    // Pantalla principal del inventario
+    // Pantalla principal del inventario (stock completo — no Instructor)
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeConsultarInventario)]
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
+        // Defensa en profundidad (unit-testable); la policy también bloquea en middleware
+        if (User.IsInRole(UserRoles.Instructor) && !User.IsInRole(UserRoles.Administrador))
+            return Forbid();
+
         // Armo el ViewModel con materiales, solicitudes y combos
         return View(await BuildViewModel(cancellationToken));
     }
@@ -143,15 +148,18 @@ public class InventarioController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // Los instructores piden material para una orden; bodega/admin aprueba después
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
+    // Solicitudes legacy MaterialRequest: solo Admin (Instructor usa SolicitudesMaterial / MRP)
+    [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateRequest([Bind(Prefix = "CreateRequest")] CreateRequestForm form, CancellationToken cancellationToken)
     {
+        TryGetActorUserId(out var solicitanteId);
         // Creo solicitud en estado Pendiente
         var result = await _inventoryService.CreateRequestAsync(
-            new CreateMaterialRequestDto(form.ProductionOrderId, form.MaterialId, form.Quantity), cancellationToken);
+            new CreateMaterialRequestDto(form.ProductionOrderId, form.MaterialId, form.Quantity),
+            solicitanteId > 0 ? solicitanteId : null,
+            cancellationToken);
 
         // Recargo datos de la pantalla
         var vm = await BuildViewModel(cancellationToken);
@@ -214,13 +222,18 @@ public class InventarioController : Controller
         // Órdenes para el dropdown al crear solicitud
         var orders = await _orderService.GetOrdersAsync(cancellationToken: cancellationToken);
 
+        int? viewerId = null;
+        if (TryGetActorUserId(out var uid))
+            viewerId = uid;
+        var viewerRole = User.FindFirstValue(ClaimTypes.Role);
+
         // Objeto que la vista Razor consume
         return new InventarioIndexViewModel
         {
             // Tabla de materiales
             Materials = materials,
-            // Solicitudes pendientes/aprobadas/rechazadas
-            Requests = await _inventoryService.GetRequestsAsync(cancellationToken),
+            // Solicitudes (Instructor scoped por SolicitanteId si llegara a llamar)
+            Requests = await _inventoryService.GetRequestsAsync(viewerId, viewerRole, cancellationToken),
             // Combo de órdenes de producción
             Orders = orders,
             // Form vacío para agregar material

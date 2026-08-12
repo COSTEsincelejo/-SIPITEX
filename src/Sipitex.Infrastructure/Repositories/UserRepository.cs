@@ -74,6 +74,8 @@ public class UserRepository : IUserRepository
         if (await _context.SolicitudesMaterial.AnyAsync(
                 s => s.SolicitanteId == userId || s.ResueltoPorId == userId, cancellationToken))
             blockers.Add("solicitudes de material (solicitante o resolución)");
+        if (await _context.MaterialRequests.AnyAsync(r => r.SolicitanteId == userId, cancellationToken))
+            blockers.Add("solicitudes legacy de inventario (MaterialRequest)");
         if (await _context.EntregasMaterial.AnyAsync(e => e.BodegueroId == userId, cancellationToken))
             blockers.Add("entregas de material registradas");
         if (await _context.Fichas.AnyAsync(f => f.InstructorUserId == userId, cancellationToken))

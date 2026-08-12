@@ -234,6 +234,12 @@ public class SipitexDbContext : DbContext
             // A qué material y a qué orden pertenece la solicitud
             e.HasOne(r => r.Material).WithMany(m => m.Requests).HasForeignKey(r => r.MaterialId);
             e.HasOne(r => r.ProductionOrder).WithMany(o => o.MaterialRequests).HasForeignKey(r => r.ProductionOrderId);
+            // Solicitante (nullable: filas legacy); Restrict para no borrar historial al borrar usuario
+            e.HasOne(r => r.Solicitante)
+                .WithMany()
+                .HasForeignKey(r => r.SolicitanteId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(r => r.SolicitanteId);
         });
 
         // --- Ficha ---

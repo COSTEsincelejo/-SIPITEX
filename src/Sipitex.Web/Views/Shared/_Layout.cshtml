@@ -46,9 +46,13 @@
         <div class="sidebar-nav">
         <nav class="nav-group">
             <div class="nav-group-label">Operación</div>
-            <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
             <a class="@NavClass("Ordenes")" asp-controller="Ordenes" asp-action="Index"><i class="fas fa-clipboard-list"></i> Órdenes de producción</a>
             <a class="@NavClass("Mrp")" asp-controller="Mrp" asp-action="Index"><i class="fas fa-diagram-project"></i> MRP / Materiales</a>
+            @* Inventario general: Admin y Bodeguero. Instructor consulta materiales vía MRP. *@
+            @if (User.IsInRole("Administrador") || User.IsInRole("Bodeguero"))
+            {
+                <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
+            }
             @* Cola de SolicitudMaterial solo Bodeguero *@
             @if (User.IsInRole("Bodeguero"))
             {

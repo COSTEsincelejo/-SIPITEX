@@ -76,7 +76,9 @@ public class AccountController : Controller
 
         // Cookie lista con rol, foto y permisos
         await SignInUserAsync(user);
-        // Después del login los mando al inventario porque es la pantalla principal del taller
+        // Instructor no tiene Inventario general; Admin/Bodeguero van al stock
+        if (string.Equals(user.Rol, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase))
+            return RedirectToAction("Index", "Ordenes");
         return RedirectToAction("Index", "Inventario");
     }
 
