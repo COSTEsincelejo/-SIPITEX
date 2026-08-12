@@ -137,6 +137,11 @@ public class BomProductEditForm
     public string? Digitacion { get; set; }
     public List<BomProductTallaForm> Tallas { get; set; } = [];
 
+    // Fase B — piezas y medidas
+    public List<BomProductPiezaForm> Piezas { get; set; } = [];
+    public List<BomProductMedidaForm> MedidasPatron { get; set; } = [];
+    public List<BomProductMedidaForm> MedidasPrenda { get; set; } = [];
+
     public List<BomRecipeLineForm> Lines { get; set; } = [new()];
 }
 
@@ -145,6 +150,34 @@ public class BomProductTallaForm
     public int? Id { get; set; }
     public string Nombre { get; set; } = string.Empty;
     public int Orden { get; set; }
+}
+
+public class BomProductPiezaForm
+{
+    public int? Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public int Cantidad { get; set; } = 1;
+    public string Tela { get; set; } = string.Empty;
+    public int Orden { get; set; }
+}
+
+public class BomProductMedidaForm
+{
+    public int? Id { get; set; }
+    public string Codigo { get; set; } = string.Empty;
+    public string Descripcion { get; set; } = string.Empty;
+    public string? Tolerancia { get; set; }
+    public string? ComoMedir { get; set; }
+    public int Orden { get; set; }
+    public List<BomProductMedidaValorForm> Valores { get; set; } = [];
+}
+
+public class BomProductMedidaValorForm
+{
+    public int? TallaId { get; set; }
+    public int TallaOrden { get; set; }
+    public string? TallaNombre { get; set; }
+    public decimal? Valor { get; set; }
 }
 
 public class BomRecipeLineForm

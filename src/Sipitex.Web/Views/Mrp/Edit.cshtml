@@ -17,7 +17,10 @@
         || !string.IsNullOrWhiteSpace(f.Disenador)
         || !string.IsNullOrWhiteSpace(f.Patronista)
         || !string.IsNullOrWhiteSpace(f.Digitacion)
-        || f.Tallas.Count > 0;
+        || f.Tallas.Count > 0
+        || f.Piezas.Count > 0
+        || f.MedidasPatron.Count > 0
+        || f.MedidasPrenda.Count > 0;
 }
 
 <div class="page-header">
@@ -155,6 +158,173 @@
                     <input type="text" id="new-talla-nombre" maxlength="40" placeholder="Nueva talla (ej. M/38)" style="width:160px;" />
                     <button type="button" class="ghost small" id="btn-add-talla"><i class="fas fa-plus"></i> Agregar talla</button>
                 </div>
+
+                <div class="card-title" style="margin-top:20px;"><i class="fas fa-scissors"></i> Piezas del patrón</div>
+                <p class="hint" style="margin-top:0;">Descripción de piezas del modelo (nombre, cantidad, tela).</p>
+                <div class="table-wrap">
+                    <table id="bom-piezas">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Cantidad</th>
+                                <th>Tela</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @for (var p = 0; p < Model.Form.Piezas.Count; p++)
+                        {
+                            <tr class="bom-pieza-row">
+                                <td>
+                                    <input type="hidden" name="Form.Piezas[@p].Id" value="@Model.Form.Piezas[p].Id" />
+                                    <input type="hidden" name="Form.Piezas[@p].Orden" class="pieza-orden" value="@Model.Form.Piezas[p].Orden" />
+                                    <input name="Form.Piezas[@p].Nombre" value="@Model.Form.Piezas[p].Nombre" maxlength="120" style="width:100%" placeholder="Delantero" />
+                                </td>
+                                <td>
+                                    <input name="Form.Piezas[@p].Cantidad" type="number" min="1" value="@Model.Form.Piezas[p].Cantidad" style="width:80px" />
+                                </td>
+                                <td>
+                                    <input name="Form.Piezas[@p].Tela" value="@Model.Form.Piezas[p].Tela" maxlength="80" style="width:100%" placeholder="PAÑO" />
+                                </td>
+                                <td>
+                                    <button type="button" class="small ghost danger btn-remove-pieza" title="Quitar"><i class="fas fa-times"></i></button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="ghost small" id="btn-add-pieza" style="margin-top:8px;"><i class="fas fa-plus"></i> Agregar pieza</button>
+
+                <div class="card-title" style="margin-top:20px;"><i class="fas fa-table"></i> Tabla de medidas</div>
+                <div class="form-row" style="align-items:center;gap:12px;">
+                    <label class="field-label" for="medida-tipo-select">Editando</label>
+                    <select id="medida-tipo-select">
+                        <option value="patron">Patrón</option>
+                        <option value="prenda">Prenda terminada</option>
+                    </select>
+                </div>
+                <p id="medidas-sin-tallas" class="hint" style="@(Model.Form.Tallas.Count == 0 ? null : "display:none")">
+                    Agregue al menos una talla arriba antes de cargar valores por talla.
+                </p>
+
+                <div class="table-wrap medidas-panel" id="panel-medidas-patron" data-prefix="MedidasPatron">
+                    <table class="bom-medidas">
+                        <thead>
+                            <tr>
+                                <th>Cód.</th>
+                                <th>Descripción</th>
+                                <th>Tolerancia</th>
+                                <th>Cómo medir</th>
+                                @for (var ti = 0; ti < Model.Form.Tallas.Count; ti++)
+                                {
+                                    <th class="medida-talla-col" data-talla-index="@ti">@Model.Form.Tallas[ti].Nombre</th>
+                                }
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @for (var mi = 0; mi < Model.Form.MedidasPatron.Count; mi++)
+                        {
+                            var mPatron = Model.Form.MedidasPatron[mi];
+                            <tr class="bom-medida-row">
+                                <td>
+                                    <input type="hidden" name="Form.MedidasPatron[@mi].Id" value="@mPatron.Id" />
+                                    <input type="hidden" name="Form.MedidasPatron[@mi].Orden" class="medida-orden" value="@mPatron.Orden" />
+                                    <input name="Form.MedidasPatron[@mi].Codigo" value="@mPatron.Codigo" maxlength="10" style="width:48px" placeholder="A" />
+                                </td>
+                                <td>
+                                    <input name="Form.MedidasPatron[@mi].Descripcion" value="@mPatron.Descripcion" maxlength="200" style="width:140px" placeholder="Largo hombro" />
+                                </td>
+                                <td>
+                                    <input name="Form.MedidasPatron[@mi].Tolerancia" value="@mPatron.Tolerancia" maxlength="40" style="width:70px" placeholder="+/-0.5" />
+                                </td>
+                                <td>
+                                    <input name="Form.MedidasPatron[@mi].ComoMedir" value="@mPatron.ComoMedir" maxlength="2000" style="width:160px" />
+                                </td>
+                                @for (var ti = 0; ti < Model.Form.Tallas.Count; ti++)
+                                {
+                                    var tallaP = Model.Form.Tallas[ti];
+                                    var valP = ti < mPatron.Valores.Count ? mPatron.Valores[ti] : null;
+                                    <td class="medida-talla-col" data-talla-index="@ti">
+                                        <input type="hidden" name="Form.MedidasPatron[@mi].Valores[@ti].TallaId" value="@tallaP.Id" />
+                                        <input type="hidden" name="Form.MedidasPatron[@mi].Valores[@ti].TallaOrden" value="@tallaP.Orden" />
+                                        <input type="hidden" name="Form.MedidasPatron[@mi].Valores[@ti].TallaNombre" value="@tallaP.Nombre" />
+                                        <input name="Form.MedidasPatron[@mi].Valores[@ti].Valor" type="number" step="0.01"
+                                               value="@(valP?.Valor?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                                               style="width:70px" />
+                                    </td>
+                                }
+                                <td>
+                                    <button type="button" class="small ghost danger btn-remove-medida" title="Quitar"><i class="fas fa-times"></i></button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                    <button type="button" class="ghost small btn-add-medida" data-prefix="MedidasPatron" style="margin-top:8px;">
+                        <i class="fas fa-plus"></i> Agregar medida
+                    </button>
+                </div>
+
+                <div class="table-wrap medidas-panel" id="panel-medidas-prenda" data-prefix="MedidasPrenda" style="display:none">
+                    <table class="bom-medidas">
+                        <thead>
+                            <tr>
+                                <th>Cód.</th>
+                                <th>Descripción</th>
+                                <th>Tolerancia</th>
+                                <th>Cómo medir</th>
+                                @for (var ti = 0; ti < Model.Form.Tallas.Count; ti++)
+                                {
+                                    <th class="medida-talla-col" data-talla-index="@ti">@Model.Form.Tallas[ti].Nombre</th>
+                                }
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @for (var mi = 0; mi < Model.Form.MedidasPrenda.Count; mi++)
+                        {
+                            var mPrenda = Model.Form.MedidasPrenda[mi];
+                            <tr class="bom-medida-row">
+                                <td>
+                                    <input type="hidden" name="Form.MedidasPrenda[@mi].Id" value="@mPrenda.Id" />
+                                    <input type="hidden" name="Form.MedidasPrenda[@mi].Orden" class="medida-orden" value="@mPrenda.Orden" />
+                                    <input name="Form.MedidasPrenda[@mi].Codigo" value="@mPrenda.Codigo" maxlength="10" style="width:48px" placeholder="A" />
+                                </td>
+                                <td>
+                                    <input name="Form.MedidasPrenda[@mi].Descripcion" value="@mPrenda.Descripcion" maxlength="200" style="width:140px" placeholder="Largo hombro" />
+                                </td>
+                                <td>
+                                    <input name="Form.MedidasPrenda[@mi].Tolerancia" value="@mPrenda.Tolerancia" maxlength="40" style="width:70px" placeholder="+/-0.5" />
+                                </td>
+                                <td>
+                                    <input name="Form.MedidasPrenda[@mi].ComoMedir" value="@mPrenda.ComoMedir" maxlength="2000" style="width:160px" />
+                                </td>
+                                @for (var ti = 0; ti < Model.Form.Tallas.Count; ti++)
+                                {
+                                    var tallaR = Model.Form.Tallas[ti];
+                                    var valR = ti < mPrenda.Valores.Count ? mPrenda.Valores[ti] : null;
+                                    <td class="medida-talla-col" data-talla-index="@ti">
+                                        <input type="hidden" name="Form.MedidasPrenda[@mi].Valores[@ti].TallaId" value="@tallaR.Id" />
+                                        <input type="hidden" name="Form.MedidasPrenda[@mi].Valores[@ti].TallaOrden" value="@tallaR.Orden" />
+                                        <input type="hidden" name="Form.MedidasPrenda[@mi].Valores[@ti].TallaNombre" value="@tallaR.Nombre" />
+                                        <input name="Form.MedidasPrenda[@mi].Valores[@ti].Valor" type="number" step="0.01"
+                                               value="@(valR?.Valor?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                                               style="width:70px" />
+                                    </td>
+                                }
+                                <td>
+                                    <button type="button" class="small ghost danger btn-remove-medida" title="Quitar"><i class="fas fa-times"></i></button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                    <button type="button" class="ghost small btn-add-medida" data-prefix="MedidasPrenda" style="margin-top:8px;">
+                        <i class="fas fa-plus"></i> Agregar medida
+                    </button>
+                </div>
             </div>
         </details>
 
@@ -288,6 +458,12 @@
     const tallasBox = document.getElementById('bom-tallas');
     const addTallaBtn = document.getElementById('btn-add-talla');
     const newTallaInput = document.getElementById('new-talla-nombre');
+    const piezasBody = document.querySelector('#bom-piezas tbody');
+    const addPiezaBtn = document.getElementById('btn-add-pieza');
+    const medidaTipo = document.getElementById('medida-tipo-select');
+    const sinTallasHint = document.getElementById('medidas-sin-tallas');
+    const panelPatron = document.getElementById('panel-medidas-patron');
+    const panelPrenda = document.getElementById('panel-medidas-prenda');
 
     function reindex() {
         [...tbody.querySelectorAll('tr.bom-line')].forEach((row, i) => {
@@ -298,13 +474,118 @@
         });
     }
 
+    function tallaChips() {
+        return [...(tallasBox?.querySelectorAll('.bom-talla-chip') || [])];
+    }
+
+    function syncSinTallasHint() {
+        if (!sinTallasHint) return;
+        sinTallasHint.style.display = tallaChips().length === 0 ? '' : 'none';
+    }
+
     function reindexTallas() {
-        [...tallasBox.querySelectorAll('.bom-talla-chip')].forEach((chip, i) => {
+        tallaChips().forEach((chip, i) => {
             chip.querySelectorAll('[name]').forEach(el => {
                 el.name = el.name.replace(/Form\.Tallas\[\d+\]/, `Form.Tallas[${i}]`);
             });
             const orden = chip.querySelector('.talla-orden');
             if (orden) orden.value = String(i);
+            const nombreInput = chip.querySelector('input[name*=".Nombre"]');
+            if (nombreInput) nombreInput.dataset.tallaIndex = String(i);
+        });
+        rebuildMedidaColumns();
+        syncSinTallasHint();
+    }
+
+    function reindexPiezas() {
+        [...(piezasBody?.querySelectorAll('tr.bom-pieza-row') || [])].forEach((row, i) => {
+            row.querySelectorAll('[name]').forEach(el => {
+                el.name = el.name.replace(/Form\.Piezas\[\d+\]/, `Form.Piezas[${i}]`);
+            });
+            const orden = row.querySelector('.pieza-orden');
+            if (orden) orden.value = String(i);
+        });
+    }
+
+    function reindexMedidas(panel) {
+        if (!panel) return;
+        const prefix = panel.getAttribute('data-prefix');
+        [...panel.querySelectorAll('tr.bom-medida-row')].forEach((row, i) => {
+            row.querySelectorAll('[name]').forEach(el => {
+                el.name = el.name
+                    .replace(new RegExp(`Form\\.${prefix}\\[\\d+\\]`), `Form.${prefix}[${i}]`)
+                    .replace(/Valores\[\d+\]/, (m, offset, s) => {
+                        // keep Valores[ti] as-is; reindex only medida index above
+                        return m;
+                    });
+                // Fix Valores indices by column order
+            });
+            const orden = row.querySelector('.medida-orden');
+            if (orden) orden.value = String(i);
+
+            const valorCells = [...row.querySelectorAll('td.medida-talla-col')];
+            valorCells.forEach((cell, ti) => {
+                cell.querySelectorAll('[name]').forEach(el => {
+                    el.name = el.name
+                        .replace(new RegExp(`Form\\.${prefix}\\[\\d+\\]`), `Form.${prefix}[${i}]`)
+                        .replace(/Valores\[\d+\]/, `Valores[${ti}]`);
+                });
+            });
+        });
+    }
+
+    function currentTallas() {
+        return tallaChips().map((chip, i) => {
+            const id = chip.querySelector('input[name*=".Id"]')?.value || '';
+            const orden = chip.querySelector('.talla-orden')?.value || String(i);
+            const nombre = chip.querySelector('input[name*=".Nombre"]')?.value || '';
+            return { id, orden, nombre, index: i };
+        });
+    }
+
+    function rebuildMedidaColumns() {
+        const tallas = currentTallas();
+        [panelPatron, panelPrenda].forEach(panel => {
+            if (!panel) return;
+            const prefix = panel.getAttribute('data-prefix');
+            const theadRow = panel.querySelector('thead tr');
+            if (!theadRow) return;
+
+            // Remove old talla headers (keep first 4 + last empty action)
+            [...theadRow.querySelectorAll('th.medida-talla-col')].forEach(th => th.remove());
+            const actionTh = theadRow.querySelector('th:last-child');
+            tallas.forEach(t => {
+                const th = document.createElement('th');
+                th.className = 'medida-talla-col';
+                th.dataset.tallaIndex = String(t.index);
+                th.textContent = t.nombre || `T${t.index + 1}`;
+                theadRow.insertBefore(th, actionTh);
+            });
+
+            [...panel.querySelectorAll('tr.bom-medida-row')].forEach((row, mi) => {
+                const existing = {};
+                [...row.querySelectorAll('td.medida-talla-col')].forEach(td => {
+                    const nameInput = td.querySelector('input[name*=".TallaNombre"]');
+                    const valInput = td.querySelector('input[name*=".Valor"]');
+                    const key = nameInput?.value || td.dataset.tallaIndex;
+                    existing[key] = valInput?.value ?? '';
+                    td.remove();
+                });
+                const actionTd = row.querySelector('td:last-child');
+                tallas.forEach(t => {
+                    const prev = existing[t.nombre] ?? existing[String(t.index)] ?? '';
+                    const td = document.createElement('td');
+                    td.className = 'medida-talla-col';
+                    td.dataset.tallaIndex = String(t.index);
+                    td.innerHTML =
+                        `<input type="hidden" name="Form.${prefix}[${mi}].Valores[${t.index}].TallaId" value="${t.id}" />` +
+                        `<input type="hidden" name="Form.${prefix}[${mi}].Valores[${t.index}].TallaOrden" value="${t.orden}" />` +
+                        `<input type="hidden" name="Form.${prefix}[${mi}].Valores[${t.index}].TallaNombre" value="${(t.nombre || '').replace(/"/g, '&quot;')}" />` +
+                        `<input name="Form.${prefix}[${mi}].Valores[${t.index}].Valor" type="number" step="0.01" value="${prev}" style="width:70px" />`;
+                    row.insertBefore(td, actionTd);
+                });
+            });
+            reindexMedidas(panel);
         });
     }
 
@@ -358,12 +639,91 @@
         reindexTallas();
     });
 
-    // Restaurar unidad seleccionada en selects con data-selected
+    tallasBox?.addEventListener('change', (e) => {
+        if (e.target.matches('input[name*=".Nombre"]')) rebuildMedidaColumns();
+    });
+    tallasBox?.addEventListener('input', (e) => {
+        if (e.target.matches('input[name*=".Nombre"]')) rebuildMedidaColumns();
+    });
+
+    addPiezaBtn?.addEventListener('click', () => {
+        if (!piezasBody) return;
+        const i = piezasBody.querySelectorAll('tr.bom-pieza-row').length;
+        const tr = document.createElement('tr');
+        tr.className = 'bom-pieza-row';
+        tr.innerHTML =
+            `<td><input type="hidden" name="Form.Piezas[${i}].Id" value="" />` +
+            `<input type="hidden" name="Form.Piezas[${i}].Orden" class="pieza-orden" value="${i}" />` +
+            `<input name="Form.Piezas[${i}].Nombre" maxlength="120" style="width:100%" placeholder="Delantero" /></td>` +
+            `<td><input name="Form.Piezas[${i}].Cantidad" type="number" min="1" value="1" style="width:80px" /></td>` +
+            `<td><input name="Form.Piezas[${i}].Tela" maxlength="80" style="width:100%" placeholder="PAÑO" /></td>` +
+            `<td><button type="button" class="small ghost danger btn-remove-pieza" title="Quitar"><i class="fas fa-times"></i></button></td>`;
+        piezasBody.appendChild(tr);
+        reindexPiezas();
+    });
+
+    piezasBody?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-remove-pieza');
+        if (!btn) return;
+        btn.closest('tr')?.remove();
+        reindexPiezas();
+    });
+
+    function switchMedidaPanel() {
+        const mode = medidaTipo?.value || 'patron';
+        if (panelPatron) panelPatron.style.display = mode === 'patron' ? '' : 'none';
+        if (panelPrenda) panelPrenda.style.display = mode === 'prenda' ? '' : 'none';
+    }
+    medidaTipo?.addEventListener('change', switchMedidaPanel);
+
+    document.querySelectorAll('.btn-add-medida').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const prefix = btn.getAttribute('data-prefix');
+            const panel = document.querySelector(`.medidas-panel[data-prefix="${prefix}"]`);
+            const body = panel?.querySelector('tbody');
+            if (!body) return;
+            const mi = body.querySelectorAll('tr.bom-medida-row').length;
+            const tallas = currentTallas();
+            const tr = document.createElement('tr');
+            tr.className = 'bom-medida-row';
+            let html =
+                `<td><input type="hidden" name="Form.${prefix}[${mi}].Id" value="" />` +
+                `<input type="hidden" name="Form.${prefix}[${mi}].Orden" class="medida-orden" value="${mi}" />` +
+                `<input name="Form.${prefix}[${mi}].Codigo" maxlength="10" style="width:48px" placeholder="A" /></td>` +
+                `<td><input name="Form.${prefix}[${mi}].Descripcion" maxlength="200" style="width:140px" placeholder="Largo hombro" /></td>` +
+                `<td><input name="Form.${prefix}[${mi}].Tolerancia" maxlength="40" style="width:70px" placeholder="+/-0.5" /></td>` +
+                `<td><input name="Form.${prefix}[${mi}].ComoMedir" maxlength="2000" style="width:160px" /></td>`;
+            tallas.forEach(t => {
+                html += `<td class="medida-talla-col" data-talla-index="${t.index}">` +
+                    `<input type="hidden" name="Form.${prefix}[${mi}].Valores[${t.index}].TallaId" value="${t.id}" />` +
+                    `<input type="hidden" name="Form.${prefix}[${mi}].Valores[${t.index}].TallaOrden" value="${t.orden}" />` +
+                    `<input type="hidden" name="Form.${prefix}[${mi}].Valores[${t.index}].TallaNombre" value="${(t.nombre || '').replace(/"/g, '&quot;')}" />` +
+                    `<input name="Form.${prefix}[${mi}].Valores[${t.index}].Valor" type="number" step="0.01" style="width:70px" /></td>`;
+            });
+            html += `<td><button type="button" class="small ghost danger btn-remove-medida" title="Quitar"><i class="fas fa-times"></i></button></td>`;
+            tr.innerHTML = html;
+            body.appendChild(tr);
+            reindexMedidas(panel);
+        });
+    });
+
+    document.querySelectorAll('.medidas-panel').forEach(panel => {
+        panel.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-remove-medida');
+            if (!btn) return;
+            btn.closest('tr')?.remove();
+            reindexMedidas(panel);
+        });
+    });
+
     document.querySelectorAll('select[data-selected]').forEach(sel => {
         const v = sel.getAttribute('data-selected');
         if (v != null) {
             [...sel.options].forEach(o => { if (o.value === v || o.index === Number(v)) o.selected = true; });
         }
     });
+
+    switchMedidaPanel();
+    syncSinTallasHint();
 })();
 </script>

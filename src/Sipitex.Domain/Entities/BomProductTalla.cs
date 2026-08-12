@@ -12,4 +12,7 @@ public class BomProductTalla
 
     // Orden de aparición (S,M,L o 6,8,10…)
     public int Orden { get; set; }
+
+    // Valores de medida asociados (Fase B); cascade al eliminar talla
+    public ICollection<BomProductMedidaValor> MedidaValores { get; set; } = [];
 }

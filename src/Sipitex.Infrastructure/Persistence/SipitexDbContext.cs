@@ -14,6 +14,9 @@ public class SipitexDbContext : DbContext
     public DbSet<BomProduct> BomProducts => Set<BomProduct>(); // Cabecera de ficha técnica (producto)
     public DbSet<BomProductInstructor> BomProductInstructors => Set<BomProductInstructor>(); // M2M ficha técnica ↔ instructor
     public DbSet<BomProductTalla> BomProductTallas => Set<BomProductTalla>(); // Tallas de ficha técnica (Fase A)
+    public DbSet<BomProductPieza> BomProductPiezas => Set<BomProductPieza>(); // Piezas del patrón (Fase B)
+    public DbSet<BomProductMedida> BomProductMedidas => Set<BomProductMedida>(); // Filas de medidas (Fase B)
+    public DbSet<BomProductMedidaValor> BomProductMedidaValores => Set<BomProductMedidaValor>(); // Valor por talla (Fase B)
     public DbSet<BomItem> BomItems => Set<BomItem>(); // Lista de materiales por prenda (BOM)
     public DbSet<ProductionOrder> ProductionOrders => Set<ProductionOrder>(); // Órdenes OP-xxx
     public DbSet<ProductionOrderBomSnapshot> ProductionOrderBomSnapshots => Set<ProductionOrderBomSnapshot>(); // Receta congelada por orden
@@ -101,6 +104,56 @@ public class SipitexDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(t => t.BomProductId);
             e.HasIndex(t => new { t.BomProductId, t.Orden });
+        });
+
+        // --- BomProductPieza (Fase B) ---
+        modelBuilder.Entity<BomProductPieza>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Nombre).HasMaxLength(120).IsRequired();
+            e.Property(p => p.Tela).HasMaxLength(80).IsRequired();
+            e.HasOne(p => p.BomProduct)
+                .WithMany(p => p.Piezas)
+                .HasForeignKey(p => p.BomProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(p => p.BomProductId);
+            e.HasIndex(p => new { p.BomProductId, p.Orden });
+        });
+
+        // --- BomProductMedida (Fase B) ---
+        modelBuilder.Entity<BomProductMedida>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Tipo).HasConversion<string>().HasMaxLength(30);
+            e.Property(m => m.Codigo).HasMaxLength(10).IsRequired();
+            e.Property(m => m.Descripcion).HasMaxLength(200).IsRequired();
+            e.Property(m => m.Tolerancia).HasMaxLength(40);
+            e.Property(m => m.ComoMedir).HasMaxLength(2000);
+            e.HasOne(m => m.BomProduct)
+                .WithMany(p => p.Medidas)
+                .HasForeignKey(m => m.BomProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(m => m.BomProductId);
+            e.HasIndex(m => new { m.BomProductId, m.Tipo, m.Orden });
+        });
+
+        // --- BomProductMedidaValor (Fase B: valor por talla) ---
+        // Cascade desde Medida y desde Talla: al quitar una talla se borran sus valores
+        // (documentado en PR Fase B; evita huérfanos silenciosos).
+        modelBuilder.Entity<BomProductMedidaValor>(e =>
+        {
+            e.HasKey(v => v.Id);
+            e.Property(v => v.Valor).HasPrecision(18, 2);
+            e.HasOne(v => v.Medida)
+                .WithMany(m => m.Valores)
+                .HasForeignKey(v => v.BomProductMedidaId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(v => v.Talla)
+                .WithMany(t => t.MedidaValores)
+                .HasForeignKey(v => v.BomProductTallaId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(v => new { v.BomProductMedidaId, v.BomProductTallaId }).IsUnique();
+            e.HasIndex(v => v.BomProductTallaId);
         });
 
         // BOM = lista de materiales por prenda (Bill of Materials)

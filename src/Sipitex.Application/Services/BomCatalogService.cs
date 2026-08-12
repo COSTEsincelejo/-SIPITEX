@@ -76,8 +76,36 @@ public class BomCatalogService : IBomCatalogService
                 .OrderBy(t => t.Orden)
                 .ThenBy(t => t.Id)
                 .Select(t => new BomProductTallaDto(t.Id, t.Nombre, t.Orden))
+                .ToList(),
+            product.Piezas
+                .OrderBy(p => p.Orden)
+                .ThenBy(p => p.Id)
+                .Select(p => new BomProductPiezaDto(p.Id, p.Nombre, p.Cantidad, p.Tela, p.Orden))
+                .ToList(),
+            product.Medidas
+                .OrderBy(m => m.Tipo)
+                .ThenBy(m => m.Orden)
+                .ThenBy(m => m.Id)
+                .Select(MapMedida)
                 .ToList());
     }
+
+    private static BomProductMedidaDto MapMedida(BomProductMedida m) => new(
+        m.Id,
+        m.Tipo,
+        m.Codigo,
+        m.Descripcion,
+        m.Tolerancia,
+        m.ComoMedir,
+        m.Orden,
+        m.Valores
+            .OrderBy(v => v.Talla?.Orden ?? 0)
+            .Select(v => new BomProductMedidaValorDto(
+                v.BomProductTallaId,
+                v.Talla?.Orden ?? 0,
+                v.Talla?.Nombre,
+                v.Valor))
+            .ToList());
 
     public async Task<IReadOnlyList<string>> GetOrderEligibleProductNamesAsync(CancellationToken cancellationToken = default)
     {
@@ -111,6 +139,9 @@ public class BomCatalogService : IBomCatalogService
         };
         ApplyMetadata(product, dto);
         ApplyTallas(product, dto.Tallas);
+
+        var patronaje = ApplyPatronaje(product, dto.Piezas, dto.Medidas);
+        if (patronaje is not null) return patronaje;
 
         foreach (var line in linesResult.Lines!)
         {
@@ -151,11 +182,23 @@ public class BomCatalogService : IBomCatalogService
         product.HabilitadoParaOrdenes = dto.HabilitadoParaOrdenes;
         ApplyMetadata(product, dto);
 
-        // Reemplazo completo de tallas
+        // Quitar medidas primero (evita FK huérfanas al reemplazar tallas)
+        foreach (var old in product.Medidas.ToList())
+            _bomRepository.RemoveMedida(old);
+        product.Medidas.Clear();
+
+        foreach (var old in product.Piezas.ToList())
+            _bomRepository.RemovePieza(old);
+        product.Piezas.Clear();
+
+        // Reemplazo de tallas: cascade borra BomProductMedidaValor de tallas eliminadas
         foreach (var old in product.Tallas.ToList())
             _bomRepository.RemoveTalla(old);
         product.Tallas.Clear();
         ApplyTallas(product, dto.Tallas);
+
+        var patronaje = ApplyPatronaje(product, dto.Piezas, dto.Medidas);
+        if (patronaje is not null) return patronaje;
 
         // Reemplazo completo de líneas: quitar viejas, agregar nuevas
         foreach (var old in product.Items.ToList())
@@ -267,8 +310,21 @@ public class BomCatalogService : IBomCatalogService
             return ServiceResult.Fail("El nombre del producto es obligatorio.");
         if (dto.Lines is null || dto.Lines.Count == 0)
             return ServiceResult.Fail("La receta debe tener al menos un material. Para dejar el producto sin BOM use Eliminar.");
+
+        var hasMeaningfulMedidas = dto.Medidas is { Count: > 0 }
+            && dto.Medidas.Any(m => !string.IsNullOrWhiteSpace(m.Codigo) || !string.IsNullOrWhiteSpace(m.Descripcion));
+        var tallasCount = CountNamedTallas(dto.Tallas);
+        if (hasMeaningfulMedidas && tallasCount == 0)
+        {
+            return ServiceResult.Fail(
+                "Debe agregar al menos una talla antes de registrar la tabla de medidas.");
+        }
+
         return null;
     }
+
+    private static int CountNamedTallas(IReadOnlyList<BomProductTallaDto>? tallas) =>
+        tallas?.Count(t => !string.IsNullOrWhiteSpace(t.Nombre)) ?? 0;
 
     private static void ApplyMetadata(BomProduct product, UpsertBomProductDto dto)
     {
@@ -304,10 +360,124 @@ public class BomCatalogService : IBomCatalogService
             {
                 BomProductId = product.Id,
                 Nombre = nombre,
-                Orden = t.Orden > 0 ? t.Orden : orden
+                Orden = t.Orden >= 0 ? t.Orden : orden
             });
             orden++;
         }
+    }
+
+    // Piezas + medidas/valores. Usa navegación a Talla (no solo Id) para Create sin IDs aún.
+    private static ServiceResult? ApplyPatronaje(
+        BomProduct product,
+        IReadOnlyList<BomProductPiezaDto>? piezas,
+        IReadOnlyList<BomProductMedidaDto>? medidas)
+    {
+        if (piezas is not null)
+        {
+            var orden = 0;
+            foreach (var p in piezas)
+            {
+                var nombre = NormalizeOptional(p.Nombre);
+                if (nombre is null)
+                    continue;
+                if (p.Cantidad <= 0)
+                    return ServiceResult.Fail($"La cantidad de la pieza «{nombre}» debe ser mayor a cero.");
+
+                product.Piezas.Add(new BomProductPieza
+                {
+                    BomProductId = product.Id,
+                    Nombre = nombre,
+                    Cantidad = p.Cantidad,
+                    Tela = NormalizeOptional(p.Tela) ?? string.Empty,
+                    Orden = p.Orden >= 0 ? p.Orden : orden
+                });
+                orden++;
+            }
+        }
+
+        if (medidas is null || medidas.Count == 0)
+            return null;
+
+        var tallas = product.Tallas.OrderBy(t => t.Orden).ThenBy(t => t.Nombre).ToList();
+        var meaningful = medidas
+            .Where(m => !string.IsNullOrWhiteSpace(m.Codigo) || !string.IsNullOrWhiteSpace(m.Descripcion))
+            .ToList();
+
+        if (meaningful.Count == 0)
+            return null;
+
+        if (tallas.Count == 0)
+        {
+            return ServiceResult.Fail(
+                "Debe agregar al menos una talla antes de registrar la tabla de medidas.");
+        }
+
+        var ordenMed = 0;
+        foreach (var m in meaningful)
+        {
+            var codigo = NormalizeOptional(m.Codigo);
+            var descripcion = NormalizeOptional(m.Descripcion);
+            if (codigo is null || descripcion is null)
+                return ServiceResult.Fail("Cada medida requiere código y descripción.");
+
+            var medida = new BomProductMedida
+            {
+                BomProductId = product.Id,
+                Tipo = m.Tipo,
+                Codigo = codigo,
+                Descripcion = descripcion,
+                Tolerancia = NormalizeOptional(m.Tolerancia),
+                ComoMedir = NormalizeOptional(m.ComoMedir),
+                Orden = m.Orden >= 0 ? m.Orden : ordenMed
+            };
+
+            var seenTallas = new HashSet<BomProductTalla>();
+            foreach (var v in m.Valores ?? [])
+            {
+                var talla = ResolveTalla(tallas, v);
+                if (talla is null)
+                {
+                    return ServiceResult.Fail(
+                        $"No se pudo asociar el valor de la medida «{codigo}» a una talla definida.");
+                }
+
+                if (!seenTallas.Add(talla))
+                    continue;
+
+                medida.Valores.Add(new BomProductMedidaValor
+                {
+                    Medida = medida,
+                    Talla = talla,
+                    Valor = v.Valor
+                });
+            }
+
+            product.Medidas.Add(medida);
+            ordenMed++;
+        }
+
+        return null;
+    }
+
+    private static BomProductTalla? ResolveTalla(
+        IReadOnlyList<BomProductTalla> tallas,
+        BomProductMedidaValorDto v)
+    {
+        if (v.TallaId is int tid and > 0)
+        {
+            var byId = tallas.FirstOrDefault(t => t.Id == tid);
+            if (byId is not null) return byId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(v.TallaNombre))
+        {
+            var byName = tallas.FirstOrDefault(t =>
+                string.Equals(t.Nombre, v.TallaNombre.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (byName is not null) return byName;
+        }
+
+        return tallas.FirstOrDefault(t => t.Orden == v.TallaOrden)
+               ?? (v.TallaOrden >= 0 && v.TallaOrden < tallas.Count ? tallas[v.TallaOrden] : null);
     }
 
     private static string? NormalizeOptional(string? value) =>
