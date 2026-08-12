@@ -157,4 +157,85 @@ public static class DisplayHelper
         QualityResult.Rechazada => "Rechazada",
         _ => value.ToString()
     };
+
+    // Íconos Font Awesome para reconocer estado sin leer el texto
+    public static string StatusIcon(OrderStatus status) => status switch
+    {
+        OrderStatus.Pendiente => "fa-hourglass-half",
+        OrderStatus.EnProceso => "fa-play",
+        OrderStatus.Finalizada => "fa-circle-check",
+        OrderStatus.Cancelada => "fa-ban",
+        _ => "fa-circle"
+    };
+
+    public static string StatusIcon(SolicitudMaterialEstado status) => status switch
+    {
+        SolicitudMaterialEstado.Pendiente => "fa-hourglass-half",
+        SolicitudMaterialEstado.AprobadaTotal => "fa-circle-check",
+        SolicitudMaterialEstado.AprobadaParcial => "fa-circle-half-stroke",
+        SolicitudMaterialEstado.Rechazada => "fa-circle-xmark",
+        _ => "fa-circle"
+    };
+
+    public static string StatusIcon(RequestStatus status) => status switch
+    {
+        RequestStatus.Pendiente => "fa-hourglass-half",
+        RequestStatus.Aprobada => "fa-circle-check",
+        RequestStatus.Rechazada => "fa-circle-xmark",
+        _ => "fa-circle"
+    };
+
+    public static string StatusIcon(DetalleSolicitudEstado status) => status switch
+    {
+        DetalleSolicitudEstado.Pendiente => "fa-hourglass-half",
+        DetalleSolicitudEstado.Aprobado => "fa-circle-check",
+        DetalleSolicitudEstado.AprobadoParcial => "fa-circle-half-stroke",
+        DetalleSolicitudEstado.Rechazado => "fa-circle-xmark",
+        _ => "fa-circle"
+    };
+
+    public static string StatusIcon(OrderMaterialsStatus status) => status switch
+    {
+        OrderMaterialsStatus.ListaParaProduccion => "fa-circle-check",
+        OrderMaterialsStatus.MaterialesValidados => "fa-clipboard-check",
+        OrderMaterialsStatus.EntregaParcial => "fa-boxes-stacked",
+        OrderMaterialsStatus.PendienteRevisionBodega => "fa-warehouse",
+        OrderMaterialsStatus.NoAplica => "fa-minus",
+        _ => "fa-circle"
+    };
+
+    // Niveles de stock desde backend (StockLevel); no recalcular Stock<=0 aquí
+    public static string StockLevelClass(StockLevel level) => level switch
+    {
+        StockLevel.Critico => "stock-critical",
+        StockLevel.Bajo => "stock-low",
+        _ => "stock-ok"
+    };
+
+    public static string StockLevelLabel(StockLevel level) => level switch
+    {
+        StockLevel.Critico => "Crítico",
+        StockLevel.Bajo => "Bajo",
+        _ => "OK"
+    };
+
+    public static string StockLevelIcon(StockLevel level) => level switch
+    {
+        StockLevel.Critico => "fa-circle-exclamation",
+        StockLevel.Bajo => "fa-triangle-exclamation",
+        _ => "fa-circle-check"
+    };
+
+    public static string StockLevelBadgeClass(StockLevel level) => level switch
+    {
+        StockLevel.Critico => "badge-danger",
+        StockLevel.Bajo => "badge-warning",
+        _ => "badge-success"
+    };
+
+    public static string StatusIcon(StockLevel level) => StockLevelIcon(level);
+
+    public static string BadgeClass(StockLevel level) => StockLevelBadgeClass(level);
+
+    public static string StatusText(StockLevel level) => StockLevelLabel(level);
 }

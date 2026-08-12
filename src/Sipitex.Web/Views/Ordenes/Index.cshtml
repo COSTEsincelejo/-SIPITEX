@@ -5,18 +5,52 @@
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Órdenes de producción";
     Layout = "_Layout";
     var puedeCrear = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeCrearOrdenes)).Succeeded;
+    var isAdmin = User.IsInRole("Administrador");
+    var isInstructor = User.IsInRole("Instructor");
+    var pendientes = Model.Orders.Where(o => o.Status == OrderStatus.Pendiente).ToList();
+    var ordersSorted = Model.Orders
+        .OrderBy(o => o.Status == OrderStatus.Pendiente ? 0 : o.Status == OrderStatus.EnProceso ? 1 : 2)
+        .ThenByDescending(o => o.Id)
+        .ToList();
 }
 
 <div class="page-header">
     <div>
         <h2>Órdenes de producción</h2>
-        <div class="sub">Crea órdenes y genera el cálculo MRP automático</div>
+        <div class="sub">
+            @if (isInstructor)
+            {
+                <text>Sus órdenes asignadas (operar) y las que puede preparar por materiales. El alcance se indica en cada fila.</text>
+            }
+            else if (isAdmin)
+            {
+                <text>Cree órdenes (quedan Pendiente) y apruébelas para iniciar producción/MES.</text>
+            }
+            else
+            {
+                <text>Consulta de órdenes y estado de materiales / avance.</text>
+            }
+        </div>
     </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+@if (isAdmin && pendientes.Count > 0)
+{
+    <div class="approve-banner">
+        <div class="approve-copy">
+            <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+            <div>
+                <strong>@pendientes.Count orden(es) pendiente(s) de aprobación</strong>
+                <p>Hasta aprobar no hay producción, MES ni entrega física de materiales. Puede preparar la lista de materiales mientras tanto.</p>
+            </div>
+        </div>
+        <a class="primary" href="#orden-@pendientes[0].Id"><i class="fas fa-arrow-down"></i> Ir a la primera</a>
+    </div>
 }
 
 @* Admin o Instructor con Ordenes.Crear *@
@@ -58,20 +92,41 @@
             </form>
         </div>
         <div class="alert alert-info" style="margin:0;align-self:flex-start;">
-            <i class="fas fa-microchip"></i> El sistema calcula automáticamente los materiales requeridos (BOM) según la ficha técnica del producto.
+            <i class="fas fa-microchip"></i>
+            La orden nace en <span class="badge has-icon badge-warning"><i class="fas fa-hourglass-half"></i><span class="badge-text">Pendiente</span></span>
+            y pasa a <span class="badge has-icon badge-info"><i class="fas fa-play"></i><span class="badge-text">En proceso</span></span>
+            cuando el Administrador la aprueba.
         </div>
     </div>
 </div>
 }
 
 <div class="card">
+    <div class="card-title"><i class="fas fa-list"></i> Listado</div>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Orden</th><th>Producto</th><th>Cantidad</th><th>Producido</th><th>Avance</th><th>Estado</th><th>Materiales</th><th>MRP sugerido</th><th></th></tr></thead>
-            <tbody>
-            @foreach (var order in Model.Orders)
-            {
+            <thead>
                 <tr>
+                    <th>Orden</th>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Producido</th>
+                    <th>Avance</th>
+                    <th>Estado</th>
+                    <th>Materiales</th>
+                    @if (isInstructor)
+                    {
+                        <th>Su alcance</th>
+                    }
+                    <th>MRP sugerido</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var order in ordersSorted)
+            {
+                var rowClass = order.Status == OrderStatus.Pendiente ? "order-row-pendiente" : null;
+                <tr id="orden-@order.Id" class="@rowClass">
                     <td>
                         <strong>@order.OrderNumber</strong>
                         <div><a class="hint" asp-action="Detail" asp-route-id="@order.Id">Ver detalle / flujo</a></div>
@@ -92,20 +147,60 @@
                             }
                         </div>
                     </td>
-                    <td><span class="badge @DisplayHelper.BadgeClass(order.Status)">@DisplayHelper.StatusText(order.Status)</span></td>
-                    <td><span class="badge @DisplayHelper.BadgeClass(order.MaterialsStatus)">@DisplayHelper.StatusText(order.MaterialsStatus)</span></td>
+                    <td>
+                        <partial name="_StatusBadge" model="new StatusBadgeModel {
+                            CssClass = DisplayHelper.BadgeClass(order.Status),
+                            Icon = DisplayHelper.StatusIcon(order.Status),
+                            Text = DisplayHelper.StatusText(order.Status)
+                        }" />
+                    </td>
+                    <td>
+                        <partial name="_StatusBadge" model="new StatusBadgeModel {
+                            CssClass = DisplayHelper.BadgeClass(order.MaterialsStatus),
+                            Icon = DisplayHelper.StatusIcon(order.MaterialsStatus),
+                            Text = DisplayHelper.StatusText(order.MaterialsStatus)
+                        }" />
+                    </td>
+                    @if (isInstructor)
+                    {
+                        <td>
+                            @if (order.CanOperateProduction && order.CanManageMaterials)
+                            {
+                                <span class="access-chip access-both" title="Puede operar MES/producción y preparar materiales"><i class="fas fa-gears"></i> Operar</span>
+                            }
+                            else if (order.CanOperateProduction)
+                            {
+                                <span class="access-chip access-operate" title="Asignado a la orden: puede operar MES/producción"><i class="fas fa-gears"></i> Operar</span>
+                            }
+                            else if (order.CanManageMaterials)
+                            {
+                                <span class="access-chip access-materials" title="Habilitado por ficha/BOM: solo preparar materiales"><i class="fas fa-boxes-stacked"></i> Solo materiales</span>
+                            }
+                            else
+                            {
+                                <span class="hint">—</span>
+                            }
+                        </td>
+                    }
                     <td><small style="color:var(--text-mut);">@order.MrpHint</small></td>
                     <td>
                         @if (order.Status == OrderStatus.Pendiente)
                         {
-                            <span class="hint">Pendiente aprobación</span>
-                            @if (User.IsInRole("Administrador"))
+                            @if (isAdmin)
                             {
-                                <form asp-action="Approve" method="post" class="row-actions" style="margin-top:4px;">
+                                <form asp-action="Approve" method="post" class="row-actions"
+                                      onsubmit="return confirm('¿Aprobar @order.OrderNumber e iniciar producción/MES?');">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@order.Id" />
-                                    <button type="submit" class="small primary">Aprobar</button>
+                                    <button type="submit" class="primary small"><i class="fas fa-check"></i> Aprobar orden</button>
                                 </form>
+                                <div style="margin-top:6px;">
+                                    <a class="hint" asp-action="Detail" asp-route-id="@order.Id">Revisar antes</a>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="hint">Espera aprobación Admin</span>
                             }
                         }
                         else if (order.CanOperateProduction
@@ -127,7 +222,11 @@
                         {
                             <span class="hint">Pendiente bodega</span>
                         }
-                        @if (User.IsInRole("Administrador") && order.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada))
+                        else if (isInstructor && order.CanManageMaterials && !order.CanOperateProduction)
+                        {
+                            <a class="small ghost" asp-action="Detail" asp-route-id="@order.Id"><i class="fas fa-boxes-stacked"></i> Preparar materiales</a>
+                        }
+                        @if (isAdmin && order.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada))
                         {
                             <div style="margin-top:4px;">
                                 <a class="hint" asp-action="Edit" asp-route-id="@order.Id">Editar</a>

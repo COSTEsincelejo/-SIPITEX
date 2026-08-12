@@ -5,8 +5,12 @@
     ViewData["Title"] = "Inventario";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Inventario";
     Layout = "_Layout";
-    // Materiales con stock bajo para el banner de alerta
-    var lowStock = Model.Materials.Where(m => m.IsLowStock).Select(m => m.Name).ToList();
+    var criticalStock = Model.Materials.Where(m => m.StockLevel == StockLevel.Critico).ToList();
+    var lowOnly = Model.Materials.Where(m => m.StockLevel == StockLevel.Bajo).ToList();
+    var materialsSorted = Model.Materials
+        .OrderBy(m => m.StockLevel == StockLevel.Critico ? 0 : m.StockLevel == StockLevel.Bajo ? 1 : 2)
+        .ThenBy(m => m.Name)
+        .ToList();
     var canManageStock = User.IsInRole("Administrador") || User.IsInRole("Bodeguero");
     // Políticas más finas que el rol (permisos extendidos)
     var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
@@ -31,6 +35,47 @@
 @if (!string.IsNullOrEmpty(Model.Message))
 {
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+@if (Model.Materials.Any())
+{
+    <div class="kpi-mini">
+        <div class="kpi-card">
+            <div class="kpi-label">Materiales</div>
+            <div class="kpi-value">@Model.Materials.Count</div>
+            <div class="kpi-trend">En catálogo</div>
+        </div>
+        <div class="kpi-card amber">
+            <div class="kpi-label">Stock bajo</div>
+            <div class="kpi-value">@lowOnly.Count</div>
+            <div class="kpi-trend">Por debajo del mínimo</div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-label">Crítico</div>
+            <div class="kpi-value">@criticalStock.Count</div>
+            <div class="kpi-trend">Sin existencias</div>
+        </div>
+    </div>
+    @if (criticalStock.Count > 0)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-circle-exclamation"></i>
+            <span><strong>Stock crítico (sin existencias):</strong> @string.Join(", ", criticalStock.Select(m => m.Name))</span>
+        </div>
+    }
+    @if (lowOnly.Count > 0)
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-triangle-exclamation"></i>
+            <span><strong>Stock bajo el mínimo:</strong> @string.Join(", ", lowOnly.Select(m => m.Name))</span>
+        </div>
+    }
+    @if (criticalStock.Count == 0 && lowOnly.Count == 0)
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-circle-check"></i> Stock dentro de los niveles normales
+        </div>
+    }
 }
 
 <div class="card">
@@ -72,12 +117,24 @@
             <table>
                 <thead><tr><th>Material</th><th>Unidad</th><th>Stock</th><th>Estado</th><th>Última entrada</th><th>Mínimo</th><th></th></tr></thead>
                 <tbody>
-                @foreach (var mat in Model.Materials)
+                @foreach (var mat in materialsSorted)
                 {
-                    <tr>
+                    var levelClass = DisplayHelper.StockLevelClass(mat.StockLevel);
+                    var rowClass = mat.StockLevel == StockLevel.Critico ? "stock-critical-row"
+                        : mat.StockLevel == StockLevel.Bajo ? "stock-low-row" : null;
+                    <tr class="@rowClass">
                         <td><strong>@mat.Name</strong></td>
                         <td>@mat.UnitDisplay</td>
-                        <td>@mat.Stock.ToString("0.0")</td>
+                        <td>
+                            <div class="stock-cell @levelClass">
+                                <span class="stock-qty">@mat.Stock.ToString("0.0")</span>
+                                <partial name="_StatusBadge" model="new StatusBadgeModel {
+                                    CssClass = DisplayHelper.StockLevelBadgeClass(mat.StockLevel),
+                                    Icon = DisplayHelper.StockLevelIcon(mat.StockLevel),
+                                    Text = DisplayHelper.StockLevelLabel(mat.StockLevel)
+                                }" />
+                            </div>
+                        </td>
                         <td>
                             @if (canManageStock)
                             {
@@ -161,18 +218,6 @@
                 </tbody>
             </table>
         </div>
-        @if (lowStock.Any())
-        {
-            <div class="alert alert-warning" style="margin-top:14px;">
-                <i class="fas fa-triangle-exclamation"></i> Alertas de stock mínimo: @string.Join(", ", lowStock)
-            </div>
-        }
-        else
-        {
-            <div class="alert alert-success" style="margin-top:14px;">
-                <i class="fas fa-circle-check"></i> Stock dentro de los niveles normales
-            </div>
-        }
     }
 </div>
 
@@ -218,7 +263,11 @@
                         <td>@req.MaterialName</td>
                         <td>@req.Quantity</td>
                         <td>@req.OrderNumber</td>
-                        <td><span class="badge @DisplayHelper.BadgeClass(req.Status)">@DisplayHelper.StatusText(req.Status)</span></td>
+                        <td><partial name="_StatusBadge" model="new StatusBadgeModel {
+                            CssClass = DisplayHelper.BadgeClass(req.Status),
+                            Icon = DisplayHelper.StatusIcon(req.Status),
+                            Text = DisplayHelper.StatusText(req.Status)
+                        }" /></td>
                         <td>
                             <div class="row-actions">
                             @* Solo pendientes se pueden aprobar/rechazar *@

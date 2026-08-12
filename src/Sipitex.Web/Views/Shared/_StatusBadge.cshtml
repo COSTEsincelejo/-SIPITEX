@@ -1,0 +1,6 @@
+@* Badge de estado con ícono (color + forma) para reconocimiento inmediato *@
+@model Sipitex.Web.Models.StatusBadgeModel
+<span class="badge has-icon @Model.CssClass" title="@Model.Text">
+    <i class="fas @Model.Icon" aria-hidden="true"></i>
+    <span class="badge-text">@Model.Text</span>
+</span>

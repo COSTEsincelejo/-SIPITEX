@@ -283,6 +283,33 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 .stock-warn{color:var(--amber);margin-left:6px;font-weight:700;}
 .stock-warn-text{color:var(--amber);font-weight:700;}
 .stock-warn-row td{background:#FFF8EE;}
+.stock-critical-row td{background:var(--red-soft);}
+.stock-low-row td{background:#FFF8EE;}
+.stock-cell{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.stock-cell .stock-qty{font-variant-numeric:tabular-nums;font-weight:700;}
+.stock-cell.stock-critical .stock-qty{color:var(--red);}
+.stock-cell.stock-low .stock-qty{color:var(--amber);}
+.badge.has-icon::before{display:none;}
+.badge.has-icon{gap:7px;}
+.badge.has-icon i{font-size:10px;line-height:1;}
+.badge .badge-text{line-height:1.2;}
+.access-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:700;white-space:nowrap;}
+.access-chip i{font-size:10px;}
+.access-operate{background:var(--teal-soft);color:var(--teal);}
+.access-materials{background:var(--amber-soft);color:var(--amber);}
+.access-both{background:var(--info-soft);color:var(--info);}
+.order-row-pendiente td{background:#FFF8EE;}
+.order-row-pendiente:hover td{background:#FCEFD9 !important;}
+.approve-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border-radius:var(--radius);border:1px solid #F3DBAE;background:var(--amber-soft);margin-bottom:16px;}
+.approve-banner .approve-copy{display:flex;align-items:flex-start;gap:10px;min-width:0;flex:1;}
+.approve-banner .approve-copy i{color:var(--amber);margin-top:2px;}
+.approve-banner strong{display:block;color:#8A570A;}
+.approve-banner p{margin:2px 0 0;font-size:13px;color:#8A570A;}
+.scope-banner{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--brand-soft);margin-bottom:16px;font-size:13px;color:var(--navy-2);}
+.scope-banner i{margin-top:2px;color:var(--accent);}
+.kpi-mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;}
+.kpi-mini .kpi-card{padding:14px 16px;margin:0;}
+.kpi-mini .kpi-value{font-size:22px;}
 .resolucion-form input[type=number]{max-width:120px;}
 
 /* Auth / login */
