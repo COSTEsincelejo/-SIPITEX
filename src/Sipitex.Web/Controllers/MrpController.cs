@@ -76,14 +76,14 @@ public class MrpController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeGestionarFichasTecnicas)]
     [HttpGet]
     public async Task<IActionResult> Create(CancellationToken cancellationToken)
     {
         return View("Edit", await BuildEditVm(null, cancellationToken));
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeGestionarFichasTecnicas)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind(Prefix = "Form")] BomProductEditForm form, CancellationToken cancellationToken)
@@ -102,7 +102,7 @@ public class MrpController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeGestionarFichasTecnicas)]
     [HttpGet]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
     {
@@ -111,7 +111,7 @@ public class MrpController : Controller
         return View(await BuildEditVm(detail, cancellationToken));
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeGestionarFichasTecnicas)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, [Bind(Prefix = "Form")] BomProductEditForm form, CancellationToken cancellationToken)
@@ -131,6 +131,7 @@ public class MrpController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // Delete permanece solo Administrador (conservador; el permiso extendido no lo habilita)
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -149,8 +150,8 @@ public class MrpController : Controller
         var products = await GetScopedProductsAsync(cancellationToken);
         var productNames = products.Select(p => p.ProductName).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var allBom = await _mrpService.GetBomAsync(cancellationToken);
-        // Instructor solo ve líneas BOM de fichas técnicas asignadas
-        var bom = User.IsInRole(UserRoles.Instructor) && !User.IsInRole(UserRoles.Administrador) && !User.IsInRole(UserRoles.Bodeguero)
+        // Instructor sin permiso de gestión: solo líneas BOM de fichas asignadas
+        var bom = IsConsultaInstructorScoped()
             ? allBom.Where(b => productNames.Contains(b.ProductName)).ToList()
             : allBom.ToList();
 
@@ -176,10 +177,9 @@ public class MrpController : Controller
 
     private async Task<IReadOnlyList<BomProductListItemDto>> GetScopedProductsAsync(CancellationToken cancellationToken)
     {
-        // Instructor: solo fichas técnicas asignadas. Admin/Bodeguero: todas.
-        if (User.IsInRole(UserRoles.Instructor)
-            && !User.IsInRole(UserRoles.Administrador)
-            && !User.IsInRole(UserRoles.Bodeguero)
+        // Instructor con Mrp.GestionarFichas (o Admin/Bodeguero): ve todas.
+        // Instructor solo consulta: solo fichas técnicas asignadas (gap #4).
+        if (IsConsultaInstructorScoped()
             && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var instructorId))
         {
             return await _bomCatalog.GetProductsAsync(instructorId, cancellationToken);
@@ -187,6 +187,12 @@ public class MrpController : Controller
 
         return await _bomCatalog.GetProductsAsync(cancellationToken: cancellationToken);
     }
+
+    private bool IsConsultaInstructorScoped() =>
+        User.IsInRole(UserRoles.Instructor)
+        && !User.IsInRole(UserRoles.Administrador)
+        && !User.IsInRole(UserRoles.Bodeguero)
+        && !PermissionRules.PuedeGestionarFichasTecnicas(User);
 
     private async Task<BomProductEditViewModel> BuildEditVm(
         BomProductDetailDto? detail,

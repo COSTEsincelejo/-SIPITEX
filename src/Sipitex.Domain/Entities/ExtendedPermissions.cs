@@ -10,6 +10,7 @@ public static class ExtendedPermissions
     public const string InventarioRegistrar = "Inventario.Registrar";
     public const string SolicitudesAprobar = "Solicitudes.Aprobar";
     public const string MrpSimular = "Mrp.Simular";
+    public const string MrpGestionarFichas = "Mrp.GestionarFichas";
     public const string AlertasConfigurar = "Alertas.Configurar";
 
     // Lista blanca: si no está acá, Parse lo tira
@@ -18,6 +19,7 @@ public static class ExtendedPermissions
         InventarioRegistrar,   // puede dar de alta materiales
         SolicitudesAprobar,    // puede aprobar/rechazar pedidos a bodega
         MrpSimular,            // puede correr la simulación MRP
+        MrpGestionarFichas,    // puede crear/editar fichas técnicas (BOM)
         AlertasConfigurar      // puede disparar evaluación de alertas
     ];
 
@@ -27,6 +29,7 @@ public static class ExtendedPermissions
         (InventarioRegistrar, "Registrar materiales en inventario"),
         (SolicitudesAprobar, "Aprobar / rechazar solicitudes"),
         (MrpSimular, "Simular MRP"),
+        (MrpGestionarFichas, "Crear / editar fichas técnicas (BOM)"),
         (AlertasConfigurar, "Configurar / evaluar alertas")
     ];
 

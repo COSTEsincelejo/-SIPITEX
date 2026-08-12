@@ -9,6 +9,8 @@ public static class AuthorizationPolicyNames
     public const string PuedeAprobarSolicitudes = "PuedeAprobarSolicitudes";
     // Quién puede correr simulación MRP
     public const string PuedeSimularMrp = "PuedeSimularMrp";
+    // Quién puede crear/editar fichas técnicas (BOM)
+    public const string PuedeGestionarFichasTecnicas = "PuedeGestionarFichasTecnicas";
     // Quién puede configurar alertas por correo
     public const string PuedeConfigurarAlertas = "PuedeConfigurarAlertas";
 }

@@ -5,7 +5,7 @@
     ViewData["Breadcrumb"] = "SIPITEX / Operación / MRP";
     Layout = "_Layout";
     var puedeSimular = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeSimularMrp)).Succeeded;
-    var puedeGestionar = User.IsInRole("Administrador") || User.IsInRole("Bodeguero");
+    var puedeGestionar = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeGestionarFichasTecnicas)).Succeeded;
 }
 
 <div class="page-header">

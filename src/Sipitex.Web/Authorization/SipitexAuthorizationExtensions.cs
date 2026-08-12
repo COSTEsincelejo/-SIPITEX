@@ -22,6 +22,10 @@ public static class SipitexAuthorizationExtensions
         options.AddPolicy(AuthorizationPolicyNames.PuedeSimularMrp,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeSimularMrp(ctx.User)));
 
+        // Quién puede crear/editar fichas técnicas (BOM); Delete sigue Admin-only
+        options.AddPolicy(AuthorizationPolicyNames.PuedeGestionarFichasTecnicas,
+            policy => policy.RequireAssertion(ctx => PermissionRules.PuedeGestionarFichasTecnicas(ctx.User)));
+
         // Quién puede disparar la evaluación manual de alertas
         options.AddPolicy(AuthorizationPolicyNames.PuedeConfigurarAlertas,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeConfigurarAlertas(ctx.User)));
