@@ -29,6 +29,7 @@ public class AccountController : Controller
     private readonly IUserAccountService _userAccountService;
     private readonly IPasswordResetService _passwordResetService;
     private readonly IFuncionalidadesReportService _funcionalidadesReportService;
+    private readonly IActivityLogService _activityLog;
     private readonly IWebHostEnvironment _environment;
 
     // Inyecto los servicios que usa todo el controller
@@ -36,11 +37,13 @@ public class AccountController : Controller
         IUserAccountService userAccountService,
         IPasswordResetService passwordResetService,
         IFuncionalidadesReportService funcionalidadesReportService,
+        IActivityLogService activityLog,
         IWebHostEnvironment environment)
     {
         _userAccountService = userAccountService;
         _passwordResetService = passwordResetService;
         _funcionalidadesReportService = funcionalidadesReportService;
+        _activityLog = activityLog;
         _environment = environment;
     }
 
@@ -274,6 +277,17 @@ public class AccountController : Controller
         // Si falló (correo duplicado, rol inválido, etc.) me quedo en el form
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
 
+        if (TryGetActorUserId(out var actorId))
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                "CreateUser",
+                "User",
+                entityId: model.Email.Trim().ToLowerInvariant(),
+                details: $"Nombre={model.Nombre.Trim()}; Rol={model.Rol}",
+                cancellationToken);
+        }
+
         // Mensaje verde en el listado
         TempData["Message"] = result.Message;
         return RedirectToAction(nameof(Users));
@@ -331,6 +345,17 @@ public class AccountController : Controller
     public async Task<IActionResult> ToggleUserStatus(int id, bool isActive, CancellationToken cancellationToken)
     {
         var result = await _userAccountService.ToggleUserStatusAsync(id, isActive, cancellationToken);
+        if (result.Success && TryGetActorUserId(out var actorId))
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                "ToggleUserStatus",
+                "User",
+                entityId: id.ToString(),
+                details: isActive ? "IsActive=true" : "IsActive=false",
+                cancellationToken);
+        }
+
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Users));
@@ -349,7 +374,21 @@ public class AccountController : Controller
             return RedirectToAction(nameof(Users));
         }
 
+        var target = await _userAccountService.GetUserByIdAsync(id, cancellationToken);
         var result = await _userAccountService.DeleteUserAsync(id, actorId, cancellationToken);
+        if (result.Success)
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                "DeleteUser",
+                "User",
+                entityId: id.ToString(),
+                details: target is null
+                    ? null
+                    : $"Nombre={target.Nombre}; Email={target.Email}; Rol={target.Rol}",
+                cancellationToken);
+        }
+
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Users));
@@ -376,6 +415,9 @@ public class AccountController : Controller
         if (!int.TryParse(idValue, out var userId)) return null;
         return await _userAccountService.GetUserByIdAsync(userId, cancellationToken);
     }
+
+    private bool TryGetActorUserId(out int userId) =>
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId) && userId > 0;
 
     // Armo la cookie de autenticación con rol, foto y permisos extendidos
     private async Task SignInUserAsync(User user)

@@ -9,6 +9,7 @@ using Sipitex.Infrastructure.Persistence; // SipitexDbContext
 using Sipitex.Infrastructure.Reporting; // ReportService
 using Sipitex.Infrastructure.Repositories; // Todos los repositorios
 using Sipitex.Infrastructure.Search; // BusquedaService
+using Sipitex.Infrastructure.Services; // ActivityLogService (auditoría global)
 
 namespace Sipitex.Infrastructure;
 
@@ -52,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<IProductionFlowRepository, ProductionFlowRepository>(); // Flujo MES
         services.AddScoped<IStockMovementRepository, StockMovementRepository>(); // Historial de stock
         services.AddScoped<IOrderChangeLogRepository, OrderChangeLogRepository>(); // Auditoría ediciones de orden
+        services.AddScoped<IActivityLogService, ActivityLogService>(); // Auditoría global transversal
 
         return services; // Devuelvo la colección ya configurada
     }
