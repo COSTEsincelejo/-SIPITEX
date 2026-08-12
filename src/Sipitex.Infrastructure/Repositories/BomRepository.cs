@@ -33,6 +33,7 @@ public class BomRepository : IBomRepository
                 .ThenInclude(i => i.Material)
             .Include(p => p.Instructors)
                 .ThenInclude(i => i.User)
+            .Include(p => p.Tallas)
             .OrderBy(p => p.ProductName)
             .ToListAsync(cancellationToken);
 
@@ -42,12 +43,14 @@ public class BomRepository : IBomRepository
                 .ThenInclude(i => i.Material)
             .Include(p => p.Instructors)
                 .ThenInclude(i => i.User)
+            .Include(p => p.Tallas)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
     public Task<BomProduct?> GetProductByNameAsync(string productName, CancellationToken cancellationToken = default) =>
         _context.BomProducts
             .Include(p => p.Items)
                 .ThenInclude(i => i.Material)
+            .Include(p => p.Tallas)
             .FirstOrDefaultAsync(p => p.ProductName == productName, cancellationToken);
 
     public async Task AddProductAsync(BomProduct product, CancellationToken cancellationToken = default) =>
@@ -63,6 +66,8 @@ public class BomRepository : IBomRepository
     public void UpdateItem(BomItem item) => _context.BomItems.Update(item);
 
     public void RemoveItem(BomItem item) => _context.BomItems.Remove(item);
+
+    public void RemoveTalla(BomProductTalla talla) => _context.BomProductTallas.Remove(talla);
 
     public async Task<IReadOnlyList<string>> GetProductNamesUsingMaterialAsync(int materialId, CancellationToken cancellationToken = default) =>
         await _context.BomItems

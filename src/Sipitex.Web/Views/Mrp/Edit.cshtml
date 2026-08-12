@@ -4,6 +4,20 @@
     ViewData["Breadcrumb"] = "SIPITEX / Operación / MRP / Ficha técnica";
     Layout = "_Layout";
     var actionName = Model.IsEdit ? "Edit" : "Create";
+    var f = Model.Form;
+    var metaOpen = !string.IsNullOrWhiteSpace(f.Referencia)
+        || !string.IsNullOrWhiteSpace(f.Linea)
+        || !string.IsNullOrWhiteSpace(f.TallaInicial)
+        || !string.IsNullOrWhiteSpace(f.TipoEmpaque)
+        || !string.IsNullOrWhiteSpace(f.DescripcionPrenda)
+        || f.FechaSolicitud is not null
+        || f.FechaElaboracion is not null
+        || f.AnioMuestrario is not null
+        || f.EsDisenoNuevo || f.EsReplica || f.EsBancoDeMuestras
+        || !string.IsNullOrWhiteSpace(f.Disenador)
+        || !string.IsNullOrWhiteSpace(f.Patronista)
+        || !string.IsNullOrWhiteSpace(f.Digitacion)
+        || f.Tallas.Count > 0;
 }
 
 <div class="page-header">
@@ -50,6 +64,99 @@
             <textarea asp-for="Form.Notes" rows="2" style="width:100%" maxlength="500"
                       placeholder="Ej. Valores de referencia, pendientes de validar con instructor de Trazo."></textarea>
         </div>
+
+        <details class="bom-meta-section" style="margin-top:20px;" @(metaOpen ? "open" : null)>
+            <summary class="card-title" style="cursor:pointer;list-style:none;">
+                <i class="fas fa-id-card"></i> Metadatos de ficha técnica
+                <span class="hint" style="font-weight:normal;margin-left:8px;">(opcional — Fase A)</span>
+            </summary>
+            <div style="padding-top:12px;">
+                <div class="form-row">
+                    <div class="field">
+                        <label class="field-label" asp-for="Form.Referencia">Referencia</label>
+                        <input asp-for="Form.Referencia" style="width:100%" maxlength="40" placeholder="C-01-001-020" />
+                    </div>
+                    <div class="field">
+                        <label class="field-label" asp-for="Form.Linea">Línea</label>
+                        <input asp-for="Form.Linea" style="width:100%" maxlength="80" placeholder="Ejercicio" />
+                    </div>
+                    <div class="field">
+                        <label class="field-label" asp-for="Form.TallaInicial">Talla inicial</label>
+                        <input asp-for="Form.TallaInicial" style="width:100%" maxlength="40" placeholder="UNICA / 8 / M/38" />
+                    </div>
+                    <div class="field">
+                        <label class="field-label" asp-for="Form.TipoEmpaque">Tipo de empaque</label>
+                        <input asp-for="Form.TipoEmpaque" style="width:100%" maxlength="80" placeholder="Doblado" />
+                    </div>
+                </div>
+                <div class="field" style="margin-top:8px;">
+                    <label class="field-label" asp-for="Form.DescripcionPrenda">Descripción de la prenda</label>
+                    <textarea asp-for="Form.DescripcionPrenda" rows="3" style="width:100%" maxlength="4000"
+                              placeholder="Descripción larga de la prenda…"></textarea>
+                </div>
+                <div class="form-row" style="margin-top:8px;">
+                    <div class="field">
+                        <label class="field-label" asp-for="Form.FechaSolicitud">Fecha solicitud</label>
+                        <input asp-for="Form.FechaSolicitud" type="date" />
+                    </div>
+                    <div class="field">
+                        <label class="field-label" asp-for="Form.FechaElaboracion">Fecha elaboración</label>
+                        <input asp-for="Form.FechaElaboracion" type="date" />
+                    </div>
+                    <div class="field">
+                        <label class="field-label" asp-for="Form.AnioMuestrario">Año muestrario</label>
+                        <input asp-for="Form.AnioMuestrario" type="number" min="2000" max="2100" style="width:120px" />
+                    </div>
+                </div>
+                <div class="form-row" style="align-items:center;gap:1.5rem;margin-top:8px;">
+                    <label class="field-label" style="display:flex;align-items:center;gap:.5rem;">
+                        <input asp-for="Form.EsDisenoNuevo" type="checkbox" />
+                        Diseño nuevo
+                    </label>
+                    <label class="field-label" style="display:flex;align-items:center;gap:.5rem;">
+                        <input asp-for="Form.EsReplica" type="checkbox" />
+                        Réplica
+                    </label>
+                    <label class="field-label" style="display:flex;align-items:center;gap:.5rem;">
+                        <input asp-for="Form.EsBancoDeMuestras" type="checkbox" />
+                        Banco de muestras
+                    </label>
+                </div>
+                <div class="form-row" style="margin-top:8px;">
+                    <div class="field">
+                        <label class="field-label" asp-for="Form.Disenador">Diseñador</label>
+                        <input asp-for="Form.Disenador" style="width:100%" maxlength="120" />
+                    </div>
+                    <div class="field">
+                        <label class="field-label" asp-for="Form.Patronista">Patronista</label>
+                        <input asp-for="Form.Patronista" style="width:100%" maxlength="120" />
+                    </div>
+                    <div class="field">
+                        <label class="field-label" asp-for="Form.Digitacion">Digitación</label>
+                        <input asp-for="Form.Digitacion" style="width:100%" maxlength="120" />
+                    </div>
+                </div>
+
+                <div class="card-title" style="margin-top:16px;"><i class="fas fa-ruler-combined"></i> Tallas</div>
+                <p class="hint" style="margin-top:0;">Agregue una o varias tallas en el orden deseado (S, M, L… o 6, 8, 10…).</p>
+                <div id="bom-tallas" class="bom-tallas-list" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                    @for (var t = 0; t < Model.Form.Tallas.Count; t++)
+                    {
+                        <div class="bom-talla-chip" style="display:flex;align-items:center;gap:4px;border:1px solid var(--border,#ccc);border-radius:6px;padding:4px 8px;">
+                            <input type="hidden" name="Form.Tallas[@t].Id" value="@Model.Form.Tallas[t].Id" />
+                            <input type="hidden" name="Form.Tallas[@t].Orden" class="talla-orden" value="@Model.Form.Tallas[t].Orden" />
+                            <input name="Form.Tallas[@t].Nombre" value="@Model.Form.Tallas[t].Nombre"
+                                   maxlength="40" placeholder="Talla" style="width:90px;border:none;background:transparent;" required />
+                            <button type="button" class="small ghost danger btn-remove-talla" title="Quitar talla"><i class="fas fa-times"></i></button>
+                        </div>
+                    }
+                </div>
+                <div class="form-row" style="margin-top:8px;align-items:center;gap:8px;">
+                    <input type="text" id="new-talla-nombre" maxlength="40" placeholder="Nueva talla (ej. M/38)" style="width:160px;" />
+                    <button type="button" class="ghost small" id="btn-add-talla"><i class="fas fa-plus"></i> Agregar talla</button>
+                </div>
+            </div>
+        </details>
 
         <div class="card-title" style="margin-top:20px;"><i class="fas fa-list"></i> Receta (BOM)</div>
         <div class="table-wrap">
@@ -178,6 +285,9 @@
     const tbody = document.querySelector('#bom-lines tbody');
     const tpl = document.getElementById('bom-line-template');
     const addBtn = document.getElementById('btn-add-line');
+    const tallasBox = document.getElementById('bom-tallas');
+    const addTallaBtn = document.getElementById('btn-add-talla');
+    const newTallaInput = document.getElementById('new-talla-nombre');
 
     function reindex() {
         [...tbody.querySelectorAll('tr.bom-line')].forEach((row, i) => {
@@ -185,6 +295,16 @@
                 el.name = el.name.replace(/Form\.Lines\[\d+\]/, `Form.Lines[${i}]`)
                     .replace(/Form\.Lines\[__i__\]/, `Form.Lines[${i}]`);
             });
+        });
+    }
+
+    function reindexTallas() {
+        [...tallasBox.querySelectorAll('.bom-talla-chip')].forEach((chip, i) => {
+            chip.querySelectorAll('[name]').forEach(el => {
+                el.name = el.name.replace(/Form\.Tallas\[\d+\]/, `Form.Tallas[${i}]`);
+            });
+            const orden = chip.querySelector('.talla-orden');
+            if (orden) orden.value = String(i);
         });
     }
 
@@ -201,6 +321,41 @@
         if (rows.length <= 1) return;
         btn.closest('tr')?.remove();
         reindex();
+    });
+
+    function addTalla(nombre) {
+        const name = (nombre || '').trim();
+        if (!name || !tallasBox) return;
+        const i = tallasBox.querySelectorAll('.bom-talla-chip').length;
+        const chip = document.createElement('div');
+        chip.className = 'bom-talla-chip';
+        chip.style.cssText = 'display:flex;align-items:center;gap:4px;border:1px solid var(--border,#ccc);border-radius:6px;padding:4px 8px;';
+        chip.innerHTML =
+            `<input type="hidden" name="Form.Tallas[${i}].Id" value="" />` +
+            `<input type="hidden" name="Form.Tallas[${i}].Orden" class="talla-orden" value="${i}" />` +
+            `<input name="Form.Tallas[${i}].Nombre" value="${name.replace(/"/g, '&quot;')}" maxlength="40" placeholder="Talla" style="width:90px;border:none;background:transparent;" required />` +
+            `<button type="button" class="small ghost danger btn-remove-talla" title="Quitar talla"><i class="fas fa-times"></i></button>`;
+        tallasBox.appendChild(chip);
+        reindexTallas();
+    }
+
+    addTallaBtn?.addEventListener('click', () => {
+        addTalla(newTallaInput?.value);
+        if (newTallaInput) newTallaInput.value = '';
+        newTallaInput?.focus();
+    });
+
+    newTallaInput?.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        addTallaBtn?.click();
+    });
+
+    tallasBox?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-remove-talla');
+        if (!btn) return;
+        btn.closest('.bom-talla-chip')?.remove();
+        reindexTallas();
     });
 
     // Restaurar unidad seleccionada en selects con data-selected

@@ -13,6 +13,7 @@ public class SipitexDbContext : DbContext
     public DbSet<Material> Materials => Set<Material>(); // Inventario de telas, hilos, etc.
     public DbSet<BomProduct> BomProducts => Set<BomProduct>(); // Cabecera de ficha técnica (producto)
     public DbSet<BomProductInstructor> BomProductInstructors => Set<BomProductInstructor>(); // M2M ficha técnica ↔ instructor
+    public DbSet<BomProductTalla> BomProductTallas => Set<BomProductTalla>(); // Tallas de ficha técnica (Fase A)
     public DbSet<BomItem> BomItems => Set<BomItem>(); // Lista de materiales por prenda (BOM)
     public DbSet<ProductionOrder> ProductionOrders => Set<ProductionOrder>(); // Órdenes OP-xxx
     public DbSet<ProductionOrderBomSnapshot> ProductionOrderBomSnapshots => Set<ProductionOrderBomSnapshot>(); // Receta congelada por orden
@@ -63,6 +64,15 @@ public class SipitexDbContext : DbContext
             e.Property(p => p.ProductName).HasMaxLength(80).IsRequired();
             e.HasIndex(p => p.ProductName).IsUnique();
             e.Property(p => p.Notes).HasMaxLength(500);
+            // Fase A — metadatos opcionales
+            e.Property(p => p.Referencia).HasMaxLength(40);
+            e.Property(p => p.Linea).HasMaxLength(80);
+            e.Property(p => p.TallaInicial).HasMaxLength(40);
+            e.Property(p => p.TipoEmpaque).HasMaxLength(80);
+            e.Property(p => p.DescripcionPrenda).HasMaxLength(4000);
+            e.Property(p => p.Disenador).HasMaxLength(120);
+            e.Property(p => p.Patronista).HasMaxLength(120);
+            e.Property(p => p.Digitacion).HasMaxLength(120);
         });
 
         // --- BomProductInstructor (M2M ficha técnica ↔ instructor) ---
@@ -78,6 +88,19 @@ public class SipitexDbContext : DbContext
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.UserId);
+        });
+
+        // --- BomProductTalla (Fase A: tallas de la ficha técnica) ---
+        modelBuilder.Entity<BomProductTalla>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Nombre).HasMaxLength(40).IsRequired();
+            e.HasOne(t => t.BomProduct)
+                .WithMany(p => p.Tallas)
+                .HasForeignKey(t => t.BomProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(t => t.BomProductId);
+            e.HasIndex(t => new { t.BomProductId, t.Orden });
         });
 
         // BOM = lista de materiales por prenda (Bill of Materials)

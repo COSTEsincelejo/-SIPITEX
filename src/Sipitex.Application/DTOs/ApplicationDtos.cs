@@ -127,13 +127,31 @@ public record BomRecipeLineDto(
     decimal QuantityPerUnit,
     MaterialUnit Unit);
 
-// Alta / edición de ficha técnica
+// Alta / edición de ficha técnica (Fase A: metadatos + tallas opcionales)
 public record UpsertBomProductDto(
     string ProductName,
     bool IsReference,
     string? Notes,
     bool HabilitadoParaOrdenes,
-    IReadOnlyList<BomRecipeLineDto> Lines);
+    IReadOnlyList<BomRecipeLineDto> Lines,
+    string? Referencia = null,
+    string? Linea = null,
+    string? TallaInicial = null,
+    string? TipoEmpaque = null,
+    string? DescripcionPrenda = null,
+    DateOnly? FechaSolicitud = null,
+    DateOnly? FechaElaboracion = null,
+    int? AnioMuestrario = null,
+    bool EsDisenoNuevo = false,
+    bool EsReplica = false,
+    bool EsBancoDeMuestras = false,
+    string? Disenador = null,
+    string? Patronista = null,
+    string? Digitacion = null,
+    IReadOnlyList<BomProductTallaDto>? Tallas = null);
+
+// Talla de ficha técnica (Fase A)
+public record BomProductTallaDto(int? Id, string Nombre, int Orden);
 
 // Detalle para la pantalla de edición
 public record BomProductDetailDto(
@@ -142,7 +160,22 @@ public record BomProductDetailDto(
     bool IsReference,
     string? Notes,
     bool HabilitadoParaOrdenes,
-    IReadOnlyList<BomRecipeLineDetailDto> Lines);
+    IReadOnlyList<BomRecipeLineDetailDto> Lines,
+    string? Referencia = null,
+    string? Linea = null,
+    string? TallaInicial = null,
+    string? TipoEmpaque = null,
+    string? DescripcionPrenda = null,
+    DateOnly? FechaSolicitud = null,
+    DateOnly? FechaElaboracion = null,
+    int? AnioMuestrario = null,
+    bool EsDisenoNuevo = false,
+    bool EsReplica = false,
+    bool EsBancoDeMuestras = false,
+    string? Disenador = null,
+    string? Patronista = null,
+    string? Digitacion = null,
+    IReadOnlyList<BomProductTallaDto>? Tallas = null);
 
 public record BomRecipeLineDetailDto(
     int ItemId,

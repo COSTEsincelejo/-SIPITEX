@@ -16,5 +16,6 @@ public interface IBomRepository
     Task AddItemAsync(BomItem item, CancellationToken cancellationToken = default);
     void UpdateItem(BomItem item);
     void RemoveItem(BomItem item);
+    void RemoveTalla(BomProductTalla talla);
     Task<IReadOnlyList<string>> GetProductNamesUsingMaterialAsync(int materialId, CancellationToken cancellationToken = default);
 }
