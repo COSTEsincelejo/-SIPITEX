@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.Authorization;
@@ -28,19 +29,7 @@ public class MrpController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        var products = await _bomCatalog.GetProductsAsync(cancellationToken);
-        return View(new MrpIndexViewModel
-        {
-            Bom = await _mrpService.GetBomAsync(cancellationToken),
-            Products = products,
-            ProductNames = products.Select(p => p.ProductName).ToList(),
-            Simulation = new MrpSimulationForm
-            {
-                ProductName = products.FirstOrDefault()?.ProductName ?? string.Empty
-            },
-            Message = TempData["Message"] as string,
-            IsSuccess = TempData["IsSuccess"] as bool? ?? false
-        });
+        return View(await BuildIndexVm(cancellationToken));
     }
 
     [Authorize(Policy = AuthorizationPolicyNames.PuedeSimularMrp)]
@@ -48,15 +37,43 @@ public class MrpController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Simulate([Bind(Prefix = "Simulation")] MrpSimulationForm form, CancellationToken cancellationToken)
     {
-        var products = await _bomCatalog.GetProductsAsync(cancellationToken);
-        return View("Index", new MrpIndexViewModel
+        var products = await GetScopedProductsAsync(cancellationToken);
+        var allowedNames = products.Select(p => p.ProductName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!allowedNames.Contains(form.ProductName))
         {
-            Bom = await _mrpService.GetBomAsync(cancellationToken),
-            Products = products,
-            ProductNames = products.Select(p => p.ProductName).ToList(),
-            Simulation = form,
-            Result = await _mrpService.SimulateAsync(form.ProductName, form.Quantity, cancellationToken)
-        });
+            var denied = await BuildIndexVm(cancellationToken, form);
+            denied.Message = "No puede simular una ficha técnica que no tiene asignada.";
+            denied.IsSuccess = false;
+            return View("Index", denied);
+        }
+
+        var vm = await BuildIndexVm(cancellationToken, form);
+        vm.Result = await _mrpService.SimulateAsync(form.ProductName, form.Quantity, cancellationToken);
+        return View("Index", vm);
+    }
+
+    // Asignar instructor a ficha técnica (solo Administrador) — gap #4
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignInstructor(int bomProductId, int instructorUserId, CancellationToken cancellationToken)
+    {
+        var result = await _bomCatalog.AssignInstructorAsync(bomProductId, instructorUserId, cancellationToken);
+        TempData["Message"] = result.Message ?? (result.Success ? "Instructor asignado." : "No se pudo asignar.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index));
+    }
+
+    // Quitar instructor de ficha técnica (solo Administrador) — gap #4
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveInstructor(int bomProductId, int instructorUserId, CancellationToken cancellationToken)
+    {
+        var result = await _bomCatalog.RemoveInstructorAsync(bomProductId, instructorUserId, cancellationToken);
+        TempData["Message"] = result.Message ?? (result.Success ? "Instructor quitado." : "No se pudo quitar.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index));
     }
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
@@ -123,6 +140,52 @@ public class MrpController : Controller
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<MrpIndexViewModel> BuildIndexVm(
+        CancellationToken cancellationToken,
+        MrpSimulationForm? simulation = null)
+    {
+        var products = await GetScopedProductsAsync(cancellationToken);
+        var productNames = products.Select(p => p.ProductName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var allBom = await _mrpService.GetBomAsync(cancellationToken);
+        // Instructor solo ve líneas BOM de fichas técnicas asignadas
+        var bom = User.IsInRole(UserRoles.Instructor) && !User.IsInRole(UserRoles.Administrador) && !User.IsInRole(UserRoles.Bodeguero)
+            ? allBom.Where(b => productNames.Contains(b.ProductName)).ToList()
+            : allBom.ToList();
+
+        var instructors = User.IsInRole(UserRoles.Administrador)
+            ? await _bomCatalog.GetAssignableInstructorsAsync(cancellationToken)
+            : Array.Empty<InstructorOptionDto>();
+
+        return new MrpIndexViewModel
+        {
+            Bom = bom,
+            Products = products,
+            ProductNames = products.Select(p => p.ProductName).ToList(),
+            Instructors = instructors,
+            IsAdministrator = User.IsInRole(UserRoles.Administrador),
+            Simulation = simulation ?? new MrpSimulationForm
+            {
+                ProductName = products.FirstOrDefault()?.ProductName ?? string.Empty
+            },
+            Message = TempData["Message"] as string,
+            IsSuccess = TempData["IsSuccess"] as bool? ?? false
+        };
+    }
+
+    private async Task<IReadOnlyList<BomProductListItemDto>> GetScopedProductsAsync(CancellationToken cancellationToken)
+    {
+        // Instructor: solo fichas técnicas asignadas. Admin/Bodeguero: todas.
+        if (User.IsInRole(UserRoles.Instructor)
+            && !User.IsInRole(UserRoles.Administrador)
+            && !User.IsInRole(UserRoles.Bodeguero)
+            && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var instructorId))
+        {
+            return await _bomCatalog.GetProductsAsync(instructorId, cancellationToken);
+        }
+
+        return await _bomCatalog.GetProductsAsync(cancellationToken: cancellationToken);
     }
 
     private async Task<BomProductEditViewModel> BuildEditVm(

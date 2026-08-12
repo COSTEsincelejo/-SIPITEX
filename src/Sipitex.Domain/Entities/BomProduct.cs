@@ -18,4 +18,7 @@ public class BomProduct
     public bool HabilitadoParaOrdenes { get; set; } = true;
 
     public ICollection<BomItem> Items { get; set; } = [];
+
+    // Instructores autorizados a consultar esta ficha técnica en MRP
+    public ICollection<BomProductInstructor> Instructors { get; set; } = [];
 }

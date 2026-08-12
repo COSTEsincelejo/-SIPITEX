@@ -106,7 +106,11 @@ public record BomProductListItemDto(
     int MaterialCount,
     bool IsReference,
     bool HabilitadoParaOrdenes,
-    string? Notes);
+    string? Notes,
+    IReadOnlyList<BomProductInstructorDto>? Instructors = null);
+
+// Instructor asignado a una ficha técnica (BOM)
+public record BomProductInstructorDto(int UserId, string Nombre);
 
 // Línea editable de la receta
 public record BomRecipeLineDto(

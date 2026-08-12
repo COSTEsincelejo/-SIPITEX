@@ -12,6 +12,7 @@ public class SipitexDbContext : DbContext
     // Cada DbSet = una tabla en la BD
     public DbSet<Material> Materials => Set<Material>(); // Inventario de telas, hilos, etc.
     public DbSet<BomProduct> BomProducts => Set<BomProduct>(); // Cabecera de ficha técnica (producto)
+    public DbSet<BomProductInstructor> BomProductInstructors => Set<BomProductInstructor>(); // M2M ficha técnica ↔ instructor
     public DbSet<BomItem> BomItems => Set<BomItem>(); // Lista de materiales por prenda (BOM)
     public DbSet<ProductionOrder> ProductionOrders => Set<ProductionOrder>(); // Órdenes OP-xxx
     public DbSet<ProductionOrderBomSnapshot> ProductionOrderBomSnapshots => Set<ProductionOrderBomSnapshot>(); // Receta congelada por orden
@@ -62,6 +63,21 @@ public class SipitexDbContext : DbContext
             e.Property(p => p.ProductName).HasMaxLength(80).IsRequired();
             e.HasIndex(p => p.ProductName).IsUnique();
             e.Property(p => p.Notes).HasMaxLength(500);
+        });
+
+        // --- BomProductInstructor (M2M ficha técnica ↔ instructor) ---
+        modelBuilder.Entity<BomProductInstructor>(e =>
+        {
+            e.HasKey(x => new { x.BomProductId, x.UserId });
+            e.HasOne(x => x.BomProduct)
+                .WithMany(p => p.Instructors)
+                .HasForeignKey(x => x.BomProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.UserId);
         });
 
         // BOM = lista de materiales por prenda (Bill of Materials)

@@ -12,9 +12,10 @@ public class BomCatalogServiceTests
 {
     private readonly Mock<IBomRepository> _boms = new();
     private readonly Mock<IMaterialRepository> _materials = new();
+    private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
-    private BomCatalogService CreateSut() => new(_boms.Object, _materials.Object, _uow.Object);
+    private BomCatalogService CreateSut() => new(_boms.Object, _materials.Object, _users.Object, _uow.Object);
 
     private static Material Mat(int id, string name, MaterialUnit unit = MaterialUnit.Metros) => new()
     {
