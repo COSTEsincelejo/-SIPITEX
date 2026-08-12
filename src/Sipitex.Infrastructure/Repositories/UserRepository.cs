@@ -46,4 +46,47 @@ public class UserRepository : IUserRepository
 
     // Actualiza datos del usuario (nombre, rol, foto...)
     public void Update(User user) => _context.Users.Update(user);
+
+    public void Remove(User user) => _context.Users.Remove(user);
+
+    public Task<int> CountActiveAdministratorsAsync(CancellationToken cancellationToken = default) =>
+        _context.Users.CountAsync(
+            u => u.IsActive && u.Rol == UserRoles.Administrador,
+            cancellationToken);
+
+    public async Task<IReadOnlyList<string>> GetDeletionBlockersAsync(
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var blockers = new List<string>();
+
+        if (await _context.StockMovements.AnyAsync(m => m.UsuarioId == userId, cancellationToken))
+            blockers.Add("movimientos de inventario (StockMovement)");
+        if (await _context.OrderChangeLogs.AnyAsync(c => c.UsuarioId == userId, cancellationToken))
+            blockers.Add("historial de edición de órdenes (OrderChangeLog)");
+        if (await _context.FinishedGoodMovements.AnyAsync(m => m.ActorUserId == userId, cancellationToken))
+            blockers.Add("movimientos de producto terminado");
+        if (await _context.ProductionOrderStageMovements.AnyAsync(
+                m => m.ActorUserId == userId || m.AuthorizedByUserId == userId, cancellationToken))
+            blockers.Add("movimientos de etapas MES");
+        if (await _context.ProductionOrderHistoryEntries.AnyAsync(h => h.ActorUserId == userId, cancellationToken))
+            blockers.Add("historial MES de órdenes");
+        if (await _context.SolicitudesMaterial.AnyAsync(
+                s => s.SolicitanteId == userId || s.ResueltoPorId == userId, cancellationToken))
+            blockers.Add("solicitudes de material (solicitante o resolución)");
+        if (await _context.EntregasMaterial.AnyAsync(e => e.BodegueroId == userId, cancellationToken))
+            blockers.Add("entregas de material registradas");
+        if (await _context.Fichas.AnyAsync(f => f.InstructorUserId == userId, cancellationToken))
+            blockers.Add("fichas con instructor principal asignado");
+        if (await _context.FichaInstructors.AnyAsync(fi => fi.UserId == userId, cancellationToken))
+            blockers.Add("asignaciones instructor–ficha");
+        if (await _context.ProductionOrderStages.AnyAsync(s => s.InstructorUserId == userId, cancellationToken))
+            blockers.Add("etapas MES con instructor asignado");
+        if (await _context.ProductionSessions.AnyAsync(s => s.RegisteredByUserId == userId, cancellationToken))
+            blockers.Add("sesiones de producción registradas");
+        if (await _context.InstructorStagePermissions.AnyAsync(p => p.UserId == userId, cancellationToken))
+            blockers.Add("permisos de etapa por instructor");
+
+        return blockers;
+    }
 }

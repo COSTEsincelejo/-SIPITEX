@@ -12,4 +12,10 @@ public interface IUserRepository
     Task<bool> EmailExistsAsync(string email, int? excludeUserId = null, CancellationToken cancellationToken = default);
     void Add(User user);
     void Update(User user);
+    void Remove(User user);
+
+    Task<int> CountActiveAdministratorsAsync(CancellationToken cancellationToken = default);
+
+    // Motivos que impiden hard-delete (historial / FKs de auditoría)
+    Task<IReadOnlyList<string>> GetDeletionBlockersAsync(int userId, CancellationToken cancellationToken = default);
 }

@@ -330,6 +330,26 @@ public class AccountController : Controller
     {
         var result = await _userAccountService.ToggleUserStatusAsync(id, isActive, cancellationToken);
         TempData["Message"] = result.Message;
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Users));
+    }
+
+    // Gap #1: hard delete con confirmación; bloquea si hay dependencias / self / último admin
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteUser(int id, CancellationToken cancellationToken)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId) || actorId <= 0)
+        {
+            TempData["Message"] = "Sesión no válida.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Users));
+        }
+
+        var result = await _userAccountService.DeleteUserAsync(id, actorId, cancellationToken);
+        TempData["Message"] = result.Message;
+        TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Users));
     }
 

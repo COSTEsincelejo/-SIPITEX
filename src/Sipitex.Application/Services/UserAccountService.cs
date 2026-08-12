@@ -103,17 +103,16 @@ public class UserAccountService : IUserAccountService
         var user = await _userRepository.GetByIdAsync(id, cancellationToken);
         if (user is null) return ServiceResult.Fail("Usuario no encontrado.");
 
-        // El admin principal no se le puede bajar el rol
+        // El admin existente no se le puede bajar el rol
         var isExistingAdmin = string.Equals(user.Rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
         if (isExistingAdmin)
         {
-            // Protejo al único admin del sistema
             if (!string.Equals(rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase))
                 return ServiceResult.Fail("No se puede cambiar el rol del administrador.");
         }
         else if (!UserRoles.CreatableByAdmin.Contains(rol))
         {
-            return ServiceResult.Fail("Solo se pueden asignar roles de Instructor o Bodeguero.");
+            return ServiceResult.Fail("Rol no válido para asignación desde administración.");
         }
 
         // Correo único excluyendo al propio usuario
@@ -150,6 +149,44 @@ public class UserAccountService : IUserAccountService
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok(isActive ? "Usuario activado." : "Usuario desactivado.");
+    }
+
+    // Gap #1: hard delete con protecciones (self, último admin activo, dependencias de auditoría)
+    public async Task<ServiceResult> DeleteUserAsync(
+        int id,
+        int actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        if (actorUserId <= 0)
+            return ServiceResult.Fail("Usuario responsable no válido.");
+
+        if (id == actorUserId)
+            return ServiceResult.Fail("No puede eliminar su propia cuenta.");
+
+        var user = await _userRepository.GetByIdAsync(id, cancellationToken);
+        if (user is null) return ServiceResult.Fail("Usuario no encontrado.");
+
+        var isAdmin = string.Equals(user.Rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
+        if (isAdmin && user.IsActive)
+        {
+            var activeAdmins = await _userRepository.CountActiveAdministratorsAsync(cancellationToken);
+            if (activeAdmins <= 1)
+                return ServiceResult.Fail(
+                    "No se puede eliminar al último administrador activo del sistema.");
+        }
+
+        var blockers = await _userRepository.GetDeletionBlockersAsync(id, cancellationToken);
+        if (blockers.Count > 0)
+        {
+            return ServiceResult.Fail(
+                "No se puede eliminar: el usuario tiene registros dependientes (" +
+                string.Join("; ", blockers) +
+                "). Desactive la cuenta en su lugar para preservar el historial.");
+        }
+
+        _userRepository.Remove(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok($"Usuario «{user.Nombre}» eliminado.");
     }
 
     // El usuario edita su propio perfil (nombre, correo, foto, contraseña opcional)
@@ -224,7 +261,7 @@ public class UserAccountService : IUserAccountService
         if (creatableOnly)
         {
             if (!UserRoles.CreatableByAdmin.Contains(rol))
-                return ServiceResult.Fail("Solo el administrador puede crear cuentas de Instructor o Bodeguero.");
+                return ServiceResult.Fail("Rol no válido. Elija Administrador, Instructor o Bodeguero.");
         }
         else if (!UserRoles.All.Contains(rol))
         {

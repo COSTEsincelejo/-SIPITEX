@@ -15,13 +15,13 @@ public class UserAccountServiceTests
 
     private UserAccountService CreateSut() => new(_userRepository.Object, _fichaRepository.Object, _unitOfWork.Object);
 
-    private static User CreateUser(string email, string password, bool isActive = true) => new()
+    private static User CreateUser(string email, string password, bool isActive = true, string rol = UserRoles.Instructor) => new()
     {
         Id = 1,
         Nombre = "Usuario Demo",
         Email = email,
         PasswordHash = PasswordHasher.Hash(password),
-        Rol = UserRoles.Instructor,
+        Rol = rol,
         IsActive = isActive
     };
 
@@ -67,19 +67,24 @@ public class UserAccountServiceTests
     }
 
     [Fact]
-    public async Task CreateUserAsync_WhenRoleIsAdministrador_Fails()
+    public async Task CreateUserAsync_WhenRoleIsAdministrador_Succeeds()
     {
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("nuevo-admin@sipitex.test", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
         var result = await CreateSut().CreateUserAsync(
             "Nuevo Admin",
-            "nuevo@sipitex.test",
+            "nuevo-admin@sipitex.test",
             "Clave123!",
             UserRoles.Administrador,
             null,
             []);
 
-        Assert.False(result.Success);
-        Assert.Contains("Instructor o Bodeguero", result.Message);
-        _userRepository.Verify(r => r.Add(It.IsAny<User>()), Times.Never);
+        Assert.True(result.Success);
+        _userRepository.Verify(r => r.Add(It.Is<User>(u =>
+            u.Email == "nuevo-admin@sipitex.test" && u.Rol == UserRoles.Administrador)), Times.Once);
+        _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -101,6 +106,67 @@ public class UserAccountServiceTests
         _userRepository.Verify(r => r.Add(It.Is<User>(u =>
             u.Email == "nuevo@sipitex.test" && u.Rol == UserRoles.Instructor)), Times.Once);
         _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task DeleteUserAsync_WhenHasDependencies_BlocksAndSuggestsDeactivate()
+    {
+        var target = CreateUser("bodega@sipitex.test", "Clave123!", rol: UserRoles.Bodeguero);
+        target.Id = 5;
+        _userRepository.Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(target);
+        _userRepository
+            .Setup(r => r.GetDeletionBlockersAsync(5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(["movimientos de inventario (StockMovement)"]);
+
+        var result = await CreateSut().DeleteUserAsync(5, actorUserId: 1);
+
+        Assert.False(result.Success);
+        Assert.Contains("Desactive", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("StockMovement", result.Message);
+        _userRepository.Verify(r => r.Remove(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUserAsync_WhenNoDependencies_Removes()
+    {
+        var target = CreateUser("temp@sipitex.test", "Clave123!", rol: UserRoles.Instructor);
+        target.Id = 8;
+        _userRepository.Setup(r => r.GetByIdAsync(8, It.IsAny<CancellationToken>())).ReturnsAsync(target);
+        _userRepository
+            .Setup(r => r.GetDeletionBlockersAsync(8, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        _unitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().DeleteUserAsync(8, actorUserId: 1);
+
+        Assert.True(result.Success);
+        _userRepository.Verify(r => r.Remove(target), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteUserAsync_SelfDelete_Fails()
+    {
+        var result = await CreateSut().DeleteUserAsync(id: 3, actorUserId: 3);
+
+        Assert.False(result.Success);
+        Assert.Contains("propia cuenta", result.Message, StringComparison.OrdinalIgnoreCase);
+        _userRepository.Verify(r => r.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUserAsync_LastActiveAdmin_Fails()
+    {
+        var admin = CreateUser("admin@sipitex.test", "Clave123!", rol: UserRoles.Administrador);
+        admin.Id = 2;
+        admin.IsActive = true;
+        _userRepository.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(admin);
+        _userRepository.Setup(r => r.CountActiveAdministratorsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().DeleteUserAsync(2, actorUserId: 9);
+
+        Assert.False(result.Success);
+        Assert.Contains("último administrador", result.Message, StringComparison.OrdinalIgnoreCase);
+        _userRepository.Verify(r => r.Remove(It.IsAny<User>()), Times.Never);
     }
 
     [Fact]
