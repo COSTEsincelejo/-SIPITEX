@@ -7,11 +7,15 @@ namespace Sipitex.Application.Authorization;
 // El admin siempre pasa; instructor puede tener permisos puntuales
 public static class PermissionRules
 {
-    // Admin, bodeguero o instructor con permiso extendido de inventario
-    public static bool PuedeRegistrarMateriales(ClaimsPrincipal user) =>
+    // Inventario completo: Admin/Bodeguero siempre; Instructor solo con excepción autorizada
+    public static bool PuedeAccederInventario(ClaimsPrincipal user) =>
         user.IsInRole(UserRoles.Administrador)
         || user.IsInRole(UserRoles.Bodeguero)
         || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.InventarioRegistrar));
+
+    // Admin, bodeguero o instructor con permiso extendido de inventario
+    public static bool PuedeRegistrarMateriales(ClaimsPrincipal user) =>
+        PuedeAccederInventario(user);
 
     // Aprobar solicitudes: mismos roles base + permiso SolicitudesAprobar
     public static bool PuedeAprobarSolicitudes(ClaimsPrincipal user) =>

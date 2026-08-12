@@ -17,6 +17,7 @@ public class ProductionOrderService : IProductionOrderService
     private readonly IOrderMaterialRequirementRepository _requirementRepository;
     private readonly IProductionFlowRepository _flowRepository;
     private readonly IProductionFlowService _flowService;
+    private readonly IFichaRepository _fichaRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ProductionConsumptionService _consumptionService;
 
@@ -27,6 +28,7 @@ public class ProductionOrderService : IProductionOrderService
         IOrderMaterialRequirementRepository requirementRepository,
         IProductionFlowRepository flowRepository,
         IProductionFlowService flowService,
+        IFichaRepository fichaRepository,
         IUnitOfWork unitOfWork,
         ProductionConsumptionService consumptionService)
     {
@@ -36,14 +38,27 @@ public class ProductionOrderService : IProductionOrderService
         _requirementRepository = requirementRepository;
         _flowRepository = flowRepository;
         _flowService = flowService;
+        _fichaRepository = fichaRepository;
         _unitOfWork = unitOfWork;
         _consumptionService = consumptionService;
     }
 
     // Lista órdenes con % de avance y hint desde snapshot (o BOM vivo si no hay snapshot)
-    public async Task<IReadOnlyList<ProductionOrderDto>> GetOrdersAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ProductionOrderDto>> GetOrdersAsync(
+        int? viewerUserId = null,
+        string? viewerRole = null,
+        string? viewerName = null,
+        CancellationToken cancellationToken = default)
     {
         var orders = await _orderRepository.GetAllAsync(cancellationToken);
+
+        if (IsInstructorViewer(viewerRole, viewerUserId))
+        {
+            var assignedIds = await GetAssignedOrderIdsAsync(
+                viewerUserId!.Value, viewerName, cancellationToken);
+            orders = orders.Where(o => assignedIds.Contains(o.Id)).ToList();
+        }
+
         var result = new List<ProductionOrderDto>();
 
         foreach (var order in orders)
@@ -82,6 +97,25 @@ public class ProductionOrderService : IProductionOrderService
         }
 
         return result;
+    }
+
+    public async Task<bool> CanAccessOrderAsync(
+        int orderId,
+        int? viewerUserId,
+        string? viewerRole,
+        string? viewerName = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.Equals(viewerRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(viewerRole, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!IsInstructorViewer(viewerRole, viewerUserId))
+            return false;
+
+        var assignedIds = await GetAssignedOrderIdsAsync(
+            viewerUserId!.Value, viewerName, cancellationToken);
+        return assignedIds.Contains(orderId);
     }
 
     public async Task<ServiceResult> CreateOrderAsync(CreateProductionOrderDto dto, CancellationToken cancellationToken = default)
@@ -165,6 +199,53 @@ public class ProductionOrderService : IProductionOrderService
 
         await _flowService.LogProductionRegisteredAsync(orderId, toAdd, null, cancellationToken);
         return ServiceResult.Ok($"Se registraron {toAdd} unidades.");
+    }
+
+    // Órdenes donde el instructor es responsable: etapa MES asignada o ficha ligada (BelongsToInstructor)
+    private async Task<HashSet<int>> GetAssignedOrderIdsAsync(
+        int instructorUserId,
+        string? instructorName,
+        CancellationToken cancellationToken)
+    {
+        var ids = new HashSet<int>();
+
+        var allOrders = await _orderRepository.GetAllAsync(cancellationToken);
+        foreach (var order in allOrders)
+        {
+            var stages = await _flowRepository.GetStagesByOrderAsync(order.Id, cancellationToken);
+            if (stages.Any(s => s.InstructorUserId == instructorUserId))
+                ids.Add(order.Id);
+        }
+
+        var fichas = await _fichaRepository.GetAllAsync(cancellationToken);
+        foreach (var ficha in fichas)
+        {
+            if (ficha.ProductionOrderId is not int orderId || orderId <= 0)
+                continue;
+            if (BelongsToInstructor(ficha, instructorUserId, instructorName))
+                ids.Add(orderId);
+        }
+
+        return ids;
+    }
+
+    private static bool IsInstructorViewer(string? viewerRole, int? viewerUserId) =>
+        viewerUserId is > 0
+        && string.Equals(viewerRole, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase);
+
+    // Misma regla que FichaService / SolicitudMaterialService
+    private static bool BelongsToInstructor(Ficha ficha, int instructorUserId, string? instructorName)
+    {
+        if (ficha.Instructors.Any(i => i.UserId == instructorUserId))
+            return true;
+
+        if (ficha.InstructorUserId == instructorUserId)
+            return true;
+
+        return ficha.InstructorUserId is null
+               && ficha.Instructors.Count == 0
+               && !string.IsNullOrWhiteSpace(instructorName)
+               && string.Equals(ficha.InstructorName, instructorName, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<string> BuildMrpHintAsync(ProductionOrder order, CancellationToken cancellationToken)

@@ -10,6 +10,10 @@ public static class SipitexAuthorizationExtensions
     {
         // Cada política se usa en controladores con [Authorize(Policy = "...")]
 
+        // Quién puede entrar al módulo Inventario (Instructor requiere permiso extendido)
+        options.AddPolicy(AuthorizationPolicyNames.PuedeAccederInventario,
+            policy => policy.RequireAssertion(ctx => PermissionRules.PuedeAccederInventario(ctx.User)));
+
         // Quién puede dar de alta materiales en inventario
         options.AddPolicy(AuthorizationPolicyNames.PuedeRegistrarMateriales,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeRegistrarMateriales(ctx.User)));

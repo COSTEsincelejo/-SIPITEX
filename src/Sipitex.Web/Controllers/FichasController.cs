@@ -149,7 +149,7 @@ public class FichasController : Controller
         CancellationToken cancellationToken)
     {
         var (userId, role, name) = CurrentViewer();
-        var orders = await _orderService.GetOrdersAsync(cancellationToken);
+        var orders = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken);
         var instructors = await _fichaService.GetActiveInstructorsAsync(cancellationToken);
         var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
         var fichas = (await _fichaService.GetFichasAsync(userId, role, name, cancellationToken)).AsEnumerable();

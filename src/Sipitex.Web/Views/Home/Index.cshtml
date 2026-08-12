@@ -1,7 +1,11 @@
-﻿@{
+﻿@using Sipitex.Application.Authorization
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@{
     // Página de inicio con accesos rápidos a cada módulo
     ViewData["Title"] = "Inicio";
     ViewData["Breadcrumb"] = "SIPITEX / Inicio";
+    var canAccessInventario = User.Identity?.IsAuthenticated == true
+        && (await AuthorizationService.AuthorizeAsync(User, resource: null, AuthorizationPolicyNames.PuedeAccederInventario)).Succeeded;
 }
 
 <div class="page-header">
@@ -12,11 +16,14 @@
 </div>
 
 <div class="module-grid">
-    <a class="module-link" asp-controller="Inventario" asp-action="Index">
-        <i class="fas fa-boxes-stacked"></i>
-        <h3>Inventario</h3>
-        <p>Materiales, stock y solicitudes de bodega.</p>
-    </a>
+    @if (canAccessInventario)
+    {
+        <a class="module-link" asp-controller="Inventario" asp-action="Index">
+            <i class="fas fa-boxes-stacked"></i>
+            <h3>Inventario</h3>
+            <p>Materiales, stock y solicitudes de bodega.</p>
+        </a>
+    }
     <a class="module-link" asp-controller="Ordenes" asp-action="Index">
         <i class="fas fa-clipboard-list"></i>
         <h3>Órdenes</h3>

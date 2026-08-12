@@ -11,7 +11,7 @@ public static class FuncionalidadesCatalog
         // --- Inventario ---
         new("Inventario", "Consultar materiales",
             "Lista el stock de materiales textiles con unidad, mínimo y estado.",
-            $"{UserRoles.Administrador}, {UserRoles.Bodeguero}, {UserRoles.Instructor}"),
+            $"{UserRoles.Administrador}, {UserRoles.Bodeguero} (+ Instructor con Inventario.Registrar)"),
         new("Inventario", "Registrar material",
             "Crea un material nuevo en bodega (nombre, unidad, stock y mínimo).",
             $"{UserRoles.Administrador}, {UserRoles.Bodeguero} (+ permiso extendido)"),

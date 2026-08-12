@@ -39,9 +39,10 @@ public class OrdenesController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
+        var (userId, role, name) = GetActor();
         return View(new OrdenesIndexViewModel
         {
-            Orders = await _orderService.GetOrdersAsync(cancellationToken),
+            Orders = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken),
             ProductNames = await _bomCatalog.GetOrderEligibleProductNamesAsync(cancellationToken),
             CreateOrder = new CreateOrderForm(),
             Message = TempData["Message"] as string,
@@ -55,6 +56,9 @@ public class OrdenesController : Controller
     public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
     {
         var (userId, role, name) = GetActor();
+        if (!await _orderService.CanAccessOrderAsync(id, userId, role, name, cancellationToken))
+            return Forbid();
+
         var mes = await _flowService.GetMesDetailAsync(id, userId, role, cancellationToken);
         if (mes is null) return NotFound();
 
@@ -89,6 +93,10 @@ public class OrdenesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddProduction(int id, int units, CancellationToken cancellationToken)
     {
+        var (userId, role, name) = GetActor();
+        if (!await _orderService.CanAccessOrderAsync(id, userId, role, name, cancellationToken))
+            return Forbid();
+
         var result = await _orderService.RegisterProductionAsync(id, units, cancellationToken);
         TempData["Message"] = result.Message ?? (result.Success ? "Producción registrada." : "Error en producción.");
         TempData["IsSuccess"] = result.Success;
@@ -100,6 +108,10 @@ public class OrdenesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddMaterial([Bind(Prefix = "AddMaterial")] AddOrderMaterialForm form, CancellationToken cancellationToken)
     {
+        var (userId, role, name) = GetActor();
+        if (!await _orderService.CanAccessOrderAsync(form.OrderId, userId, role, name, cancellationToken))
+            return Forbid();
+
         var result = await _orderMaterialService.AddMaterialAsync(
             new AddOrderMaterialDto(form.OrderId, form.MaterialId, form.QuantityRequired, form.Observations),
             cancellationToken);
@@ -113,6 +125,10 @@ public class OrdenesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveMaterial(int lineId, int orderId, CancellationToken cancellationToken)
     {
+        var (userId, role, name) = GetActor();
+        if (!await _orderService.CanAccessOrderAsync(orderId, userId, role, name, cancellationToken))
+            return Forbid();
+
         var result = await _orderMaterialService.RemoveMaterialAsync(lineId, cancellationToken);
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
@@ -124,6 +140,10 @@ public class OrdenesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ImportBomMaterials(int id, CancellationToken cancellationToken)
     {
+        var (userId, role, name) = GetActor();
+        if (!await _orderService.CanAccessOrderAsync(id, userId, role, name, cancellationToken))
+            return Forbid();
+
         var result = await _orderMaterialService.ImportFromBomAsync(id, cancellationToken);
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;

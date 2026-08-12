@@ -1,4 +1,7 @@
 ﻿@using System.Security.Claims
+@using Sipitex.Application.Authorization
+@using Sipitex.Domain.Entities
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     // Sacamos controller y action de la ruta actual para marcar el menú activo
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
@@ -19,6 +22,8 @@
     // Mensajes que vienen del controlador vía TempData (toast)
     var toastMessage = TempData["Message"] as string;
     var toastSuccess = TempData["IsSuccess"] as bool?;
+    var canAccessInventario = User.Identity?.IsAuthenticated == true
+        && (await AuthorizationService.AuthorizeAsync(User, resource: null, AuthorizationPolicyNames.PuedeAccederInventario)).Succeeded;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -46,7 +51,10 @@
         <div class="sidebar-nav">
         <nav class="nav-group">
             <div class="nav-group-label">Operación</div>
-            <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
+            @if (canAccessInventario)
+            {
+                <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
+            }
             <a class="@NavClass("Ordenes")" asp-controller="Ordenes" asp-action="Index"><i class="fas fa-clipboard-list"></i> Órdenes de producción</a>
             <a class="@NavClass("Mrp")" asp-controller="Mrp" asp-action="Index"><i class="fas fa-diagram-project"></i> MRP / Materiales</a>
             @* Cola de SolicitudMaterial solo Bodeguero *@
