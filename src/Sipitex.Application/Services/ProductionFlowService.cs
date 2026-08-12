@@ -20,6 +20,8 @@ public class ProductionFlowService : IProductionFlowService
     private readonly IProductionOrderBomSnapshotRepository _snapshots;
     private readonly IBomRepository _boms;
     private readonly IUserRepository _users;
+    private readonly IMaterialRepository _materialRepository;
+    private readonly IStockMovementRepository _stockMovements;
     private readonly IUnitOfWork _uow;
 
     public ProductionFlowService(
@@ -29,6 +31,8 @@ public class ProductionFlowService : IProductionFlowService
         IProductionOrderBomSnapshotRepository snapshots,
         IBomRepository boms,
         IUserRepository users,
+        IMaterialRepository materialRepository,
+        IStockMovementRepository stockMovements,
         IUnitOfWork uow)
     {
         _orders = orders;
@@ -37,6 +41,8 @@ public class ProductionFlowService : IProductionFlowService
         _snapshots = snapshots;
         _boms = boms;
         _users = users;
+        _materialRepository = materialRepository;
+        _stockMovements = stockMovements;
         _uow = uow;
     }
 
@@ -432,65 +438,52 @@ public class ProductionFlowService : IProductionFlowService
         var gate = await EnsureCanActOnStageAsync(dto.StageId, actorUserId, actorRole, cancellationToken);
         if (gate is not null) return gate;
 
-        var stage = await _flow.GetStageByIdAsync(dto.StageId, cancellationToken);
-        if (stage is null) return ServiceResult.Fail("Etapa no encontrada.");
-        if (dto.Quantity > stage.QuantityAvailable)
-            return ServiceResult.Fail($"Solo hay {stage.QuantityAvailable} unidades disponibles.");
-
-        var order = await _orders.GetByIdAsync(dto.OrderId, cancellationToken);
-        if (order is null) return ServiceResult.Fail("Orden no encontrada.");
-
-        stage.QuantityWithdrawn += dto.Quantity; // sale del WIP de la etapa hacia inventario terminado
-        _flow.UpdateStage(stage);
-
-        var fg = await _flow.GetFinishedGoodAsync(order.ProductName, cancellationToken);
-        if (fg is null)
-        {
-            fg = new FinishedGoodStock { ProductName = order.ProductName, Stock = dto.Quantity };
-            await _flow.AddFinishedGoodAsync(fg, cancellationToken);
-        }
-        else
-        {
-            fg.Stock += dto.Quantity;
-            _flow.UpdateFinishedGood(fg);
-        }
-
-        await _flow.AddFinishedGoodMovementAsync(new FinishedGoodMovement
-        {
-            ProductName = order.ProductName,
-            Quantity = dto.Quantity,
-            ProductionOrderId = order.Id,
-            StageId = stage.Id,
-            ActorUserId = actorUserId,
-            Observations = dto.Observations
-        }, cancellationToken);
-
-        await _flow.AddMovementAsync(new ProductionOrderStageMovement
-        {
-            ProductionOrderId = order.Id,
-            FromStageId = stage.Id,
-            MovementType = "InventoryIn",
-            Quantity = dto.Quantity,
-            ActorUserId = actorUserId,
-            Observations = dto.Observations
-        }, cancellationToken);
-
-        // Avance de producción sin consumir BOM de nuevo (registro paralelo)
-        var toAdd = Math.Min(dto.Quantity, Math.Max(0, order.TotalQuantity - order.ProducedQuantity));
-        if (toAdd > 0)
-        {
-            order.ProducedQuantity += toAdd;
-            if (order.ProducedQuantity >= order.TotalQuantity)
-                order.Status = OrderStatus.Finalizada;
-            _orders.Update(order);
-        }
-
-        await AddHistory(order.Id, ProductionHistoryEventType.PartialInventoryIn,
-            $"Ingreso parcial a inventario: +{dto.Quantity} {order.ProductName} desde «{stage.Name}».",
-            actorUserId, actorName, stage.Id, stage.Name, cancellationToken, dto.Quantity);
+        var result = await ApplyFinishedGoodInventoryInAsync(
+            dto.OrderId, dto.StageId, dto.Quantity, dto.Observations,
+            actorUserId, actorName, cancellationToken);
+        if (!result.Success) return result;
 
         await _uow.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok($"Ingresadas {dto.Quantity} unidades al inventario de producto terminado. Orden sigue abierta si falta meta.");
+        return result;
+    }
+
+    // Gap #14: reingreso Bodeguero/Admin desde Trazo…Terminado (material → ledger; producto → PartialInventoryIn)
+    public async Task<ServiceResult> RegisterStageReentryAsync(
+        StageReentryDto dto,
+        int actorUserId,
+        string actorName,
+        string actorRole,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsWarehouseOrAdmin(actorRole))
+            return ServiceResult.Fail("Solo Bodeguero o Administrador pueden registrar reingresos desde etapas.");
+
+        if (dto.Quantity <= 0) return ServiceResult.Fail("Cantidad inválida.");
+
+        // Bodeguero/Admin: no exige permiso de instructor por etapa (gap #14)
+        var stage = await _flow.GetStageByIdAsync(dto.StageId, cancellationToken);
+        if (stage is null) return ServiceResult.Fail("Etapa no encontrada.");
+        if (stage.ProductionOrderId != dto.OrderId)
+            return ServiceResult.Fail("La etapa no pertenece a la orden indicada.");
+        if (!DefaultStageNames.Contains(stage.Name, StringComparer.OrdinalIgnoreCase))
+            return ServiceResult.Fail("La etapa de origen debe ser Trazo, Corte, Confección, Control de Calidad o Terminado.");
+
+        if (dto.MaterialId is int materialId)
+        {
+            var materialResult = await ApplyMaterialStageReentryAsync(
+                dto.OrderId, stage, materialId, dto.Quantity, dto.Observations,
+                actorUserId, actorName, cancellationToken);
+            if (!materialResult.Success) return materialResult;
+            await _uow.SaveChangesAsync(cancellationToken);
+            return materialResult;
+        }
+
+        var fgResult = await ApplyFinishedGoodInventoryInAsync(
+            dto.OrderId, dto.StageId, dto.Quantity, dto.Observations,
+            actorUserId, actorName, cancellationToken);
+        if (!fgResult.Success) return fgResult;
+        await _uow.SaveChangesAsync(cancellationToken);
+        return fgResult;
     }
 
     public async Task<ServiceResult> PartialWithdrawAsync(
@@ -621,6 +614,138 @@ public class ProductionFlowService : IProductionFlowService
             return null;
 
         return ServiceResult.Fail($"Sin permiso para operar la etapa «{stage.Name}».");
+    }
+
+    private static bool IsWarehouseOrAdmin(string actorRole) =>
+        string.Equals(actorRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(actorRole, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase);
+
+    // Núcleo compartido con PartialInventoryIn (producto terminado) — sin SaveChanges
+    private async Task<ServiceResult> ApplyFinishedGoodInventoryInAsync(
+        int orderId,
+        int stageId,
+        int quantity,
+        string? observations,
+        int actorUserId,
+        string actorName,
+        CancellationToken cancellationToken)
+    {
+        var stage = await _flow.GetStageByIdAsync(stageId, cancellationToken);
+        if (stage is null) return ServiceResult.Fail("Etapa no encontrada.");
+        if (quantity > stage.QuantityAvailable)
+            return ServiceResult.Fail($"Solo hay {stage.QuantityAvailable} unidades disponibles.");
+
+        var order = await _orders.GetByIdAsync(orderId, cancellationToken);
+        if (order is null) return ServiceResult.Fail("Orden no encontrada.");
+        if (stage.ProductionOrderId != order.Id)
+            return ServiceResult.Fail("La etapa no pertenece a la orden indicada.");
+
+        stage.QuantityWithdrawn += quantity; // sale del WIP de la etapa hacia inventario terminado
+        _flow.UpdateStage(stage);
+
+        var fg = await _flow.GetFinishedGoodAsync(order.ProductName, cancellationToken);
+        if (fg is null)
+        {
+            fg = new FinishedGoodStock { ProductName = order.ProductName, Stock = quantity };
+            await _flow.AddFinishedGoodAsync(fg, cancellationToken);
+        }
+        else
+        {
+            fg.Stock += quantity;
+            _flow.UpdateFinishedGood(fg);
+        }
+
+        await _flow.AddFinishedGoodMovementAsync(new FinishedGoodMovement
+        {
+            ProductName = order.ProductName,
+            Quantity = quantity,
+            ProductionOrderId = order.Id,
+            StageId = stage.Id,
+            ActorUserId = actorUserId,
+            Observations = observations
+        }, cancellationToken);
+
+        await _flow.AddMovementAsync(new ProductionOrderStageMovement
+        {
+            ProductionOrderId = order.Id,
+            FromStageId = stage.Id,
+            MovementType = "InventoryIn",
+            Quantity = quantity,
+            ActorUserId = actorUserId,
+            Observations = observations
+        }, cancellationToken);
+
+        // Avance de producción sin consumir BOM de nuevo (registro paralelo)
+        var toAdd = Math.Min(quantity, Math.Max(0, order.TotalQuantity - order.ProducedQuantity));
+        if (toAdd > 0)
+        {
+            order.ProducedQuantity += toAdd;
+            if (order.ProducedQuantity >= order.TotalQuantity)
+                order.Status = OrderStatus.Finalizada;
+            _orders.Update(order);
+        }
+
+        await AddHistory(order.Id, ProductionHistoryEventType.PartialInventoryIn,
+            $"Ingreso parcial a inventario: +{quantity} {order.ProductName} desde «{stage.Name}».",
+            actorUserId, actorName, stage.Id, stage.Name, cancellationToken, quantity);
+
+        return ServiceResult.Ok($"Ingresadas {quantity} unidades al inventario de producto terminado. Orden sigue abierta si falta meta.");
+    }
+
+    // Material que regresa a bodega desde una etapa MES + StockMovement Entrada (gap #14/#15)
+    private async Task<ServiceResult> ApplyMaterialStageReentryAsync(
+        int orderId,
+        ProductionOrderStage stage,
+        int materialId,
+        int quantity,
+        string? observations,
+        int actorUserId,
+        string actorName,
+        CancellationToken cancellationToken)
+    {
+        if (quantity > stage.QuantityAvailable)
+            return ServiceResult.Fail($"Solo hay {stage.QuantityAvailable} unidades disponibles.");
+
+        var order = await _orders.GetByIdAsync(orderId, cancellationToken);
+        if (order is null) return ServiceResult.Fail("Orden no encontrada.");
+
+        var material = await _materialRepository.GetByIdAsync(materialId, cancellationToken);
+        if (material is null) return ServiceResult.Fail("Material no encontrado.");
+
+        stage.QuantityWithdrawn += quantity;
+        _flow.UpdateStage(stage);
+
+        material.Stock += quantity;
+        material.LastEntryDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        _materialRepository.Update(material);
+
+        var referencia = $"Orden:{order.Id}/Etapa:{stage.Name}";
+        await _stockMovements.AddAsync(new StockMovement
+        {
+            MaterialId = material.Id,
+            FechaUtc = DateTime.UtcNow,
+            UsuarioId = actorUserId,
+            TipoMovimiento = StockMovementType.Entrada,
+            Cantidad = quantity,
+            StockResultante = material.Stock,
+            Referencia = referencia
+        }, cancellationToken);
+
+        await _flow.AddMovementAsync(new ProductionOrderStageMovement
+        {
+            ProductionOrderId = order.Id,
+            FromStageId = stage.Id,
+            MovementType = "InventoryIn",
+            Quantity = quantity,
+            ActorUserId = actorUserId,
+            Observations = observations
+        }, cancellationToken);
+
+        await AddHistory(order.Id, ProductionHistoryEventType.PartialInventoryIn,
+            $"Reingreso a bodega: +{quantity} «{material.Name}» desde «{stage.Name}».",
+            actorUserId, actorName, stage.Id, stage.Name, cancellationToken, quantity);
+
+        return ServiceResult.Ok($"Reingreso registrado: +{quantity} de «{material.Name}» desde «{stage.Name}».");
     }
 
     private async Task AddHistory(

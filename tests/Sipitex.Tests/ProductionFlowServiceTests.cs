@@ -16,10 +16,13 @@ public class ProductionFlowServiceTests
     private readonly Mock<IProductionOrderBomSnapshotRepository> _snapshots = new();
     private readonly Mock<IBomRepository> _boms = new();
     private readonly Mock<IUserRepository> _users = new();
+    private readonly Mock<IMaterialRepository> _materialRepository = new();
+    private readonly Mock<IStockMovementRepository> _stockMovements = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private ProductionFlowService CreateSut() =>
-        new(_orders.Object, _flow.Object, _materials.Object, _snapshots.Object, _boms.Object, _users.Object, _uow.Object);
+        new(_orders.Object, _flow.Object, _materials.Object, _snapshots.Object, _boms.Object, _users.Object,
+            _materialRepository.Object, _stockMovements.Object, _uow.Object);
 
     [Fact]
     public async Task EnsureStagesForOrder_CreatesDefaultFlowOnce()

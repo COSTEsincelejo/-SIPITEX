@@ -1,0 +1,111 @@
+@model BodegaReingresoViewModel
+@{
+    ViewData["Title"] = "Reingreso desde etapas";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Bodega · Órdenes / Reingreso";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Reingreso desde etapas</h2>
+        <div class="sub">Registra materiales o producto terminado que regresan desde Trazo, Corte, Confección, Control de Calidad o Terminado</div>
+    </div>
+    <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-rotate-left"></i> Nuevo reingreso</div>
+    <form method="get" asp-action="Reingreso" class="form-row" style="margin-bottom:1rem;">
+        <div class="field" style="min-width:220px;">
+            <label class="field-label">Orden de producción</label>
+            <select name="orderId" onchange="this.form.submit()">
+                <option value="">Seleccione orden…</option>
+                @foreach (var o in Model.Orders)
+                {
+                    if (Model.Form.OrderId == o.Id)
+                    {
+                        <option value="@o.Id" selected>@o.OrderNumber — @o.ProductName</option>
+                    }
+                    else
+                    {
+                        <option value="@o.Id">@o.OrderNumber — @o.ProductName</option>
+                    }
+                }
+            </select>
+        </div>
+    </form>
+
+    @if (Model.Form.OrderId <= 0)
+    {
+        <p class="hint">Elija una orden para cargar sus etapas de origen.</p>
+    }
+    else if (Model.Stages.Count == 0)
+    {
+        <p class="hint">La orden aún no tiene etapas MES (Trazo…Terminado). Genérelas desde el detalle de la orden.</p>
+    }
+    else
+    {
+        <form asp-action="Reingreso" method="post" class="form-row" style="flex-wrap:wrap;align-items:flex-end;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="Form.OrderId" value="@Model.Form.OrderId" />
+
+            <div class="field" style="min-width:200px;">
+                <label class="field-label">Etapa de origen</label>
+                <select name="Form.StageId" required>
+                    <option value="">Seleccione etapa…</option>
+                    @foreach (var s in Model.Stages)
+                    {
+                        <option value="@s.Id">@s.Name (disp. @s.QuantityAvailable)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="field">
+                <label class="field-label">Tipo de reingreso</label>
+                <label style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                    <input type="radio" name="Form.EsProductoTerminado" value="false" checked
+                           onchange="document.getElementById('materialField').hidden=false;" />
+                    Material de bodega
+                </label>
+                <label style="display:flex;gap:8px;align-items:center;margin-top:4px;">
+                    <input type="radio" name="Form.EsProductoTerminado" value="true"
+                           onchange="document.getElementById('materialField').hidden=true;" />
+                    Producto terminado (orden)
+                </label>
+            </div>
+
+            <div class="field" id="materialField" style="min-width:200px;">
+                <label class="field-label">Material</label>
+                <select name="Form.MaterialId">
+                    <option value="0">Seleccione material…</option>
+                    @foreach (var m in Model.Materials)
+                    {
+                        <option value="@m.Id">@m.Name (stock @m.Stock.ToString("0.##"))</option>
+                    }
+                </select>
+            </div>
+
+            <div class="field">
+                <label class="field-label">Cantidad</label>
+                <input type="number" name="Form.Quantity" min="1" value="@Model.Form.Quantity" required />
+            </div>
+
+            <div class="field" style="min-width:220px;">
+                <label class="field-label">Observaciones</label>
+                <input type="text" name="Form.Observations" maxlength="500" placeholder="Opcional" />
+            </div>
+
+            <div class="field" style="align-self:flex-end;">
+                <button type="submit" class="primary"><i class="fas fa-box-open"></i> Registrar reingreso</button>
+            </div>
+        </form>
+        <p class="hint" style="margin-top:12px;">
+            Etapas admitidas: @string.Join(", ", Model.StageNames). El reingreso de material genera un movimiento de stock (Entrada) con referencia a la orden y etapa.
+        </p>
+    }
+</div>

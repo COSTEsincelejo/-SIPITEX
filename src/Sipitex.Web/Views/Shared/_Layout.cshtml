@@ -54,6 +54,8 @@
             {
                 <a class="@NavClass("BodegaSolicitudes")" asp-controller="BodegaSolicitudes" asp-action="Index"><i class="fas fa-truck-ramp-box"></i> Solicitudes de materiales</a>
                 <a class="@NavClass("BodegaOrdenes")" asp-controller="BodegaOrdenes" asp-action="Index"><i class="fas fa-clipboard-check"></i> Materiales de órdenes</a>
+                <a class="@(controller.Equals("BodegaOrdenes", StringComparison.OrdinalIgnoreCase) && action.Equals("Reingreso", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
+                   asp-controller="BodegaOrdenes" asp-action="Reingreso"><i class="fas fa-rotate-left"></i> Reingreso desde etapas</a>
             }
             @if (User.IsInRole("Administrador") || User.IsInRole("Bodeguero"))
             {

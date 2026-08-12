@@ -88,6 +88,9 @@ public static class FuncionalidadesCatalog
         new("Bodega — solicitudes", "Resolver solicitud",
             "Aprueba o rechaza una solicitud y genera código de entrega.",
             UserRoles.Bodeguero),
+        new("Bodega — órdenes", "Reingreso desde etapas",
+            "Registra materiales o producto terminado que regresan desde Trazo, Corte, Confección, Control de Calidad o Terminado.",
+            UserRoles.Bodeguero),
 
         // --- Calidad ---
         new("Control de calidad", "Consultar inspecciones",
