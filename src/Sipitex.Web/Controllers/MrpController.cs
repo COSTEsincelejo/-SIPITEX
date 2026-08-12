@@ -213,6 +213,28 @@ public class MrpController : Controller
                 IsReference = detail.IsReference,
                 Notes = detail.Notes,
                 HabilitadoParaOrdenes = detail.HabilitadoParaOrdenes,
+                Referencia = detail.Referencia,
+                Linea = detail.Linea,
+                TallaInicial = detail.TallaInicial,
+                TipoEmpaque = detail.TipoEmpaque,
+                DescripcionPrenda = detail.DescripcionPrenda,
+                FechaSolicitud = detail.FechaSolicitud,
+                FechaElaboracion = detail.FechaElaboracion,
+                AnioMuestrario = detail.AnioMuestrario,
+                EsDisenoNuevo = detail.EsDisenoNuevo,
+                EsReplica = detail.EsReplica,
+                EsBancoDeMuestras = detail.EsBancoDeMuestras,
+                Disenador = detail.Disenador,
+                Patronista = detail.Patronista,
+                Digitacion = detail.Digitacion,
+                Tallas = (detail.Tallas ?? [])
+                    .OrderBy(t => t.Orden)
+                    .Select(t => new BomProductTallaForm
+                    {
+                        Id = t.Id,
+                        Nombre = t.Nombre,
+                        Orden = t.Orden
+                    }).ToList(),
                 Lines = detail.Lines.Select(l => new BomRecipeLineForm
                 {
                     ItemId = l.ItemId,
@@ -242,5 +264,25 @@ public class MrpController : Controller
                 l.NewMaterialName,
                 l.NewMaterialUnit,
                 l.QuantityPerUnit,
-                l.Unit)).ToList());
+                l.Unit)).ToList(),
+            form.Referencia,
+            form.Linea,
+            form.TallaInicial,
+            form.TipoEmpaque,
+            form.DescripcionPrenda,
+            form.FechaSolicitud,
+            form.FechaElaboracion,
+            form.AnioMuestrario,
+            form.EsDisenoNuevo,
+            form.EsReplica,
+            form.EsBancoDeMuestras,
+            form.Disenador,
+            form.Patronista,
+            form.Digitacion,
+            form.Tallas
+                .Select((t, i) => new BomProductTallaDto(
+                    t.Id,
+                    t.Nombre,
+                    t.Orden > 0 ? t.Orden : i))
+                .ToList());
 }

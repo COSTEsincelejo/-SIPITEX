@@ -119,7 +119,32 @@ public class BomProductEditForm
     public bool IsReference { get; set; }
     public string? Notes { get; set; }
     public bool HabilitadoParaOrdenes { get; set; } = true;
+
+    // Fase A — metadatos base (opcionales)
+    public string? Referencia { get; set; }
+    public string? Linea { get; set; }
+    public string? TallaInicial { get; set; }
+    public string? TipoEmpaque { get; set; }
+    public string? DescripcionPrenda { get; set; }
+    public DateOnly? FechaSolicitud { get; set; }
+    public DateOnly? FechaElaboracion { get; set; }
+    public int? AnioMuestrario { get; set; }
+    public bool EsDisenoNuevo { get; set; }
+    public bool EsReplica { get; set; }
+    public bool EsBancoDeMuestras { get; set; }
+    public string? Disenador { get; set; }
+    public string? Patronista { get; set; }
+    public string? Digitacion { get; set; }
+    public List<BomProductTallaForm> Tallas { get; set; } = [];
+
     public List<BomRecipeLineForm> Lines { get; set; } = [new()];
+}
+
+public class BomProductTallaForm
+{
+    public int? Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public int Orden { get; set; }
 }
 
 public class BomRecipeLineForm

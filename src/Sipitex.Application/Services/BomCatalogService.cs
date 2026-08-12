@@ -57,7 +57,26 @@ public class BomCatalogService : IBomCatalogService
                 i.Material.Name,
                 i.QuantityPerUnit,
                 i.Unit,
-                UnitHelper.ToDisplay(i.Unit))).ToList());
+                UnitHelper.ToDisplay(i.Unit))).ToList(),
+            product.Referencia,
+            product.Linea,
+            product.TallaInicial,
+            product.TipoEmpaque,
+            product.DescripcionPrenda,
+            product.FechaSolicitud,
+            product.FechaElaboracion,
+            product.AnioMuestrario,
+            product.EsDisenoNuevo,
+            product.EsReplica,
+            product.EsBancoDeMuestras,
+            product.Disenador,
+            product.Patronista,
+            product.Digitacion,
+            product.Tallas
+                .OrderBy(t => t.Orden)
+                .ThenBy(t => t.Id)
+                .Select(t => new BomProductTallaDto(t.Id, t.Nombre, t.Orden))
+                .ToList());
     }
 
     public async Task<IReadOnlyList<string>> GetOrderEligibleProductNamesAsync(CancellationToken cancellationToken = default)
@@ -90,6 +109,8 @@ public class BomCatalogService : IBomCatalogService
             Notes = NormalizeNotes(dto.Notes, dto.IsReference),
             HabilitadoParaOrdenes = dto.HabilitadoParaOrdenes
         };
+        ApplyMetadata(product, dto);
+        ApplyTallas(product, dto.Tallas);
 
         foreach (var line in linesResult.Lines!)
         {
@@ -128,6 +149,13 @@ public class BomCatalogService : IBomCatalogService
         product.IsReference = dto.IsReference;
         product.Notes = NormalizeNotes(dto.Notes, dto.IsReference);
         product.HabilitadoParaOrdenes = dto.HabilitadoParaOrdenes;
+        ApplyMetadata(product, dto);
+
+        // Reemplazo completo de tallas
+        foreach (var old in product.Tallas.ToList())
+            _bomRepository.RemoveTalla(old);
+        product.Tallas.Clear();
+        ApplyTallas(product, dto.Tallas);
 
         // Reemplazo completo de líneas: quitar viejas, agregar nuevas
         foreach (var old in product.Items.ToList())
@@ -241,6 +269,49 @@ public class BomCatalogService : IBomCatalogService
             return ServiceResult.Fail("La receta debe tener al menos un material. Para dejar el producto sin BOM use Eliminar.");
         return null;
     }
+
+    private static void ApplyMetadata(BomProduct product, UpsertBomProductDto dto)
+    {
+        product.Referencia = NormalizeOptional(dto.Referencia);
+        product.Linea = NormalizeOptional(dto.Linea);
+        product.TallaInicial = NormalizeOptional(dto.TallaInicial);
+        product.TipoEmpaque = NormalizeOptional(dto.TipoEmpaque);
+        product.DescripcionPrenda = NormalizeOptional(dto.DescripcionPrenda);
+        product.FechaSolicitud = dto.FechaSolicitud;
+        product.FechaElaboracion = dto.FechaElaboracion;
+        product.AnioMuestrario = dto.AnioMuestrario is > 0 ? dto.AnioMuestrario : null;
+        product.EsDisenoNuevo = dto.EsDisenoNuevo;
+        product.EsReplica = dto.EsReplica;
+        product.EsBancoDeMuestras = dto.EsBancoDeMuestras;
+        product.Disenador = NormalizeOptional(dto.Disenador);
+        product.Patronista = NormalizeOptional(dto.Patronista);
+        product.Digitacion = NormalizeOptional(dto.Digitacion);
+    }
+
+    private static void ApplyTallas(BomProduct product, IReadOnlyList<BomProductTallaDto>? tallas)
+    {
+        if (tallas is null || tallas.Count == 0)
+            return;
+
+        var orden = 0;
+        foreach (var t in tallas)
+        {
+            var nombre = NormalizeOptional(t.Nombre);
+            if (nombre is null)
+                continue;
+
+            product.Tallas.Add(new BomProductTalla
+            {
+                BomProductId = product.Id,
+                Nombre = nombre,
+                Orden = t.Orden > 0 ? t.Orden : orden
+            });
+            orden++;
+        }
+    }
+
+    private static string? NormalizeOptional(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static string? NormalizeNotes(string? notes, bool isReference)
     {
