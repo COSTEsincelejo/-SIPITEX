@@ -322,6 +322,27 @@ public class BodegaOrdenDetailViewModel
     public bool IsSuccess { get; set; }
 }
 
+public class BodegaReingresoViewModel
+{
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public IReadOnlyList<OrderStageDto> Stages { get; set; } = [];
+    public IReadOnlyList<string> StageNames { get; set; } = [];
+    public BodegaReingresoForm Form { get; set; } = new();
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class BodegaReingresoForm
+{
+    public int OrderId { get; set; }
+    public int StageId { get; set; }
+    public int Quantity { get; set; } = 1;
+    public int MaterialId { get; set; }
+    public bool EsProductoTerminado { get; set; }
+    public string? Observations { get; set; }
+}
+
 public class DeliverOrderMaterialsForm
 {
     public int OrderId { get; set; }

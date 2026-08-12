@@ -429,6 +429,15 @@ public record AssignStageInstructorDto(int StageId, int? InstructorUserId);
 public record ProcessStageUnitsDto(int StageId, int Quantity, string? Observations);
 public record SendToNextStageDto(int FromStageId, int Quantity, string? Observations);
 public record PartialInventoryInDto(int OrderId, int StageId, int Quantity, string? Observations);
+
+// Reingreso desde etapa MES: material de bodega (MaterialId) o producto terminado (MaterialId null)
+public record StageReentryDto(
+    int OrderId,
+    int StageId,
+    int Quantity,
+    int? MaterialId,
+    string? Observations);
+
 public record PartialWithdrawalDto(
     int StageId,
     int Quantity,

@@ -28,6 +28,15 @@ public interface IProductionFlowService
     Task<ServiceResult> SendToNextAsync(SendToNextStageDto dto, int actorUserId, string actorName, string actorRole, CancellationToken cancellationToken = default);
 
     Task<ServiceResult> PartialInventoryInAsync(PartialInventoryInDto dto, int actorUserId, string actorName, string actorRole, CancellationToken cancellationToken = default);
+
+    // Reingreso Bodeguero/Admin desde etapa (material → StockMovement; producto → mismo núcleo que PartialInventoryIn)
+    Task<ServiceResult> RegisterStageReentryAsync(
+        StageReentryDto dto,
+        int actorUserId,
+        string actorName,
+        string actorRole,
+        CancellationToken cancellationToken = default);
+
     Task<ServiceResult> PartialWithdrawAsync(PartialWithdrawalDto dto, int actorUserId, string actorName, string actorRole, CancellationToken cancellationToken = default);
 
     Task<ServiceResult> SetStagePermissionAsync(UpsertStagePermissionDto dto, CancellationToken cancellationToken = default);
