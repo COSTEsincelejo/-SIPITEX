@@ -11,7 +11,7 @@
     // Políticas más finas que el rol (permisos extendidos)
     var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
     var canApproveRequests = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeAprobarSolicitudes)).Succeeded;
-    var canRequest = User.IsInRole("Administrador") || User.IsInRole("Instructor");
+    var canRequest = User.IsInRole("Administrador");
 }
 
 <div class="page-header">
@@ -252,6 +252,6 @@
         </div>
     }
     <div class="alert alert-info" style="margin-top:14px;">
-        <i class="fas fa-circle-info"></i> Instructor solicita · Bodeguero aprueba o rechaza. Al aprobar, el stock se descuenta automáticamente.
+        <i class="fas fa-circle-info"></i> Admin solicita · Bodeguero aprueba o rechaza. Al aprobar, el stock se descuenta automáticamente.
     </div>
 </div>

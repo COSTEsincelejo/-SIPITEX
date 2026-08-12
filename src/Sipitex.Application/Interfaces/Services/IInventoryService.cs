@@ -10,8 +10,14 @@ public interface IInventoryService
     Task<ServiceResult> AdjustStockAsync(AdjustStockDto dto, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateMaterialAsync(UpdateMaterialDto dto, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateStatusAsync(UpdateMaterialStatusDto dto, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<MaterialRequestDto>> GetRequestsAsync(CancellationToken cancellationToken = default);
-    Task<ServiceResult> CreateRequestAsync(CreateMaterialRequestDto dto, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MaterialRequestDto>> GetRequestsAsync(
+        int? viewerUserId = null,
+        string? viewerRole = null,
+        CancellationToken cancellationToken = default);
+    Task<ServiceResult> CreateRequestAsync(
+        CreateMaterialRequestDto dto,
+        int? solicitanteId = null,
+        CancellationToken cancellationToken = default);
     Task<ServiceResult> ApproveRequestAsync(int requestId, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> RejectRequestAsync(int requestId, CancellationToken cancellationToken = default);
     Task<ServiceResult> DeleteMaterialAsync(int materialId, CancellationToken cancellationToken = default);

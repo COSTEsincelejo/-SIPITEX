@@ -23,6 +23,12 @@ public class MaterialRequest
     // Navegación a la orden
     public ProductionOrder ProductionOrder { get; set; } = null!;
 
+    // Usuario que creó la solicitud (null en filas legacy anteriores a este campo)
+    public int? SolicitanteId { get; set; }
+
+    // Navegación al solicitante
+    public User? Solicitante { get; set; }
+
     // Estado: arranca Pendiente hasta que bodega apruebe/rechace
     public RequestStatus Status { get; set; } = RequestStatus.Pendiente;
 

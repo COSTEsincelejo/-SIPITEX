@@ -42,6 +42,11 @@ public static class PermissionRules
         user.IsInRole(UserRoles.Administrador)
         || HasPermission(user, ExtendedPermissions.AlertasConfigurar);
 
+    // Inventario general: solo Admin/Bodeguero. Instructor consulta materiales vía MRP/órdenes (manual de roles).
+    public static bool PuedeConsultarInventario(ClaimsPrincipal user) =>
+        user.IsInRole(UserRoles.Administrador)
+        || user.IsInRole(UserRoles.Bodeguero);
+
     // Revisa si el usuario tiene un permiso extendido en sus claims
     public static bool HasPermission(ClaimsPrincipal user, string permission) =>
         user.HasClaim(ExtendedPermissions.ClaimType, permission);

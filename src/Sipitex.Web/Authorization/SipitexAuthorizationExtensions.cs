@@ -34,6 +34,9 @@ public static class SipitexAuthorizationExtensions
         options.AddPolicy(AuthorizationPolicyNames.PuedeConfigurarAlertas,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeConfigurarAlertas(ctx.User)));
 
+        options.AddPolicy(AuthorizationPolicyNames.PuedeConsultarInventario,
+            policy => policy.RequireAssertion(ctx => PermissionRules.PuedeConsultarInventario(ctx.User)));
+
         return options;
     }
 }

@@ -15,4 +15,6 @@ public static class AuthorizationPolicyNames
     public const string PuedeCrearOrdenes = "PuedeCrearOrdenes";
     // Quién puede configurar alertas por correo
     public const string PuedeConfigurarAlertas = "PuedeConfigurarAlertas";
+    // Quién puede consultar el módulo de Inventario general (stock completo)
+    public const string PuedeConsultarInventario = "PuedeConsultarInventario";
 }
