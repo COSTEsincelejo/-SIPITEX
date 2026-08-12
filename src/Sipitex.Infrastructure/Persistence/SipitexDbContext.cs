@@ -45,6 +45,7 @@ public class SipitexDbContext : DbContext
     public DbSet<InstructorStagePermission> InstructorStagePermissions => Set<InstructorStagePermission>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<OrderChangeLog> OrderChangeLogs => Set<OrderChangeLog>();
+    public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>(); // Auditoría global transversal
 
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -587,6 +588,20 @@ public class SipitexDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(c => c.ProductionOrderId);
             e.HasIndex(c => c.FechaUtc);
+        });
+
+        // Auditoría global transversal (ActivityLog); sin FK a Users para preservar historial
+        modelBuilder.Entity<ActivityLog>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.UserName).HasMaxLength(120).IsRequired();
+            e.Property(a => a.Action).HasMaxLength(80).IsRequired();
+            e.Property(a => a.Entity).HasMaxLength(80).IsRequired();
+            e.Property(a => a.EntityId).HasMaxLength(80);
+            e.Property(a => a.Details).HasMaxLength(2000);
+            e.HasIndex(a => a.Timestamp);
+            e.HasIndex(a => a.UserId);
+            e.HasIndex(a => a.Action);
         });
     }
 }
