@@ -457,6 +457,7 @@ public class SipitexDbContext : DbContext
             e.Property(m => m.Cantidad).HasPrecision(18, 2);
             e.Property(m => m.StockResultante).HasPrecision(18, 2);
             e.Property(m => m.TipoMovimiento).HasConversion<string>().HasMaxLength(40);
+            e.Property(m => m.Origen).HasConversion<string>().HasMaxLength(40);
             e.Property(m => m.Referencia).HasMaxLength(120);
             e.HasOne(m => m.Material)
                 .WithMany(mat => mat.StockMovements)

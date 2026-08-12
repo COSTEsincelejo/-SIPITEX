@@ -56,8 +56,8 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
             Assert.True(await TableExistsAsync(dbPath, "Users"));
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            // ... + AddStockMovements + AddOrderChangeLogs = 14
-            Assert.Equal(14, await CountMigrationRowsAsync(dbPath));
+            // ... + AddStockMovements + AddOrderChangeLogs + AddStockEntryOrigin = 15
+            Assert.Equal(15, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "DetallesSolicitudMaterial"));
@@ -106,7 +106,7 @@ public class MigrationBaselineTests
             }
 
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(14, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(15, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
@@ -138,6 +138,7 @@ public class MigrationBaselineTests
                 Assert.Contains(ids, id => id.Contains("AddProductionOrderMesFlow", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddStockMovements", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddOrderChangeLogs", StringComparison.Ordinal));
+                Assert.Contains(ids, id => id.Contains("AddStockEntryOrigin", StringComparison.Ordinal));
             }
         }
         finally
@@ -158,7 +159,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(14, before);
+            Assert.Equal(15, before);
 
             await using (var context = CreateContext(dbPath))
             {

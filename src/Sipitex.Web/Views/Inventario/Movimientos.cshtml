@@ -54,6 +54,7 @@
                     <th>Fecha (UTC)</th>
                     <th>Usuario</th>
                     <th>Tipo</th>
+                    <th>Origen</th>
                     <th>Material</th>
                     <th>Cantidad</th>
                     <th>Stock resultante</th>
@@ -64,7 +65,7 @@
             @if (Model.Movimientos.Count == 0)
             {
                 <tr>
-                    <td colspan="7"><span class="hint">No hay movimientos con los filtros seleccionados.</span></td>
+                    <td colspan="8"><span class="hint">No hay movimientos con los filtros seleccionados.</span></td>
                 </tr>
             }
             @foreach (var mov in Model.Movimientos)
@@ -73,6 +74,7 @@
                     <td>@mov.FechaUtc.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@mov.UsuarioNombre</td>
                     <td><span class="badge @DisplayHelper.BadgeClass(mov.TipoMovimiento)">@DisplayHelper.Label(mov.TipoMovimiento)</span></td>
+                    <td>@DisplayHelper.Label(mov.Origen)</td>
                     <td>@mov.MaterialName</td>
                     <td>@mov.Cantidad.ToString("0.##")</td>
                     <td>@mov.StockResultante.ToString("0.##")</td>

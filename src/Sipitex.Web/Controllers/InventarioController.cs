@@ -76,7 +76,7 @@ public class InventarioController : Controller
 
         // Llamo al servicio con los datos del formulario
         var result = await _inventoryService.AddMaterialAsync(
-            new CreateMaterialDto(form.Name, form.Stock, form.Unit), actorId, cancellationToken);
+            new CreateMaterialDto(form.Name, form.Stock, form.Unit, form.Origen), actorId, cancellationToken);
 
         // Vuelvo a cargar la pantalla completa para mostrar la tabla actualizada
         var vm = await BuildViewModel(cancellationToken);
@@ -86,6 +86,20 @@ public class InventarioController : Controller
         vm.IsSuccess = result.Success;
         // Devuelvo la misma vista con mensaje en vez de redirect (el form queda en la página)
         return View("Index", vm);
+    }
+
+    // Edición completa de metadatos (nombre, unidad, mínimo) — solo Administrador
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditMaterial(EditMaterialForm form, CancellationToken cancellationToken)
+    {
+        var result = await _inventoryService.UpdateMaterialAsync(
+            new UpdateMaterialDto(form.MaterialId, form.Name, form.Unit, form.MinStock), cancellationToken);
+
+        TempData["Message"] = result.Message ?? (result.Success ? "Material actualizado." : "Error al actualizar material.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index));
     }
 
     // Ajuste de stock (bodega/admin). Uso TempData porque hago redirect.
@@ -103,7 +117,7 @@ public class InventarioController : Controller
 
         // El servicio busca el material y pone el stock nuevo
         var result = await _inventoryService.AdjustStockAsync(
-            new AdjustStockDto(form.MaterialId, form.NewStock), actorId, cancellationToken);
+            new AdjustStockDto(form.MaterialId, form.NewStock, form.Origen), actorId, cancellationToken);
 
         // Guardo mensaje para después del redirect
         TempData["Message"] = result.Message ?? (result.Success ? "Stock actualizado." : "Error al ajustar stock.");
