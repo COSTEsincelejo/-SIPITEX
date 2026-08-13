@@ -10,8 +10,12 @@ public class DetalleSolicitudMaterial
     public int SolicitudMaterialId { get; set; }
     public SolicitudMaterial SolicitudMaterial { get; set; } = null!;
 
-    public int MaterialId { get; set; }
-    public Material Material { get; set; } = null!;
+    // Null hasta que Bodega mapea (InsumosLibres); obligatorio al crear Tipo=PorFicha
+    public int? MaterialId { get; set; }
+    public Material? Material { get; set; }
+
+    // Descripción del ítem pedida por Instructor (InsumosLibres)
+    public string? DescripcionItem { get; set; }
 
     public decimal CantidadSolicitada { get; set; }
 

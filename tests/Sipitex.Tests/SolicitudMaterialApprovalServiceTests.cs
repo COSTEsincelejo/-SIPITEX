@@ -166,6 +166,7 @@ public class SolicitudMaterialApprovalServiceTests
         {
             Id = 20,
             Codigo = "SOL-0010",
+            Tipo = SolicitudMaterialTipo.PorFicha,
             FichaId = 1,
             SolicitanteId = 10,
             Estado = SolicitudMaterialEstado.Pendiente
@@ -341,5 +342,100 @@ public class SolicitudMaterialApprovalServiceTests
                 It.IsAny<Func<CancellationToken, Task>>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveSolicitudAsync_InsumosLibres_SinMapeo_NoDescuentaStock()
+    {
+        var material = new Material { Id = 5, Name = "Tela", Stock = 100, Unit = MaterialUnit.Metros };
+        var solicitud = new SolicitudMaterial
+        {
+            Id = 20,
+            Codigo = "SOL-LIB",
+            Tipo = SolicitudMaterialTipo.InsumosLibres,
+            SolicitanteId = 10,
+            Estado = SolicitudMaterialEstado.Pendiente,
+            Detalles =
+            [
+                new DetalleSolicitudMaterial
+                {
+                    Id = 1,
+                    SolicitudMaterialId = 20,
+                    MaterialId = null,
+                    Material = null,
+                    DescripcionItem = "Tela orión",
+                    CantidadSolicitada = 2,
+                    EstadoItem = DetalleSolicitudEstado.Pendiente
+                }
+            ]
+        };
+        solicitud.Detalles.First().SolicitudMaterial = solicitud;
+
+        _solicitudRepository
+            .Setup(r => r.GetByIdWithDetallesAsync(20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(solicitud);
+
+        var result = await CreateSut().ResolveSolicitudAsync(
+            20,
+            [new ResolveDetalleDto(1, 2)],
+            bodegueroId: 9);
+
+        Assert.False(result.Success);
+        Assert.Contains("mapear", result.Message!, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(100m, material.Stock);
+        Assert.Equal(SolicitudMaterialEstado.Pendiente, solicitud.Estado);
+        _unitOfWork.Verify(
+            u => u.ExecuteInTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveSolicitudAsync_InsumosLibres_ConMapeo_DescuentaStock()
+    {
+        var material = new Material { Id = 5, Name = "Tela", Stock = 100, Unit = MaterialUnit.Metros };
+        var solicitud = new SolicitudMaterial
+        {
+            Id = 20,
+            Codigo = "SOL-LIB",
+            Tipo = SolicitudMaterialTipo.InsumosLibres,
+            SolicitanteId = 10,
+            Estado = SolicitudMaterialEstado.Pendiente,
+            Detalles =
+            [
+                new DetalleSolicitudMaterial
+                {
+                    Id = 1,
+                    SolicitudMaterialId = 20,
+                    MaterialId = null,
+                    Material = null,
+                    DescripcionItem = "Tela orión",
+                    CantidadSolicitada = 2,
+                    EstadoItem = DetalleSolicitudEstado.Pendiente
+                }
+            ]
+        };
+        solicitud.Detalles.First().SolicitudMaterial = solicitud;
+
+        _solicitudRepository
+            .Setup(r => r.GetByIdWithDetallesAsync(20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(solicitud);
+        _materialRepository
+            .Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(material);
+        _solicitudRepository
+            .Setup(r => r.AddEntregaAsync(It.IsAny<EntregaMaterial>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await CreateSut().ResolveSolicitudAsync(
+            20,
+            [new ResolveDetalleDto(1, 2, MaterialId: 5)],
+            bodegueroId: 9);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(5, solicitud.Detalles.Single().MaterialId);
+        Assert.Equal(98m, material.Stock);
+        Assert.Equal(SolicitudMaterialEstado.AprobadaTotal, solicitud.Estado);
     }
 }

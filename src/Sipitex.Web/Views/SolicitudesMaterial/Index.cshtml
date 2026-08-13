@@ -9,9 +9,10 @@
     <div>
         <h2>Mis solicitudes de materiales</h2>
         <div class="sub">@(Model.IsAdministrator
-            ? "Vista global: todas las solicitudes ligadas a fichas"
+            ? "Vista global: por ficha SENA e insumos libres"
             : "Solo las solicitudes que usted ha creado")</div>
     </div>
+    <a class="primary" asp-action="SolicitarInsumos"><i class="fas fa-comment-dots"></i> Solicitar insumos</a>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
@@ -23,7 +24,7 @@
     <div class="card-title teal"><i class="fas fa-clipboard-list"></i> Solicitudes</div>
     @if (!Model.Solicitudes.Any())
     {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-clipboard-list", Title = "Sin solicitudes", Text = "Todavía no hay solicitudes de materiales por ficha.", ActionText = "Use «Solicitar materiales» en Fichas & producción." }' />
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-clipboard-list", Title = "Sin solicitudes", Text = "Todavía no hay solicitudes. Use «Solicitar insumos» o «Solicitar materiales» en Fichas.", ActionText = null }' />
     }
     else
     {
@@ -32,6 +33,7 @@
                 <thead>
                     <tr>
                         <th>Código</th>
+                        <th>Tipo</th>
                         <th>Ficha</th>
                         <th>Estado</th>
                         <th>Fecha de solicitud</th>
@@ -47,6 +49,7 @@
                 {
                     <tr class="clickable-row" onclick="location.href='@Url.Action("Detail", "SolicitudesMaterial", new { id = s.Id })'">
                         <td><strong>@s.Codigo</strong></td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(s.Tipo)">@DisplayHelper.StatusText(s.Tipo)</span></td>
                         <td>@s.FichaCode</td>
                         <td><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></td>
                         <td>@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>

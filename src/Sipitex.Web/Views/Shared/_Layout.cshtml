@@ -71,6 +71,8 @@
             {
                 <a class="@NavClass("Fichas")" asp-controller="Fichas" asp-action="Index"><i class="fas fa-people-group"></i> Fichas & producción</a>
                 <a class="@NavClass("SolicitudesMaterial")" asp-controller="SolicitudesMaterial" asp-action="Index"><i class="fas fa-clipboard-list"></i> Mis solicitudes</a>
+                <a class="@(controller.Equals("SolicitudesMaterial", StringComparison.OrdinalIgnoreCase) && action.Equals("SolicitarInsumos", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
+                   asp-controller="SolicitudesMaterial" asp-action="SolicitarInsumos"><i class="fas fa-comment-dots"></i> Solicitar insumos</a>
                 <a class="@NavClass("Calidad")" asp-controller="Calidad" asp-action="Index"><i class="fas fa-clipboard-check"></i> Control de calidad</a>
             }
         </nav>

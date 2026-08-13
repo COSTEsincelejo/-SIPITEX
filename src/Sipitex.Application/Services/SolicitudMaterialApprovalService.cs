@@ -61,7 +61,8 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
                 if (applyError is not null)
                     throw new InvalidOperationException(applyError);
 
-                _materialRepository.Update(detalle.Material);
+                if (detalle.Material is not null)
+                    _materialRepository.Update(detalle.Material);
                 if (movement is not null)
                     await _stockMovements.AddAsync(movement, ct);
 
@@ -96,26 +97,30 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
 
         var decisions = (items ?? [])
             .GroupBy(i => i.DetalleId)
-            .ToDictionary(g => g.Key, g => g.Last().CantidadAprobada);
+            .ToDictionary(g => g.Key, g => g.Last());
 
         if (solicitud.Detalles.Count == 0)
             return ServiceResult.Fail("La solicitud no tiene ítems.");
 
-        // Debe ser una decisión por cada ítem pendiente
+        // Mapear ítems sin MaterialId (InsumosLibres) ANTES de validar/descontar stock.
         foreach (var detalle in solicitud.Detalles)
         {
             if (detalle.EstadoItem != DetalleSolicitudEstado.Pendiente)
                 return ServiceResult.Fail("Hay ítems ya resueltos; no se puede re-resolver.");
 
-            if (!decisions.TryGetValue(detalle.Id, out var cantidad))
+            if (!decisions.TryGetValue(detalle.Id, out var decision))
                 return ServiceResult.Fail("Debe indicar una cantidad aprobada para cada material.");
 
-            if (cantidad < 0)
+            if (decision.CantidadAprobada < 0)
                 return ServiceResult.Fail("La cantidad aprobada no puede ser negativa.");
 
-            if (cantidad > 0)
+            if (decision.CantidadAprobada > 0)
             {
-                var error = ValidarCantidadAprobada(detalle, cantidad);
+                var mapError = await EnsureDetalleMappedAsync(detalle, decision, cancellationToken);
+                if (mapError is not null)
+                    return ServiceResult.Fail(mapError);
+
+                var error = ValidarCantidadAprobada(detalle, decision.CantidadAprobada);
                 if (error is not null)
                     return ServiceResult.Fail(error);
             }
@@ -130,12 +135,12 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
                 var movements = new List<StockMovement>();
                 foreach (var detalle in solicitud.Detalles)
                 {
-                    var cantidad = decisions[detalle.Id];
+                    var cantidad = decisions[detalle.Id].CantidadAprobada;
                     var (applyError, movement) = AplicarDecisionDetalle(detalle, cantidad, bodegueroId);
                     if (applyError is not null)
                         throw new InvalidOperationException(applyError);
 
-                    if (cantidad > 0)
+                    if (cantidad > 0 && detalle.Material is not null)
                         _materialRepository.Update(detalle.Material);
 
                     if (movement is not null)
@@ -193,9 +198,57 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
                 : $"Solicitud {solicitud.Codigo} resuelta. Entrega {entregaCodigo}.");
     }
 
+    // Asigna MaterialId real (existente o creado inline) antes de cualquier descuento.
+    private async Task<string?> EnsureDetalleMappedAsync(
+        DetalleSolicitudMaterial detalle,
+        ResolveDetalleDto decision,
+        CancellationToken cancellationToken)
+    {
+        if (detalle.MaterialId is > 0 && detalle.Material is not null)
+            return null;
+
+        if (decision.MaterialId is int existingId && existingId > 0)
+        {
+            var material = await _materialRepository.GetByIdAsync(existingId, cancellationToken);
+            if (material is null)
+                return "El material seleccionado para mapeo no existe.";
+            detalle.MaterialId = material.Id;
+            detalle.Material = material;
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(decision.NewMaterialName) && decision.NewMaterialUnit is not null)
+        {
+            if (!Enum.IsDefined(decision.NewMaterialUnit.Value))
+                return "Unidad no válida para el material nuevo.";
+
+            var created = new Material
+            {
+                Code = $"mat{DateTime.UtcNow.Ticks}",
+                Name = decision.NewMaterialName.Trim(),
+                Unit = decision.NewMaterialUnit.Value,
+                Stock = 0,
+                MinStock = 0,
+                Status = MaterialStatus.Bueno,
+                LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
+            };
+            await _materialRepository.AddAsync(created, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            detalle.MaterialId = created.Id;
+            detalle.Material = created;
+            return null;
+        }
+
+        return "Debe mapear el ítem a un material del catálogo (o crear uno) antes de descontar stock.";
+    }
+
     // Validación autoritativa: CantidadAprobada <= min(Solicitada, Stock)
     internal static string? ValidarCantidadAprobada(DetalleSolicitudMaterial detalle, decimal cantidadAprobada)
     {
+        // Sin MaterialId mapeado no se puede validar ni descontar stock (InsumosLibres).
+        if (detalle.MaterialId is null || detalle.Material is null)
+            return "Debe mapear el ítem a un material del catálogo antes de descontar stock.";
+
         if (cantidadAprobada > detalle.CantidadSolicitada)
             return "La cantidad aprobada no puede superar la solicitada.";
 
@@ -230,7 +283,7 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
             return (error, null);
 
         // Revalidación de stock en el momento de aplicar (carrera)
-        if (cantidadAprobada > detalle.Material.Stock)
+        if (cantidadAprobada > detalle.Material!.Stock)
             return ("Stock insuficiente para aprobar la cantidad indicada.", null);
 
         detalle.Material.Stock -= cantidadAprobada;
@@ -241,7 +294,7 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
 
         var movement = new StockMovement
         {
-            MaterialId = detalle.MaterialId,
+            MaterialId = detalle.MaterialId!.Value,
             FechaUtc = DateTime.UtcNow,
             UsuarioId = actorUserId,
             TipoMovimiento = StockMovementType.AprobacionSolicitud,

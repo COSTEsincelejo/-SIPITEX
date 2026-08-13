@@ -8,25 +8,27 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
-// Resolución de SolicitudMaterial por Bodeguero (flujo Ficha; paralelo a Inventario)
+// Resolución de SolicitudMaterial por Bodeguero (PorFicha + InsumosLibres)
 [Authorize(Roles = UserRoles.Bodeguero)]
 public class BodegaSolicitudesController : Controller
 {
     private readonly ISolicitudMaterialService _solicitudService;
     private readonly ISolicitudMaterialApprovalService _approvalService;
+    private readonly IInventoryService _inventoryService;
 
     public BodegaSolicitudesController(
         ISolicitudMaterialService solicitudService,
-        ISolicitudMaterialApprovalService approvalService)
+        ISolicitudMaterialApprovalService approvalService,
+        IInventoryService inventoryService)
     {
         _solicitudService = solicitudService;
         _approvalService = approvalService;
+        _inventoryService = inventoryService;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index(string? estado, CancellationToken cancellationToken)
     {
-        // Por defecto solo Pendiente; ?estado=todas muestra también resueltas
         var soloPendientes = !string.Equals(estado, "todas", StringComparison.OrdinalIgnoreCase);
         var list = await _solicitudService.GetListForBodegaAsync(soloPendientes, cancellationToken);
 
@@ -49,6 +51,7 @@ public class BodegaSolicitudesController : Controller
         return View(new BodegaSolicitudDetailViewModel
         {
             Solicitud = detail,
+            Materials = await _inventoryService.GetMaterialsAsync(cancellationToken),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -68,7 +71,12 @@ public class BodegaSolicitudesController : Controller
         }
 
         var items = (form.Items ?? [])
-            .Select(i => new ResolveDetalleDto(i.DetalleId, i.CantidadAprobada))
+            .Select(i => new ResolveDetalleDto(
+                i.DetalleId,
+                i.CantidadAprobada,
+                i.MaterialId is > 0 ? i.MaterialId : null,
+                string.IsNullOrWhiteSpace(i.NewMaterialName) ? null : i.NewMaterialName.Trim(),
+                i.NewMaterialUnit))
             .ToList();
 
         var result = await _approvalService.ResolveSolicitudAsync(

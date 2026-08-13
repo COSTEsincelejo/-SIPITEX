@@ -218,6 +218,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
         SolicitudService = new SolicitudMaterialService(
             solicitudRepo,
             fichaRepo,
+            orderRepo,
             materialRepo,
             CodigoGenerador,
             AlertService,

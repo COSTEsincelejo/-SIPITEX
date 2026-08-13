@@ -2,7 +2,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Domain.Entities;
 
-// Solicitud multi-ítem de materiales ligada a una Ficha (flujo paralelo a MaterialRequest)
+// Solicitud multi-ítem: PorFicha (SENA + catálogo) o InsumosLibres (descripción libre)
 public class SolicitudMaterial
 {
     public int Id { get; set; }
@@ -10,8 +10,19 @@ public class SolicitudMaterial
     // Consecutivo autogenerado, ej. SOL-0001
     public string Codigo { get; set; } = string.Empty;
 
-    public int FichaId { get; set; }
-    public Ficha Ficha { get; set; } = null!;
+    // PorFicha (histórico) o InsumosLibres (descripción)
+    public SolicitudMaterialTipo Tipo { get; set; } = SolicitudMaterialTipo.PorFicha;
+
+    // Obligatorio solo si Tipo == PorFicha; opcional en InsumosLibres
+    public int? FichaId { get; set; }
+    public Ficha? Ficha { get; set; }
+
+    // Opcional (típicamente InsumosLibres); independiente de FichaId
+    public int? ProductionOrderId { get; set; }
+    public ProductionOrder? ProductionOrder { get; set; }
+
+    // Texto libre de cabecera (InsumosLibres); null en PorFicha legacy
+    public string? DescripcionLibre { get; set; }
 
     // Instructor o Administrador que solicita
     public int SolicitanteId { get; set; }

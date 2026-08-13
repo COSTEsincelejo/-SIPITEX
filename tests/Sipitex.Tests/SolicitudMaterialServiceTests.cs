@@ -13,6 +13,7 @@ public class SolicitudMaterialServiceTests
 {
     private readonly Mock<ISolicitudMaterialRepository> _solicitudes = new();
     private readonly Mock<IFichaRepository> _fichas = new();
+    private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IMaterialRepository> _materials = new();
     private readonly Mock<ICodigoGeneradorService> _codigos = new();
     private readonly Mock<IAlertService> _alerts = new();
@@ -33,6 +34,7 @@ public class SolicitudMaterialServiceTests
         return new(
             _solicitudes.Object,
             _fichas.Object,
+            _orders.Object,
             _materials.Object,
             _codigos.Object,
             _alerts.Object,
@@ -70,7 +72,7 @@ public class SolicitudMaterialServiceTests
             .Returns(Task.CompletedTask);
 
         var result = await CreateSut().CreateAsync(
-            new CreateSolicitudMaterialDto(1, [new CreateDetalleSolicitudDto(5, 12)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 12)]),
             solicitanteId: 10,
             actorRole: UserRoles.Instructor,
             actorName: "Laura");
@@ -81,6 +83,7 @@ public class SolicitudMaterialServiceTests
         Assert.Equal(SolicitudMaterialEstado.Pendiente, saved.Estado);
         Assert.Equal(10, saved.SolicitanteId);
         Assert.Equal(1, saved.FichaId);
+        Assert.Equal(SolicitudMaterialTipo.PorFicha, saved.Tipo);
         Assert.Single(saved.Detalles);
         Assert.Equal(DetalleSolicitudEstado.Pendiente, saved.Detalles.First().EstadoItem);
         Assert.Null(saved.Detalles.First().CantidadAprobada);
@@ -99,7 +102,7 @@ public class SolicitudMaterialServiceTests
     public async Task CreateAsync_SinMaterialesConCantidad_Falla()
     {
         var result = await CreateSut().CreateAsync(
-            new CreateSolicitudMaterialDto(1, [new CreateDetalleSolicitudDto(5, 0)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 0)]),
             solicitanteId: 10,
             actorRole: UserRoles.Instructor,
             actorName: "Laura");
@@ -117,7 +120,7 @@ public class SolicitudMaterialServiceTests
         _fichas.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(ficha);
 
         var result = await CreateSut().CreateAsync(
-            new CreateSolicitudMaterialDto(1, [new CreateDetalleSolicitudDto(5, 3)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 3)]),
             solicitanteId: 10,
             actorRole: UserRoles.Instructor,
             actorName: "Laura");
@@ -143,12 +146,91 @@ public class SolicitudMaterialServiceTests
             .Returns(Task.CompletedTask);
 
         var result = await CreateSut().CreateAsync(
-            new CreateSolicitudMaterialDto(1, [new CreateDetalleSolicitudDto(5, 2)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 2)]),
             solicitanteId: 1,
             actorRole: UserRoles.Administrador,
             actorName: "Admin");
 
         Assert.True(result.Success);
+    }
+
+    [Fact]
+    public async Task CreateAsync_PorFicha_SinFichaId_FallaExplicitamente()
+    {
+        var result = await CreateSut().CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.PorFicha,
+                FichaId: null,
+                ProductionOrderId: null,
+                DescripcionLibre: null,
+                [new CreateDetalleSolicitudDto(5, 2)]),
+            solicitanteId: 10,
+            actorRole: UserRoles.Instructor,
+            actorName: "Laura");
+
+        Assert.False(result.Success);
+        Assert.Contains("ficha", result.Message!, StringComparison.OrdinalIgnoreCase);
+        _solicitudes.Verify(
+            r => r.AddAsync(It.IsAny<SolicitudMaterial>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_PorFicha_SinMaterialId_FallaExplicitamente()
+    {
+        var ficha = FichaConInstructor(1, 10);
+        _fichas.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(ficha);
+
+        var result = await CreateSut().CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.PorFicha,
+                1,
+                null,
+                null,
+                [new CreateDetalleSolicitudDto(null, 2, "solo texto")]),
+            solicitanteId: 10,
+            actorRole: UserRoles.Instructor,
+            actorName: "Laura");
+
+        Assert.False(result.Success);
+        _solicitudes.Verify(
+            r => r.AddAsync(It.IsAny<SolicitudMaterial>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_InsumosLibres_SinOrdenNiFicha_Exito()
+    {
+        _codigos.Setup(c => c.GenerarCodigoSolicitudMaterialAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync("SOL-LIB-1");
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        SolicitudMaterial? saved = null;
+        _solicitudes
+            .Setup(r => r.AddAsync(It.IsAny<SolicitudMaterial>(), It.IsAny<CancellationToken>()))
+            .Callback<SolicitudMaterial, CancellationToken>((s, _) => saved = s)
+            .Returns(Task.CompletedTask);
+
+        var result = await CreateSut().CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.InsumosLibres,
+                FichaId: null,
+                ProductionOrderId: null,
+                DescripcionLibre: "Pedido taller",
+                [new CreateDetalleSolicitudDto(null, 3, "Cremallera nylon #5")]),
+            solicitanteId: 10,
+            actorRole: UserRoles.Instructor,
+            actorName: "Laura");
+
+        Assert.True(result.Success, result.Message);
+        Assert.NotNull(saved);
+        Assert.Equal(SolicitudMaterialTipo.InsumosLibres, saved!.Tipo);
+        Assert.Null(saved.FichaId);
+        Assert.Null(saved.ProductionOrderId);
+        Assert.Equal("Pedido taller", saved.DescripcionLibre);
+        Assert.Null(saved.Detalles.Single().MaterialId);
+        Assert.Equal("Cremallera nylon #5", saved.Detalles.Single().DescripcionItem);
+        Assert.Equal(3m, saved.Detalles.Single().CantidadSolicitada);
     }
 
     [Fact]
