@@ -1,16 +1,21 @@
 @model BodegaSolicitudDetailViewModel
+@using Sipitex.Domain.Enums
 @{
     ViewData["Title"] = $"Solicitud {Model.Solicitud.Codigo}";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Solicitudes de materiales / Detalle";
     Layout = "_Layout";
     var s = Model.Solicitud;
     var puedeResolver = s.Estado == SolicitudMaterialEstado.Pendiente;
+    var esInsumosLibres = s.Tipo == SolicitudMaterialTipo.InsumosLibres;
 }
 
 <div class="page-header">
     <div>
         <h2>@s.Codigo</h2>
-        <div class="sub">Ficha @s.FichaCode · @s.SolicitanteNombre · @s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+        <div class="sub">
+            <span class="badge @DisplayHelper.BadgeClass(s.Tipo)">@DisplayHelper.StatusText(s.Tipo)</span>
+            · Ficha @s.FichaCode · @s.SolicitanteNombre · @s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+        </div>
     </div>
     <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver al listado</a>
 </div>
@@ -24,6 +29,7 @@
     <div class="card-title"><i class="fas fa-info-circle"></i> Cabecera</div>
     <div class="solicitud-detail-meta">
         <div><span class="field-label">Estado</span><br /><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></div>
+        <div><span class="field-label">Tipo</span><br /><span class="badge @DisplayHelper.BadgeClass(s.Tipo)">@DisplayHelper.StatusText(s.Tipo)</span></div>
         <div><span class="field-label">Ficha</span><br /><strong>@s.FichaCode</strong></div>
         <div><span class="field-label">Solicitante</span><br />@s.SolicitanteNombre</div>
         <div><span class="field-label">Fecha solicitud</span><br />@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
@@ -32,10 +38,18 @@
             <div><span class="field-label">Entrega</span><br /><strong>@s.EntregaCodigo</strong></div>
         }
     </div>
+    @if (!string.IsNullOrWhiteSpace(s.DescripcionLibre))
+    {
+        <p class="hint" style="margin-top:14px;"><strong>Descripción libre:</strong> @s.DescripcionLibre</p>
+    }
 </div>
 
 <div class="card">
     <div class="card-title amber"><i class="fas fa-boxes-stacked"></i> Materiales a resolver</div>
+    @if (esInsumosLibres && puedeResolver)
+    {
+        <p class="hint">Mapee cada descripción a un material del catálogo (o cree uno) antes de aprobar cantidad. El stock solo baja con mapeo estructurado.</p>
+    }
 
     @if (puedeResolver)
     {
@@ -46,7 +60,16 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Material</th>
+                            @if (esInsumosLibres)
+                            {
+                                <th>Descripción pedida</th>
+                                <th>Mapear a material</th>
+                                <th>O crear nuevo</th>
+                            }
+                            else
+                            {
+                                <th>Material</th>
+                            }
                             <th>Solicitada</th>
                             <th>Stock disponible</th>
                             <th>Cantidad a aprobar</th>
@@ -58,20 +81,57 @@
                     {
                         var maxAprobar = Math.Min(d.CantidadSolicitada, d.StockDisponible);
                         var stockBajo = d.StockDisponible < d.CantidadSolicitada;
-                        var defaultAprobar = maxAprobar;
-                        <tr class="@(stockBajo ? "stock-warn-row" : null)">
-                            <td>
-                                <strong>@d.MaterialName</strong>
-                                @if (stockBajo)
-                                {
-                                    <span class="stock-warn" title="Stock menor a lo solicitado">⚠</span>
-                                }
-                            </td>
+                        var defaultAprobar = esInsumosLibres && d.MaterialName == "—" ? 0 : maxAprobar;
+                        <tr class="@(stockBajo && !esInsumosLibres ? "stock-warn-row" : null)">
+                            @if (esInsumosLibres)
+                            {
+                                <td>
+                                    <strong>@(d.DescripcionItem ?? "—")</strong>
+                                    @if (d.MaterialName != "—")
+                                    {
+                                        <div class="hint">Ya mapeado: @d.MaterialName</div>
+                                    }
+                                </td>
+                                <td>
+                                    <input type="hidden" name="Resolve.Items[@idx].DetalleId" value="@d.Id" />
+                                    <select name="Resolve.Items[@idx].MaterialId" aria-label="Material para @d.DescripcionItem">
+                                        <option value="">— Seleccione —</option>
+                                        @foreach (var mat in Model.Materials)
+                                        {
+                                            <option value="@mat.Id">@mat.Name (stock @mat.Stock.ToString("0.##") @mat.UnitDisplay)</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="text" name="Resolve.Items[@idx].NewMaterialName" maxlength="120"
+                                           placeholder="Nombre nuevo" style="width:100%;margin-bottom:4px;" />
+                                    <select name="Resolve.Items[@idx].NewMaterialUnit" aria-label="Unidad material nuevo">
+                                        <option value="">Unidad…</option>
+                                        @foreach (MaterialUnit u in Enum.GetValues<MaterialUnit>())
+                                        {
+                                            <option value="@u">@u</option>
+                                        }
+                                    </select>
+                                    <div class="hint">Stock inicial 0 — registre entrada si necesita aprobar &gt; 0</div>
+                                </td>
+                            }
+                            else
+                            {
+                                <td>
+                                    <strong>@d.MaterialName</strong>
+                                    @if (stockBajo)
+                                    {
+                                        <span class="stock-warn" title="Stock menor a lo solicitado">⚠</span>
+                                    }
+                                    <input type="hidden" name="Resolve.Items[@idx].DetalleId" value="@d.Id" />
+                                </td>
+                            }
                             <td>@d.CantidadSolicitada.ToString("0.##") @d.UnitDisplay</td>
-                            <td class="@(stockBajo ? "stock-warn-text" : null)">@d.StockDisponible.ToString("0.##") @d.UnitDisplay</td>
+                            <td class="@(stockBajo && !esInsumosLibres ? "stock-warn-text" : null)">
+                                @(esInsumosLibres && d.MaterialName == "—" ? "—" : $"{d.StockDisponible.ToString("0.##")} {d.UnitDisplay}")
+                            </td>
                             <td>
-                                <input type="hidden" name="Resolve.Items[@idx].DetalleId" value="@d.Id" />
-                                @if (d.StockDisponible <= 0)
+                                @if (!esInsumosLibres && d.StockDisponible <= 0)
                                 {
                                     <input type="hidden" name="Resolve.Items[@idx].CantidadAprobada" value="0" />
                                     <input type="number" value="0" min="0" max="0" step="0.01" disabled
@@ -84,12 +144,11 @@
                                            name="Resolve.Items[@idx].CantidadAprobada"
                                            value="@defaultAprobar.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                            min="0"
-                                           max="@maxAprobar.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           max="@d.CantidadSolicitada.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                            step="0.01"
                                            required
-                                           data-max-aprobada="@maxAprobar.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                                           aria-label="Cantidad aprobada de @d.MaterialName" />
-                                    <span class="hint">@d.UnitDisplay · máx. @maxAprobar.ToString("0.##")</span>
+                                           aria-label="Cantidad aprobada" />
+                                    <span class="hint">máx. solicitada @d.CantidadSolicitada.ToString("0.##")</span>
                                 }
                             </td>
                         </tr>
@@ -114,6 +173,7 @@
             <table>
                 <thead>
                     <tr>
+                        @if (esInsumosLibres) { <th>Descripción</th> }
                         <th>Material</th>
                         <th>Solicitada</th>
                         <th>Aprobada</th>
@@ -124,6 +184,7 @@
                 @foreach (var d in s.Detalles)
                 {
                     <tr>
+                        @if (esInsumosLibres) { <td>@(d.DescripcionItem ?? "—")</td> }
                         <td><strong>@d.MaterialName</strong></td>
                         <td>@d.CantidadSolicitada.ToString("0.##") @d.UnitDisplay</td>
                         <td>@(d.CantidadAprobada?.ToString("0.##") ?? "—") @d.UnitDisplay</td>

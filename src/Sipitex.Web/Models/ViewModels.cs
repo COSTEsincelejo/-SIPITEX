@@ -221,7 +221,7 @@ public class CreateFichaForm
     public string? AssignedOrderText { get; set; } // opcional (texto manual)
 }
 
-// Formulario multi-ítem para crear SolicitudMaterial desde Fichas
+// Formulario multi-ítem para crear SolicitudMaterial desde Fichas (PorFicha)
 public class CreateSolicitudMaterialForm
 {
     public int FichaId { get; set; }
@@ -233,6 +233,31 @@ public class CreateDetalleSolicitudForm
 {
     public int MaterialId { get; set; }
     public decimal CantidadSolicitada { get; set; }
+}
+
+// Formulario InsumosLibres (descripción por ítem)
+public class CreateInsumosLibresForm
+{
+    public string? DescripcionLibre { get; set; }
+    public int? FichaId { get; set; }
+    public int? ProductionOrderId { get; set; }
+    public string? Observaciones { get; set; }
+    public List<CreateInsumoLibreItemForm> Detalles { get; set; } = [new()];
+}
+
+public class CreateInsumoLibreItemForm
+{
+    public string DescripcionItem { get; set; } = string.Empty;
+    public decimal CantidadSolicitada { get; set; } = 1;
+}
+
+public class SolicitarInsumosViewModel
+{
+    public CreateInsumosLibresForm Form { get; set; } = new();
+    public IReadOnlyList<(int Id, string Label)> Fichas { get; set; } = [];
+    public IReadOnlyList<(int Id, string Label)> Ordenes { get; set; } = [];
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
 }
 
 // Listado "Mis solicitudes"
@@ -265,6 +290,7 @@ public class BodegaSolicitudesIndexViewModel
 public class BodegaSolicitudDetailViewModel
 {
     public SolicitudMaterialResolucionDto Solicitud { get; set; } = null!;
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -280,6 +306,9 @@ public class ResolveDetalleFormItem
 {
     public int DetalleId { get; set; }
     public decimal CantidadAprobada { get; set; }
+    public int? MaterialId { get; set; }
+    public string? NewMaterialName { get; set; }
+    public MaterialUnit? NewMaterialUnit { get; set; }
 }
 
 // Registro formal de sesión de producción

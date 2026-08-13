@@ -67,6 +67,19 @@ public static class DisplayHelper
         _ => "badge-info"
     };
 
+    public static string BadgeClass(SolicitudMaterialTipo tipo) => tipo switch
+    {
+        SolicitudMaterialTipo.InsumosLibres => "badge-info",
+        _ => "badge-success"
+    };
+
+    public static string StatusText(SolicitudMaterialTipo tipo) => tipo switch
+    {
+        SolicitudMaterialTipo.InsumosLibres => "Insumos libres",
+        SolicitudMaterialTipo.PorFicha => "Por ficha SENA",
+        _ => tipo.ToString()
+    };
+
     public static string BadgeClass(DetalleSolicitudEstado status) => status switch
     {
         DetalleSolicitudEstado.Pendiente => "badge-warning",

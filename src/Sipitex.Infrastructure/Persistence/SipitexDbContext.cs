@@ -356,7 +356,7 @@ public class SipitexDbContext : DbContext
         });
 
 
-        // --- SolicitudMaterial (flujo Ficha multi-ítem; paralelo a MaterialRequest) ---
+        // --- SolicitudMaterial (PorFicha SENA o InsumosLibres; paralelo a MaterialRequest) ---
         modelBuilder.Entity<SolicitudMaterial>(e =>
         {
             e.HasKey(s => s.Id);
@@ -364,10 +364,16 @@ public class SipitexDbContext : DbContext
             e.HasIndex(s => s.Codigo).IsUnique();
             e.Property(s => s.Observaciones).HasMaxLength(500);
             e.Property(s => s.Estado).HasConversion<string>().HasMaxLength(30);
+            e.Property(s => s.Tipo).HasConversion<string>().HasMaxLength(30);
+            e.Property(s => s.DescripcionLibre).HasMaxLength(2000);
             e.HasOne(s => s.Ficha)
                 .WithMany()
                 .HasForeignKey(s => s.FichaId)
                 .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(s => s.ProductionOrder)
+                .WithMany()
+                .HasForeignKey(s => s.ProductionOrderId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(s => s.Solicitante)
                 .WithMany()
                 .HasForeignKey(s => s.SolicitanteId)
@@ -377,8 +383,10 @@ public class SipitexDbContext : DbContext
                 .HasForeignKey(s => s.ResueltoPorId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(s => s.FichaId);
+            e.HasIndex(s => s.ProductionOrderId);
             e.HasIndex(s => s.SolicitanteId);
             e.HasIndex(s => s.Estado);
+            e.HasIndex(s => s.Tipo);
         });
 
         // --- DetalleSolicitudMaterial ---
@@ -388,6 +396,7 @@ public class SipitexDbContext : DbContext
             e.Property(d => d.CantidadSolicitada).HasPrecision(18, 2);
             e.Property(d => d.CantidadAprobada).HasPrecision(18, 2);
             e.Property(d => d.EstadoItem).HasConversion<string>().HasMaxLength(30);
+            e.Property(d => d.DescripcionItem).HasMaxLength(500);
             e.HasOne(d => d.SolicitudMaterial)
                 .WithMany(s => s.Detalles)
                 .HasForeignKey(d => d.SolicitudMaterialId)

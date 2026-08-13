@@ -1,0 +1,165 @@
+@model SolicitarInsumosViewModel
+@{
+    ViewData["Title"] = "Solicitar insumos a bodega";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Solicitar insumos a bodega";
+    Layout = "_Layout";
+    var f = Model.Form;
+}
+
+<div class="page-header">
+    <div>
+        <h2>Solicitar insumos a bodega (descripción)</h2>
+        <div class="sub">Pedido por descripción libre — no requiere código exacto del catálogo</div>
+    </div>
+    <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Mis solicitudes</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="alert alert-info" style="margin-top:0;">
+        <i class="fas fa-circle-info"></i>
+        Use esto cuando no sepa el código exacto del material o no esté en el catálogo.
+        No reemplaza los materiales de la orden (BOM) ni la solicitud por ficha SENA.
+    </div>
+
+    <form asp-action="SolicitarInsumos" method="post" id="insumos-libres-form">
+        @Html.AntiForgeryToken()
+
+        <div class="field" style="margin-top:12px;">
+            <label class="field-label">Descripción general (opcional)</label>
+            <textarea name="Form.DescripcionLibre" rows="2" maxlength="2000" style="width:100%"
+                      placeholder="Contexto del pedido para bodega">@f.DescripcionLibre</textarea>
+        </div>
+
+        <div class="form-row" style="margin-top:12px;">
+            <div class="field" style="flex:1;">
+                <label class="field-label">Ficha SENA (opcional)</label>
+                <select name="Form.FichaId" style="width:100%">
+                    <option value="">— Sin vincular —</option>
+                    @foreach (var item in Model.Fichas)
+                    {
+                        if (f.FichaId == item.Id)
+                        {
+                            <option value="@item.Id" selected>@item.Label</option>
+                        }
+                        else
+                        {
+                            <option value="@item.Id">@item.Label</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="field" style="flex:1;">
+                <label class="field-label">Orden de producción (opcional)</label>
+                <select name="Form.ProductionOrderId" style="width:100%">
+                    <option value="">— Sin vincular —</option>
+                    @foreach (var item in Model.Ordenes)
+                    {
+                        if (f.ProductionOrderId == item.Id)
+                        {
+                            <option value="@item.Id" selected>@item.Label</option>
+                        }
+                        else
+                        {
+                            <option value="@item.Id">@item.Label</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="card-title amber" style="margin-top:20px;"><i class="fas fa-list"></i> Ítems solicitados</div>
+        <div class="solicitud-rows" data-insumo-rows>
+            @{
+                var detalles = f.Detalles is { Count: > 0 } ? f.Detalles : [new CreateInsumoLibreItemForm()];
+                for (var i = 0; i < detalles.Count; i++)
+                {
+                    var d = detalles[i];
+                    <div class="solicitud-row" data-insumo-row>
+                        <div class="field" style="flex:2;">
+                            <label class="field-label">Descripción del ítem</label>
+                            <input type="text" name="Form.Detalles[@i].DescripcionItem" value="@d.DescripcionItem"
+                                   required maxlength="500" style="width:100%"
+                                   placeholder="Ej. Cremallera nylon #5 separable 60 cm" />
+                        </div>
+                        <div class="field" style="width:140px;">
+                            <label class="field-label">Cantidad</label>
+                            <input type="number" name="Form.Detalles[@i].CantidadSolicitada"
+                                   value="@d.CantidadSolicitada.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                   min="0.01" step="0.01" required />
+                        </div>
+                        <button type="button" class="small ghost danger" data-insumo-remove @(i == 0 ? "hidden" : null)
+                                aria-label="Quitar ítem">Quitar</button>
+                    </div>
+                }
+            }
+        </div>
+        <template data-insumo-row-template>
+            <div class="solicitud-row" data-insumo-row>
+                <div class="field" style="flex:2;">
+                    <label class="field-label">Descripción del ítem</label>
+                    <input type="text" data-name-template="Form.Detalles[{i}].DescripcionItem"
+                           required maxlength="500" style="width:100%"
+                           placeholder="Ej. Hilo pespuntes color negro" />
+                </div>
+                <div class="field" style="width:140px;">
+                    <label class="field-label">Cantidad</label>
+                    <input type="number" data-name-template="Form.Detalles[{i}].CantidadSolicitada"
+                           value="1" min="0.01" step="0.01" required />
+                </div>
+                <button type="button" class="small ghost danger" data-insumo-remove aria-label="Quitar ítem">Quitar</button>
+            </div>
+        </template>
+
+        <div class="field" style="margin-top:12px;max-width:480px;">
+            <label class="field-label">Observaciones (opcional)</label>
+            <input type="text" name="Form.Observaciones" maxlength="500" value="@f.Observaciones" placeholder="Notas para bodega" />
+        </div>
+
+        <div class="solicitud-form-actions" style="margin-top:14px;">
+            <button type="button" class="small ghost" data-insumo-add><i class="fas fa-plus"></i> Agregar ítem</button>
+            <button type="submit" class="primary"><i class="fas fa-paper-plane"></i> Enviar a bodega</button>
+            <a class="ghost" asp-action="Index">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const form = document.getElementById('insumos-libres-form');
+    if (!form) return;
+    const rows = form.querySelector('[data-insumo-rows]');
+    const tpl = form.querySelector('template[data-insumo-row-template]');
+    const addBtn = form.querySelector('[data-insumo-add]');
+    function reindex() {
+        rows.querySelectorAll('[data-insumo-row]').forEach((row, i) => {
+            row.querySelectorAll('[data-name-template], [name]').forEach(el => {
+                const t = el.getAttribute('data-name-template');
+                if (t) el.setAttribute('name', t.replace('{i}', i));
+                else if (el.name) el.name = el.name.replace(/Form\.Detalles\[\d+]/, 'Form.Detalles[' + i + ']');
+            });
+            const rm = row.querySelector('[data-insumo-remove]');
+            if (rm) rm.hidden = rows.querySelectorAll('[data-insumo-row]').length <= 1;
+        });
+    }
+    addBtn?.addEventListener('click', () => {
+        rows.appendChild(tpl.content.cloneNode(true));
+        reindex();
+    });
+    rows.addEventListener('click', e => {
+        const btn = e.target.closest('[data-insumo-remove]');
+        if (!btn) return;
+        const row = btn.closest('[data-insumo-row]');
+        if (rows.querySelectorAll('[data-insumo-row]').length > 1) {
+            row.remove();
+            reindex();
+        }
+    });
+})();
+</script>
+}

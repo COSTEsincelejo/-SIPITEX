@@ -332,21 +332,28 @@ public record RequirementsViewDto(
     IReadOnlyList<FunctionalRequirementDto> Functional,
     IReadOnlyList<NonFunctionalRequirementDto> NonFunctional);
 
-// --- SolicitudMaterial (flujo Ficha multi-ítem; paralelo a MaterialRequest) ---
+// --- SolicitudMaterial (PorFicha SENA o InsumosLibres; paralelo a MaterialRequest) ---
 
-// Ítem al crear una solicitud
-public record CreateDetalleSolicitudDto(int MaterialId, decimal CantidadSolicitada);
+// Ítem al crear una solicitud (MaterialId obligatorio solo si Tipo=PorFicha)
+public record CreateDetalleSolicitudDto(
+    int? MaterialId,
+    decimal CantidadSolicitada,
+    string? DescripcionItem = null);
 
-// Alta de solicitud ligada a Ficha
+// Alta de solicitud: Tipo discrimina validaciones (PorFicha vs InsumosLibres)
 public record CreateSolicitudMaterialDto(
-    int FichaId,
+    SolicitudMaterialTipo Tipo,
+    int? FichaId,
+    int? ProductionOrderId,
+    string? DescripcionLibre,
     IReadOnlyList<CreateDetalleSolicitudDto> Detalles,
     string? Observaciones = null);
 
-// Fila del listado "Mis solicitudes"
+// Fila del listado "Mis solicitudes" / cola Bodega
 public record SolicitudMaterialListItemDto(
     int Id,
     string Codigo,
+    SolicitudMaterialTipo Tipo,
     string FichaCode,
     SolicitudMaterialEstado Estado,
     DateTime FechaSolicitud,
@@ -356,6 +363,7 @@ public record SolicitudMaterialListItemDto(
 public record DetalleSolicitudMaterialDto(
     int Id,
     string MaterialName,
+    string? DescripcionItem,
     string UnitDisplay,
     decimal CantidadSolicitada,
     decimal? CantidadAprobada,
@@ -365,7 +373,9 @@ public record DetalleSolicitudMaterialDto(
 public record SolicitudMaterialDetailDto(
     int Id,
     string Codigo,
+    SolicitudMaterialTipo Tipo,
     string FichaCode,
+    string? DescripcionLibre,
     string SolicitanteNombre,
     SolicitudMaterialEstado Estado,
     DateTime FechaSolicitud,
@@ -377,6 +387,7 @@ public record SolicitudMaterialDetailDto(
 public record DetalleResolucionDto(
     int Id,
     string MaterialName,
+    string? DescripcionItem,
     string UnitDisplay,
     decimal CantidadSolicitada,
     decimal StockDisponible,
@@ -387,7 +398,9 @@ public record DetalleResolucionDto(
 public record SolicitudMaterialResolucionDto(
     int Id,
     string Codigo,
+    SolicitudMaterialTipo Tipo,
     string FichaCode,
+    string? DescripcionLibre,
     string SolicitanteNombre,
     SolicitudMaterialEstado Estado,
     DateTime FechaSolicitud,
@@ -395,8 +408,13 @@ public record SolicitudMaterialResolucionDto(
     string? EntregaCodigo,
     IReadOnlyList<DetalleResolucionDto> Detalles);
 
-// Una línea del formulario de resolución
-public record ResolveDetalleDto(int DetalleId, decimal CantidadAprobada);
+// Una línea del formulario de resolución (mapeo opcional para InsumosLibres)
+public record ResolveDetalleDto(
+    int DetalleId,
+    decimal CantidadAprobada,
+    int? MaterialId = null,
+    string? NewMaterialName = null,
+    MaterialUnit? NewMaterialUnit = null);
 
 // Resultado genérico de operaciones del servicio (éxito/error + mensaje)
 public record ServiceResult(bool Success, string? Message = null)

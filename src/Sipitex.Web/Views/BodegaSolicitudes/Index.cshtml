@@ -8,7 +8,7 @@
 <div class="page-header">
     <div>
         <h2>Solicitudes de materiales</h2>
-        <div class="sub">Revise y resuelva pedidos multi-ítem ligados a fichas</div>
+        <div class="sub">Revise y resuelva pedidos por ficha SENA e insumos libres</div>
     </div>
 </div>
 
@@ -48,6 +48,7 @@
                 <thead>
                     <tr>
                         <th>Código</th>
+                        <th>Tipo</th>
                         <th>Ficha</th>
                         <th>Solicitante</th>
                         <th>Fecha de solicitud</th>
@@ -60,6 +61,7 @@
                 {
                     <tr>
                         <td><strong>@s.Codigo</strong></td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(s.Tipo)">@DisplayHelper.StatusText(s.Tipo)</span></td>
                         <td>@s.FichaCode</td>
                         <td>@s.SolicitanteNombre</td>
                         <td>@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>

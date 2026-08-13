@@ -278,6 +278,7 @@
 
 <div class="card">
     <div class="card-title"><i class="fas fa-boxes-stacked"></i> Materiales de la orden</div>
+    <p class="hint">Insumos planificados de la orden según ficha técnica; Bodega los entrega desde Materiales de órdenes.</p>
     @if (canPrepareMaterials && m.Status != OrderStatus.Finalizada)
     {
         <form asp-action="AddMaterial" method="post" class="form-row" style="align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
