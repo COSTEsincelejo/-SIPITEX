@@ -232,6 +232,9 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
                 Status = MaterialStatus.Bueno,
                 LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
             };
+            // Seguimiento: SaveChanges aquí queda fuera de ExecuteInTransactionAsync del Resolve.
+            // Si la transacción posterior falla, el Material (Stock=0) puede quedar huérfano.
+            // Futuro: mover la creación dentro de la misma transacción.
             await _materialRepository.AddAsync(created, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             detalle.MaterialId = created.Id;
