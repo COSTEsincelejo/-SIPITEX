@@ -16,6 +16,7 @@ public class UserRepository : IUserRepository
     public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await _context.Users
             .Include(u => u.FichaAsignada) // Ficha principal del instructor
+            .Include(u => u.Bodega) // Bodega del bodeguero (null si no aplica)
             .OrderBy(u => u.Nombre)
             .ToListAsync(cancellationToken);
 

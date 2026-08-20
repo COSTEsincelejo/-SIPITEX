@@ -1,0 +1,65 @@
+@model BodegasIndexViewModel
+@{
+    ViewData["Title"] = "Bodegas";
+    ViewData["Breadcrumb"] = "SIPITEX / Administración / Bodegas";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Bodegas</h2>
+        <div class="sub">Cree y consulte las bodegas físicas. Bodega 1 y Bodega 2 vienen del sistema; puede agregar más (p. ej. Bodega 3).</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card" style="max-width:560px;">
+    <div class="card-title teal"><i class="fas fa-plus"></i> Nueva bodega</div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="form-row">
+            <div class="field" style="flex:1;">
+                <label class="field-label">Nombre</label>
+                <input type="text" name="Form.Nombre" value="@Model.Form.Nombre" maxlength="80" required
+                       placeholder="Ej. Bodega 3" />
+            </div>
+            <div class="field" style="align-self:flex-end;">
+                <button type="submit" class="primary">Crear</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-warehouse"></i> Catálogo</div>
+    @if (!Model.Bodegas.Any())
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-warehouse", Title = "Sin bodegas", Text = "No hay bodegas registradas.", ActionText = null }' />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Nombre</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var b in Model.Bodegas)
+                {
+                    <tr>
+                        <td>@b.Id</td>
+                        <td><strong>@b.Nombre</strong></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

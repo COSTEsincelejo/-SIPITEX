@@ -33,6 +33,7 @@
                     <th>Rol</th>
                     <th>Funciones</th>
                     <th>Ficha</th>
+                    <th>Bodega</th>
                     <th>Estado</th>
                     <th></th>
                 </tr>
@@ -59,6 +60,7 @@
                         <td>@u.Rol</td>
                         <td class="user-funcion">@(string.IsNullOrWhiteSpace(u.FuncionDescripcion) ? "—" : u.FuncionDescripcion)</td>
                         <td>@(u.FichaAsignada?.FichaCode ?? "-")</td>
+                        <td>@(u.Bodega?.Nombre ?? (u.BodegaId is > 0 ? $"#{u.BodegaId}" : "—"))</td>
                         <td>
                             <span class="badge @(u.IsActive ? "badge-success" : "badge-danger")">@(u.IsActive ? "Activo" : "Inactivo")</span>
                         </td>
