@@ -14,10 +14,12 @@ public record MaterialDto(
     MaterialStatus Status,
     decimal MinStock,
     bool IsLowStock, // true si hay que alertar
-    DateOnly LastEntryDate);
+    DateOnly LastEntryDate,
+    int BodegaId,
+    string BodegaNombre);
 
 // Datos para crear material nuevo (origen tipifica la Entrada del ledger)
-public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit, StockEntryOrigin Origen);
+public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit, StockEntryOrigin Origen, int BodegaId);
 
 // Ajuste manual de stock; Origen obligatorio cuando NewStock > stock actual
 public record AdjustStockDto(int MaterialId, decimal NewStock, StockEntryOrigin? Origen = null);

@@ -158,7 +158,7 @@ public class FichasController : Controller
         var (userId, role, name) = CurrentViewer();
         var orders = await _orderService.GetOrdersAsync(cancellationToken: cancellationToken);
         var instructors = await _fichaService.GetActiveInstructorsAsync(cancellationToken);
-        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
+        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken: cancellationToken);
         var fichas = (await _fichaService.GetFichasAsync(userId, role, name, cancellationToken)).AsEnumerable();
         var sessions = (await _fichaService.GetRecentSessionsAsync(userId, role, name, cancellationToken)).AsEnumerable();
 

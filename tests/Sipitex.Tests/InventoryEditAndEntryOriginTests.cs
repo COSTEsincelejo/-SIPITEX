@@ -23,15 +23,27 @@ public class InventoryEditAndEntryOriginTests
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IBomRepository> _boms = new();
     private readonly Mock<IStockMovementRepository> _stockMovements = new();
+    private readonly Mock<IBodegaRepository> _bodegas = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
-    private InventoryService CreateSut() => new(
-        _materials.Object,
-        _requests.Object,
-        _orders.Object,
-        _boms.Object,
-        _stockMovements.Object,
-        _uow.Object);
+    private InventoryService CreateSut()
+    {
+        _bodegas
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Bodega { Id = 1, Nombre = "Bodega 1" });
+        _bodegas
+            .Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Bodega { Id = 2, Nombre = "Bodega 2" });
+
+        return new(
+            _materials.Object,
+            _requests.Object,
+            _orders.Object,
+            _boms.Object,
+            _stockMovements.Object,
+            _bodegas.Object,
+            _uow.Object);
+    }
 
     [Fact]
     public async Task UpdateMaterialAsync_UpdatesNameUnitAndMinStock()
@@ -117,8 +129,10 @@ public class InventoryEditAndEntryOriginTests
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var result = await CreateSut().AddMaterialAsync(
-            new CreateMaterialDto("Hilo", 12m, MaterialUnit.Metros, origen),
-            actorUserId: 5);
+            new CreateMaterialDto("Hilo", 12m, MaterialUnit.Metros, origen, BodegaId: 1),
+            actorUserId: 5,
+            actorRole: UserRoles.Administrador,
+            actorBodegaId: null);
 
         Assert.True(result.Success);
         Assert.NotNull(captured);

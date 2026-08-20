@@ -74,7 +74,7 @@ public class OrdenesController : Controller
         return View(new OrdenMesDetailViewModel
         {
             Mes = mes,
-            Materials = await _inventoryService.GetMaterialsAsync(cancellationToken),
+            Materials = await _inventoryService.GetMaterialsAsync(cancellationToken: cancellationToken),
             Instructors = instructors.Where(u => u.Rol == UserRoles.Instructor && u.IsActive).ToList(),
             AddMaterial = new AddOrderMaterialForm { OrderId = id, QuantityRequired = 1 },
             ChangeLogs = await _orderService.GetChangeLogAsync(id, cancellationToken),

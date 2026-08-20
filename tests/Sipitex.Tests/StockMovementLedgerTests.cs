@@ -19,15 +19,24 @@ public class StockMovementLedgerTests
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IBomRepository> _boms = new();
     private readonly Mock<IStockMovementRepository> _stockMovements = new();
+    private readonly Mock<IBodegaRepository> _bodegas = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
-    private InventoryService CreateInventorySut() => new(
-        _materials.Object,
-        _requests.Object,
-        _orders.Object,
-        _boms.Object,
-        _stockMovements.Object,
-        _uow.Object);
+    private InventoryService CreateInventorySut()
+    {
+        _bodegas
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Bodega { Id = 1, Nombre = "Bodega 1" });
+
+        return new(
+            _materials.Object,
+            _requests.Object,
+            _orders.Object,
+            _boms.Object,
+            _stockMovements.Object,
+            _bodegas.Object,
+            _uow.Object);
+    }
 
     [Fact]
     public async Task AddMaterialAsync_RecordsExactlyOneEntradaMovement()
@@ -44,8 +53,10 @@ public class StockMovementLedgerTests
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var result = await CreateInventorySut().AddMaterialAsync(
-            new CreateMaterialDto("Tela Jersey", 25m, MaterialUnit.Metros, StockEntryOrigin.Compra),
-            actorUserId: 7);
+            new CreateMaterialDto("Tela Jersey", 25m, MaterialUnit.Metros, StockEntryOrigin.Compra, BodegaId: 1),
+            actorUserId: 7,
+            actorRole: UserRoles.Administrador,
+            actorBodegaId: null);
 
         Assert.True(result.Success);
         Assert.NotNull(captured);
