@@ -75,7 +75,7 @@ public class BodegaSolicitudesController : Controller
         return View(new BodegaSolicitudDetailViewModel
         {
             Solicitud = detail,
-            Materials = await _inventoryService.GetMaterialsAsync(cancellationToken),
+            Materials = await _inventoryService.GetMaterialsAsync(bodegaId: bodegaId, cancellationToken: cancellationToken),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });

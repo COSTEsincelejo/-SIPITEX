@@ -62,7 +62,7 @@ public class InventarioController : Controller
         int? materialId,
         CancellationToken cancellationToken)
     {
-        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
+        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken: cancellationToken);
         var movements = await _stockMovements.GetHistoryAsync(desde, hasta, materialId, cancellationToken);
         return View(new InventarioMovimientosViewModel
         {

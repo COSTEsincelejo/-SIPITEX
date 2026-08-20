@@ -199,7 +199,7 @@ public class MrpController : Controller
         CancellationToken cancellationToken,
         BomProductEditForm? form = null)
     {
-        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
+        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken: cancellationToken);
         form ??= detail is null
             ? new BomProductEditForm
             {
