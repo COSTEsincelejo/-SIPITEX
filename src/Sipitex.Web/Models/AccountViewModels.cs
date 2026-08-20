@@ -38,8 +38,8 @@ public class UserEditViewModel
 
     public int? FichaAsignadaId { get; set; } // opcional, solo para instructores
 
-    // Solo aplica si Rol == Bodeguero; el servicio lo ignora (deja null) en otros roles
-    public int? BodegaId { get; set; }
+    // Solo aplica si Rol == Bodeguero; el servicio lo ignora (deja vacío) en otros roles
+    public int[] BodegaIds { get; set; } = [];
 
     // Permisos extra aparte del rol (claves de ExtendedPermissions)
     public List<string> SelectedPermissions { get; set; } = [];

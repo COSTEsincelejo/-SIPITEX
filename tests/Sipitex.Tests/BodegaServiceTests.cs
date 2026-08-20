@@ -205,4 +205,22 @@ public class BodegaServiceTests
             }
         }
     }
+
+    [Fact]
+    public void AccountController_CreateEditUser_SoloAdministrador()
+    {
+        foreach (var name in new[] { nameof(AccountController.CreateUser), nameof(AccountController.EditUser) })
+        {
+            var methods = typeof(AccountController)
+                .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+                .Where(m => m.Name == name);
+            foreach (var method in methods)
+            {
+                var attr = method.GetCustomAttribute<AuthorizeAttribute>();
+                Assert.NotNull(attr);
+                Assert.Equal(UserRoles.Administrador, attr!.Roles);
+                Assert.DoesNotContain(UserRoles.Bodeguero, attr.Roles!, StringComparison.Ordinal);
+            }
+        }
+    }
 }

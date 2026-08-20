@@ -512,8 +512,8 @@ public class SolicitudMaterialFlowTests
             "Instructor Test");
         Assert.True(createB2.Success, createB2.Message);
 
-        var deBodega1 = await fx.SolicitudService.GetListForBodegaAsync(viewerBodegaId: 1);
-        var deBodega2 = await fx.SolicitudService.GetListForBodegaAsync(viewerBodegaId: 2);
+        var deBodega1 = await fx.SolicitudService.GetListForBodegaAsync([1]);
+        var deBodega2 = await fx.SolicitudService.GetListForBodegaAsync([2]);
 
         Assert.Single(deBodega1);
         Assert.Single(deBodega2);

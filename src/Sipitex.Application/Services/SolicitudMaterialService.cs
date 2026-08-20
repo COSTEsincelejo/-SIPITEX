@@ -108,6 +108,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         }
 
         var bodegaIds = materiales.Select(m => m.BodegaId).Distinct().ToList();
+        // Una SolicitudMaterial tiene un solo BodegaId. Si los materiales son de bodegas distintas
+        // se rechaza aunque el bodeguero actual tenga todas esas bodegas asignadas.
         if (bodegaIds.Count > 1)
             return ServiceResult.Fail("Todos los materiales deben pertenecer a la misma bodega.");
 
@@ -290,15 +292,16 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     }
 
     public async Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForBodegaAsync(
-        int? viewerBodegaId,
+        IReadOnlyList<int>? viewerBodegaIds,
         bool soloPendientes = true,
         CancellationToken cancellationToken = default)
     {
-        if (viewerBodegaId is not int bodegaId || bodegaId <= 0)
+        var allowed = NormalizeViewerBodegaIds(viewerBodegaIds);
+        if (allowed.Count == 0)
             return [];
 
         var all = await _solicitudRepository.GetAllWithFichaAsync(cancellationToken);
-        IEnumerable<SolicitudMaterial> scoped = all.Where(s => s.BodegaId == bodegaId);
+        IEnumerable<SolicitudMaterial> scoped = all.Where(s => allowed.Contains(s.BodegaId));
         if (soloPendientes)
             scoped = scoped.Where(s => s.Estado == SolicitudMaterialEstado.Pendiente);
 
@@ -307,14 +310,15 @@ public class SolicitudMaterialService : ISolicitudMaterialService
 
     public async Task<SolicitudMaterialResolucionDto?> GetResolucionDetailAsync(
         int id,
-        int? viewerBodegaId,
+        IReadOnlyList<int>? viewerBodegaIds,
         CancellationToken cancellationToken = default)
     {
-        if (viewerBodegaId is not int bodegaId || bodegaId <= 0)
+        var allowed = NormalizeViewerBodegaIds(viewerBodegaIds);
+        if (allowed.Count == 0)
             return null;
 
         var solicitud = await _solicitudRepository.GetByIdWithDetallesAsync(id, cancellationToken);
-        if (solicitud is null || solicitud.BodegaId != bodegaId)
+        if (solicitud is null || !allowed.Contains(solicitud.BodegaId))
             return null;
 
         return new SolicitudMaterialResolucionDto(
@@ -403,6 +407,11 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         return trimmed.Length <= maxLen ? trimmed : trimmed[..maxLen];
     }
 
+    private static HashSet<int> NormalizeViewerBodegaIds(IReadOnlyList<int>? viewerBodegaIds) =>
+        (viewerBodegaIds ?? [])
+            .Where(id => id > 0)
+            .ToHashSet();
+
     private static bool IsAdmin(string? role) =>
         string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
 
@@ -420,7 +429,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         var ids = (await _userRepository.GetAllAsync(cancellationToken))
             .Where(u => u.IsActive
                         && string.Equals(u.Rol, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase)
-                        && u.BodegaId == bodegaId)
+                        && u.UserBodegas.Any(ub => ub.BodegaId == bodegaId))
             .Select(u => u.Id)
             .ToList();
 

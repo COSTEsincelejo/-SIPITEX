@@ -58,7 +58,7 @@ public class UserAccountService : IUserAccountService
         string password,
         string rol,
         int? fichaAsignadaId,
-        int? bodegaId,
+        IReadOnlyList<int>? bodegaIds,
         IReadOnlyList<string> permisos,
         CancellationToken cancellationToken = default)
     {
@@ -66,7 +66,7 @@ public class UserAccountService : IUserAccountService
         var validation = Validate(nombre, email, password, rol, requirePassword: true, creatableOnly: true);
         if (validation is not null) return validation;
 
-        var resolvedBodega = await ResolveBodegaIdAsync(rol, bodegaId, cancellationToken);
+        var resolvedBodega = await ResolveBodegaIdsAsync(rol, bodegaIds, cancellationToken);
         if (!resolvedBodega.Success)
             return ServiceResult.Fail(resolvedBodega.Message ?? "Bodega no válida.");
 
@@ -82,10 +82,10 @@ public class UserAccountService : IUserAccountService
             PasswordHash = PasswordHasher.Hash(password),
             Rol = rol,
             FichaAsignadaId = fichaAsignadaId,
-            BodegaId = resolvedBodega.BodegaId,
             PermisosExtendidos = ExtendedPermissions.Serialize(permisos),
             IsActive = true
         };
+        ReplaceUserBodegas(user, resolvedBodega.BodegaIds);
 
         // INSERT en Users
         _userRepository.Add(user);
@@ -103,7 +103,7 @@ public class UserAccountService : IUserAccountService
         string password,
         string rol,
         int? fichaAsignadaId,
-        int? bodegaId,
+        IReadOnlyList<int>? bodegaIds,
         IReadOnlyList<string> permisos,
         bool isActive,
         CancellationToken cancellationToken = default)
@@ -112,7 +112,7 @@ public class UserAccountService : IUserAccountService
         var validation = Validate(nombre, email, password, rol, requirePassword: false, creatableOnly: false);
         if (validation is not null) return validation;
 
-        var resolvedBodega = await ResolveBodegaIdAsync(rol, bodegaId, cancellationToken);
+        var resolvedBodega = await ResolveBodegaIdsAsync(rol, bodegaIds, cancellationToken);
         if (!resolvedBodega.Success)
             return ServiceResult.Fail(resolvedBodega.Message ?? "Bodega no válida.");
 
@@ -141,7 +141,7 @@ public class UserAccountService : IUserAccountService
         user.Email = email.Trim().ToLowerInvariant();
         user.Rol = rol;
         user.FichaAsignadaId = fichaAsignadaId;
-        user.BodegaId = resolvedBodega.BodegaId;
+        ReplaceUserBodegas(user, resolvedBodega.BodegaIds);
         user.PermisosExtendidos = ExtendedPermissions.Serialize(permisos);
         user.IsActive = isActive;
 
@@ -289,23 +289,45 @@ public class UserAccountService : IUserAccountService
         return null;
     }
 
-    // Bodeguero exige bodega existente; otros roles ignoran el valor y quedan sin bodega.
-    private async Task<(bool Success, string? Message, int? BodegaId)> ResolveBodegaIdAsync(
+    // Bodeguero exige ≥1 bodega existente; otros roles ignoran el valor y quedan sin asignaciones.
+    private async Task<(bool Success, string? Message, IReadOnlyList<int> BodegaIds)> ResolveBodegaIdsAsync(
         string rol,
-        int? bodegaId,
+        IReadOnlyList<int>? bodegaIds,
         CancellationToken cancellationToken)
     {
         if (!string.Equals(rol, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase))
-            return (true, null, null);
+            return (true, null, []);
 
-        if (bodegaId is not int id || id <= 0)
-            return (false, "Debe asignar una bodega al bodeguero.", null);
+        var requested = (bodegaIds ?? [])
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+        if (requested.Count == 0)
+            return (false, "Debe asignar al menos una bodega al bodeguero.", []);
 
-        var bodega = await _bodegaRepository.GetByIdAsync(id, cancellationToken);
-        if (bodega is null)
-            return (false, "Bodega no válida.", null);
+        var catalog = await _bodegaRepository.GetAllAsync(cancellationToken);
+        var validIds = catalog.Select(b => b.Id).ToHashSet();
+        if (requested.Any(id => !validIds.Contains(id)))
+            return (false, "Bodega no válida.", []);
 
-        return (true, null, bodega.Id);
+        return (true, null, requested);
+    }
+
+    private static void ReplaceUserBodegas(User user, IReadOnlyList<int> bodegaIds)
+    {
+        var desired = bodegaIds.Where(id => id > 0).Distinct().ToHashSet();
+        var toRemove = user.UserBodegas.Where(ub => !desired.Contains(ub.BodegaId)).ToList();
+        foreach (var row in toRemove)
+            user.UserBodegas.Remove(row);
+
+        var existing = user.UserBodegas.Select(ub => ub.BodegaId).ToHashSet();
+        foreach (var id in desired.Where(id => !existing.Contains(id)))
+        {
+            var row = new UserBodega { BodegaId = id };
+            if (user.Id > 0)
+                row.UserId = user.Id;
+            user.UserBodegas.Add(row);
+        }
     }
 
     // Si es instructor con ficha asignada, actualizo la ficha para que apunte a ese usuario

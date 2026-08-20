@@ -52,15 +52,14 @@
             </select>
         </div>
         <div class="field" data-role-field="bodeguero" hidden>
-            <label class="field-label">Bodega asignada</label>
-            <select asp-for="BodegaId">
-                <option value="">Seleccione una bodega</option>
+            <label class="field-label">Bodegas asignadas</label>
+            <select asp-for="BodegaIds" multiple size="4">
                 @foreach (var bodega in bodegas)
                 {
                     <option value="@bodega.Id">@bodega.Nombre</option>
                 }
             </select>
-            <p class="hint" style="margin-top:.35rem;">Obligatoria para Bodeguero. Sin bodega no podrá ver la cola de solicitudes.</p>
+            <p class="hint" style="margin-top:.35rem;">Obligatorio para Bodeguero: seleccione una o varias. Sin ninguna bodega no podrá ver la cola de solicitudes. Mantenga Ctrl (o Cmd) para marcar varias.</p>
         </div>
         <div class="field">
             <label class="field-label">Permisos extendidos</label>

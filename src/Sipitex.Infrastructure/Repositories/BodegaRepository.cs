@@ -39,7 +39,7 @@ public class BodegaRepository : IBodegaRepository
     {
         var materiales = await _context.Materials.CountAsync(m => m.BodegaId == bodegaId, cancellationToken);
         var solicitudes = await _context.SolicitudesMaterial.CountAsync(s => s.BodegaId == bodegaId, cancellationToken);
-        var bodegueros = await _context.Users.CountAsync(u => u.BodegaId == bodegaId, cancellationToken);
+        var bodegueros = await _context.UserBodegas.CountAsync(ub => ub.BodegaId == bodegaId, cancellationToken);
         return new BodegaDependencias(materiales, solicitudes, bodegueros);
     }
 

@@ -13,7 +13,7 @@ namespace Sipitex.Web.Controllers;
 public class BodegaSolicitudesController : Controller
 {
     internal const string BodegaNoAsignadaMessage =
-        "Su usuario de bodega no tiene una bodega asignada. Pida al administrador que le asigne una para ver y resolver solicitudes.";
+        "Su usuario de bodega no tiene ninguna bodega asignada. Pida al administrador que le asigne al menos una para ver y resolver solicitudes.";
 
     private readonly ISolicitudMaterialService _solicitudService;
     private readonly ISolicitudMaterialApprovalService _approvalService;
@@ -36,8 +36,8 @@ public class BodegaSolicitudesController : Controller
     public async Task<IActionResult> Index(string? estado, CancellationToken cancellationToken)
     {
         var soloPendientes = !string.Equals(estado, "todas", StringComparison.OrdinalIgnoreCase);
-        var viewerBodegaId = GetViewerBodegaId();
-        if (viewerBodegaId is null)
+        var viewerBodegaIds = GetViewerBodegaIds();
+        if (viewerBodegaIds is null)
         {
             return View(new BodegaSolicitudesIndexViewModel
             {
@@ -48,7 +48,7 @@ public class BodegaSolicitudesController : Controller
             });
         }
 
-        var list = await _solicitudService.GetListForBodegaAsync(viewerBodegaId, soloPendientes, cancellationToken);
+        var list = await _solicitudService.GetListForBodegaAsync(viewerBodegaIds, soloPendientes, cancellationToken);
 
         return View(new BodegaSolicitudesIndexViewModel
         {
@@ -62,15 +62,15 @@ public class BodegaSolicitudesController : Controller
     [HttpGet]
     public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
     {
-        var viewerBodegaId = GetViewerBodegaId();
-        if (viewerBodegaId is null)
+        var viewerBodegaIds = GetViewerBodegaIds();
+        if (viewerBodegaIds is null)
         {
             TempData["Message"] = BodegaNoAsignadaMessage;
             TempData["IsSuccess"] = false;
             return RedirectToAction(nameof(Index));
         }
 
-        var detail = await _solicitudService.GetResolucionDetailAsync(id, viewerBodegaId, cancellationToken);
+        var detail = await _solicitudService.GetResolucionDetailAsync(id, viewerBodegaIds, cancellationToken);
         if (detail is null)
             return NotFound();
 
@@ -96,8 +96,8 @@ public class BodegaSolicitudesController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        var viewerBodegaId = GetViewerBodegaId();
-        if (viewerBodegaId is null)
+        var viewerBodegaIds = GetViewerBodegaIds();
+        if (viewerBodegaIds is null)
         {
             TempData["Message"] = BodegaNoAsignadaMessage;
             TempData["IsSuccess"] = false;
@@ -105,7 +105,7 @@ public class BodegaSolicitudesController : Controller
         }
 
         var scoped = await _solicitudService.GetResolucionDetailAsync(
-            form.SolicitudId, viewerBodegaId, cancellationToken);
+            form.SolicitudId, viewerBodegaIds, cancellationToken);
         if (scoped is null)
         {
             TempData["Message"] = "La solicitud no pertenece a su bodega.";
@@ -138,7 +138,12 @@ public class BodegaSolicitudesController : Controller
         return RedirectToAction(nameof(Detail), new { id = form.SolicitudId });
     }
 
-    // Bodeguero sin BodegaId (legado) o sesión inválida: no se listan todas las bodegas.
-    private int? GetViewerBodegaId() =>
-        _bodegaAccessor.BodegaId is > 0 ? _bodegaAccessor.BodegaId : null;
+    // Bodeguero sin asignaciones o sesión no restringida: no se listan todas las bodegas.
+    private IReadOnlyList<int>? GetViewerBodegaIds()
+    {
+        var ids = _bodegaAccessor.BodegaIds;
+        if (ids is null || ids.Count == 0)
+            return null;
+        return ids;
+    }
 }

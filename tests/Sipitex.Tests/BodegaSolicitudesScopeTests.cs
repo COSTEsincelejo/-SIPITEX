@@ -13,7 +13,7 @@ using Sipitex.Web.Models;
 namespace Sipitex.Tests;
 
 /// <summary>
-/// Scoping de BodegaSolicitudesController.Index por User.BodegaId del bodeguero autenticado.
+/// Scoping de BodegaSolicitudesController.Index por las bodegas asignadas al bodeguero autenticado.
 /// </summary>
 public class BodegaSolicitudesScopeTests
 {
@@ -55,9 +55,13 @@ public class BodegaSolicitudesScopeTests
     [Fact]
     public async Task Index_BodegueroBodega1_SoloVeSolicitudesDeBodega1()
     {
-        _bodega.SetupGet(a => a.BodegaId).Returns(1);
+        IReadOnlyList<int> ids = [1];
+        _bodega.SetupGet(a => a.BodegaIds).Returns(ids);
         _solicitudes
-            .Setup(s => s.GetListForBodegaAsync(1, true, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetListForBodegaAsync(
+                It.Is<IReadOnlyList<int>>(x => x.Count == 1 && x[0] == 1),
+                true,
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync([Item(1, "SOL-B1")]);
 
         var controller = CreateController(Principal(5));
@@ -68,15 +72,47 @@ public class BodegaSolicitudesScopeTests
         Assert.Single(vm.Solicitudes);
         Assert.Equal("SOL-B1", vm.Solicitudes[0].Codigo);
 
-        _solicitudes.Verify(s => s.GetListForBodegaAsync(1, true, It.IsAny<CancellationToken>()), Times.Once);
-        _solicitudes.Verify(s => s.GetListForBodegaAsync(2, It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
-        _solicitudes.Verify(s => s.GetListForBodegaAsync(null, It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+        _solicitudes.Verify(
+            s => s.GetListForBodegaAsync(
+                It.Is<IReadOnlyList<int>>(x => x.Count == 1 && x[0] == 1),
+                true,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _solicitudes.Verify(
+            s => s.GetListForBodegaAsync(
+                It.Is<IReadOnlyList<int>>(x => x.Contains(2) && x.Count == 1),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        _solicitudes.Verify(
+            s => s.GetListForBodegaAsync(null, It.IsAny<bool>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Index_BodegueroConDosBodegas_PasaAmbasAlServicio()
+    {
+        IReadOnlyList<int> ids = [1, 2];
+        _bodega.SetupGet(a => a.BodegaIds).Returns(ids);
+        _solicitudes
+            .Setup(s => s.GetListForBodegaAsync(
+                It.Is<IReadOnlyList<int>>(x => x.Count == 2 && x.Contains(1) && x.Contains(2)),
+                true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Item(1, "SOL-B1"), Item(2, "SOL-B2")]);
+
+        var controller = CreateController(Principal(5));
+        var result = await controller.Index(estado: null, CancellationToken.None);
+
+        var view = Assert.IsType<ViewResult>(result);
+        var vm = Assert.IsType<BodegaSolicitudesIndexViewModel>(view.Model);
+        Assert.Equal(2, vm.Solicitudes.Count);
     }
 
     [Fact]
     public async Task Index_BodegueroSinBodegaAsignada_BloqueaConMensaje()
     {
-        _bodega.SetupGet(a => a.BodegaId).Returns(0);
+        _bodega.SetupGet(a => a.BodegaIds).Returns(Array.Empty<int>());
 
         var controller = CreateController(Principal(5));
         var result = await controller.Index(estado: null, CancellationToken.None);
@@ -88,7 +124,7 @@ public class BodegaSolicitudesScopeTests
         Assert.Contains("bodega asignada", vm.Message, StringComparison.OrdinalIgnoreCase);
 
         _solicitudes.Verify(
-            s => s.GetListForBodegaAsync(It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
+            s => s.GetListForBodegaAsync(It.IsAny<IReadOnlyList<int>?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 }
