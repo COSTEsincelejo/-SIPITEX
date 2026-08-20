@@ -11,9 +11,11 @@ public class UserAccountServiceTests
 {
     private readonly Mock<IUserRepository> _userRepository = new();
     private readonly Mock<IFichaRepository> _fichaRepository = new();
+    private readonly Mock<IBodegaRepository> _bodegaRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
-    private UserAccountService CreateSut() => new(_userRepository.Object, _fichaRepository.Object, _unitOfWork.Object);
+    private UserAccountService CreateSut() =>
+        new(_userRepository.Object, _fichaRepository.Object, _bodegaRepository.Object, _unitOfWork.Object);
 
     private static User CreateUser(string email, string password, bool isActive = true, string rol = UserRoles.Instructor) => new()
     {
@@ -79,6 +81,7 @@ public class UserAccountServiceTests
             "Clave123!",
             UserRoles.Administrador,
             null,
+            null,
             []);
 
         Assert.True(result.Success);
@@ -100,12 +103,30 @@ public class UserAccountServiceTests
             "Clave123!",
             UserRoles.Instructor,
             null,
+            null,
             []);
 
         Assert.True(result.Success);
         _userRepository.Verify(r => r.Add(It.Is<User>(u =>
             u.Email == "nuevo@sipitex.test" && u.Rol == UserRoles.Instructor)), Times.Once);
         _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_WhenRoleIsBodegueroWithoutBodega_Fails()
+    {
+        var result = await CreateSut().CreateUserAsync(
+            "Nuevo Bodeguero",
+            "bodega@sipitex.test",
+            "Clave123!",
+            UserRoles.Bodeguero,
+            null,
+            null,
+            []);
+
+        Assert.False(result.Success);
+        Assert.Contains("bodega", result.Message, StringComparison.OrdinalIgnoreCase);
+        _userRepository.Verify(r => r.Add(It.IsAny<User>()), Times.Never);
     }
 
     [Fact]

@@ -24,7 +24,7 @@ public class SolicitudMaterialFlowTests
             new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAsignadaId, null, null, [
                     new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 40),
                     new CreateDetalleSolicitudDto(fx.MaterialJustoId, 3)
-                ]),
+                ], BodegaId: 1),
             fx.InstructorId,
             UserRoles.Instructor,
             "Instructor Test");
@@ -109,7 +109,7 @@ public class SolicitudMaterialFlowTests
             new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAsignadaId, null, null, [
                     new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 40),
                     new CreateDetalleSolicitudDto(fx.MaterialJustoId, 20)
-                ]),
+                ], BodegaId: 1),
             fx.InstructorId,
             UserRoles.Instructor,
             "Instructor Test");
@@ -161,7 +161,7 @@ public class SolicitudMaterialFlowTests
             new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAsignadaId, null, null, [
                     new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 10),
                     new CreateDetalleSolicitudDto(fx.MaterialJustoId, 2)
-                ]),
+                ], BodegaId: 1),
             fx.InstructorId,
             UserRoles.Instructor,
             "Instructor Test");
@@ -203,7 +203,7 @@ public class SolicitudMaterialFlowTests
         await using var fx = await SolicitudMaterialFlowFixture.CreateAsync();
 
         var create = await fx.SolicitudService.CreateAsync(
-            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAsignadaId, null, null, [new CreateDetalleSolicitudDto(fx.MaterialJustoId, 20)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAsignadaId, null, null, [new CreateDetalleSolicitudDto(fx.MaterialJustoId, 20)], BodegaId: 1),
             fx.InstructorId,
             UserRoles.Instructor,
             "Instructor Test");
@@ -239,7 +239,7 @@ public class SolicitudMaterialFlowTests
         await using var fx = await SolicitudMaterialFlowFixture.CreateAsync();
 
         var create = await fx.SolicitudService.CreateAsync(
-            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAsignadaId, null, null, [new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 10)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAsignadaId, null, null, [new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 10)], BodegaId: 1),
             fx.InstructorId,
             UserRoles.Instructor,
             "Instructor Test");
@@ -289,7 +289,7 @@ public class SolicitudMaterialFlowTests
         await using var fx = await SolicitudMaterialFlowFixture.CreateAsync();
 
         var create = await fx.SolicitudService.CreateAsync(
-            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAjenaId, null, null, [new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 5)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAjenaId, null, null, [new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 5)], BodegaId: 1),
             fx.InstructorId,
             UserRoles.Instructor,
             "Instructor Test");
@@ -311,7 +311,7 @@ public class SolicitudMaterialFlowTests
         for (var i = 0; i < 5; i++)
         {
             var result = await fx.SolicitudService.CreateAsync(
-                new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAsignadaId, null, null, [new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 1)]),
+                new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, fx.FichaAsignadaId, null, null, [new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 1)], BodegaId: 1),
                 fx.InstructorId,
                 UserRoles.Instructor,
                 "Instructor Test");
@@ -342,7 +342,8 @@ public class SolicitudMaterialFlowTests
                 null,
                 null,
                 "Pedido libre",
-                [new CreateDetalleSolicitudDto(null, 5, "Tela genérica")]),
+                [new CreateDetalleSolicitudDto(null, 5, "Tela genérica")],
+                BodegaId: 1),
             fx.InstructorId,
             UserRoles.Instructor,
             "Instructor Test");
@@ -373,7 +374,8 @@ public class SolicitudMaterialFlowTests
                 null,
                 null,
                 null,
-                [new CreateDetalleSolicitudDto(null, 4, "Tela genérica")]),
+                [new CreateDetalleSolicitudDto(null, 4, "Tela genérica")],
+                BodegaId: 1),
             fx.InstructorId,
             UserRoles.Instructor,
             "Instructor Test");

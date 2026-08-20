@@ -14,11 +14,11 @@ public class MaterialRepository : IMaterialRepository
 
     // Lista ordenada por nombre para que en la vista se vea alfabético
     public async Task<IReadOnlyList<Material>> GetAllAsync(CancellationToken cancellationToken = default) =>
-        await _context.Materials.OrderBy(m => m.Name).ToListAsync(cancellationToken);
+        await _context.Materials.Include(m => m.Bodega).OrderBy(m => m.Name).ToListAsync(cancellationToken);
 
     // Busca un material por Id (para editar o ver detalle)
     public Task<Material?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
-        _context.Materials.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+        _context.Materials.Include(m => m.Bodega).FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
 
     // Agrega un material nuevo al contexto
     public async Task AddAsync(Material material, CancellationToken cancellationToken = default) =>

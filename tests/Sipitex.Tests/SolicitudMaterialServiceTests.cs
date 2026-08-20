@@ -15,12 +15,20 @@ public class SolicitudMaterialServiceTests
     private readonly Mock<IFichaRepository> _fichas = new();
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IMaterialRepository> _materials = new();
+    private readonly Mock<IBodegaRepository> _bodegas = new();
     private readonly Mock<ICodigoGeneradorService> _codigos = new();
     private readonly Mock<IAlertService> _alerts = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private SolicitudMaterialService CreateSut()
     {
+        _bodegas
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Bodega { Id = 1, Nombre = "Bodega 1" });
+        _bodegas
+            .Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Bodega { Id = 2, Nombre = "Bodega 2" });
+
         _alerts
             .Setup(a => a.NotifyUsersAsync(
                 It.IsAny<AlertType>(),
@@ -36,6 +44,7 @@ public class SolicitudMaterialServiceTests
             _fichas.Object,
             _orders.Object,
             _materials.Object,
+            _bodegas.Object,
             _codigos.Object,
             _alerts.Object,
             _uow.Object);
@@ -72,7 +81,7 @@ public class SolicitudMaterialServiceTests
             .Returns(Task.CompletedTask);
 
         var result = await CreateSut().CreateAsync(
-            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 12)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 12)], BodegaId: 1),
             solicitanteId: 10,
             actorRole: UserRoles.Instructor,
             actorName: "Laura");
@@ -102,7 +111,7 @@ public class SolicitudMaterialServiceTests
     public async Task CreateAsync_SinMaterialesConCantidad_Falla()
     {
         var result = await CreateSut().CreateAsync(
-            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 0)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 0)], BodegaId: 1),
             solicitanteId: 10,
             actorRole: UserRoles.Instructor,
             actorName: "Laura");
@@ -120,7 +129,7 @@ public class SolicitudMaterialServiceTests
         _fichas.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(ficha);
 
         var result = await CreateSut().CreateAsync(
-            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 3)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 3)], BodegaId: 1),
             solicitanteId: 10,
             actorRole: UserRoles.Instructor,
             actorName: "Laura");
@@ -146,7 +155,7 @@ public class SolicitudMaterialServiceTests
             .Returns(Task.CompletedTask);
 
         var result = await CreateSut().CreateAsync(
-            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 2)]),
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 2)], BodegaId: 1),
             solicitanteId: 1,
             actorRole: UserRoles.Administrador,
             actorName: "Admin");
@@ -163,7 +172,8 @@ public class SolicitudMaterialServiceTests
                 FichaId: null,
                 ProductionOrderId: null,
                 DescripcionLibre: null,
-                [new CreateDetalleSolicitudDto(5, 2)]),
+                [new CreateDetalleSolicitudDto(5, 2)],
+                BodegaId: 1),
             solicitanteId: 10,
             actorRole: UserRoles.Instructor,
             actorName: "Laura");
@@ -187,7 +197,8 @@ public class SolicitudMaterialServiceTests
                 1,
                 null,
                 null,
-                [new CreateDetalleSolicitudDto(null, 2, "solo texto")]),
+                [new CreateDetalleSolicitudDto(null, 2, "solo texto")],
+                BodegaId: 1),
             solicitanteId: 10,
             actorRole: UserRoles.Instructor,
             actorName: "Laura");
@@ -217,7 +228,8 @@ public class SolicitudMaterialServiceTests
                 FichaId: null,
                 ProductionOrderId: null,
                 DescripcionLibre: "Pedido taller",
-                [new CreateDetalleSolicitudDto(null, 3, "Cremallera nylon #5")]),
+                [new CreateDetalleSolicitudDto(null, 3, "Cremallera nylon #5")],
+                BodegaId: 1),
             solicitanteId: 10,
             actorRole: UserRoles.Instructor,
             actorName: "Laura");
@@ -285,5 +297,121 @@ public class SolicitudMaterialServiceTests
         var detail = await CreateSut().GetDetailAsync(1, 10, UserRoles.Instructor);
 
         Assert.Null(detail);
+    }
+
+    [Fact]
+    public async Task CreateAsync_MaterialDeOtraBodega_Falla()
+    {
+        var ficha = FichaConInstructor(1, 10);
+        _fichas.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(ficha);
+        _materials.Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Material { Id = 5, Name = "Tela", BodegaId = 2 });
+
+        var result = await CreateSut().CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.PorFicha, 1, null, null,
+                [new CreateDetalleSolicitudDto(5, 12)],
+                BodegaId: 1),
+            solicitanteId: 10,
+            actorRole: UserRoles.Instructor,
+            actorName: "Laura");
+
+        Assert.False(result.Success);
+        Assert.Contains("no pertenece a la bodega", result.Message, StringComparison.OrdinalIgnoreCase);
+        _solicitudes.Verify(
+            r => r.AddAsync(It.IsAny<SolicitudMaterial>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetListForBodegaAsync_SoloDevuelveDeEsaBodega()
+    {
+        _solicitudes.Setup(r => r.GetAllWithFichaAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new SolicitudMaterial
+            {
+                Id = 1,
+                Codigo = "SOL-B1",
+                BodegaId = 1,
+                SolicitanteId = 10,
+                Estado = SolicitudMaterialEstado.Pendiente,
+                FechaSolicitud = DateTime.UtcNow,
+                Ficha = new Ficha { FichaCode = "F1" },
+                Solicitante = new User { Nombre = "Laura" }
+            },
+            new SolicitudMaterial
+            {
+                Id = 2,
+                Codigo = "SOL-B2",
+                BodegaId = 2,
+                SolicitanteId = 10,
+                Estado = SolicitudMaterialEstado.Pendiente,
+                FechaSolicitud = DateTime.UtcNow,
+                Ficha = new Ficha { FichaCode = "F2" },
+                Solicitante = new User { Nombre = "Laura" }
+            }
+        ]);
+
+        var list = await CreateSut().GetListForBodegaAsync(bodegaId: 1);
+
+        Assert.Single(list);
+        Assert.Equal("SOL-B1", list[0].Codigo);
+    }
+
+    [Fact]
+    public async Task GetResolucionDetailAsync_OtraBodega_DevuelveNull()
+    {
+        _solicitudes.Setup(r => r.GetByIdWithDetallesAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(
+            new SolicitudMaterial
+            {
+                Id = 1,
+                Codigo = "SOL-B2",
+                BodegaId = 2,
+                SolicitanteId = 10,
+                Estado = SolicitudMaterialEstado.Pendiente,
+                FechaSolicitud = DateTime.UtcNow,
+                Ficha = new Ficha { FichaCode = "F1" },
+                Solicitante = new User { Nombre = "Laura" },
+                Detalles = []
+            });
+
+        var detail = await CreateSut().GetResolucionDetailAsync(1, bodegaId: 1);
+
+        Assert.Null(detail);
+    }
+
+    [Fact]
+    public async Task GetListAndDetail_ConBodegaValida_PueblanBodegaNombre()
+    {
+        var solicitud = new SolicitudMaterial
+        {
+            Id = 1,
+            Codigo = "SOL-0001",
+            BodegaId = 1,
+            Bodega = new Bodega { Id = 1, Nombre = "Bodega 1" },
+            SolicitanteId = 10,
+            Estado = SolicitudMaterialEstado.Pendiente,
+            FechaSolicitud = DateTime.UtcNow,
+            Ficha = new Ficha { FichaCode = "F1" },
+            Solicitante = new User { Nombre = "Laura" },
+            Detalles = []
+        };
+
+        _solicitudes.Setup(r => r.GetAllWithFichaAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([solicitud]);
+        _solicitudes.Setup(r => r.GetByIdWithDetallesAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(solicitud);
+
+        var sut = CreateSut();
+        var list = await sut.GetListAsync(10, UserRoles.Instructor);
+        var listBodega = await sut.GetListForBodegaAsync(bodegaId: 1);
+        var detail = await sut.GetDetailAsync(1, 10, UserRoles.Instructor);
+
+        Assert.Equal("Bodega 1", Assert.Single(list).BodegaNombre);
+        Assert.Equal("Bodega 1", Assert.Single(listBodega).BodegaNombre);
+        Assert.NotNull(detail);
+        Assert.Equal("Bodega 1", detail!.BodegaNombre);
+        Assert.NotEqual("—", detail.BodegaNombre);
+        Assert.False(string.IsNullOrWhiteSpace(detail.BodegaNombre));
     }
 }

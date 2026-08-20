@@ -16,6 +16,7 @@ public class InventoryService : IInventoryService
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IBomRepository _bomRepository;
     private readonly IStockMovementRepository _stockMovements;
+    private readonly IBodegaRepository _bodegaRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public InventoryService(
@@ -24,6 +25,7 @@ public class InventoryService : IInventoryService
         IProductionOrderRepository orderRepository,
         IBomRepository bomRepository,
         IStockMovementRepository stockMovements,
+        IBodegaRepository bodegaRepository,
         IUnitOfWork unitOfWork)
     {
         _materialRepository = materialRepository;
@@ -31,22 +33,29 @@ public class InventoryService : IInventoryService
         _orderRepository = orderRepository;
         _bomRepository = bomRepository;
         _stockMovements = stockMovements;
+        _bodegaRepository = bodegaRepository;
         _unitOfWork = unitOfWork;
     }
 
-    // Traigo todos los materiales ya mapeados a DTO para la vista
-    public async Task<IReadOnlyList<MaterialDto>> GetMaterialsAsync(CancellationToken cancellationToken = default)
+    // Traigo materiales ya mapeados a DTO; bodegaId filtra al catálogo de una bodega
+    public async Task<IReadOnlyList<MaterialDto>> GetMaterialsAsync(
+        int? bodegaId = null,
+        CancellationToken cancellationToken = default)
     {
-        // Query a la tabla Materials
         var materials = await _materialRepository.GetAllAsync(cancellationToken);
-        // Paso cada entidad al DTO con unidad legible y flag de stock bajo
-        return materials.Select(MapMaterial).ToList();
+        IEnumerable<Material> scoped = materials;
+        if (bodegaId is not null)
+            scoped = materials.Where(m => m.BodegaId == bodegaId);
+
+        return scoped.Select(MapMaterial).ToList();
     }
 
     // Crea un material nuevo con código autogenerado
     public async Task<ServiceResult> AddMaterialAsync(
         CreateMaterialDto dto,
         int actorUserId,
+        string? actorRole,
+        int? actorBodegaId,
         CancellationToken cancellationToken = default)
     {
         // Acá reviso nombre y que el stock no sea negativo
@@ -59,6 +68,22 @@ public class InventoryService : IInventoryService
         if (actorUserId <= 0)
             return ServiceResult.Fail("Usuario responsable no válido.");
 
+        if (dto.BodegaId <= 0)
+            return ServiceResult.Fail("Bodega no válida.");
+
+        var bodega = await _bodegaRepository.GetByIdAsync(dto.BodegaId, cancellationToken);
+        if (bodega is null)
+            return ServiceResult.Fail("Bodega no válida.");
+
+        if (IsBodeguero(actorRole))
+        {
+            if (actorBodegaId is null)
+                return ServiceResult.Fail("Su cuenta no tiene una bodega asignada.");
+
+            if (actorBodegaId != dto.BodegaId)
+                return ServiceResult.Fail("Solo puede registrar materiales en su propia bodega.");
+        }
+
         // Armo la entidad con valores iniciales
         var material = new Material
         {
@@ -69,7 +94,8 @@ public class InventoryService : IInventoryService
             Stock = dto.Stock,
             MinStock = 10, // por ahora fijo, después podría ser configurable
             Status = MaterialStatus.Bueno,
-            LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
+            LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
+            BodegaId = dto.BodegaId
         };
 
         // INSERT en el contexto de EF
@@ -306,7 +332,9 @@ public class InventoryService : IInventoryService
         m.Status,
         m.MinStock,
         m.Stock < m.MinStock,
-        m.LastEntryDate);
+        m.LastEntryDate,
+        m.BodegaId,
+        m.Bodega?.Nombre ?? "—");
 
     private static bool IsAdmin(string? role) =>
         string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);

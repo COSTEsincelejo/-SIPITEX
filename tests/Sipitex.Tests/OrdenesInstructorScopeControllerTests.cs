@@ -168,7 +168,7 @@ public class OrdenesInstructorScopeControllerTests
                 1, "OP-101", "Camisa", null, OrderStatus.EnProceso, OrderMaterialsStatus.NoAplica,
                 10, 0, 0, 0, 0, null, DateOnly.FromDateTime(DateTime.Today.AddDays(14)), "", 0, false,
                 [], [], [], [], []));
-        _inventory.Setup(i => i.GetMaterialsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _inventory.Setup(i => i.GetMaterialsAsync(It.IsAny<int?>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _users.Setup(u => u.GetUsersAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _orders.Setup(s => s.GetChangeLogAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
 

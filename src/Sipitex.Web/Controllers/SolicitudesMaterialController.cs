@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
@@ -16,15 +17,18 @@ public class SolicitudesMaterialController : Controller
     private readonly ISolicitudMaterialService _solicitudService;
     private readonly IFichaService _fichaService;
     private readonly IProductionOrderService _orderService;
+    private readonly IBodegaRepository _bodegaRepository;
 
     public SolicitudesMaterialController(
         ISolicitudMaterialService solicitudService,
         IFichaService fichaService,
-        IProductionOrderService orderService)
+        IProductionOrderService orderService,
+        IBodegaRepository bodegaRepository)
     {
         _solicitudService = solicitudService;
         _fichaService = fichaService;
         _orderService = orderService;
+        _bodegaRepository = bodegaRepository;
     }
 
     [HttpGet]
@@ -91,7 +95,8 @@ public class SolicitudesMaterialController : Controller
                 form.ProductionOrderId is > 0 ? form.ProductionOrderId : null,
                 form.DescripcionLibre,
                 detalles,
-                form.Observaciones),
+                form.Observaciones,
+                form.BodegaId),
             solicitanteId,
             role,
             name,
@@ -136,7 +141,8 @@ public class SolicitudesMaterialController : Controller
                 ProductionOrderId: null,
                 DescripcionLibre: null,
                 detalles,
-                form.Observaciones),
+                form.Observaciones,
+                form.BodegaId),
             solicitanteId,
             role,
             name,
@@ -160,11 +166,13 @@ public class SolicitudesMaterialController : Controller
     {
         var fichas = await _fichaService.GetFichasAsync(userId, role, name, cancellationToken);
         var orders = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken);
+        var bodegas = await _bodegaRepository.GetAllAsync(cancellationToken);
         return new SolicitarInsumosViewModel
         {
             Form = form ?? new CreateInsumosLibresForm(),
             Fichas = fichas.Select(f => (f.Id, f.FichaCode)).ToList(),
             Ordenes = orders.Select(o => (o.Id, $"{o.OrderNumber} · {o.ProductName}")).ToList(),
+            Bodegas = bodegas.Select(b => (b.Id, b.Nombre)).ToList(),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         };

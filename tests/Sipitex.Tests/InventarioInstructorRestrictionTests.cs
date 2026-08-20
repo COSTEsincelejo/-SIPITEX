@@ -26,6 +26,7 @@ public class InventarioInstructorRestrictionTests
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IBomRepository> _boms = new();
     private readonly Mock<IStockMovementRepository> _stockMovements = new();
+    private readonly Mock<IBodegaRepository> _bodegas = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private InventoryService CreateInventoryService() => new(
@@ -34,6 +35,7 @@ public class InventarioInstructorRestrictionTests
         _orders.Object,
         _boms.Object,
         _stockMovements.Object,
+        _bodegas.Object,
         _uow.Object);
 
     private static ClaimsPrincipal Principal(int userId, string role, string name = "Usuario")
@@ -53,7 +55,16 @@ public class InventarioInstructorRestrictionTests
         IProductionOrderService orders,
         IStockMovementService movements)
     {
-        var controller = new InventarioController(inventory, orders, movements)
+        var bodegas = new Mock<IBodegaRepository>();
+        bodegas.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var controller = new InventarioController(
+            inventory,
+            orders,
+            movements,
+            Mock.Of<IUserAccountService>(),
+            bodegas.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -117,7 +128,7 @@ public class InventarioInstructorRestrictionTests
     {
         var method = typeof(InventarioController)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-            .Single(m => m.Name == nameof(InventarioController.Index) && m.GetParameters().Length == 1);
+            .Single(m => m.Name == nameof(InventarioController.Index) && m.GetParameters().Length == 2);
         var attr = method.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(attr);
         Assert.Equal(AuthorizationPolicyNames.PuedeConsultarInventario, attr!.Policy);
@@ -135,11 +146,11 @@ public class InventarioInstructorRestrictionTests
             orders.Object,
             movements.Object);
 
-        var result = await controller.Index(CancellationToken.None);
+        var result = await controller.Index(bodegaId: null, CancellationToken.None);
 
         Assert.IsType<ForbidResult>(result);
         inventory.Verify(
-            s => s.GetMaterialsAsync(It.IsAny<CancellationToken>()),
+            s => s.GetMaterialsAsync(It.IsAny<int?>(), It.IsAny<CancellationToken>()),
             Times.Never);
         inventory.Verify(
             s => s.GetRequestsAsync(
@@ -151,7 +162,7 @@ public class InventarioInstructorRestrictionTests
     public async Task InventarioController_Index_Administrador_ReturnsView()
     {
         var inventory = new Mock<IInventoryService>();
-        inventory.Setup(s => s.GetMaterialsAsync(It.IsAny<CancellationToken>()))
+        inventory.Setup(s => s.GetMaterialsAsync(It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
         inventory.Setup(s => s.GetRequestsAsync(
                 It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -167,7 +178,7 @@ public class InventarioInstructorRestrictionTests
             orders.Object,
             movements.Object);
 
-        var result = await controller.Index(CancellationToken.None);
+        var result = await controller.Index(bodegaId: null, CancellationToken.None);
 
         Assert.IsType<ViewResult>(result);
     }

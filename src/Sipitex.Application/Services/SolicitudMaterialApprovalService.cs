@@ -230,7 +230,8 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
                 Stock = 0,
                 MinStock = 0,
                 Status = MaterialStatus.Bueno,
-                LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
+                LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
+                BodegaId = detalle.SolicitudMaterial.BodegaId
             };
             // Seguimiento: SaveChanges aquí queda fuera de ExecuteInTransactionAsync del Resolve.
             // Si la transacción posterior falla, el Material (Stock=0) puede quedar huérfano.

@@ -72,6 +72,24 @@
             </div>
         </div>
 
+        <div class="field" style="margin-top:12px;max-width:360px;">
+            <label class="field-label">Bodega</label>
+            <select name="Form.BodegaId" required style="width:100%">
+                <option value="">— Seleccione —</option>
+                @foreach (var item in Model.Bodegas)
+                {
+                    if (f.BodegaId == item.Id)
+                    {
+                        <option value="@item.Id" selected>@item.Nombre</option>
+                    }
+                    else
+                    {
+                        <option value="@item.Id">@item.Nombre</option>
+                    }
+                }
+            </select>
+        </div>
+
         <div class="card-title amber" style="margin-top:20px;"><i class="fas fa-list"></i> Ítems solicitados</div>
         <div class="solicitud-rows" data-insumo-rows>
             @{

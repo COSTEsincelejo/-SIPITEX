@@ -35,6 +35,7 @@ public class CreateMaterialForm
     public decimal Stock { get; set; }
     public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
     public StockEntryOrigin Origen { get; set; } = StockEntryOrigin.Compra;
+    public int BodegaId { get; set; }
 }
 
 // Formulario para pedir material a bodega
@@ -225,6 +226,7 @@ public class CreateFichaForm
 public class CreateSolicitudMaterialForm
 {
     public int FichaId { get; set; }
+    public int BodegaId { get; set; }
     public string? Observaciones { get; set; }
     public List<CreateDetalleSolicitudForm> Detalles { get; set; } = [new()];
 }
@@ -241,6 +243,7 @@ public class CreateInsumosLibresForm
     public string? DescripcionLibre { get; set; }
     public int? FichaId { get; set; }
     public int? ProductionOrderId { get; set; }
+    public int BodegaId { get; set; }
     public string? Observaciones { get; set; }
     public List<CreateInsumoLibreItemForm> Detalles { get; set; } = [new()];
 }
@@ -256,6 +259,7 @@ public class SolicitarInsumosViewModel
     public CreateInsumosLibresForm Form { get; set; } = new();
     public IReadOnlyList<(int Id, string Label)> Fichas { get; set; } = [];
     public IReadOnlyList<(int Id, string Label)> Ordenes { get; set; } = [];
+    public IReadOnlyList<(int Id, string Nombre)> Bodegas { get; set; } = [];
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }

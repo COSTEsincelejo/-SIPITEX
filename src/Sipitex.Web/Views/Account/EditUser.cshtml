@@ -4,6 +4,7 @@
     ViewData["Breadcrumb"] = "SIPITEX / Administración / Editar usuario";
     Layout = "_Layout";
     var fichas = ViewBag.Fichas as IEnumerable<Ficha> ?? Array.Empty<Ficha>();
+    var bodegas = ViewBag.Bodegas as IEnumerable<Bodega> ?? Array.Empty<Bodega>();
     // El admin principal no se le puede cambiar el rol
     var isAdminUser = string.Equals(Model.Rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
 }
@@ -58,6 +59,16 @@
                 @foreach (var ficha in fichas)
                 {
                     <option value="@ficha.Id">@ficha.FichaCode - @ficha.ProcessName</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label class="field-label">Bodega</label>
+            <select asp-for="BodegaId">
+                <option value="">Sin asignar</option>
+                @foreach (var bodega in bodegas)
+                {
+                    <option value="@bodega.Id">@bodega.Nombre</option>
                 }
             </select>
         </div>

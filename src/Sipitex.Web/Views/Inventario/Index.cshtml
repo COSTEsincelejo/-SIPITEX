@@ -35,6 +35,36 @@
 
 <div class="card">
     <div class="card-title"><i class="fas fa-warehouse"></i> Materias primas e insumos</div>
+    @{
+        var bodegas = ViewBag.Bodegas as IEnumerable<Bodega> ?? Array.Empty<Bodega>();
+        var actorBodegaId = ViewBag.ActorBodegaId as int?;
+        var filterBodegaId = ViewBag.FilterBodegaId as int?;
+        var isAdmin = User.IsInRole("Administrador");
+        var isBodeguero = User.IsInRole("Bodeguero");
+        var actorBodega = actorBodegaId is int aid ? bodegas.FirstOrDefault(b => b.Id == aid) : null;
+    }
+    @if (isAdmin)
+    {
+        <form method="get" class="form-row" style="margin-bottom:14px;">
+            <div class="field" style="min-width:220px;">
+                <label class="field-label">Bodega</label>
+                <select name="bodegaId" onchange="this.form.submit()" aria-label="Filtro de bodega">
+                    <option value="">Todas las bodegas</option>
+                    @foreach (var bodega in bodegas)
+                    {
+                        if (filterBodegaId == bodega.Id)
+                        {
+                            <option value="@bodega.Id" selected>@bodega.Nombre</option>
+                        }
+                        else
+                        {
+                            <option value="@bodega.Id">@bodega.Nombre</option>
+                        }
+                    }
+                </select>
+            </div>
+        </form>
+    }
     @if (canRegisterMaterial)
     {
         <form asp-action="AddMaterial" method="post" class="form-row">
@@ -59,6 +89,26 @@
                     <option value="@StockEntryOrigin.OtraFuenteAutorizada">Otra fuente autorizada</option>
                 </select>
             </div>
+            <div class="field" style="min-width:180px;">
+                <label class="field-label">Bodega</label>
+                @if (isBodeguero && actorBodegaId is not null)
+                {
+                    <select disabled aria-label="Bodega">
+                        <option selected>@(actorBodega?.Nombre ?? "Bodega asignada")</option>
+                    </select>
+                    <input type="hidden" name="CreateMaterial.BodegaId" value="@actorBodegaId" />
+                }
+                else
+                {
+                    <select asp-for="CreateMaterial.BodegaId" required>
+                        <option value="">— Seleccione —</option>
+                        @foreach (var bodega in bodegas)
+                        {
+                            <option value="@bodega.Id">@bodega.Nombre</option>
+                        }
+                    </select>
+                }
+            </div>
             <button type="submit" class="primary"><i class="fas fa-plus"></i> Agregar material</button>
         </form>
     }
@@ -70,7 +120,7 @@
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Material</th><th>Unidad</th><th>Stock</th><th>Estado</th><th>Última entrada</th><th>Mínimo</th><th></th></tr></thead>
+                <thead><tr><th>Material</th><th>Unidad</th><th>Stock</th><th>Bodega</th><th>Estado</th><th>Última entrada</th><th>Mínimo</th><th></th></tr></thead>
                 <tbody>
                 @foreach (var mat in Model.Materials)
                 {
@@ -78,6 +128,7 @@
                         <td><strong>@mat.Name</strong></td>
                         <td>@mat.UnitDisplay</td>
                         <td>@mat.Stock.ToString("0.0")</td>
+                        <td>@mat.BodegaNombre</td>
                         <td>
                             @if (canManageStock)
                             {

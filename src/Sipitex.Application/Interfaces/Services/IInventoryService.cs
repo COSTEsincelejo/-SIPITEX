@@ -5,8 +5,13 @@ namespace Sipitex.Application.Interfaces.Services;
 // Materiales, stock y solicitudes de bodega
 public interface IInventoryService
 {
-    Task<IReadOnlyList<MaterialDto>> GetMaterialsAsync(CancellationToken cancellationToken = default);
-    Task<ServiceResult> AddMaterialAsync(CreateMaterialDto dto, int actorUserId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MaterialDto>> GetMaterialsAsync(int? bodegaId = null, CancellationToken cancellationToken = default);
+    Task<ServiceResult> AddMaterialAsync(
+        CreateMaterialDto dto,
+        int actorUserId,
+        string? actorRole,
+        int? actorBodegaId,
+        CancellationToken cancellationToken = default);
     Task<ServiceResult> AdjustStockAsync(AdjustStockDto dto, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateMaterialAsync(UpdateMaterialDto dto, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateStatusAsync(UpdateMaterialStatusDto dto, CancellationToken cancellationToken = default);

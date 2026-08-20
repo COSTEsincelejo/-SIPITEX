@@ -14,6 +14,7 @@ public class InventoryApproveRejectTests
     private readonly Mock<IProductionOrderRepository> _orderRepository = new();
     private readonly Mock<IBomRepository> _bomRepository = new();
     private readonly Mock<IStockMovementRepository> _stockMovements = new();
+    private readonly Mock<IBodegaRepository> _bodegas = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
     private InventoryService CreateSut() => new(
@@ -22,6 +23,7 @@ public class InventoryApproveRejectTests
         _orderRepository.Object,
         _bomRepository.Object,
         _stockMovements.Object,
+        _bodegas.Object,
         _unitOfWork.Object);
 
     private static MaterialRequest CreatePendingRequest(decimal stock, decimal quantity)

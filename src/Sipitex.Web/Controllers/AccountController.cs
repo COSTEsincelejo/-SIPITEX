@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 // Servicios de usuarios y reset de contraseña
+using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
@@ -30,6 +31,7 @@ public class AccountController : Controller
     private readonly IPasswordResetService _passwordResetService;
     private readonly IFuncionalidadesReportService _funcionalidadesReportService;
     private readonly IActivityLogService _activityLog;
+    private readonly IBodegaRepository _bodegaRepository;
     private readonly IWebHostEnvironment _environment;
 
     // Inyecto los servicios que usa todo el controller
@@ -38,12 +40,14 @@ public class AccountController : Controller
         IPasswordResetService passwordResetService,
         IFuncionalidadesReportService funcionalidadesReportService,
         IActivityLogService activityLog,
+        IBodegaRepository bodegaRepository,
         IWebHostEnvironment environment)
     {
         _userAccountService = userAccountService;
         _passwordResetService = passwordResetService;
         _funcionalidadesReportService = funcionalidadesReportService;
         _activityLog = activityLog;
+        _bodegaRepository = bodegaRepository;
         _environment = environment;
     }
 
@@ -255,8 +259,7 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> CreateUser(CancellationToken cancellationToken)
     {
-        // Paso las fichas para el dropdown de asignación
-        ViewBag.Fichas = await GetFichasAsync(cancellationToken);
+        await PopulateUserFormLookupsAsync(cancellationToken);
         // Por defecto el rol nuevo es Instructor
         return View(new UserEditViewModel { Rol = UserRoles.Instructor });
     }
@@ -268,14 +271,14 @@ public class AccountController : Controller
     public async Task<IActionResult> CreateUser(UserEditViewModel model, CancellationToken cancellationToken)
     {
         // Validación del lado del servidor (DataAnnotations)
-        if (!ModelState.IsValid) { ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
+        if (!ModelState.IsValid) { await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
         // Lista de permisos extendidos marcados en el form
         var permisos = model.SelectedPermissions ?? [];
         // El servicio hashea la clave y guarda en BD
-        var result = await _userAccountService.CreateUserAsync(model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, permisos, cancellationToken);
+        var result = await _userAccountService.CreateUserAsync(model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.BodegaId, permisos, cancellationToken);
         // Si falló (correo duplicado, rol inválido, etc.) me quedo en el form
-        if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
+        if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
         if (TryGetActorUserId(out var actorId))
         {
@@ -302,8 +305,7 @@ public class AccountController : Controller
         var user = await _userAccountService.GetUserByIdAsync(id, cancellationToken);
         // 404 si no existe
         if (user is null) return NotFound();
-        // Fichas para el combo de asignación
-        ViewBag.Fichas = await GetFichasAsync(cancellationToken);
+        await PopulateUserFormLookupsAsync(cancellationToken);
         // Armo el view model con lo que trae la BD
         return View(new UserEditViewModel
         {
@@ -312,6 +314,7 @@ public class AccountController : Controller
             Email = user.Email,
             Rol = user.Rol,
             FichaAsignadaId = user.FichaAsignadaId,
+            BodegaId = user.BodegaId,
             // Deserializo los permisos guardados como string
             SelectedPermissions = ExtendedPermissions.Parse(user.PermisosExtendidos).ToList(),
             IsActive = user.IsActive
@@ -325,14 +328,14 @@ public class AccountController : Controller
     public async Task<IActionResult> EditUser(UserEditViewModel model, CancellationToken cancellationToken)
     {
         // Reviso campos obligatorios del form
-        if (!ModelState.IsValid) { ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
+        if (!ModelState.IsValid) { await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
         // Permisos que el admin marcó en los checkboxes
         var permisos = model.SelectedPermissions ?? [];
         // Update en BD; contraseña es opcional si viene vacía
-        var result = await _userAccountService.UpdateUserAsync(model.Id, model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, permisos, model.IsActive, cancellationToken);
+        var result = await _userAccountService.UpdateUserAsync(model.Id, model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.BodegaId, permisos, model.IsActive, cancellationToken);
         // Error de negocio (ej. no bajar rol al admin principal)
-        if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); ViewBag.Fichas = await GetFichasAsync(cancellationToken); return View(model); }
+        if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
         TempData["Message"] = result.Message;
         return RedirectToAction(nameof(Users));
@@ -498,6 +501,13 @@ public class AccountController : Controller
         var physicalPath = Path.Combine(_environment.WebRootPath, normalized.Replace('/', Path.DirectorySeparatorChar));
         if (System.IO.File.Exists(physicalPath))
             System.IO.File.Delete(physicalPath);
+    }
+
+    // Combos de ficha y bodega al crear/editar usuario
+    private async Task PopulateUserFormLookupsAsync(CancellationToken cancellationToken)
+    {
+        ViewBag.Fichas = await GetFichasAsync(cancellationToken);
+        ViewBag.Bodegas = await _bodegaRepository.GetAllAsync(cancellationToken);
     }
 
     // Para el combo de ficha al crear/editar usuario
