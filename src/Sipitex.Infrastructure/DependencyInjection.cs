@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IQualityRepository, QualityRepository>();
         services.AddScoped<IRequirementRepository, RequirementRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IBodegaRepository, BodegaRepository>(); // Catálogo de bodegas (admin)
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IProductionSessionRepository, ProductionSessionRepository>();
         services.AddScoped<IAlertRepository, AlertRepository>();

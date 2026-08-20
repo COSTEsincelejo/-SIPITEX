@@ -5,6 +5,7 @@
     Layout = "_Layout";
     // Fichas disponibles para asignar (viene del controlador en ViewBag)
     var fichas = ViewBag.Fichas as IEnumerable<Ficha> ?? Array.Empty<Ficha>();
+    var bodegas = ViewBag.Bodegas as IEnumerable<Bodega> ?? Array.Empty<Bodega>();
 }
 
 <div class="page-header">
@@ -40,7 +41,7 @@
                 }
             </select>
         </div>
-        <div class="field">
+        <div class="field" data-role-field="instructor">
             <label class="field-label">Ficha asignada</label>
             <select asp-for="FichaAsignadaId">
                 <option value="">Sin asignar</option>
@@ -49,6 +50,17 @@
                     <option value="@ficha.Id">@ficha.FichaCode - @ficha.ProcessName</option>
                 }
             </select>
+        </div>
+        <div class="field" data-role-field="bodeguero" hidden>
+            <label class="field-label">Bodega asignada</label>
+            <select asp-for="BodegaId">
+                <option value="">Seleccione una bodega</option>
+                @foreach (var bodega in bodegas)
+                {
+                    <option value="@bodega.Id">@bodega.Nombre</option>
+                }
+            </select>
+            <p class="hint" style="margin-top:.35rem;">Obligatoria para Bodeguero. Sin bodega no podrá ver la cola de solicitudes.</p>
         </div>
         <div class="field">
             <label class="field-label">Permisos extendidos</label>
@@ -68,3 +80,20 @@
         <a asp-action="Users" class="small ghost">Cancelar</a>
     </form>
 </div>
+
+@section Scripts {
+<script>
+(function () {
+    const rol = document.querySelector('[name="Rol"]');
+    const ficha = document.querySelector('[data-role-field="instructor"]');
+    const bodega = document.querySelector('[data-role-field="bodeguero"]');
+    function sync() {
+        const value = rol?.value || '';
+        if (ficha) ficha.hidden = value !== 'Instructor';
+        if (bodega) bodega.hidden = value !== 'Bodeguero';
+    }
+    rol?.addEventListener('change', sync);
+    sync();
+})();
+</script>
+}

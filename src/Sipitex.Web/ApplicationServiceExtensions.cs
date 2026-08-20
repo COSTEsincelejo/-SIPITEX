@@ -33,8 +33,9 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IQualityService, QualityService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
 
-        // Cuentas de usuario y recuperar contraseña
+        // Cuentas de usuario, bodegas y recuperar contraseña
         services.AddScoped<IUserAccountService, UserAccountService>();
+        services.AddScoped<IBodegaService, BodegaService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
 
         // Alertas por correo y evaluación programada

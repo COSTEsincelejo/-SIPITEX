@@ -86,6 +86,7 @@
             {
                 <a class="@(IsAccountAction("Users", "CreateUser", "EditUser") ? "nav-item active" : "nav-item")"
                    asp-controller="Account" asp-action="Users"><i class="fas fa-users-gear"></i> Usuarios</a>
+                <a class="@NavClass("Bodegas")" asp-controller="Bodegas" asp-action="Index"><i class="fas fa-warehouse"></i> Bodegas</a>
             }
             @if (User.Identity?.IsAuthenticated == true)
             {

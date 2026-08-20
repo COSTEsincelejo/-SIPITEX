@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
 namespace Sipitex.Web.Models;
@@ -378,6 +379,20 @@ public class EmptyStateModel
     public string Text { get; set; } = "Todavía no hay información para mostrar.";
     public string? ActionText { get; set; } // texto del botón o hint
     public string? ActionHref { get; set; } // link del botón (opcional)
+}
+
+// Catálogo de bodegas (admin): listado + alta
+public class BodegasIndexViewModel
+{
+    public IReadOnlyList<Bodega> Bodegas { get; set; } = [];
+    public CreateBodegaForm Form { get; set; } = new();
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class CreateBodegaForm
+{
+    public string Nombre { get; set; } = string.Empty;
 }
 
 // Pantalla de reportes con filtros opcionales

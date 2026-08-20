@@ -11,9 +11,20 @@ public class UserAccountServiceTests
 {
     private readonly Mock<IUserRepository> _userRepository = new();
     private readonly Mock<IFichaRepository> _fichaRepository = new();
+    private readonly Mock<IBodegaRepository> _bodegaRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
-    private UserAccountService CreateSut() => new(_userRepository.Object, _fichaRepository.Object, _unitOfWork.Object);
+    private UserAccountService CreateSut()
+    {
+        _bodegaRepository
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Bodega { Id = 1, Nombre = "Bodega 1" });
+        _bodegaRepository
+            .Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Bodega { Id = 2, Nombre = "Bodega 2" });
+
+        return new(_userRepository.Object, _fichaRepository.Object, _bodegaRepository.Object, _unitOfWork.Object);
+    }
 
     private static User CreateUser(string email, string password, bool isActive = true, string rol = UserRoles.Instructor) => new()
     {
@@ -79,6 +90,7 @@ public class UserAccountServiceTests
             "Clave123!",
             UserRoles.Administrador,
             null,
+            null,
             []);
 
         Assert.True(result.Success);
@@ -99,6 +111,7 @@ public class UserAccountServiceTests
             "nuevo@sipitex.test",
             "Clave123!",
             UserRoles.Instructor,
+            null,
             null,
             []);
 
@@ -194,6 +207,126 @@ public class UserAccountServiceTests
         Assert.Equal("Registro de producción y seguimiento de fichas en turno mañana.", user.FuncionDescripcion);
         Assert.Equal("/uploads/profiles/1.jpg", user.PhotoPath);
         Assert.True(PasswordHasher.Verify("NuevaClave1!", user.PasswordHash));
+        _userRepository.Verify(r => r.Update(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_BodegueroConBodegaValida_AsignaBodegaId()
+    {
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("bodega3@sipitex.test", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        User? saved = null;
+        _userRepository
+            .Setup(r => r.Add(It.IsAny<User>()))
+            .Callback<User>(u => saved = u);
+
+        var result = await CreateSut().CreateUserAsync(
+            "Bodeguero Tres",
+            "bodega3@sipitex.test",
+            "Clave123!",
+            UserRoles.Bodeguero,
+            fichaAsignadaId: null,
+            bodegaId: 2,
+            []);
+
+        Assert.True(result.Success, result.Message);
+        Assert.NotNull(saved);
+        Assert.Equal(2, saved!.BodegaId);
+        Assert.Equal(UserRoles.Bodeguero, saved.Rol);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_InstructorConBodegaId_IgnoraYDejaNull()
+    {
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("inst@sipitex.test", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        User? saved = null;
+        _userRepository
+            .Setup(r => r.Add(It.IsAny<User>()))
+            .Callback<User>(u => saved = u);
+
+        var result = await CreateSut().CreateUserAsync(
+            "Instructor",
+            "inst@sipitex.test",
+            "Clave123!",
+            UserRoles.Instructor,
+            fichaAsignadaId: null,
+            bodegaId: 2,
+            []);
+
+        Assert.True(result.Success, result.Message);
+        Assert.NotNull(saved);
+        Assert.Null(saved!.BodegaId);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_AdministradorConBodegaId_IgnoraYDejaNull()
+    {
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("admin2@sipitex.test", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        User? saved = null;
+        _userRepository
+            .Setup(r => r.Add(It.IsAny<User>()))
+            .Callback<User>(u => saved = u);
+
+        var result = await CreateSut().CreateUserAsync(
+            "Admin Dos",
+            "admin2@sipitex.test",
+            "Clave123!",
+            UserRoles.Administrador,
+            fichaAsignadaId: null,
+            bodegaId: 1,
+            []);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Null(saved!.BodegaId);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_BodegueroSinBodega_Falla()
+    {
+        var result = await CreateSut().CreateUserAsync(
+            "Bodeguero Huérfano",
+            "huerfano@sipitex.test",
+            "Clave123!",
+            UserRoles.Bodeguero,
+            fichaAsignadaId: null,
+            bodegaId: null,
+            []);
+
+        Assert.False(result.Success);
+        Assert.Contains("asignar una bodega", result.Message, StringComparison.OrdinalIgnoreCase);
+        _userRepository.Verify(r => r.Add(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_AsignaBodegaABodegueroSinBodega()
+    {
+        var user = CreateUser("legado@sipitex.test", "Clave123!", rol: UserRoles.Bodeguero);
+        user.Id = 12;
+        user.BodegaId = null;
+        _userRepository.Setup(r => r.GetByIdAsync(12, It.IsAny<CancellationToken>())).ReturnsAsync(user);
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("legado@sipitex.test", 12, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _unitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().UpdateUserAsync(
+            12,
+            "Bodeguero Legado",
+            "legado@sipitex.test",
+            password: "",
+            UserRoles.Bodeguero,
+            fichaAsignadaId: null,
+            bodegaId: 1,
+            [],
+            isActive: true);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(1, user.BodegaId);
         _userRepository.Verify(r => r.Update(user), Times.Once);
     }
 }

@@ -12,12 +12,18 @@ public class UserAccountService : IUserAccountService
 {
     private readonly IUserRepository _userRepository;
     private readonly IFichaRepository _fichaRepository;
+    private readonly IBodegaRepository _bodegaRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public UserAccountService(IUserRepository userRepository, IFichaRepository fichaRepository, IUnitOfWork unitOfWork)
+    public UserAccountService(
+        IUserRepository userRepository,
+        IFichaRepository fichaRepository,
+        IBodegaRepository bodegaRepository,
+        IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _fichaRepository = fichaRepository;
+        _bodegaRepository = bodegaRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -52,12 +58,17 @@ public class UserAccountService : IUserAccountService
         string password,
         string rol,
         int? fichaAsignadaId,
+        int? bodegaId,
         IReadOnlyList<string> permisos,
         CancellationToken cancellationToken = default)
     {
         // Validaciones comunes de nombre, correo, contraseña y rol
         var validation = Validate(nombre, email, password, rol, requirePassword: true, creatableOnly: true);
         if (validation is not null) return validation;
+
+        var resolvedBodega = await ResolveBodegaIdAsync(rol, bodegaId, cancellationToken);
+        if (!resolvedBodega.Success)
+            return ServiceResult.Fail(resolvedBodega.Message ?? "Bodega no válida.");
 
         // No puede repetirse el correo
         if (await _userRepository.EmailExistsAsync(email.Trim(), null, cancellationToken))
@@ -71,6 +82,7 @@ public class UserAccountService : IUserAccountService
             PasswordHash = PasswordHasher.Hash(password),
             Rol = rol,
             FichaAsignadaId = fichaAsignadaId,
+            BodegaId = resolvedBodega.BodegaId,
             PermisosExtendidos = ExtendedPermissions.Serialize(permisos),
             IsActive = true
         };
@@ -91,6 +103,7 @@ public class UserAccountService : IUserAccountService
         string password,
         string rol,
         int? fichaAsignadaId,
+        int? bodegaId,
         IReadOnlyList<string> permisos,
         bool isActive,
         CancellationToken cancellationToken = default)
@@ -98,6 +111,10 @@ public class UserAccountService : IUserAccountService
         // Validación de campos; contraseña opcional en edición
         var validation = Validate(nombre, email, password, rol, requirePassword: false, creatableOnly: false);
         if (validation is not null) return validation;
+
+        var resolvedBodega = await ResolveBodegaIdAsync(rol, bodegaId, cancellationToken);
+        if (!resolvedBodega.Success)
+            return ServiceResult.Fail(resolvedBodega.Message ?? "Bodega no válida.");
 
         // Busco el usuario que vamos a modificar
         var user = await _userRepository.GetByIdAsync(id, cancellationToken);
@@ -124,6 +141,7 @@ public class UserAccountService : IUserAccountService
         user.Email = email.Trim().ToLowerInvariant();
         user.Rol = rol;
         user.FichaAsignadaId = fichaAsignadaId;
+        user.BodegaId = resolvedBodega.BodegaId;
         user.PermisosExtendidos = ExtendedPermissions.Serialize(permisos);
         user.IsActive = isActive;
 
@@ -269,6 +287,25 @@ public class UserAccountService : IUserAccountService
         }
 
         return null;
+    }
+
+    // Bodeguero exige bodega existente; otros roles ignoran el valor y quedan sin bodega.
+    private async Task<(bool Success, string? Message, int? BodegaId)> ResolveBodegaIdAsync(
+        string rol,
+        int? bodegaId,
+        CancellationToken cancellationToken)
+    {
+        if (!string.Equals(rol, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase))
+            return (true, null, null);
+
+        if (bodegaId is not int id || id <= 0)
+            return (false, "Debe asignar una bodega al bodeguero.", null);
+
+        var bodega = await _bodegaRepository.GetByIdAsync(id, cancellationToken);
+        if (bodega is null)
+            return (false, "Bodega no válida.", null);
+
+        return (true, null, bodega.Id);
     }
 
     // Si es instructor con ficha asignada, actualizo la ficha para que apunte a ese usuario

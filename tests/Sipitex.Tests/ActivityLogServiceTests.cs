@@ -104,10 +104,15 @@ public class AccountActivityLogInstrumentationTests
     private readonly Mock<IPasswordResetService> _passwordReset = new();
     private readonly Mock<IFuncionalidadesReportService> _funcionalidades = new();
     private readonly Mock<IActivityLogService> _activity = new();
+    private readonly Mock<IBodegaService> _bodegas = new();
     private readonly Mock<IWebHostEnvironment> _env = new();
 
     private AccountController CreateController(int actorId = 1, string actorName = "Admin")
     {
+        _bodegas
+            .Setup(b => b.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
         var identity = new ClaimsIdentity(
         [
             new Claim(ClaimTypes.NameIdentifier, actorId.ToString()),
@@ -120,6 +125,7 @@ public class AccountActivityLogInstrumentationTests
             _passwordReset.Object,
             _funcionalidades.Object,
             _activity.Object,
+            _bodegas.Object,
             _env.Object)
         {
             ControllerContext = new ControllerContext
@@ -138,7 +144,7 @@ public class AccountActivityLogInstrumentationTests
     {
         _accounts.Setup(s => s.CreateUserAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult.Ok("Usuario creado correctamente."));
         _accounts.Setup(s => s.GetUserByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
@@ -188,7 +194,7 @@ public class AccountActivityLogInstrumentationTests
     {
         _accounts.Setup(s => s.CreateUserAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult.Fail("Ya existe un usuario con ese correo."));
 
         var services = new Mock<IServiceProvider>();
