@@ -11,6 +11,7 @@ public class SipitexDbContext : DbContext
 
     // Cada DbSet = una tabla en la BD
     public DbSet<Material> Materials => Set<Material>(); // Inventario de telas, hilos, etc.
+    public DbSet<Bodega> Bodegas => Set<Bodega>(); // Bodega 1 / Bodega 2 (catálogo compartido)
     public DbSet<BomProduct> BomProducts => Set<BomProduct>(); // Cabecera de ficha técnica (producto)
     public DbSet<BomProductInstructor> BomProductInstructors => Set<BomProductInstructor>(); // M2M ficha técnica ↔ instructor
     public DbSet<BomProductTalla> BomProductTallas => Set<BomProductTalla>(); // Tallas de ficha técnica (Fase A)
@@ -50,6 +51,16 @@ public class SipitexDbContext : DbContext
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // --- Bodega (Bodega 1 / Bodega 2; seed fijo de catálogo) ---
+        modelBuilder.Entity<Bodega>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.Property(b => b.Nombre).HasMaxLength(80).IsRequired();
+            e.HasData(
+                new Bodega { Id = 1, Nombre = "Bodega 1" },
+                new Bodega { Id = 2, Nombre = "Bodega 2" });
+        });
+
         // --- Material ---
         modelBuilder.Entity<Material>(e =>
         {
@@ -59,6 +70,11 @@ public class SipitexDbContext : DbContext
             // Precision 18,2 porque stock puede tener decimales (metros de tela, etc.)
             e.Property(m => m.Stock).HasPrecision(18, 2);
             e.Property(m => m.MinStock).HasPrecision(18, 2); // Umbral para alerta de stock bajo
+            e.HasOne(m => m.Bodega)
+                .WithMany(b => b.Materiales)
+                .HasForeignKey(m => m.BodegaId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(m => m.BodegaId);
         });
 
         // Cabecera de ficha técnica (producto)
@@ -332,6 +348,12 @@ public class SipitexDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(u => u.FichaAsignadaId)
                 .OnDelete(DeleteBehavior.SetNull); // Si borran la ficha, el usuario sigue
+            // Bodeguero asignado a una bodega (null hasta que el admin lo asigne)
+            e.HasOne(u => u.Bodega)
+                .WithMany(b => b.Bodegueros)
+                .HasForeignKey(u => u.BodegaId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(u => u.BodegaId);
         });
 
         // Preferencias de alertas por usuario (qué tipo de notificación quiere recibir)
@@ -387,6 +409,11 @@ public class SipitexDbContext : DbContext
             e.HasIndex(s => s.SolicitanteId);
             e.HasIndex(s => s.Estado);
             e.HasIndex(s => s.Tipo);
+            e.HasOne(s => s.Bodega)
+                .WithMany(b => b.Solicitudes)
+                .HasForeignKey(s => s.BodegaId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(s => s.BodegaId);
         });
 
         // --- DetalleSolicitudMaterial ---

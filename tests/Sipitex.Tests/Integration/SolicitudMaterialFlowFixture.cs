@@ -115,7 +115,8 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             Stock = StockAmplioInicial,
             MinStock = 10,
             Status = MaterialStatus.Bueno,
-            LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
+            LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
+            BodegaId = 1
         };
         var matJusto = new Material
         {
@@ -125,7 +126,8 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             Stock = StockJustoInicial,
             MinStock = 1,
             Status = MaterialStatus.Bueno,
-            LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
+            LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
+            BodegaId = 1
         };
         var matCero = new Material
         {
@@ -135,7 +137,8 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             Stock = StockCeroInicial,
             MinStock = 1,
             Status = MaterialStatus.Bueno,
-            LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
+            LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
+            BodegaId = 1
         };
 
         Context.Materials.AddRange(matAmplio, matJusto, matCero);

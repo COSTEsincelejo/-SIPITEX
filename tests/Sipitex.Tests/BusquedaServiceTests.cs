@@ -25,8 +25,8 @@ public class BusquedaServiceTests
     public async Task SearchAsync_EncuentraMaterialPorNombre()
     {
         await using var db = await CreateDbAsync();
-        db.Materials.Add(new Material { Name = "Tela denim", Code = "mat-denim", Unit = MaterialUnit.Metros, Stock = 10, MinStock = 2 });
-        db.Materials.Add(new Material { Name = "Hilo blanco", Code = "mat-hilo", Unit = MaterialUnit.Unidades, Stock = 5, MinStock = 1 });
+        db.Materials.Add(new Material { Name = "Tela denim", Code = "mat-denim", Unit = MaterialUnit.Metros, Stock = 10, MinStock = 2, BodegaId = 1 });
+        db.Materials.Add(new Material { Name = "Hilo blanco", Code = "mat-hilo", Unit = MaterialUnit.Unidades, Stock = 5, MinStock = 1, BodegaId = 1 });
         await db.SaveChangesAsync();
 
         var sut = new BusquedaService(db);

@@ -62,7 +62,8 @@ public class StockMovementHistoryFilterTests
                 Stock = 100,
                 MinStock = 10,
                 Status = MaterialStatus.Bueno,
-                LastEntryDate = DateOnly.FromDateTime(DateTime.UtcNow)
+                LastEntryDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                BodegaId = 1
             };
             var matB = new Material
             {
@@ -72,7 +73,8 @@ public class StockMovementHistoryFilterTests
                 Stock = 50,
                 MinStock = 5,
                 Status = MaterialStatus.Bueno,
-                LastEntryDate = DateOnly.FromDateTime(DateTime.UtcNow)
+                LastEntryDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                BodegaId = 1
             };
             db.Users.Add(user);
             db.Materials.AddRange(matA, matB);
