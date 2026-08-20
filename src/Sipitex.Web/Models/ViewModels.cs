@@ -395,6 +395,14 @@ public class CreateBodegaForm
     public string Nombre { get; set; } = string.Empty;
 }
 
+public class EditBodegaViewModel
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
 // Pantalla de reportes con filtros opcionales
 public class ReportesIndexViewModel
 {

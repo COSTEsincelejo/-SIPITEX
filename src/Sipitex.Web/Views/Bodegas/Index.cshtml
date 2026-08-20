@@ -8,7 +8,7 @@
 <div class="page-header">
     <div>
         <h2>Bodegas</h2>
-        <div class="sub">Cree y consulte las bodegas físicas. Bodega 1 y Bodega 2 vienen del sistema; puede agregar más (p. ej. Bodega 3).</div>
+        <div class="sub">Cree, renombre o elimine bodegas físicas. Bodega 1 y Bodega 2 vienen del sistema; puede agregar más. No se puede borrar una bodega con materiales, solicitudes o bodegueros, ni la última bodega, ni Bodega 1 (usada por defecto).</div>
     </div>
 </div>
 
@@ -48,6 +48,7 @@
                     <tr>
                         <th>Id</th>
                         <th>Nombre</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -56,6 +57,17 @@
                     <tr>
                         <td>@b.Id</td>
                         <td><strong>@b.Nombre</strong></td>
+                        <td>
+                            <div class="row-actions">
+                                <a asp-action="Edit" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-pen"></i> Editar</a>
+                                <form asp-action="Delete" method="post" style="display:inline;"
+                                      data-confirm="¿Eliminar «@b.Nombre»? Solo se permite si no tiene materiales, solicitudes ni bodegueros.">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@b.Id" />
+                                    <button type="submit" class="small danger"><i class="fas fa-trash"></i> Eliminar</button>
+                                </form>
+                            </div>
+                        </td>
                     </tr>
                 }
                 </tbody>

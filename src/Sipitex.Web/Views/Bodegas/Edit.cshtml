@@ -1,0 +1,31 @@
+@model EditBodegaViewModel
+@{
+    ViewData["Title"] = "Editar bodega";
+    ViewData["Breadcrumb"] = "SIPITEX / Administración / Bodegas / Editar";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Editar bodega</h2>
+        <div class="sub">Solo cambia el nombre. Los materiales, solicitudes y bodegueros asignados siguen apuntando a esta bodega.</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card" style="max-width:560px;">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="field">
+            <label class="field-label">Nombre</label>
+            <input asp-for="Nombre" maxlength="80" required />
+        </div>
+        <button type="submit" class="primary">Guardar</button>
+        <a asp-action="Index" class="small ghost">Cancelar</a>
+    </form>
+</div>
