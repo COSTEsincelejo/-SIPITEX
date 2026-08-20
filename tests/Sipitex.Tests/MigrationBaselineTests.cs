@@ -56,8 +56,9 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
             Assert.True(await TableExistsAsync(dbPath, "Users"));
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            // ... + MaterialRequestSolicitante + ActivityLog + InsumosLibres = 21
-            Assert.Equal(21, await CountMigrationRowsAsync(dbPath));
+            // ... + MaterialRequestSolicitante + ActivityLog + InsumosLibres + AddBodegas = 22
+            Assert.Equal(22, await CountMigrationRowsAsync(dbPath));
+            Assert.True(await TableExistsAsync(dbPath, "Bodegas"));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "DetallesSolicitudMaterial"));
@@ -113,7 +114,7 @@ public class MigrationBaselineTests
             }
 
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(21, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(22, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
@@ -158,6 +159,7 @@ public class MigrationBaselineTests
                 Assert.Contains(ids, id => id.Contains("AddMaterialRequestSolicitante", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddActivityLog", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddSolicitudMaterialInsumosLibres", StringComparison.Ordinal));
+                Assert.Contains(ids, id => id.Contains("AddBodegas", StringComparison.Ordinal));
             }
         }
         finally
@@ -178,7 +180,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(21, before);
+            Assert.Equal(22, before);
 
             await using (var context = CreateContext(dbPath))
             {

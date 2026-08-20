@@ -24,6 +24,12 @@ public class User
     // Navegación a esa ficha (EF Core la llena si hago Include)
     public Ficha? FichaAsignada { get; set; }
 
+    // FK opcional a bodega; solo tiene sentido cuando Rol == UserRoles.Bodeguero
+    public int? BodegaId { get; set; }
+
+    // Navegación a la bodega asignada (null hasta que el admin la asigne)
+    public Bodega? Bodega { get; set; }
+
     // Permisos extra en texto, separados por comas (los parseo con ExtendedPermissions)
     public string PermisosExtendidos { get; set; } = string.Empty;
 

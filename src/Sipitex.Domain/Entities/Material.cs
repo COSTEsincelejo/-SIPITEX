@@ -29,6 +29,12 @@ public class Material
     // Fecha de la última entrada/ajuste de stock (solo día, sin hora)
     public DateOnly LastEntryDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
+    // FK obligatoria a la bodega dueña de este material (default 1 = Bodega 1, alineado al backfill)
+    public int BodegaId { get; set; } = 1;
+
+    // Navegación a la bodega
+    public Bodega Bodega { get; set; } = null!;
+
     // Relación 1-N: en qué ítems del BOM aparece este material
     public ICollection<BomItem> BomItems { get; set; } = [];
 
