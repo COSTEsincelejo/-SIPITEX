@@ -358,7 +358,8 @@ public record SolicitudMaterialListItemDto(
     string FichaCode,
     SolicitudMaterialEstado Estado,
     DateTime FechaSolicitud,
-    string SolicitanteNombre);
+    string SolicitanteNombre,
+    string BodegaNombre);
 
 // Ítem en el detalle de una solicitud
 public record DetalleSolicitudMaterialDto(
@@ -382,7 +383,8 @@ public record SolicitudMaterialDetailDto(
     DateTime FechaSolicitud,
     DateTime? FechaResolucion,
     string? Observaciones,
-    IReadOnlyList<DetalleSolicitudMaterialDto> Detalles);
+    IReadOnlyList<DetalleSolicitudMaterialDto> Detalles,
+    string BodegaNombre);
 
 // Ítem para resolución en bodega (incluye stock actual)
 public record DetalleResolucionDto(
@@ -407,7 +409,8 @@ public record SolicitudMaterialResolucionDto(
     DateTime FechaSolicitud,
     string? Observaciones,
     string? EntregaCodigo,
-    IReadOnlyList<DetalleResolucionDto> Detalles);
+    IReadOnlyList<DetalleResolucionDto> Detalles,
+    string BodegaNombre);
 
 // Una línea del formulario de resolución (mapeo opcional para InsumosLibres)
 public record ResolveDetalleDto(

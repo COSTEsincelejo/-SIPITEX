@@ -11,7 +11,7 @@
         <h2>@s.Codigo</h2>
         <div class="sub">
             <span class="badge @DisplayHelper.BadgeClass(s.Tipo)">@DisplayHelper.StatusText(s.Tipo)</span>
-            · Ficha @s.FichaCode
+            · Ficha @s.FichaCode · Bodega @s.BodegaNombre
         </div>
     </div>
     <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver al listado</a>
@@ -28,6 +28,7 @@
         <div><span class="field-label">Estado</span><br /><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></div>
         <div><span class="field-label">Tipo</span><br /><span class="badge @DisplayHelper.BadgeClass(s.Tipo)">@DisplayHelper.StatusText(s.Tipo)</span></div>
         <div><span class="field-label">Ficha</span><br /><strong>@s.FichaCode</strong></div>
+        <div><span class="field-label">Bodega</span><br /><strong>@s.BodegaNombre</strong></div>
         <div><span class="field-label">Solicitante</span><br />@s.SolicitanteNombre</div>
         <div><span class="field-label">Fecha solicitud</span><br />@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
         <div><span class="field-label">Fecha resolución</span><br />@(s.FechaResolucion?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "—")</div>

@@ -19,6 +19,7 @@ public class SolicitudMaterialRepository : ISolicitudMaterialRepository
         _context.SolicitudesMaterial
             .Include(s => s.Ficha)
             .Include(s => s.Solicitante)
+            .Include(s => s.Bodega)
             .Include(s => s.Detalles)
             .ThenInclude(d => d.Material)
             .Include(s => s.Entrega)
@@ -28,6 +29,7 @@ public class SolicitudMaterialRepository : ISolicitudMaterialRepository
         await _context.SolicitudesMaterial
             .Include(s => s.Ficha)
             .Include(s => s.Solicitante)
+            .Include(s => s.Bodega)
             .OrderByDescending(s => s.FechaSolicitud)
             .ToListAsync(cancellationToken);
 

@@ -35,6 +35,7 @@
                         <th>Código</th>
                         <th>Tipo</th>
                         <th>Ficha</th>
+                        <th>Bodega</th>
                         <th>Estado</th>
                         <th>Fecha de solicitud</th>
                         @if (Model.IsAdministrator)
@@ -51,6 +52,7 @@
                         <td><strong>@s.Codigo</strong></td>
                         <td><span class="badge @DisplayHelper.BadgeClass(s.Tipo)">@DisplayHelper.StatusText(s.Tipo)</span></td>
                         <td>@s.FichaCode</td>
+                        <td>@s.BodegaNombre</td>
                         <td><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></td>
                         <td>@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
                         @if (Model.IsAdministrator)

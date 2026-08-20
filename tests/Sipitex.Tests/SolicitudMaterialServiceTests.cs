@@ -379,4 +379,39 @@ public class SolicitudMaterialServiceTests
 
         Assert.Null(detail);
     }
+
+    [Fact]
+    public async Task GetListAndDetail_ConBodegaValida_PueblanBodegaNombre()
+    {
+        var solicitud = new SolicitudMaterial
+        {
+            Id = 1,
+            Codigo = "SOL-0001",
+            BodegaId = 1,
+            Bodega = new Bodega { Id = 1, Nombre = "Bodega 1" },
+            SolicitanteId = 10,
+            Estado = SolicitudMaterialEstado.Pendiente,
+            FechaSolicitud = DateTime.UtcNow,
+            Ficha = new Ficha { FichaCode = "F1" },
+            Solicitante = new User { Nombre = "Laura" },
+            Detalles = []
+        };
+
+        _solicitudes.Setup(r => r.GetAllWithFichaAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([solicitud]);
+        _solicitudes.Setup(r => r.GetByIdWithDetallesAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(solicitud);
+
+        var sut = CreateSut();
+        var list = await sut.GetListAsync(10, UserRoles.Instructor);
+        var listBodega = await sut.GetListForBodegaAsync(bodegaId: 1);
+        var detail = await sut.GetDetailAsync(1, 10, UserRoles.Instructor);
+
+        Assert.Equal("Bodega 1", Assert.Single(list).BodegaNombre);
+        Assert.Equal("Bodega 1", Assert.Single(listBodega).BodegaNombre);
+        Assert.NotNull(detail);
+        Assert.Equal("Bodega 1", detail!.BodegaNombre);
+        Assert.NotEqual("—", detail.BodegaNombre);
+        Assert.False(string.IsNullOrWhiteSpace(detail.BodegaNombre));
+    }
 }

@@ -328,7 +328,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
                     d.Material?.Stock ?? 0,
                     d.CantidadAprobada,
                     d.EstadoItem))
-                .ToList());
+                .ToList(),
+            solicitud.Bodega?.Nombre ?? "—");
     }
 
     private async Task<ServiceResult?> ValidateBodegaAsync(int bodegaId, CancellationToken cancellationToken)
@@ -344,7 +345,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     }
 
     private static SolicitudMaterialListItemDto MapListItem(SolicitudMaterial s) =>
-        new(s.Id, s.Codigo, s.Tipo, s.Ficha?.FichaCode ?? "—", s.Estado, s.FechaSolicitud, s.Solicitante?.Nombre ?? "—");
+        new(s.Id, s.Codigo, s.Tipo, s.Ficha?.FichaCode ?? "—", s.Estado, s.FechaSolicitud, s.Solicitante?.Nombre ?? "—", s.Bodega?.Nombre ?? "—");
 
     private static SolicitudMaterialDetailDto MapDetail(SolicitudMaterial solicitud) =>
         new(
@@ -368,7 +369,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
                     d.CantidadSolicitada,
                     d.CantidadAprobada,
                     d.EstadoItem))
-                .ToList());
+                .ToList(),
+            solicitud.Bodega?.Nombre ?? "—");
 
     private static bool CanRequestOnFicha(
         Ficha ficha,
