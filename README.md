@@ -70,6 +70,14 @@ Abrir `http://localhost:8080`. La base de datos persiste en el volumen `sipitex-
 | Alertas | `/Alertas` | Preferencias de correo por actor |
 | Usuarios | `/Account/Users` | CRUD de usuarios (Administrador) |
 
+## Manuales de uso por actor
+
+Guías prácticas (login, bodegas, rutina diaria) en [`docs/manuales/`](docs/manuales/):
+
+- [Administrador](docs/manuales/Manual-Administrador.md)
+- [Instructor](docs/manuales/Manual-Instructor.md)
+- [Bodeguero](docs/manuales/Manual-Bodeguero.md)
+
 ## Metodología cascada
 
 Ver carpeta [`docs/`](docs/) para el ciclo completo:
@@ -79,6 +87,7 @@ Ver carpeta [`docs/`](docs/) para el ciclo completo:
 3. **Implementación** — Código en `src/`  
 4. **Pruebas** — Plan de pruebas funcionales  
 5. **Despliegue** — Guía de publicación intranet / Docker  
+6. **Manuales de uso** — [`docs/manuales/`](docs/manuales/) (Administrador, Instructor, Bodeguero) 
 
 ## Tecnologías
 

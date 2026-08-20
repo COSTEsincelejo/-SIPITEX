@@ -8,6 +8,7 @@
 | [04-Pruebas.md](04-Pruebas.md) | Fase 4 — Pruebas |
 | [05-Despliegue.md](05-Despliegue.md) | Fase 5 — Despliegue |
 | **[08-IEEE830-Especificacion.md](08-IEEE830-Especificacion.md)** | **SRS IEEE 830** (texto claro + diagramas en imagen) |
+| **[manuales/](manuales/)** | **Manuales de uso por actor** (Admin, Instructor, Bodeguero) |
 
 ## Diagramas (imágenes)
 
