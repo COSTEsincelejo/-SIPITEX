@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore; // EF Core para hablar con SQLite
+using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities; // Las entidades del dominio que mapeo a tablas
 
 namespace Sipitex.Infrastructure.Persistence;
@@ -6,8 +7,22 @@ namespace Sipitex.Infrastructure.Persistence;
 // El DbContext de EF Core — acá queda todo el mapeo a SQLite
 public class SipitexDbContext : DbContext
 {
-    // El contenedor DI me pasa las opciones (connection string, etc.)
-    public SipitexDbContext(DbContextOptions<SipitexDbContext> options) : base(options) { }
+    private readonly ICurrentBodegaAccessor _bodegaAccessor;
+
+    // Tests / tools sin accessor: sin restricción de bodega.
+    public SipitexDbContext(DbContextOptions<SipitexDbContext> options)
+        : this(options, NullCurrentBodegaAccessor.Instance)
+    {
+    }
+
+    public SipitexDbContext(DbContextOptions<SipitexDbContext> options, ICurrentBodegaAccessor bodegaAccessor)
+        : base(options)
+    {
+        _bodegaAccessor = bodegaAccessor;
+    }
+
+    // EF Core parametriza esta propiedad en el query filter en cada consulta.
+    public int? CurrentBodegaId => _bodegaAccessor.BodegaId;
 
     // Cada DbSet = una tabla en la BD
     public DbSet<Material> Materials => Set<Material>(); // Inventario de telas, hilos, etc.
@@ -75,6 +90,8 @@ public class SipitexDbContext : DbContext
                 .HasForeignKey(m => m.BodegaId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(m => m.BodegaId);
+            // Bodeguero: solo su bodega. null en accessor = Admin/Instructor/seed (sin filtro).
+            e.HasQueryFilter(m => CurrentBodegaId == null || m.BodegaId == CurrentBodegaId);
         });
 
         // Cabecera de ficha técnica (producto)
@@ -414,6 +431,7 @@ public class SipitexDbContext : DbContext
                 .HasForeignKey(s => s.BodegaId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(s => s.BodegaId);
+            e.HasQueryFilter(s => CurrentBodegaId == null || s.BodegaId == CurrentBodegaId);
         });
 
         // --- DetalleSolicitudMaterial ---

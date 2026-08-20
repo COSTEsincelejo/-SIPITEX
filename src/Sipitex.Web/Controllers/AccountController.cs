@@ -450,6 +450,10 @@ public class AccountController : Controller
         if (!string.IsNullOrWhiteSpace(user.PhotoPath))
             claims.Add(new Claim(PhotoClaimType, user.PhotoPath));
 
+        if (string.Equals(user.Rol, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase)
+            && user.BodegaId is > 0)
+            claims.Add(new Claim(BodegaClaimTypes.BodegaId, user.BodegaId.Value.ToString()));
+
         // Cada permiso extra va como claim aparte
         foreach (var permiso in ExtendedPermissions.Parse(user.PermisosExtendidos))
             claims.Add(new Claim(ExtendedPermissions.ClaimType, permiso));

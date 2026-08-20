@@ -438,4 +438,112 @@ public class SolicitudMaterialApprovalServiceTests
         Assert.Equal(98m, material.Stock);
         Assert.Equal(SolicitudMaterialEstado.AprobadaTotal, solicitud.Estado);
     }
+
+    [Fact]
+    public async Task ResolveSolicitudAsync_MapeoMaterialDeOtraBodega_Falla()
+    {
+        var materialAjeno = new Material { Id = 8, Name = "Hilo", Stock = 40, BodegaId = 2 };
+        var solicitud = new SolicitudMaterial
+        {
+            Id = 20,
+            Codigo = "SOL-LIB",
+            Tipo = SolicitudMaterialTipo.InsumosLibres,
+            SolicitanteId = 10,
+            Estado = SolicitudMaterialEstado.Pendiente,
+            BodegaId = 1,
+            Detalles =
+            [
+                new DetalleSolicitudMaterial
+                {
+                    Id = 1,
+                    SolicitudMaterialId = 20,
+                    MaterialId = null,
+                    Material = null,
+                    DescripcionItem = "Hilo",
+                    CantidadSolicitada = 2,
+                    EstadoItem = DetalleSolicitudEstado.Pendiente
+                }
+            ]
+        };
+        solicitud.Detalles.First().SolicitudMaterial = solicitud;
+
+        _solicitudRepository
+            .Setup(r => r.GetByIdWithDetallesAsync(20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(solicitud);
+        _materialRepository
+            .Setup(r => r.GetByIdAsync(8, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(materialAjeno);
+
+        var result = await CreateSut().ResolveSolicitudAsync(
+            20,
+            [new ResolveDetalleDto(1, 2, MaterialId: 8)],
+            bodegueroId: 9);
+
+        Assert.False(result.Success);
+        Assert.Contains("otra bodega", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(40m, materialAjeno.Stock);
+        _unitOfWork.Verify(
+            u => u.ExecuteInTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveSolicitudAsync_InsumosLibres_MaterialNuevo_HeredaBodegaDeSolicitud()
+    {
+        var solicitud = new SolicitudMaterial
+        {
+            Id = 20,
+            Codigo = "SOL-LIB",
+            Tipo = SolicitudMaterialTipo.InsumosLibres,
+            SolicitanteId = 10,
+            Estado = SolicitudMaterialEstado.Pendiente,
+            BodegaId = 2,
+            Detalles =
+            [
+                new DetalleSolicitudMaterial
+                {
+                    Id = 1,
+                    SolicitudMaterialId = 20,
+                    MaterialId = null,
+                    Material = null,
+                    DescripcionItem = "Cinta bies",
+                    CantidadSolicitada = 1,
+                    EstadoItem = DetalleSolicitudEstado.Pendiente
+                }
+            ]
+        };
+        solicitud.Detalles.First().SolicitudMaterial = solicitud;
+
+        Material? created = null;
+        _solicitudRepository
+            .Setup(r => r.GetByIdWithDetallesAsync(20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(solicitud);
+        _materialRepository
+            .Setup(r => r.AddAsync(It.IsAny<Material>(), It.IsAny<CancellationToken>()))
+            .Callback<Material, CancellationToken>((m, _) =>
+            {
+                created = m;
+                m.Id = 77;
+                // Stock arranca en 0; el test solo cubre BodegaId del alta.
+                m.Stock = 1;
+            })
+            .Returns(Task.CompletedTask);
+        _unitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _solicitudRepository
+            .Setup(r => r.AddEntregaAsync(It.IsAny<EntregaMaterial>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await CreateSut().ResolveSolicitudAsync(
+            20,
+            [new ResolveDetalleDto(1, 1, NewMaterialName: "Cinta bies", NewMaterialUnit: MaterialUnit.Metros)],
+            bodegueroId: 9);
+
+        Assert.True(result.Success, result.Message);
+        Assert.NotNull(created);
+        Assert.Equal(2, created!.BodegaId);
+        Assert.Equal("Cinta bies", created.Name);
+        Assert.Equal(77, solicitud.Detalles.Single().MaterialId);
+    }
 }

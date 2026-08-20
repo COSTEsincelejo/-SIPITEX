@@ -18,25 +18,25 @@ public class BodegaSolicitudesController : Controller
     private readonly ISolicitudMaterialService _solicitudService;
     private readonly ISolicitudMaterialApprovalService _approvalService;
     private readonly IInventoryService _inventoryService;
-    private readonly IUserAccountService _users;
+    private readonly ICurrentBodegaAccessor _bodegaAccessor;
 
     public BodegaSolicitudesController(
         ISolicitudMaterialService solicitudService,
         ISolicitudMaterialApprovalService approvalService,
         IInventoryService inventoryService,
-        IUserAccountService users)
+        ICurrentBodegaAccessor bodegaAccessor)
     {
         _solicitudService = solicitudService;
         _approvalService = approvalService;
         _inventoryService = inventoryService;
-        _users = users;
+        _bodegaAccessor = bodegaAccessor;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index(string? estado, CancellationToken cancellationToken)
     {
         var soloPendientes = !string.Equals(estado, "todas", StringComparison.OrdinalIgnoreCase);
-        var viewerBodegaId = await GetViewerBodegaIdAsync(cancellationToken);
+        var viewerBodegaId = GetViewerBodegaId();
         if (viewerBodegaId is null)
         {
             return View(new BodegaSolicitudesIndexViewModel
@@ -62,7 +62,7 @@ public class BodegaSolicitudesController : Controller
     [HttpGet]
     public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
     {
-        var viewerBodegaId = await GetViewerBodegaIdAsync(cancellationToken);
+        var viewerBodegaId = GetViewerBodegaId();
         if (viewerBodegaId is null)
         {
             TempData["Message"] = BodegaNoAsignadaMessage;
@@ -96,7 +96,7 @@ public class BodegaSolicitudesController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        var viewerBodegaId = await GetViewerBodegaIdAsync(cancellationToken);
+        var viewerBodegaId = GetViewerBodegaId();
         if (viewerBodegaId is null)
         {
             TempData["Message"] = BodegaNoAsignadaMessage;
@@ -139,12 +139,6 @@ public class BodegaSolicitudesController : Controller
     }
 
     // Bodeguero sin BodegaId (legado) o sesión inválida: no se listan todas las bodegas.
-    private async Task<int?> GetViewerBodegaIdAsync(CancellationToken cancellationToken)
-    {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId) || userId <= 0)
-            return null;
-
-        var user = await _users.GetUserByIdAsync(userId, cancellationToken);
-        return user?.BodegaId is > 0 ? user.BodegaId : null;
-    }
+    private int? GetViewerBodegaId() =>
+        _bodegaAccessor.BodegaId is > 0 ? _bodegaAccessor.BodegaId : null;
 }
