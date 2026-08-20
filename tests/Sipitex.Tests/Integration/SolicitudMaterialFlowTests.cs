@@ -38,6 +38,7 @@ public class SolicitudMaterialFlowTests
 
         Assert.StartsWith("SOL-", solicitud.Codigo);
         Assert.Equal(SolicitudMaterialEstado.Pendiente, solicitud.Estado);
+        Assert.Equal(1, solicitud.BodegaId);
         Assert.Equal(2, solicitud.Detalles.Count);
 
         // Notificación a Bodeguero: email mock + AlertDelivery persistido
@@ -393,4 +394,130 @@ public class SolicitudMaterialFlowTests
         Assert.True(resolve.Success, resolve.Message);
         Assert.Equal(stockAntes - 4, await fx.GetMaterialStockAsync(fx.MaterialAmplioId));
     }
+
+    [Fact]
+    public async Task PorFicha_MaterialBodega2_PersisteBodegaId2()
+    {
+        await using var fx = await SolicitudMaterialFlowFixture.CreateAsync();
+
+        var matB2 = new Material
+        {
+            Code = "mat-b2",
+            Name = "Tela bodega 2",
+            Unit = MaterialUnit.Metros,
+            Stock = 50,
+            MinStock = 5,
+            Status = MaterialStatus.Bueno,
+            LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
+            BodegaId = 2
+        };
+        fx.Context.Materials.Add(matB2);
+        await fx.Context.SaveChangesAsync();
+
+        var create = await fx.SolicitudService.CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.PorFicha,
+                fx.FichaAsignadaId,
+                null,
+                null,
+                [new CreateDetalleSolicitudDto(matB2.Id, 3)]),
+            fx.InstructorId,
+            UserRoles.Instructor,
+            "Instructor Test");
+
+        Assert.True(create.Success, create.Message);
+
+        var solicitud = await fx.Context.SolicitudesMaterial.AsNoTracking().SingleAsync();
+        Assert.Equal(2, solicitud.BodegaId);
+    }
+
+    [Fact]
+    public async Task PorFicha_MaterialesDeBodegasMixtas_Falla()
+    {
+        await using var fx = await SolicitudMaterialFlowFixture.CreateAsync();
+
+        var matB2 = new Material
+        {
+            Code = "mat-b2-mix",
+            Name = "Hilo bodega 2",
+            Unit = MaterialUnit.Unidades,
+            Stock = 20,
+            MinStock = 1,
+            Status = MaterialStatus.Bueno,
+            LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
+            BodegaId = 2
+        };
+        fx.Context.Materials.Add(matB2);
+        await fx.Context.SaveChangesAsync();
+
+        var create = await fx.SolicitudService.CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.PorFicha,
+                fx.FichaAsignadaId,
+                null,
+                null,
+                [
+                    new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 2),
+                    new CreateDetalleSolicitudDto(matB2.Id, 1)
+                ]),
+            fx.InstructorId,
+            UserRoles.Instructor,
+            "Instructor Test");
+
+        Assert.False(create.Success);
+        Assert.Contains("misma bodega", create.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, await fx.Context.SolicitudesMaterial.CountAsync());
+    }
+
+    [Fact]
+    public async Task GetListForBodegaAsync_NoCruzaSolicitudesDeOtraBodega()
+    {
+        await using var fx = await SolicitudMaterialFlowFixture.CreateAsync();
+
+        var matB2 = new Material
+        {
+            Code = "mat-b2-list",
+            Name = "Botón bodega 2",
+            Unit = MaterialUnit.Unidades,
+            Stock = 30,
+            MinStock = 1,
+            Status = MaterialStatus.Bueno,
+            LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
+            BodegaId = 2
+        };
+        fx.Context.Materials.Add(matB2);
+        await fx.Context.SaveChangesAsync();
+
+        var createB1 = await fx.SolicitudService.CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.PorFicha,
+                fx.FichaAsignadaId,
+                null,
+                null,
+                [new CreateDetalleSolicitudDto(fx.MaterialAmplioId, 1)]),
+            fx.InstructorId,
+            UserRoles.Instructor,
+            "Instructor Test");
+        Assert.True(createB1.Success, createB1.Message);
+
+        var createB2 = await fx.SolicitudService.CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.PorFicha,
+                fx.FichaAsignadaId,
+                null,
+                null,
+                [new CreateDetalleSolicitudDto(matB2.Id, 1)]),
+            fx.InstructorId,
+            UserRoles.Instructor,
+            "Instructor Test");
+        Assert.True(createB2.Success, createB2.Message);
+
+        var deBodega1 = await fx.SolicitudService.GetListForBodegaAsync(viewerBodegaId: 1);
+        var deBodega2 = await fx.SolicitudService.GetListForBodegaAsync(viewerBodegaId: 2);
+
+        Assert.Single(deBodega1);
+        Assert.Single(deBodega2);
+        Assert.NotEqual(deBodega1[0].Codigo, deBodega2[0].Codigo);
+    }
 }
+

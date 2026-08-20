@@ -104,6 +104,7 @@ public static class DbInitializer
 
         // Estos siempre corren (idempotentes) por si faltan usuarios o prefs
         await SeedUsersAsync(context);
+        await EnsureDemoBodegueroBodegaAsync(context);
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
         await EnsureBomProductsAndSnapshotsAsync(context);
@@ -296,10 +297,24 @@ public static class DbInitializer
                 Email = "bodega@sipitex.test",
                 PasswordHash = PasswordHasher.Hash("Bodega123!"),
                 Rol = UserRoles.Bodeguero,
+                BodegaId = 1,
                 PermisosExtendidos = string.Empty,
                 IsActive = true
             });
 
+        await context.SaveChangesAsync();
+    }
+
+    // Demo legado: bodega@sipitex.test nació sin BodegaId. Solo ese usuario se asigna a Bodega 1;
+    // otros bodegueros sin bodega siguen bloqueados en la cola hasta que el admin los asigne.
+    private static async Task EnsureDemoBodegueroBodegaAsync(SipitexDbContext context)
+    {
+        var demo = await context.Users.FirstOrDefaultAsync(u =>
+            u.Email == "bodega@sipitex.test" && u.Rol == UserRoles.Bodeguero);
+        if (demo is null || demo.BodegaId is > 0)
+            return;
+
+        demo.BodegaId = 1;
         await context.SaveChangesAsync();
     }
 
