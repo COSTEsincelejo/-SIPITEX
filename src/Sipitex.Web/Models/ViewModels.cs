@@ -241,6 +241,8 @@ public class CreateInsumosLibresForm
     public string? DescripcionLibre { get; set; }
     public int? FichaId { get; set; }
     public int? ProductionOrderId { get; set; }
+    // Destino de insumos libres; si no se envía, el servicio usa Bodega 1.
+    public int? BodegaId { get; set; } = 1;
     public string? Observaciones { get; set; }
     public List<CreateInsumoLibreItemForm> Detalles { get; set; } = [new()];
 }
@@ -256,6 +258,12 @@ public class SolicitarInsumosViewModel
     public CreateInsumosLibresForm Form { get; set; } = new();
     public IReadOnlyList<(int Id, string Label)> Fichas { get; set; } = [];
     public IReadOnlyList<(int Id, string Label)> Ordenes { get; set; } = [];
+    // Catálogo seed AddBodegas (Bodega 1 / Bodega 2); el form pasa Form.BodegaId al DTO.
+    public IReadOnlyList<(int Id, string Label)> Bodegas { get; set; } =
+    [
+        (1, "Bodega 1"),
+        (2, "Bodega 2")
+    ];
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }

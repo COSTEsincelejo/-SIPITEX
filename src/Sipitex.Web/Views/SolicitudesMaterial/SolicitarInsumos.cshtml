@@ -70,6 +70,22 @@
                     }
                 </select>
             </div>
+            <div class="field" style="flex:1;">
+                <label class="field-label">Bodega destino</label>
+                <select name="Form.BodegaId" style="width:100%" required>
+                    @foreach (var item in Model.Bodegas)
+                    {
+                        if ((f.BodegaId ?? 1) == item.Id)
+                        {
+                            <option value="@item.Id" selected>@item.Label</option>
+                        }
+                        else
+                        {
+                            <option value="@item.Id">@item.Label</option>
+                        }
+                    }
+                </select>
+            </div>
         </div>
 
         <div class="card-title amber" style="margin-top:20px;"><i class="fas fa-list"></i> Ítems solicitados</div>

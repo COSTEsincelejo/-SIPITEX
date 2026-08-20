@@ -341,13 +341,16 @@ public record CreateDetalleSolicitudDto(
     string? DescripcionItem = null);
 
 // Alta de solicitud: Tipo discrimina validaciones (PorFicha vs InsumosLibres)
+// BodegaId: InsumosLibres lo usa si viene (> 0); si es null, el servicio cae a Bodega 1 (backfill AddBodegas).
+// PorFicha lo ignora y toma el BodegaId de los materiales (rechaza si hay más de una bodega).
 public record CreateSolicitudMaterialDto(
     SolicitudMaterialTipo Tipo,
     int? FichaId,
     int? ProductionOrderId,
     string? DescripcionLibre,
     IReadOnlyList<CreateDetalleSolicitudDto> Detalles,
-    string? Observaciones = null);
+    string? Observaciones = null,
+    int? BodegaId = null);
 
 // Fila del listado "Mis solicitudes" / cola Bodega
 public record SolicitudMaterialListItemDto(

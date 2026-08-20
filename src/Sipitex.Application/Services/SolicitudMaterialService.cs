@@ -19,6 +19,9 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     private readonly IAlertService _alertService;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Bodega 1: default de Material/SolicitudMaterial y backfill de AddBodegas.
+    private const int DefaultBodegaId = 1;
+
     public SolicitudMaterialService(
         ISolicitudMaterialRepository solicitudRepository,
         IFichaRepository fichaRepository,
@@ -89,12 +92,20 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         if (!CanRequestOnFicha(ficha, solicitanteId, actorRole, actorName))
             return ServiceResult.Fail("No tiene permiso para solicitar materiales en esta ficha.");
 
+        var materiales = new List<Material>(lineas.Count);
         foreach (var linea in lineas)
         {
             var material = await _materialRepository.GetByIdAsync(linea.MaterialId!.Value, cancellationToken);
             if (material is null)
                 return ServiceResult.Fail("Uno de los materiales seleccionados no existe.");
+            materiales.Add(material);
         }
+
+        var bodegaIds = materiales.Select(m => m.BodegaId).Distinct().ToList();
+        if (bodegaIds.Count > 1)
+            return ServiceResult.Fail("Todos los materiales deben pertenecer a la misma bodega.");
+
+        var bodegaId = bodegaIds[0];
 
         int? productionOrderId = null;
         if (dto.ProductionOrderId is int oid && oid > 0)
@@ -119,6 +130,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             Estado = SolicitudMaterialEstado.Pendiente,
             FechaSolicitud = DateTime.UtcNow,
             Observaciones = observaciones,
+            BodegaId = bodegaId,
             Detalles = lineas.Select(l => new DetalleSolicitudMaterial
             {
                 MaterialId = l.MaterialId,
@@ -189,6 +201,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         var codigo = await _codigoGenerador.GenerarCodigoSolicitudMaterialAsync(cancellationToken);
         var descripcionLibre = NormalizeOptional(dto.DescripcionLibre, maxLen: 2000);
         var observaciones = NormalizeOptional(dto.Observaciones);
+        // Sin MaterialId aún: el solicitante puede pasar BodegaId; si no, Bodega 1 (backfill AddBodegas).
+        var bodegaId = dto.BodegaId is > 0 ? dto.BodegaId.Value : DefaultBodegaId;
 
         var solicitud = new SolicitudMaterial
         {
@@ -201,6 +215,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             Estado = SolicitudMaterialEstado.Pendiente,
             FechaSolicitud = DateTime.UtcNow,
             Observaciones = observaciones,
+            BodegaId = bodegaId,
             Detalles = lineas.Select(l => new DetalleSolicitudMaterial
             {
                 MaterialId = null,
@@ -267,23 +282,31 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     }
 
     public async Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForBodegaAsync(
+        int? viewerBodegaId,
         bool soloPendientes = true,
         CancellationToken cancellationToken = default)
     {
+        if (viewerBodegaId is not int bodegaId || bodegaId <= 0)
+            return [];
+
         var all = await _solicitudRepository.GetAllWithFichaAsync(cancellationToken);
-        IEnumerable<SolicitudMaterial> scoped = all;
+        IEnumerable<SolicitudMaterial> scoped = all.Where(s => s.BodegaId == bodegaId);
         if (soloPendientes)
-            scoped = all.Where(s => s.Estado == SolicitudMaterialEstado.Pendiente);
+            scoped = scoped.Where(s => s.Estado == SolicitudMaterialEstado.Pendiente);
 
         return scoped.Select(MapListItem).ToList();
     }
 
     public async Task<SolicitudMaterialResolucionDto?> GetResolucionDetailAsync(
         int id,
+        int? viewerBodegaId,
         CancellationToken cancellationToken = default)
     {
+        if (viewerBodegaId is not int bodegaId || bodegaId <= 0)
+            return null;
+
         var solicitud = await _solicitudRepository.GetByIdWithDetallesAsync(id, cancellationToken);
-        if (solicitud is null)
+        if (solicitud is null || solicitud.BodegaId != bodegaId)
             return null;
 
         return new SolicitudMaterialResolucionDto(
