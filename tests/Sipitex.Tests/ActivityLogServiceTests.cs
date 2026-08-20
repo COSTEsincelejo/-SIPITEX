@@ -96,6 +96,90 @@ public class ActivityLogServiceTests : IDisposable
         Assert.Empty(_db.ActivityLogs.AsNoTracking().ToList());
         _users.Verify(u => u.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task QueryAsync_FiltraPorAccionEntidadYUsuario()
+    {
+        _users.Setup(u => u.GetByIdAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User
+            {
+                Id = 7,
+                Nombre = "Admin Demo",
+                Email = "admin@sipitex.test",
+                PasswordHash = "x",
+                Rol = UserRoles.Administrador
+            });
+
+        var sut = CreateSut();
+        await sut.LogAsync(7, ActivityLogActions.CreateOrder, ActivityLogEntities.ProductionOrder, "Camisa", "Cantidad=10");
+        await sut.LogAsync(7, ActivityLogActions.UpdateBom, ActivityLogEntities.BomProduct, "5", "Producto=Pantalón");
+        await sut.LogAsync(7, ActivityLogActions.UpdateUser, ActivityLogEntities.User, "12", "BodegaIds=1,2");
+
+        var orders = await sut.QueryAsync(null, null, ActivityLogActions.CreateOrder, null, 7);
+        var order = Assert.Single(orders);
+        Assert.Equal("Camisa", order.EntityId);
+        Assert.Contains("Cantidad=10", order.Details);
+
+        var bom = await sut.QueryAsync(null, null, null, ActivityLogEntities.BomProduct, null);
+        Assert.Single(bom);
+
+        var bodegaChange = await sut.QueryAsync(null, null, ActivityLogActions.UpdateUser, ActivityLogEntities.User, 7);
+        Assert.Single(bodegaChange);
+        Assert.Contains("BodegaIds=1,2", bodegaChange[0].Details);
+
+        Assert.Empty(await sut.QueryAsync(null, null, ActivityLogActions.CreateOrder, null, userId: 99));
+    }
+
+    [Fact]
+    public async Task QueryAsync_RangoDeFechas_ExcluyeFueraDelRango()
+    {
+        _users.Setup(u => u.GetByIdAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User
+            {
+                Id = 7,
+                Nombre = "Admin Demo",
+                Email = "admin@sipitex.test",
+                PasswordHash = "x",
+                Rol = UserRoles.Administrador
+            });
+
+        await CreateSut().LogAsync(7, ActivityLogActions.CreateOrder, ActivityLogEntities.ProductionOrder, "Camisa");
+
+        var tomorrow = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
+        Assert.Empty(await CreateSut().QueryAsync(tomorrow, tomorrow, null, null, null));
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        Assert.Single(await CreateSut().QueryAsync(today, today, null, null, null));
+    }
+
+    [Fact]
+    public async Task GetDistinctActionsAndActors_DevuelveValoresUnicos()
+    {
+        _users.Setup(u => u.GetByIdAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User
+            {
+                Id = 7,
+                Nombre = "Admin Demo",
+                Email = "admin@sipitex.test",
+                PasswordHash = "x",
+                Rol = UserRoles.Administrador
+            });
+
+        var sut = CreateSut();
+        await sut.LogAsync(7, ActivityLogActions.CreateOrder, ActivityLogEntities.ProductionOrder, "Camisa");
+        await sut.LogAsync(7, ActivityLogActions.CreateOrder, ActivityLogEntities.ProductionOrder, "Pantalón");
+        await sut.LogAsync(7, ActivityLogActions.UpdateBom, ActivityLogEntities.BomProduct, "1");
+
+        var actions = await sut.GetDistinctActionsAsync();
+        Assert.Equal(2, actions.Count);
+        Assert.Contains(ActivityLogActions.CreateOrder, actions);
+        Assert.Contains(ActivityLogActions.UpdateBom, actions);
+
+        var actors = await sut.GetDistinctActorsAsync();
+        var actor = Assert.Single(actors);
+        Assert.Equal(7, actor.UserId);
+        Assert.Equal("Admin Demo", actor.UserName);
+    }
 }
 
 public class AccountActivityLogInstrumentationTests
@@ -290,5 +374,49 @@ public class AccountActivityLogInstrumentationTests
         _activity.Verify(a => a.LogAsync(
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EditUser_OnSuccess_LogsBodegaIdsAsignadas()
+    {
+        _accounts.Setup(s => s.UpdateUserAsync(
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int?>(), It.IsAny<IReadOnlyList<int>?>(), It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Ok("Usuario actualizado correctamente."));
+
+        var services = new Mock<IServiceProvider>();
+        var fichas = new Mock<IFichaService>();
+        fichas.Setup(f => f.GetFichasAsync(
+                It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        services.Setup(s => s.GetService(typeof(IFichaService))).Returns(fichas.Object);
+
+        var controller = CreateController();
+        controller.ControllerContext.HttpContext.RequestServices = services.Object;
+
+        try
+        {
+            await controller.EditUser(new UserEditViewModel
+            {
+                Id = 12,
+                Nombre = "Pedro Bodega",
+                Email = "bodega@sipitex.test",
+                Rol = UserRoles.Bodeguero,
+                BodegaIds = [1, 2],
+                IsActive = true
+            }, CancellationToken.None);
+        }
+        catch (InvalidOperationException)
+        {
+        }
+
+        _activity.Verify(a => a.LogAsync(
+            1,
+            ActivityLogActions.UpdateUser,
+            ActivityLogEntities.User,
+            "12",
+            It.Is<string?>(d => d != null && d.Contains("BodegaIds=1,2", StringComparison.Ordinal)),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

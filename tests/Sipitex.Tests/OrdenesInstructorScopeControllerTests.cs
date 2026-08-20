@@ -32,7 +32,8 @@ public class OrdenesInstructorScopeControllerTests
             _materials.Object,
             _inventory.Object,
             _flow.Object,
-            _users.Object)
+            _users.Object,
+            Mock.Of<IActivityLogService>())
         {
             ControllerContext = new ControllerContext
             {

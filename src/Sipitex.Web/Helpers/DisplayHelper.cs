@@ -170,4 +170,34 @@ public static class DisplayHelper
         QualityResult.Rechazada => "Rechazada",
         _ => value.ToString()
     };
+
+    public static string LabelActivityAction(string? action) => action switch
+    {
+        "CreateUser" => "Crear usuario",
+        "UpdateUser" => "Editar usuario",
+        "ToggleUserStatus" => "Activar/desactivar usuario",
+        "DeleteUser" => "Eliminar usuario",
+        "CreateBodega" => "Crear bodega",
+        "UpdateBodega" => "Renombrar bodega",
+        "DeleteBodega" => "Eliminar bodega",
+        "CreateOrder" => "Crear orden",
+        "UpdateOrder" => "Editar orden",
+        "ApproveOrder" => "Aprobar orden",
+        "CancelOrder" => "Cancelar orden",
+        "CreateBom" => "Crear ficha técnica",
+        "UpdateBom" => "Editar ficha técnica",
+        "DeleteBom" => "Eliminar ficha técnica",
+        "AssignBomInstructor" => "Asignar instructor a BOM",
+        "RemoveBomInstructor" => "Quitar instructor de BOM",
+        _ => string.IsNullOrWhiteSpace(action) ? "—" : action
+    };
+
+    public static string LabelActivityEntity(string? entity) => entity switch
+    {
+        "User" => "Usuario",
+        "Bodega" => "Bodega",
+        "ProductionOrder" => "Orden de producción",
+        "BomProduct" => "Ficha técnica (BOM)",
+        _ => string.IsNullOrWhiteSpace(entity) ? "—" : entity
+    };
 }

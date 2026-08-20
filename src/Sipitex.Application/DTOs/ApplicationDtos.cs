@@ -427,6 +427,19 @@ public record ServiceResult(bool Success, string? Message = null)
     public static ServiceResult Fail(string message) => new(false, message);
 }
 
+// Fila de la bitácora global ActivityLog (quién / qué / cuándo)
+public record ActivityLogDto(
+    int Id,
+    DateTime TimestampUtc,
+    int UserId,
+    string UserName,
+    string Action,
+    string Entity,
+    string? EntityId,
+    string? Details);
+
+public record ActivityLogActorDto(int UserId, string UserName);
+
 // --- Materiales de orden (bodega) ---
 
 public record OrderMaterialLineDto(

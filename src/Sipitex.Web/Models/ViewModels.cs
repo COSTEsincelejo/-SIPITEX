@@ -513,3 +513,17 @@ public class DeliverOrderMaterialItemForm
     public int LineId { get; set; }
     public decimal QuantityToDeliver { get; set; }
 }
+
+// Bitácora global (solo Administrador)
+public class AuditoriaIndexViewModel
+{
+    public IReadOnlyList<ActivityLogDto> Entries { get; set; } = [];
+    public IReadOnlyList<string> Actions { get; set; } = [];
+    public IReadOnlyList<string> Entities { get; set; } = [];
+    public IReadOnlyList<ActivityLogActorDto> Actors { get; set; } = [];
+    public DateOnly? Desde { get; set; }
+    public DateOnly? Hasta { get; set; }
+    public string? Action { get; set; }
+    public string? Entity { get; set; }
+    public int? UserId { get; set; }
+}
