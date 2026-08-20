@@ -53,6 +53,11 @@
             {
                 <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
             }
+            @* Catálogo de bodegas: solo Administrador (BodegasController). *@
+            @if (User.IsInRole("Administrador"))
+            {
+                <a class="@NavClass("Bodegas")" asp-controller="Bodegas" asp-action="Index"><i class="fas fa-warehouse"></i> Bodegas</a>
+            }
             @* Cola de SolicitudMaterial solo Bodeguero *@
             @if (User.IsInRole("Bodeguero"))
             {
@@ -86,7 +91,6 @@
             {
                 <a class="@(IsAccountAction("Users", "CreateUser", "EditUser") ? "nav-item active" : "nav-item")"
                    asp-controller="Account" asp-action="Users"><i class="fas fa-users-gear"></i> Usuarios</a>
-                <a class="@NavClass("Bodegas")" asp-controller="Bodegas" asp-action="Index"><i class="fas fa-warehouse"></i> Bodegas</a>
             }
             @if (User.Identity?.IsAuthenticated == true)
             {
