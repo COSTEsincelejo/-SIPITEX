@@ -223,6 +223,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             fichaRepo,
             orderRepo,
             materialRepo,
+            new BodegaRepository(Context),
             CodigoGenerador,
             AlertService,
             uow);

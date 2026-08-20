@@ -15,22 +15,38 @@ public class BodegaSolicitudesController : Controller
     private readonly ISolicitudMaterialService _solicitudService;
     private readonly ISolicitudMaterialApprovalService _approvalService;
     private readonly IInventoryService _inventoryService;
+    private readonly IUserAccountService _userAccountService;
 
     public BodegaSolicitudesController(
         ISolicitudMaterialService solicitudService,
         ISolicitudMaterialApprovalService approvalService,
-        IInventoryService inventoryService)
+        IInventoryService inventoryService,
+        IUserAccountService userAccountService)
     {
         _solicitudService = solicitudService;
         _approvalService = approvalService;
         _inventoryService = inventoryService;
+        _userAccountService = userAccountService;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index(string? estado, CancellationToken cancellationToken)
     {
         var soloPendientes = !string.Equals(estado, "todas", StringComparison.OrdinalIgnoreCase);
-        var list = await _solicitudService.GetListForBodegaAsync(soloPendientes, cancellationToken);
+
+        var (bodegaId, errorMessage) = await TryGetAssignedBodegaIdAsync(cancellationToken);
+        if (errorMessage is not null)
+        {
+            return View(new BodegaSolicitudesIndexViewModel
+            {
+                Solicitudes = [],
+                SoloPendientes = soloPendientes,
+                Message = errorMessage,
+                IsSuccess = false
+            });
+        }
+
+        var list = await _solicitudService.GetListForBodegaAsync(bodegaId!.Value, soloPendientes, cancellationToken);
 
         return View(new BodegaSolicitudesIndexViewModel
         {
@@ -44,7 +60,15 @@ public class BodegaSolicitudesController : Controller
     [HttpGet]
     public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
     {
-        var detail = await _solicitudService.GetResolucionDetailAsync(id, cancellationToken);
+        var (bodegaId, errorMessage) = await TryGetAssignedBodegaIdAsync(cancellationToken);
+        if (errorMessage is not null)
+        {
+            TempData["Message"] = errorMessage;
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Index));
+        }
+
+        var detail = await _solicitudService.GetResolucionDetailAsync(id, bodegaId!.Value, cancellationToken);
         if (detail is null)
             return NotFound();
 
@@ -93,5 +117,18 @@ public class BodegaSolicitudesController : Controller
             return RedirectToAction(nameof(Index));
 
         return RedirectToAction(nameof(Detail), new { id = form.SolicitudId });
+    }
+
+    private async Task<(int? BodegaId, string? ErrorMessage)> TryGetAssignedBodegaIdAsync(
+        CancellationToken cancellationToken)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var bodegueroId))
+            return (null, "Debe iniciar sesión como bodeguero.");
+
+        var user = await _userAccountService.GetUserByIdAsync(bodegueroId, cancellationToken);
+        if (user?.BodegaId is not int bodegaId)
+            return (null, "Su cuenta no tiene una bodega asignada. Contacte al administrador.");
+
+        return (bodegaId, null);
     }
 }

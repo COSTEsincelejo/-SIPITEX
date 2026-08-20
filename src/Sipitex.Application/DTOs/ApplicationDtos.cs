@@ -347,7 +347,8 @@ public record CreateSolicitudMaterialDto(
     int? ProductionOrderId,
     string? DescripcionLibre,
     IReadOnlyList<CreateDetalleSolicitudDto> Detalles,
-    string? Observaciones = null);
+    string? Observaciones = null,
+    int BodegaId = 0);
 
 // Fila del listado "Mis solicitudes" / cola Bodega
 public record SolicitudMaterialListItemDto(

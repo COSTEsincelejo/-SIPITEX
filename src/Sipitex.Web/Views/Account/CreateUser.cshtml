@@ -5,6 +5,7 @@
     Layout = "_Layout";
     // Fichas disponibles para asignar (viene del controlador en ViewBag)
     var fichas = ViewBag.Fichas as IEnumerable<Ficha> ?? Array.Empty<Ficha>();
+    var bodegas = ViewBag.Bodegas as IEnumerable<Bodega> ?? Array.Empty<Bodega>();
 }
 
 <div class="page-header">
@@ -47,6 +48,16 @@
                 @foreach (var ficha in fichas)
                 {
                     <option value="@ficha.Id">@ficha.FichaCode - @ficha.ProcessName</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label class="field-label">Bodega</label>
+            <select asp-for="BodegaId">
+                <option value="">Sin asignar</option>
+                @foreach (var bodega in bodegas)
+                {
+                    <option value="@bodega.Id">@bodega.Nombre</option>
                 }
             </select>
         </div>

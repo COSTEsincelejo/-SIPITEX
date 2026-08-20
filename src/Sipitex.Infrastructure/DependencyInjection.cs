@@ -42,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<IProductionOrderBomSnapshotRepository, ProductionOrderBomSnapshotRepository>();
         services.AddScoped<IMaterialRequestRepository, MaterialRequestRepository>();
         services.AddScoped<IFichaRepository, FichaRepository>();
+        services.AddScoped<IBodegaRepository, BodegaRepository>(); // Catálogo Bodega 1 / Bodega 2
         services.AddScoped<IQualityRepository, QualityRepository>();
         services.AddScoped<IRequirementRepository, RequirementRepository>();
         services.AddScoped<IUserRepository, UserRepository>();

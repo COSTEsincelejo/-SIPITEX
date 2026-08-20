@@ -7,6 +7,7 @@
     var instructorOptions = Model.Instructors;
     int? currentUserId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : null;
     var isAdmin = User.IsInRole("Administrador");
+    var bodegas = ViewBag.Bodegas as IEnumerable<Bodega> ?? Array.Empty<Bodega>();
 }
 
 <div class="page-header">
@@ -244,6 +245,16 @@
                                         <div class="hint" style="font-weight:normal;margin-top:4px;">
                                             Materiales del catálogo ligados a su ficha de formación.
                                         </div>
+                                    </div>
+                                    <div class="field" style="margin-top:10px;max-width:360px;">
+                                        <label class="field-label">Bodega</label>
+                                        <select name="CreateSolicitud.BodegaId" required aria-label="Bodega">
+                                            <option value="">— Seleccione —</option>
+                                            @foreach (var bodega in bodegas)
+                                            {
+                                                <option value="@bodega.Id">@bodega.Nombre</option>
+                                            }
+                                        </select>
                                     </div>
                                     <div class="solicitud-rows" data-solicitud-rows>
                                         <div class="solicitud-row" data-solicitud-row>

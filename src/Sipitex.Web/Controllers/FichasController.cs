@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
@@ -15,15 +16,18 @@ public class FichasController : Controller
     private readonly IFichaService _fichaService;
     private readonly IProductionOrderService _orderService;
     private readonly IInventoryService _inventoryService;
+    private readonly IBodegaRepository _bodegaRepository;
 
     public FichasController(
         IFichaService fichaService,
         IProductionOrderService orderService,
-        IInventoryService inventoryService)
+        IInventoryService inventoryService,
+        IBodegaRepository bodegaRepository)
     {
         _fichaService = fichaService;
         _orderService = orderService;
         _inventoryService = inventoryService;
+        _bodegaRepository = bodegaRepository;
     }
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
@@ -32,8 +36,11 @@ public class FichasController : Controller
         string? fichaCode,
         string? instructor,
         string? turno,
-        CancellationToken cancellationToken) =>
-        View(await BuildViewModel(fichaCode, instructor, turno, cancellationToken));
+        CancellationToken cancellationToken)
+    {
+        ViewBag.Bodegas = await _bodegaRepository.GetAllAsync(cancellationToken);
+        return View(await BuildViewModel(fichaCode, instructor, turno, cancellationToken));
+    }
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]

@@ -15,6 +15,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     private readonly IFichaRepository _fichaRepository;
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IMaterialRepository _materialRepository;
+    private readonly IBodegaRepository _bodegaRepository;
     private readonly ICodigoGeneradorService _codigoGenerador;
     private readonly IAlertService _alertService;
     private readonly IUnitOfWork _unitOfWork;
@@ -24,6 +25,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         IFichaRepository fichaRepository,
         IProductionOrderRepository orderRepository,
         IMaterialRepository materialRepository,
+        IBodegaRepository bodegaRepository,
         ICodigoGeneradorService codigoGenerador,
         IAlertService alertService,
         IUnitOfWork unitOfWork)
@@ -32,6 +34,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         _fichaRepository = fichaRepository;
         _orderRepository = orderRepository;
         _materialRepository = materialRepository;
+        _bodegaRepository = bodegaRepository;
         _codigoGenerador = codigoGenerador;
         _alertService = alertService;
         _unitOfWork = unitOfWork;
@@ -82,6 +85,10 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         if (lineas.Any(l => l.MaterialId is null or <= 0))
             return ServiceResult.Fail("Cada línea de solicitud por ficha debe tener un material del catálogo.");
 
+        var bodegaError = await ValidateBodegaAsync(dto.BodegaId, cancellationToken);
+        if (bodegaError is not null)
+            return bodegaError;
+
         var ficha = await _fichaRepository.GetByIdAsync(fichaId, cancellationToken);
         if (ficha is null)
             return ServiceResult.Fail("Ficha no encontrada.");
@@ -94,6 +101,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             var material = await _materialRepository.GetByIdAsync(linea.MaterialId!.Value, cancellationToken);
             if (material is null)
                 return ServiceResult.Fail("Uno de los materiales seleccionados no existe.");
+            if (material.BodegaId != dto.BodegaId)
+                return ServiceResult.Fail($"El material '{material.Name}' no pertenece a la bodega seleccionada.");
         }
 
         int? productionOrderId = null;
@@ -119,6 +128,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             Estado = SolicitudMaterialEstado.Pendiente,
             FechaSolicitud = DateTime.UtcNow,
             Observaciones = observaciones,
+            BodegaId = dto.BodegaId,
             Detalles = lineas.Select(l => new DetalleSolicitudMaterial
             {
                 MaterialId = l.MaterialId,
@@ -152,6 +162,10 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     {
         if (!IsAdmin(actorRole) && !IsInstructor(actorRole, solicitanteId))
             return ServiceResult.Fail("No tiene permiso para solicitar insumos.");
+
+        var bodegaError = await ValidateBodegaAsync(dto.BodegaId, cancellationToken);
+        if (bodegaError is not null)
+            return bodegaError;
 
         var lineas = (dto.Detalles ?? [])
             .Where(d => !string.IsNullOrWhiteSpace(d.DescripcionItem) && d.CantidadSolicitada > 0)
@@ -201,6 +215,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             Estado = SolicitudMaterialEstado.Pendiente,
             FechaSolicitud = DateTime.UtcNow,
             Observaciones = observaciones,
+            BodegaId = dto.BodegaId,
             Detalles = lineas.Select(l => new DetalleSolicitudMaterial
             {
                 MaterialId = null,
@@ -267,23 +282,28 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     }
 
     public async Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForBodegaAsync(
+        int bodegaId,
         bool soloPendientes = true,
         CancellationToken cancellationToken = default)
     {
         var all = await _solicitudRepository.GetAllWithFichaAsync(cancellationToken);
-        IEnumerable<SolicitudMaterial> scoped = all;
+        IEnumerable<SolicitudMaterial> scoped = all.Where(s => s.BodegaId == bodegaId);
         if (soloPendientes)
-            scoped = all.Where(s => s.Estado == SolicitudMaterialEstado.Pendiente);
+            scoped = scoped.Where(s => s.Estado == SolicitudMaterialEstado.Pendiente);
 
         return scoped.Select(MapListItem).ToList();
     }
 
     public async Task<SolicitudMaterialResolucionDto?> GetResolucionDetailAsync(
         int id,
+        int bodegaId,
         CancellationToken cancellationToken = default)
     {
         var solicitud = await _solicitudRepository.GetByIdWithDetallesAsync(id, cancellationToken);
         if (solicitud is null)
+            return null;
+
+        if (solicitud.BodegaId != bodegaId)
             return null;
 
         return new SolicitudMaterialResolucionDto(
@@ -309,6 +329,18 @@ public class SolicitudMaterialService : ISolicitudMaterialService
                     d.CantidadAprobada,
                     d.EstadoItem))
                 .ToList());
+    }
+
+    private async Task<ServiceResult?> ValidateBodegaAsync(int bodegaId, CancellationToken cancellationToken)
+    {
+        if (bodegaId <= 0)
+            return ServiceResult.Fail("Bodega no válida.");
+
+        var bodega = await _bodegaRepository.GetByIdAsync(bodegaId, cancellationToken);
+        if (bodega is null)
+            return ServiceResult.Fail("Bodega no válida.");
+
+        return null;
     }
 
     private static SolicitudMaterialListItemDto MapListItem(SolicitudMaterial s) =>
