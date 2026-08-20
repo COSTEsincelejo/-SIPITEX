@@ -277,7 +277,7 @@ public class AccountController : Controller
         var permisos = model.SelectedPermissions ?? [];
         // El servicio hashea la clave y guarda en BD
         var result = await _userAccountService.CreateUserAsync(
-            model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.BodegaId, permisos, cancellationToken);
+            model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.BodegaIds, permisos, cancellationToken);
         // Si falló (correo duplicado, rol inválido, etc.) me quedo en el form
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
@@ -288,7 +288,7 @@ public class AccountController : Controller
                 "CreateUser",
                 "User",
                 entityId: model.Email.Trim().ToLowerInvariant(),
-                details: $"Nombre={model.Nombre.Trim()}; Rol={model.Rol}; BodegaId={model.BodegaId}",
+                details: $"Nombre={model.Nombre.Trim()}; Rol={model.Rol}; BodegaIds={FormatBodegaIds(model.BodegaIds)}",
                 cancellationToken);
         }
 
@@ -315,7 +315,7 @@ public class AccountController : Controller
             Email = user.Email,
             Rol = user.Rol,
             FichaAsignadaId = user.FichaAsignadaId,
-            BodegaId = user.BodegaId,
+            BodegaIds = user.GetAssignedBodegaIds().ToArray(),
             // Deserializo los permisos guardados como string
             SelectedPermissions = ExtendedPermissions.Parse(user.PermisosExtendidos).ToList(),
             IsActive = user.IsActive
@@ -335,7 +335,7 @@ public class AccountController : Controller
         var permisos = model.SelectedPermissions ?? [];
         // Update en BD; contraseña es opcional si viene vacía
         var result = await _userAccountService.UpdateUserAsync(
-            model.Id, model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.BodegaId, permisos, model.IsActive, cancellationToken);
+            model.Id, model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.BodegaIds, permisos, model.IsActive, cancellationToken);
         // Error de negocio (ej. no bajar rol al admin principal)
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
@@ -346,7 +346,7 @@ public class AccountController : Controller
                 "UpdateUser",
                 "User",
                 entityId: model.Id.ToString(),
-                details: $"Nombre={model.Nombre.Trim()}; Rol={model.Rol}; BodegaId={model.BodegaId}",
+                details: $"Nombre={model.Nombre.Trim()}; Rol={model.Rol}; BodegaIds={FormatBodegaIds(model.BodegaIds)}",
                 cancellationToken);
         }
 
@@ -450,9 +450,11 @@ public class AccountController : Controller
         if (!string.IsNullOrWhiteSpace(user.PhotoPath))
             claims.Add(new Claim(PhotoClaimType, user.PhotoPath));
 
-        if (string.Equals(user.Rol, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase)
-            && user.BodegaId is > 0)
-            claims.Add(new Claim(BodegaClaimTypes.BodegaId, user.BodegaId.Value.ToString()));
+        if (string.Equals(user.Rol, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var bodegaId in user.GetAssignedBodegaIds())
+                claims.Add(new Claim(BodegaClaimTypes.BodegaId, bodegaId.ToString()));
+        }
 
         // Cada permiso extra va como claim aparte
         foreach (var permiso in ExtendedPermissions.Parse(user.PermisosExtendidos))
@@ -519,6 +521,9 @@ public class AccountController : Controller
         if (System.IO.File.Exists(physicalPath))
             System.IO.File.Delete(physicalPath);
     }
+
+    private static string FormatBodegaIds(IReadOnlyList<int>? ids) =>
+        ids is { Count: > 0 } ? string.Join(",", ids.Where(id => id > 0).Distinct()) : "";
 
     // Combos de ficha y bodega al crear/editar usuario
     private async Task PopulateUserFormLookupsAsync(CancellationToken cancellationToken)

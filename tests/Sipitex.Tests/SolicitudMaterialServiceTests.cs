@@ -362,8 +362,8 @@ public class SolicitudMaterialServiceTests
             ListSolicitud(2, "SOL-B2", bodegaId: 2)
         ]);
 
-        var deBodega1 = await CreateSut().GetListForBodegaAsync(viewerBodegaId: 1);
-        var deBodega2 = await CreateSut().GetListForBodegaAsync(viewerBodegaId: 2);
+        var deBodega1 = await CreateSut().GetListForBodegaAsync([1]);
+        var deBodega2 = await CreateSut().GetListForBodegaAsync([2]);
 
         Assert.Single(deBodega1);
         Assert.Equal("SOL-B1", deBodega1[0].Codigo);
@@ -375,6 +375,24 @@ public class SolicitudMaterialServiceTests
     }
 
     [Fact]
+    public async Task GetListForBodegaAsync_VariasBodegasAsignadas_VeAmbas()
+    {
+        _solicitudes.Setup(r => r.GetAllWithFichaAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            ListSolicitud(1, "SOL-B1", bodegaId: 1),
+            ListSolicitud(2, "SOL-B2", bodegaId: 2),
+            ListSolicitud(3, "SOL-B3", bodegaId: 3)
+        ]);
+
+        var list = await CreateSut().GetListForBodegaAsync([1, 2]);
+
+        Assert.Equal(2, list.Count);
+        Assert.Contains(list, s => s.Codigo == "SOL-B1");
+        Assert.Contains(list, s => s.Codigo == "SOL-B2");
+        Assert.DoesNotContain(list, s => s.Codigo == "SOL-B3");
+    }
+
+    [Fact]
     public async Task GetListForBodegaAsync_ViewerSinBodega_ListaVacia()
     {
         _solicitudes.Setup(r => r.GetAllWithFichaAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
@@ -382,7 +400,7 @@ public class SolicitudMaterialServiceTests
             ListSolicitud(1, "SOL-B1", bodegaId: 1)
         ]);
 
-        var list = await CreateSut().GetListForBodegaAsync(viewerBodegaId: null);
+        var list = await CreateSut().GetListForBodegaAsync(viewerBodegaIds: null);
 
         Assert.Empty(list);
         _solicitudes.Verify(r => r.GetAllWithFichaAsync(It.IsAny<CancellationToken>()), Times.Never);
@@ -405,7 +423,7 @@ public class SolicitudMaterialServiceTests
                 Detalles = []
             });
 
-        var detail = await CreateSut().GetResolucionDetailAsync(1, viewerBodegaId: 1);
+        var detail = await CreateSut().GetResolucionDetailAsync(1, [1]);
 
         Assert.Null(detail);
     }
@@ -421,6 +439,15 @@ public class SolicitudMaterialServiceTests
             FechaSolicitud = DateTime.UtcNow,
             Ficha = new Ficha { FichaCode = "F1" },
             Solicitante = new User { Nombre = "Laura" }
+        };
+
+    private static User BodegueroConBodegas(int id, int[] bodegaIds, bool isActive = true) =>
+        new()
+        {
+            Id = id,
+            Rol = UserRoles.Bodeguero,
+            IsActive = isActive,
+            UserBodegas = bodegaIds.Select(b => new UserBodega { UserId = id, BodegaId = b }).ToList()
         };
 
     [Fact]
@@ -501,7 +528,7 @@ public class SolicitudMaterialServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_PorFicha_NotificaSoloBodeguerosDeEsaBodega()
+    public async Task CreateAsync_PorFicha_NotificaTodosLosBodeguerosDeEsaBodega()
     {
         var ficha = FichaConInstructor(1, 10);
         _fichas.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(ficha);
@@ -517,9 +544,10 @@ public class SolicitudMaterialServiceTests
         var sut = CreateSut();
         _users.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
         [
-            new User { Id = 21, Rol = UserRoles.Bodeguero, BodegaId = 1, IsActive = true },
-            new User { Id = 22, Rol = UserRoles.Bodeguero, BodegaId = 2, IsActive = true },
-            new User { Id = 23, Rol = UserRoles.Bodeguero, BodegaId = 2, IsActive = false }
+            BodegueroConBodegas(21, [1]),
+            BodegueroConBodegas(22, [2]),
+            BodegueroConBodegas(23, [2], isActive: false),
+            BodegueroConBodegas(24, [1, 2])
         ]);
 
         var result = await sut.CreateAsync(
@@ -533,7 +561,7 @@ public class SolicitudMaterialServiceTests
             AlertType.SolicitudMaterialNueva,
             It.IsAny<string>(),
             It.IsAny<string>(),
-            It.Is<IReadOnlyList<int>>(ids => ids.Count == 1 && ids[0] == 22),
+            It.Is<IReadOnlyList<int>>(ids => ids.Count == 2 && ids.Contains(22) && ids.Contains(24)),
             null,
             It.IsAny<CancellationToken>()), Times.Once);
         _alerts.Verify(a => a.NotifyUsersAsync(

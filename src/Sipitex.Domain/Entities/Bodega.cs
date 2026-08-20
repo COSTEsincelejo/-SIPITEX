@@ -15,6 +15,6 @@ public class Bodega
     // Solicitudes multi-ítem dirigidas a esta bodega
     public ICollection<SolicitudMaterial> Solicitudes { get; set; } = [];
 
-    // Usuarios con Rol=Bodeguero asignados a esta bodega
-    public ICollection<User> Bodegueros { get; set; } = [];
+    // Asignaciones de bodegueros (M2M vía UserBodega)
+    public ICollection<UserBodega> Bodegueros { get; set; } = [];
 }

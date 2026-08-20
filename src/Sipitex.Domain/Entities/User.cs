@@ -24,11 +24,27 @@ public class User
     // Navegación a esa ficha (EF Core la llena si hago Include)
     public Ficha? FichaAsignada { get; set; }
 
-    // FK opcional a bodega; solo tiene sentido cuando Rol == UserRoles.Bodeguero
-    public int? BodegaId { get; set; }
+    // Asignaciones M2M a bodegas (solo aplica a Rol == Bodeguero; vacío en el resto)
+    public ICollection<UserBodega> UserBodegas { get; set; } = [];
 
-    // Navegación a la bodega asignada (null hasta que el admin la asigne)
-    public Bodega? Bodega { get; set; }
+    public IReadOnlyList<int> GetAssignedBodegaIds() =>
+        UserBodegas
+            .Select(ub => ub.BodegaId)
+            .Where(id => id > 0)
+            .Distinct()
+            .OrderBy(id => id)
+            .ToList();
+
+    public string FormatAssignedBodegas()
+    {
+        if (UserBodegas.Count == 0)
+            return "—";
+
+        return string.Join(", ",
+            UserBodegas
+                .Select(ub => ub.Bodega?.Nombre ?? $"#{ub.BodegaId}")
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
+    }
 
     // Permisos extra en texto, separados por comas (los parseo con ExtendedPermissions)
     public string PermisosExtendidos { get; set; } = string.Empty;

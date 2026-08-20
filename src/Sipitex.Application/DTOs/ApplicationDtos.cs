@@ -342,7 +342,8 @@ public record CreateDetalleSolicitudDto(
 
 // Alta de solicitud: Tipo discrimina validaciones (PorFicha vs InsumosLibres)
 // BodegaId: InsumosLibres lo usa si viene (> 0); si es null, el servicio cae a Bodega 1 (backfill AddBodegas).
-// PorFicha lo ignora y toma el BodegaId de los materiales (rechaza si hay más de una bodega).
+// PorFicha lo ignora y toma el BodegaId de los materiales. Si hay más de una bodega entre los
+// materiales, se rechaza (una solicitud = una bodega), aunque el bodeguero tenga varias asignadas.
 public record CreateSolicitudMaterialDto(
     SolicitudMaterialTipo Tipo,
     int? FichaId,

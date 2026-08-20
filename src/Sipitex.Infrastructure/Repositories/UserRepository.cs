@@ -16,7 +16,8 @@ public class UserRepository : IUserRepository
     public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await _context.Users
             .Include(u => u.FichaAsignada) // Ficha principal del instructor
-            .Include(u => u.Bodega) // Bodega del bodeguero (null si no aplica)
+            .Include(u => u.UserBodegas)
+                .ThenInclude(ub => ub.Bodega)
             .OrderBy(u => u.Nombre)
             .ToListAsync(cancellationToken);
 
@@ -24,12 +25,15 @@ public class UserRepository : IUserRepository
     public Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _context.Users
             .Include(u => u.FichaAsignada)
+            .Include(u => u.UserBodegas)
+                .ThenInclude(ub => ub.Bodega)
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
     // Normalizo el email a minúsculas para que el login sea case-insensitive
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default) =>
         _context.Users
             .Include(u => u.FichaAsignada)
+            .Include(u => u.UserBodegas)
             .FirstOrDefaultAsync(u => u.Email == email.Trim().ToLowerInvariant(), cancellationToken);
 
     // excludeUserId sirve al editar: no contar el propio email como duplicado

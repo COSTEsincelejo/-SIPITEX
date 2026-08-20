@@ -10,43 +10,51 @@ namespace Sipitex.Tests;
 public class CurrentBodegaAccessorTests
 {
     [Fact]
-    public void BodegaId_SinHttpContext_EsNull()
+    public void BodegaIds_SinHttpContext_EsNull()
     {
         var http = new Mock<IHttpContextAccessor>();
         http.SetupGet(h => h.HttpContext).Returns((HttpContext?)null);
 
-        Assert.Null(new CurrentBodegaAccessor(http.Object).BodegaId);
+        Assert.Null(new CurrentBodegaAccessor(http.Object).BodegaIds);
     }
 
     [Fact]
-    public void BodegaId_Administrador_EsNull()
+    public void BodegaIds_Administrador_EsNull()
     {
-        var accessor = ForUser(UserRoles.Administrador, bodegaClaim: 1);
-        Assert.Null(accessor.BodegaId);
+        var accessor = ForUser(UserRoles.Administrador, bodegaClaims: [1]);
+        Assert.Null(accessor.BodegaIds);
     }
 
     [Fact]
-    public void BodegaId_Instructor_EsNull()
+    public void BodegaIds_Instructor_EsNull()
     {
-        var accessor = ForUser(UserRoles.Instructor, bodegaClaim: 2);
-        Assert.Null(accessor.BodegaId);
+        var accessor = ForUser(UserRoles.Instructor, bodegaClaims: [2]);
+        Assert.Null(accessor.BodegaIds);
     }
 
     [Fact]
-    public void BodegaId_BodegueroConClaim_DevuelveBodega()
+    public void BodegaIds_BodegueroConClaim_DevuelveBodega()
     {
-        var accessor = ForUser(UserRoles.Bodeguero, bodegaClaim: 2);
-        Assert.Equal(2, accessor.BodegaId);
+        var accessor = ForUser(UserRoles.Bodeguero, bodegaClaims: [2]);
+        Assert.Equal([2], accessor.BodegaIds);
     }
 
     [Fact]
-    public void BodegaId_BodegueroSinClaim_DevuelveCero()
+    public void BodegaIds_BodegueroConVariosClaims_DevuelveTodas()
     {
-        var accessor = ForUser(UserRoles.Bodeguero, bodegaClaim: null);
-        Assert.Equal(0, accessor.BodegaId);
+        var accessor = ForUser(UserRoles.Bodeguero, bodegaClaims: [1, 2]);
+        Assert.Equal([1, 2], accessor.BodegaIds);
     }
 
-    private static CurrentBodegaAccessor ForUser(string role, int? bodegaClaim)
+    [Fact]
+    public void BodegaIds_BodegueroSinClaim_DevuelveListaVacia()
+    {
+        var accessor = ForUser(UserRoles.Bodeguero, bodegaClaims: []);
+        Assert.NotNull(accessor.BodegaIds);
+        Assert.Empty(accessor.BodegaIds!);
+    }
+
+    private static CurrentBodegaAccessor ForUser(string role, int[] bodegaClaims)
     {
         var claims = new List<Claim>
         {
@@ -54,8 +62,8 @@ public class CurrentBodegaAccessorTests
             new(ClaimTypes.Role, role),
             new(ClaimTypes.Name, "Test")
         };
-        if (bodegaClaim is > 0)
-            claims.Add(new Claim(BodegaClaimTypes.BodegaId, bodegaClaim.Value.ToString()));
+        foreach (var id in bodegaClaims.Where(id => id > 0))
+            claims.Add(new Claim(BodegaClaimTypes.BodegaId, id.ToString()));
 
         var http = new DefaultHttpContext
         {

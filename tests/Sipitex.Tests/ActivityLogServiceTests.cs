@@ -144,7 +144,7 @@ public class AccountActivityLogInstrumentationTests
     {
         _accounts.Setup(s => s.CreateUserAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+                It.IsAny<int?>(), It.IsAny<IReadOnlyList<int>?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult.Ok("Usuario creado correctamente."));
         _accounts.Setup(s => s.GetUserByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
@@ -194,7 +194,7 @@ public class AccountActivityLogInstrumentationTests
     {
         _accounts.Setup(s => s.CreateUserAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+                It.IsAny<int?>(), It.IsAny<IReadOnlyList<int>?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult.Fail("Ya existe un usuario con ese correo."));
 
         var services = new Mock<IServiceProvider>();

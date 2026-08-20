@@ -4,14 +4,15 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Web.Authorization;
 
-// Lee BodegaId del claim emitido en el login. Sin IUserRepository para no ciclar con el DbContext.
+// Lee bodega_id (0..N claims) emitidos en el login. Sin IUserRepository para no ciclar con el DbContext.
+// El filtro no cambia hasta el próximo login (intencional: la cookie es la fuente).
 public sealed class CurrentBodegaAccessor : ICurrentBodegaAccessor
 {
     private readonly IHttpContextAccessor _http;
 
     public CurrentBodegaAccessor(IHttpContextAccessor http) => _http = http;
 
-    public int? BodegaId
+    public IReadOnlyList<int>? BodegaIds
     {
         get
         {
@@ -22,12 +23,11 @@ public sealed class CurrentBodegaAccessor : ICurrentBodegaAccessor
             if (!user.IsInRole(UserRoles.Bodeguero))
                 return null;
 
-            var raw = user.FindFirstValue(BodegaClaimTypes.BodegaId);
-            if (int.TryParse(raw, out var id) && id > 0)
-                return id;
-
-            // Bodeguero sin claim/bodega: filtro vacío, no “ver todas”.
-            return 0;
+            return user.FindAll(BodegaClaimTypes.BodegaId)
+                .Select(c => int.TryParse(c.Value, out var id) ? id : 0)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToArray();
         }
     }
 }

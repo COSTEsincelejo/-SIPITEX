@@ -21,12 +21,16 @@ public class SipitexDbContext : DbContext
         _bodegaAccessor = bodegaAccessor;
     }
 
-    // EF Core parametriza esta propiedad en el query filter en cada consulta.
-    public int? CurrentBodegaId => _bodegaAccessor.BodegaId;
+    // EF Core parametriza estas propiedades en el query filter en cada consulta.
+    // RestrictToAssignedBodegas = false (BodegaIds null) → Admin/Instructor/seed, sin filtro.
+    // RestrictToAssignedBodegas = true + CurrentBodegaIds vacío → bodeguero sin asignaciones (0 filas).
+    public bool RestrictToAssignedBodegas => _bodegaAccessor.BodegaIds is not null;
+    public int[] CurrentBodegaIds => _bodegaAccessor.BodegaIds?.ToArray() ?? [];
 
     // Cada DbSet = una tabla en la BD
     public DbSet<Material> Materials => Set<Material>(); // Inventario de telas, hilos, etc.
     public DbSet<Bodega> Bodegas => Set<Bodega>(); // Bodega 1 / Bodega 2 (catálogo compartido)
+    public DbSet<UserBodega> UserBodegas => Set<UserBodega>(); // M2M bodeguero ↔ bodega
     public DbSet<BomProduct> BomProducts => Set<BomProduct>(); // Cabecera de ficha técnica (producto)
     public DbSet<BomProductInstructor> BomProductInstructors => Set<BomProductInstructor>(); // M2M ficha técnica ↔ instructor
     public DbSet<BomProductTalla> BomProductTallas => Set<BomProductTalla>(); // Tallas de ficha técnica (Fase A)
@@ -90,8 +94,8 @@ public class SipitexDbContext : DbContext
                 .HasForeignKey(m => m.BodegaId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(m => m.BodegaId);
-            // Bodeguero: solo su bodega. null en accessor = Admin/Instructor/seed (sin filtro).
-            e.HasQueryFilter(m => CurrentBodegaId == null || m.BodegaId == CurrentBodegaId);
+            // Bodeguero: IN (bodegas asignadas). Restrict=false = Admin/Instructor/seed (sin filtro).
+            e.HasQueryFilter(m => !RestrictToAssignedBodegas || CurrentBodegaIds.Contains(m.BodegaId));
         });
 
         // Cabecera de ficha técnica (producto)
@@ -365,12 +369,21 @@ public class SipitexDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(u => u.FichaAsignadaId)
                 .OnDelete(DeleteBehavior.SetNull); // Si borran la ficha, el usuario sigue
-            // Bodeguero asignado a una bodega (null hasta que el admin lo asigne)
-            e.HasOne(u => u.Bodega)
+        });
+
+        // --- UserBodega (M2M bodeguero ↔ bodega; reemplaza Users.BodegaId singular) ---
+        modelBuilder.Entity<UserBodega>(e =>
+        {
+            e.HasKey(x => new { x.UserId, x.BodegaId });
+            e.HasOne(x => x.User)
+                .WithMany(u => u.UserBodegas)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Bodega)
                 .WithMany(b => b.Bodegueros)
-                .HasForeignKey(u => u.BodegaId)
+                .HasForeignKey(x => x.BodegaId)
                 .OnDelete(DeleteBehavior.Restrict);
-            e.HasIndex(u => u.BodegaId);
+            e.HasIndex(x => x.BodegaId);
         });
 
         // Preferencias de alertas por usuario (qué tipo de notificación quiere recibir)
@@ -431,7 +444,7 @@ public class SipitexDbContext : DbContext
                 .HasForeignKey(s => s.BodegaId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(s => s.BodegaId);
-            e.HasQueryFilter(s => CurrentBodegaId == null || s.BodegaId == CurrentBodegaId);
+            e.HasQueryFilter(s => !RestrictToAssignedBodegas || CurrentBodegaIds.Contains(s.BodegaId));
         });
 
         // --- DetalleSolicitudMaterial ---

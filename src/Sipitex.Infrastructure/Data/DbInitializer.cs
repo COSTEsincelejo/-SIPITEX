@@ -297,24 +297,26 @@ public static class DbInitializer
                 Email = "bodega@sipitex.test",
                 PasswordHash = PasswordHasher.Hash("Bodega123!"),
                 Rol = UserRoles.Bodeguero,
-                BodegaId = 1,
                 PermisosExtendidos = string.Empty,
-                IsActive = true
+                IsActive = true,
+                UserBodegas = { new UserBodega { BodegaId = 1 } }
             });
 
         await context.SaveChangesAsync();
     }
 
-    // Demo legado: bodega@sipitex.test nació sin BodegaId. Solo ese usuario se asigna a Bodega 1;
+    // Demo legado: bodega@sipitex.test nació sin bodega. Solo ese usuario se asigna a Bodega 1;
     // otros bodegueros sin bodega siguen bloqueados en la cola hasta que el admin los asigne.
     private static async Task EnsureDemoBodegueroBodegaAsync(SipitexDbContext context)
     {
-        var demo = await context.Users.FirstOrDefaultAsync(u =>
-            u.Email == "bodega@sipitex.test" && u.Rol == UserRoles.Bodeguero);
-        if (demo is null || demo.BodegaId is > 0)
+        var demo = await context.Users
+            .Include(u => u.UserBodegas)
+            .FirstOrDefaultAsync(u =>
+                u.Email == "bodega@sipitex.test" && u.Rol == UserRoles.Bodeguero);
+        if (demo is null || demo.UserBodegas.Count > 0)
             return;
 
-        demo.BodegaId = 1;
+        demo.UserBodegas.Add(new UserBodega { UserId = demo.Id, BodegaId = 1 });
         await context.SaveChangesAsync();
     }
 

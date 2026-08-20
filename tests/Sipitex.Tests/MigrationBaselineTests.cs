@@ -56,9 +56,10 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
             Assert.True(await TableExistsAsync(dbPath, "Users"));
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            // ... + MaterialRequestSolicitante + ActivityLog + InsumosLibres + AddBodegas = 22
-            Assert.Equal(22, await CountMigrationRowsAsync(dbPath));
+            // ... + MaterialRequestSolicitante + ActivityLog + InsumosLibres + AddBodegas + AddUserBodegas = 23
+            Assert.Equal(23, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "Bodegas"));
+            Assert.True(await TableExistsAsync(dbPath, "UserBodegas"));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "DetallesSolicitudMaterial"));
@@ -114,7 +115,7 @@ public class MigrationBaselineTests
             }
 
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(22, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(23, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
@@ -160,6 +161,7 @@ public class MigrationBaselineTests
                 Assert.Contains(ids, id => id.Contains("AddActivityLog", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddSolicitudMaterialInsumosLibres", StringComparison.Ordinal));
                 Assert.Contains(ids, id => id.Contains("AddBodegas", StringComparison.Ordinal));
+                Assert.Contains(ids, id => id.Contains("AddUserBodegas", StringComparison.Ordinal));
             }
         }
         finally
@@ -180,7 +182,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(22, before);
+            Assert.Equal(23, before);
 
             await using (var context = CreateContext(dbPath))
             {
@@ -190,6 +192,55 @@ public class MigrationBaselineTests
 
             var after = await CountMigrationRowsAsync(dbPath);
             Assert.Equal(before, after);
+        }
+        finally
+        {
+            if (File.Exists(dbPath)) File.Delete(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task AddUserBodegas_CopiaBodegaIdSingularATablaPuente()
+    {
+        var dbPath = NewTempDbPath();
+        try
+        {
+            await using (var context = CreateContext(dbPath))
+            {
+                await context.Database.MigrateAsync("20260820011656_AddBodegas");
+            }
+
+            await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = """
+                    INSERT INTO "Users" ("Nombre", "Email", "PasswordHash", "Rol", "PermisosExtendidos", "IsActive", "BodegaId")
+                    VALUES ('Pedro Mig', 'pedro-mig@sipitex.test', 'x', 'Bodeguero', '', 1, 1);
+                    """;
+                Assert.Equal(1, await cmd.ExecuteNonQueryAsync());
+            }
+
+            await using (var context = CreateContext(dbPath))
+            {
+                await context.Database.MigrateAsync();
+            }
+
+            await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
+            {
+                await conn.OpenAsync();
+                await using var countCmd = conn.CreateCommand();
+                countCmd.CommandText = """
+                    SELECT COUNT(*) FROM "UserBodegas" ub
+                    INNER JOIN "Users" u ON u."Id" = ub."UserId"
+                    WHERE u."Email" = 'pedro-mig@sipitex.test' AND ub."BodegaId" = 1;
+                    """;
+                Assert.Equal(1, Convert.ToInt32(await countCmd.ExecuteScalarAsync()));
+
+                await using var colCmd = conn.CreateCommand();
+                colCmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Users') WHERE name = 'BodegaId';";
+                Assert.Equal(0, Convert.ToInt32(await colCmd.ExecuteScalarAsync()));
+            }
         }
         finally
         {

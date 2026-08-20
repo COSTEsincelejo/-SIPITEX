@@ -1,15 +1,17 @@
 namespace Sipitex.Application.Interfaces.Services;
 
-// Bodega del request actual para Global Query Filters.
+// Bodegas del request actual para Global Query Filters.
 // null = sin restricción (Admin, Instructor, anónimo, seeds/jobs).
-// 0 = Bodeguero autenticado sin bodega asignada (no ve filas; no es null a propósito).
+// lista vacía = Bodeguero autenticado sin ninguna bodega asignada (no ve filas; no es null a propósito).
+// lista con ids = Bodeguero restringido a esas bodegas (IN).
 public interface ICurrentBodegaAccessor
 {
-    int? BodegaId { get; }
+    IReadOnlyList<int>? BodegaIds { get; }
 }
 
 public static class BodegaClaimTypes
 {
+    // Múltiples claims del mismo tipo (uno por bodega asignada). Menos invasivo que un CSV.
     public const string BodegaId = "bodega_id";
 }
 
@@ -17,10 +19,10 @@ public sealed class NullCurrentBodegaAccessor : ICurrentBodegaAccessor
 {
     public static NullCurrentBodegaAccessor Instance { get; } = new();
 
-    public int? BodegaId => null;
+    public IReadOnlyList<int>? BodegaIds => null;
 }
 
-public sealed class FixedCurrentBodegaAccessor(int? bodegaId) : ICurrentBodegaAccessor
+public sealed class FixedCurrentBodegaAccessor(IReadOnlyList<int>? bodegaIds) : ICurrentBodegaAccessor
 {
-    public int? BodegaId { get; } = bodegaId;
+    public IReadOnlyList<int>? BodegaIds { get; } = bodegaIds;
 }

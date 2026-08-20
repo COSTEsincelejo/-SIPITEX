@@ -97,8 +97,8 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             Email = "bodega.int@test.local",
             PasswordHash = PasswordHasher.Hash("Bodega123!"),
             Rol = UserRoles.Bodeguero,
-            BodegaId = 1,
-            IsActive = true
+            IsActive = true,
+            UserBodegas = { new UserBodega { BodegaId = 1 } }
         };
 
         Context.Users.AddRange(admin, instructor, bodeguero);

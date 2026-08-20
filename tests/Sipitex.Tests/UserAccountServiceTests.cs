@@ -22,6 +22,13 @@ public class UserAccountServiceTests
         _bodegaRepository
             .Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Bodega { Id = 2, Nombre = "Bodega 2" });
+        _bodegaRepository
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new Bodega { Id = 1, Nombre = "Bodega 1" },
+                new Bodega { Id = 2, Nombre = "Bodega 2" }
+            ]);
 
         return new(_userRepository.Object, _fichaRepository.Object, _bodegaRepository.Object, _unitOfWork.Object);
     }
@@ -227,17 +234,41 @@ public class UserAccountServiceTests
             "Clave123!",
             UserRoles.Bodeguero,
             fichaAsignadaId: null,
-            bodegaId: 2,
+            bodegaIds: [2],
             []);
 
         Assert.True(result.Success, result.Message);
         Assert.NotNull(saved);
-        Assert.Equal(2, saved!.BodegaId);
+        Assert.Equal([2], saved!.GetAssignedBodegaIds());
         Assert.Equal(UserRoles.Bodeguero, saved.Rol);
     }
 
     [Fact]
-    public async Task CreateUserAsync_InstructorConBodegaId_IgnoraYDejaNull()
+    public async Task CreateUserAsync_BodegueroConVariasBodegas_AsignaTodas()
+    {
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("multi@sipitex.test", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        User? saved = null;
+        _userRepository
+            .Setup(r => r.Add(It.IsAny<User>()))
+            .Callback<User>(u => saved = u);
+
+        var result = await CreateSut().CreateUserAsync(
+            "Bodeguero Multi",
+            "multi@sipitex.test",
+            "Clave123!",
+            UserRoles.Bodeguero,
+            fichaAsignadaId: null,
+            bodegaIds: [1, 2],
+            []);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal([1, 2], saved!.GetAssignedBodegaIds());
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_InstructorConBodegaId_IgnoraYDejaVacio()
     {
         _userRepository
             .Setup(r => r.EmailExistsAsync("inst@sipitex.test", null, It.IsAny<CancellationToken>()))
@@ -253,16 +284,16 @@ public class UserAccountServiceTests
             "Clave123!",
             UserRoles.Instructor,
             fichaAsignadaId: null,
-            bodegaId: 2,
+            bodegaIds: [2],
             []);
 
         Assert.True(result.Success, result.Message);
         Assert.NotNull(saved);
-        Assert.Null(saved!.BodegaId);
+        Assert.Empty(saved!.UserBodegas);
     }
 
     [Fact]
-    public async Task CreateUserAsync_AdministradorConBodegaId_IgnoraYDejaNull()
+    public async Task CreateUserAsync_AdministradorConBodegaId_IgnoraYDejaVacio()
     {
         _userRepository
             .Setup(r => r.EmailExistsAsync("admin2@sipitex.test", null, It.IsAny<CancellationToken>()))
@@ -278,11 +309,11 @@ public class UserAccountServiceTests
             "Clave123!",
             UserRoles.Administrador,
             fichaAsignadaId: null,
-            bodegaId: 1,
+            bodegaIds: [1],
             []);
 
         Assert.True(result.Success, result.Message);
-        Assert.Null(saved!.BodegaId);
+        Assert.Empty(saved!.UserBodegas);
     }
 
     [Fact]
@@ -294,20 +325,19 @@ public class UserAccountServiceTests
             "Clave123!",
             UserRoles.Bodeguero,
             fichaAsignadaId: null,
-            bodegaId: null,
+            bodegaIds: [],
             []);
 
         Assert.False(result.Success);
-        Assert.Contains("asignar una bodega", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("al menos una bodega", result.Message, StringComparison.OrdinalIgnoreCase);
         _userRepository.Verify(r => r.Add(It.IsAny<User>()), Times.Never);
     }
 
     [Fact]
-    public async Task UpdateUserAsync_AsignaBodegaABodegueroSinBodega()
+    public async Task UpdateUserAsync_AsignaBodegasABodegueroSinBodega()
     {
         var user = CreateUser("legado@sipitex.test", "Clave123!", rol: UserRoles.Bodeguero);
         user.Id = 12;
-        user.BodegaId = null;
         _userRepository.Setup(r => r.GetByIdAsync(12, It.IsAny<CancellationToken>())).ReturnsAsync(user);
         _userRepository
             .Setup(r => r.EmailExistsAsync("legado@sipitex.test", 12, It.IsAny<CancellationToken>()))
@@ -321,12 +351,12 @@ public class UserAccountServiceTests
             password: "",
             UserRoles.Bodeguero,
             fichaAsignadaId: null,
-            bodegaId: 1,
+            bodegaIds: [1],
             [],
             isActive: true);
 
         Assert.True(result.Success, result.Message);
-        Assert.Equal(1, user.BodegaId);
+        Assert.Equal([1], user.GetAssignedBodegaIds());
         _userRepository.Verify(r => r.Update(user), Times.Once);
     }
 }
