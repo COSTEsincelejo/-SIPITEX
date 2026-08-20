@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.Authorization;
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
@@ -19,31 +20,37 @@ public class InventarioController : Controller
     // Lo necesito para el combo de órdenes al pedir material
     private readonly IProductionOrderService _orderService;
     private readonly IStockMovementService _stockMovements;
+    private readonly IUserAccountService _userAccountService;
+    private readonly IBodegaRepository _bodegaRepository;
 
     // ASP.NET inyecta los servicios por constructor
     public InventarioController(
         IInventoryService inventoryService,
         IProductionOrderService orderService,
-        IStockMovementService stockMovements)
+        IStockMovementService stockMovements,
+        IUserAccountService userAccountService,
+        IBodegaRepository bodegaRepository)
     {
         // Guardo referencia al servicio de inventario
         _inventoryService = inventoryService;
         // Guardo referencia al servicio de órdenes
         _orderService = orderService;
         _stockMovements = stockMovements;
+        _userAccountService = userAccountService;
+        _bodegaRepository = bodegaRepository;
     }
 
     // Pantalla principal del inventario (stock completo — no Instructor)
     [Authorize(Policy = AuthorizationPolicyNames.PuedeConsultarInventario)]
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(int? bodegaId, CancellationToken cancellationToken)
     {
         // Defensa en profundidad (unit-testable); la policy también bloquea en middleware
         if (User.IsInRole(UserRoles.Instructor) && !User.IsInRole(UserRoles.Administrador))
             return Forbid();
 
         // Armo el ViewModel con materiales, solicitudes y combos
-        return View(await BuildViewModel(cancellationToken));
+        return View(await BuildViewModel(bodegaId, cancellationToken));
     }
 
     // Historial de movimientos de stock (solo Admin / Bodeguero)
@@ -76,15 +83,22 @@ public class InventarioController : Controller
         if (!TryGetActorUserId(out var actorId))
         {
             ModelState.AddModelError(string.Empty, "Sesión no válida.");
-            return View("Index", await BuildViewModel(cancellationToken));
+            return View("Index", await BuildViewModel(queryBodegaId: null, cancellationToken));
         }
+
+        var actorRole = User.FindFirstValue(ClaimTypes.Role);
+        var (_, actorBodegaId) = await TryGetActorBodegaIdAsync(cancellationToken);
 
         // Llamo al servicio con los datos del formulario
         var result = await _inventoryService.AddMaterialAsync(
-            new CreateMaterialDto(form.Name, form.Stock, form.Unit, form.Origen), actorId, cancellationToken);
+            new CreateMaterialDto(form.Name, form.Stock, form.Unit, form.Origen, form.BodegaId),
+            actorId,
+            actorRole,
+            actorBodegaId,
+            cancellationToken);
 
         // Vuelvo a cargar la pantalla completa para mostrar la tabla actualizada
-        var vm = await BuildViewModel(cancellationToken);
+        var vm = await BuildViewModel(queryBodegaId: null, cancellationToken);
         // Mensaje que ve el usuario según si salió bien o no
         vm.Message = result.Message ?? (result.Success ? "Material agregado." : "Error al agregar material.");
         // Bandera verde/roja en la vista
@@ -162,7 +176,7 @@ public class InventarioController : Controller
             cancellationToken);
 
         // Recargo datos de la pantalla
-        var vm = await BuildViewModel(cancellationToken);
+        var vm = await BuildViewModel(queryBodegaId: null, cancellationToken);
         vm.Message = result.Message ?? (result.Success ? "Solicitud creada." : "Error al crear solicitud.");
         vm.IsSuccess = result.Success;
         // Me quedo en Index como en AddMaterial
@@ -215,17 +229,29 @@ public class InventarioController : Controller
     }
 
     // Arma el ViewModel completo de la pantalla (materiales + solicitudes + combos)
-    private async Task<InventarioIndexViewModel> BuildViewModel(CancellationToken cancellationToken)
+    private async Task<InventarioIndexViewModel> BuildViewModel(int? queryBodegaId, CancellationToken cancellationToken)
     {
-        // Lista de materiales para la tabla principal
-        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
+        var viewerRole = User.FindFirstValue(ClaimTypes.Role);
+        var (bodegaError, actorBodegaId) = await TryGetActorBodegaIdAsync(cancellationToken);
+
+        ViewBag.Bodegas = await _bodegaRepository.GetAllAsync(cancellationToken);
+        ViewBag.ActorBodegaId = actorBodegaId;
+        ViewBag.FilterBodegaId = IsAdmin(viewerRole) ? queryBodegaId : null;
+
+        int? materialsBodegaId = actorBodegaId;
+        if (materialsBodegaId is null && IsAdmin(viewerRole))
+            materialsBodegaId = queryBodegaId;
+
+        var materials = bodegaError is not null
+            ? (IReadOnlyList<MaterialDto>)[]
+            : await _inventoryService.GetMaterialsAsync(materialsBodegaId, cancellationToken);
+
         // Órdenes para el dropdown al crear solicitud
         var orders = await _orderService.GetOrdersAsync(cancellationToken: cancellationToken);
 
         int? viewerId = null;
         if (TryGetActorUserId(out var uid))
             viewerId = uid;
-        var viewerRole = User.FindFirstValue(ClaimTypes.Role);
 
         // Objeto que la vista Razor consume
         return new InventarioIndexViewModel
@@ -237,7 +263,10 @@ public class InventarioController : Controller
             // Combo de órdenes de producción
             Orders = orders,
             // Form vacío para agregar material
-            CreateMaterial = new CreateMaterialForm(),
+            CreateMaterial = new CreateMaterialForm
+            {
+                BodegaId = actorBodegaId ?? 0
+            },
             // Form de solicitud con valores por defecto en los combos
             // Prefiero dejar seleccionado el primer ítem para que el form no quede vacío
             CreateRequest = new CreateRequestForm
@@ -247,12 +276,32 @@ public class InventarioController : Controller
                 // Primer material o 0
                 MaterialId = materials.FirstOrDefault()?.Id ?? 0
             },
-            // Mensaje que vino de un POST anterior (TempData)
-            Message = TempData["Message"] as string,
+            // Mensaje: error de bodega asignada tiene prioridad sobre TempData
+            Message = bodegaError ?? TempData["Message"] as string,
             // Si el último POST fue exitoso
-            IsSuccess = TempData["IsSuccess"] as bool? ?? false
+            IsSuccess = bodegaError is null && (TempData["IsSuccess"] as bool? ?? false)
         };
     }
+
+    private async Task<(string? ErrorMessage, int? BodegaId)> TryGetActorBodegaIdAsync(
+        CancellationToken cancellationToken)
+    {
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        if (!string.Equals(role, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase))
+            return (null, null);
+
+        if (!TryGetActorUserId(out var userId))
+            return ("Su cuenta no tiene una bodega asignada. Contacte al administrador.", null);
+
+        var user = await _userAccountService.GetUserByIdAsync(userId, cancellationToken);
+        if (user?.BodegaId is not int bodegaId)
+            return ("Su cuenta no tiene una bodega asignada. Contacte al administrador.", null);
+
+        return (null, bodegaId);
+    }
+
+    private static bool IsAdmin(string? role) =>
+        string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
 
     private bool TryGetActorUserId(out int userId)
     {

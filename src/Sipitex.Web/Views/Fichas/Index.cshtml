@@ -264,7 +264,7 @@
                                                     <option value="">— Seleccione —</option>
                                                     @foreach (var mat in Model.Materials)
                                                     {
-                                                        <option value="@mat.Id">@mat.Name (@mat.UnitDisplay)</option>
+                                                        <option value="@mat.Id" data-bodega-id="@mat.BodegaId">@mat.Name (@mat.UnitDisplay)</option>
                                                     }
                                                 </select>
                                             </div>
@@ -289,7 +289,7 @@
                                                     <option value="">— Seleccione —</option>
                                                     @foreach (var mat in Model.Materials)
                                                     {
-                                                        <option value="@mat.Id">@mat.Name (@mat.UnitDisplay)</option>
+                                                        <option value="@mat.Id" data-bodega-id="@mat.BodegaId">@mat.Name (@mat.UnitDisplay)</option>
                                                     }
                                                 </select>
                                             </div>

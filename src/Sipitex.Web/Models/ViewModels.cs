@@ -35,6 +35,7 @@ public class CreateMaterialForm
     public decimal Stock { get; set; }
     public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
     public StockEntryOrigin Origen { get; set; } = StockEntryOrigin.Compra;
+    public int BodegaId { get; set; }
 }
 
 // Formulario para pedir material a bodega

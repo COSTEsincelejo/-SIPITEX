@@ -208,10 +208,30 @@
         });
       };
 
+      const bodegaSelect = form.querySelector('select[name="CreateSolicitud.BodegaId"]');
+      const applyBodegaFilter = () => {
+        if (!bodegaSelect) return;
+        const selectedBodega = bodegaSelect.value;
+        rowsHost.querySelectorAll('select').forEach((sel) => {
+          const options = [...sel.querySelectorAll('option[data-bodega-id]')];
+          if (options.length === 0) return;
+          options.forEach((opt) => {
+            const selectable = selectedBodega !== '' && opt.getAttribute('data-bodega-id') === selectedBodega;
+            opt.hidden = !selectable;
+            opt.disabled = !selectable;
+          });
+          const current = sel.selectedOptions[0];
+          if (current && current.disabled) {
+            sel.value = '';
+          }
+        });
+      };
+
       addBtn.addEventListener('click', () => {
         const node = template.content.cloneNode(true);
         rowsHost.appendChild(node);
         reindex();
+        applyBodegaFilter();
       });
 
       rowsHost.addEventListener('click', (e) => {
@@ -249,6 +269,8 @@
       });
 
       reindex();
+      bodegaSelect?.addEventListener('change', applyBodegaFilter);
+      applyBodegaFilter();
     });
 
     // Bodega: validar CantidadAprobada <= max (min solicitada, stock) antes de enviar

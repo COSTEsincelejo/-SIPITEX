@@ -14,6 +14,7 @@ public class InventoryDeleteMaterialTests
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IBomRepository> _boms = new();
     private readonly Mock<IStockMovementRepository> _stockMovements = new();
+    private readonly Mock<IBodegaRepository> _bodegas = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private InventoryService CreateSut() => new(
@@ -22,6 +23,7 @@ public class InventoryDeleteMaterialTests
         _orders.Object,
         _boms.Object,
         _stockMovements.Object,
+        _bodegas.Object,
         _uow.Object);
 
     [Fact]
