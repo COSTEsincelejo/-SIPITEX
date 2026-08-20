@@ -1,5 +1,6 @@
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
+using Sipitex.Web.Authorization;
 
 namespace Sipitex.Web;
 
@@ -9,6 +10,8 @@ public static class ApplicationServiceExtensions
     // Registra los servicios de aplicación en el contenedor de DI
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentBodegaAccessor, CurrentBodegaAccessor>();
         // Consumo de materiales en producción
         services.AddScoped<ProductionConsumptionService>();
 

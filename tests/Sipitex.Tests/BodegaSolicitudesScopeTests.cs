@@ -20,7 +20,7 @@ public class BodegaSolicitudesScopeTests
     private readonly Mock<ISolicitudMaterialService> _solicitudes = new();
     private readonly Mock<ISolicitudMaterialApprovalService> _approval = new();
     private readonly Mock<IInventoryService> _inventory = new();
-    private readonly Mock<IUserAccountService> _users = new();
+    private readonly Mock<ICurrentBodegaAccessor> _bodega = new();
 
     private BodegaSolicitudesController CreateController(ClaimsPrincipal user)
     {
@@ -28,7 +28,7 @@ public class BodegaSolicitudesScopeTests
             _solicitudes.Object,
             _approval.Object,
             _inventory.Object,
-            _users.Object)
+            _bodega.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -55,8 +55,7 @@ public class BodegaSolicitudesScopeTests
     [Fact]
     public async Task Index_BodegueroBodega1_SoloVeSolicitudesDeBodega1()
     {
-        _users.Setup(u => u.GetUserByIdAsync(5, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new User { Id = 5, Rol = UserRoles.Bodeguero, BodegaId = 1 });
+        _bodega.SetupGet(a => a.BodegaId).Returns(1);
         _solicitudes
             .Setup(s => s.GetListForBodegaAsync(1, true, It.IsAny<CancellationToken>()))
             .ReturnsAsync([Item(1, "SOL-B1")]);
@@ -77,8 +76,7 @@ public class BodegaSolicitudesScopeTests
     [Fact]
     public async Task Index_BodegueroSinBodegaAsignada_BloqueaConMensaje()
     {
-        _users.Setup(u => u.GetUserByIdAsync(5, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new User { Id = 5, Rol = UserRoles.Bodeguero, BodegaId = null });
+        _bodega.SetupGet(a => a.BodegaId).Returns(0);
 
         var controller = CreateController(Principal(5));
         var result = await controller.Index(estado: null, CancellationToken.None);

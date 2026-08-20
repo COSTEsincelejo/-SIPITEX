@@ -116,7 +116,8 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
 
             if (decision.CantidadAprobada > 0)
             {
-                var mapError = await EnsureDetalleMappedAsync(detalle, decision, cancellationToken);
+                var mapError = await EnsureDetalleMappedAsync(
+                    detalle, decision, solicitud.BodegaId, cancellationToken);
                 if (mapError is not null)
                     return ServiceResult.Fail(mapError);
 
@@ -202,16 +203,23 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
     private async Task<string?> EnsureDetalleMappedAsync(
         DetalleSolicitudMaterial detalle,
         ResolveDetalleDto decision,
+        int solicitudBodegaId,
         CancellationToken cancellationToken)
     {
         if (detalle.MaterialId is > 0 && detalle.Material is not null)
+        {
+            if (detalle.Material.BodegaId != solicitudBodegaId)
+                return "El material seleccionado pertenece a otra bodega.";
             return null;
+        }
 
         if (decision.MaterialId is int existingId && existingId > 0)
         {
             var material = await _materialRepository.GetByIdAsync(existingId, cancellationToken);
             if (material is null)
                 return "El material seleccionado para mapeo no existe.";
+            if (material.BodegaId != solicitudBodegaId)
+                return "El material seleccionado pertenece a otra bodega.";
             detalle.MaterialId = material.Id;
             detalle.Material = material;
             return null;
@@ -230,7 +238,8 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
                 Stock = 0,
                 MinStock = 0,
                 Status = MaterialStatus.Bueno,
-                LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
+                LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
+                BodegaId = solicitudBodegaId
             };
             // Seguimiento: SaveChanges aquí queda fuera de ExecuteInTransactionAsync del Resolve.
             // Si la transacción posterior falla, el Material (Stock=0) puede quedar huérfano.

@@ -191,6 +191,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
         var fichaRepo = new FichaRepository(Context);
         var materialRepo = new MaterialRepository(Context);
         var userRepo = new UserRepository(Context);
+        var bodegaRepo = new BodegaRepository(Context);
         var alertRepo = new AlertRepository(Context);
         // Repos que AlertService exige pero NotifyUsersAsync no usa en evaluación
         var materialRequestRepo = new MaterialRequestRepository(Context);
@@ -224,6 +225,8 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             fichaRepo,
             orderRepo,
             materialRepo,
+            bodegaRepo,
+            userRepo,
             CodigoGenerador,
             AlertService,
             uow);

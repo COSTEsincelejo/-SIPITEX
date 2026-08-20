@@ -15,6 +15,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     private readonly IFichaRepository _fichaRepository;
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IMaterialRepository _materialRepository;
+    private readonly IBodegaRepository _bodegaRepository;
+    private readonly IUserRepository _userRepository;
     private readonly ICodigoGeneradorService _codigoGenerador;
     private readonly IAlertService _alertService;
     private readonly IUnitOfWork _unitOfWork;
@@ -27,6 +29,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         IFichaRepository fichaRepository,
         IProductionOrderRepository orderRepository,
         IMaterialRepository materialRepository,
+        IBodegaRepository bodegaRepository,
+        IUserRepository userRepository,
         ICodigoGeneradorService codigoGenerador,
         IAlertService alertService,
         IUnitOfWork unitOfWork)
@@ -35,6 +39,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         _fichaRepository = fichaRepository;
         _orderRepository = orderRepository;
         _materialRepository = materialRepository;
+        _bodegaRepository = bodegaRepository;
+        _userRepository = userRepository;
         _codigoGenerador = codigoGenerador;
         _alertService = alertService;
         _unitOfWork = unitOfWork;
@@ -144,12 +150,11 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         await _solicitudRepository.AddAsync(solicitud, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        await _alertService.NotifyUsersAsync(
+        await NotifyBodeguerosDeBodegaAsync(
+            bodegaId,
             AlertType.SolicitudMaterialNueva,
             $"SIPITEX · Nueva solicitud {codigo}",
             $"Se creó la solicitud {codigo} para la ficha {ficha.FichaCode} ({lineas.Count} material(es)).\n\nRevise Solicitudes de materiales en bodega.",
-            userIds: null,
-            role: UserRoles.Bodeguero,
             cancellationToken);
 
         return ServiceResult.Ok($"Solicitud {codigo} creada.");
@@ -198,11 +203,15 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             productionOrderId = oid;
         }
 
+        // Sin MaterialId aún: el solicitante puede pasar BodegaId; si no, Bodega 1 (backfill AddBodegas).
+        var bodegaId = dto.BodegaId is > 0 ? dto.BodegaId.Value : DefaultBodegaId;
+        var bodega = await _bodegaRepository.GetByIdAsync(bodegaId, cancellationToken);
+        if (bodega is null)
+            return ServiceResult.Fail("Bodega no válida.");
+
         var codigo = await _codigoGenerador.GenerarCodigoSolicitudMaterialAsync(cancellationToken);
         var descripcionLibre = NormalizeOptional(dto.DescripcionLibre, maxLen: 2000);
         var observaciones = NormalizeOptional(dto.Observaciones);
-        // Sin MaterialId aún: el solicitante puede pasar BodegaId; si no, Bodega 1 (backfill AddBodegas).
-        var bodegaId = dto.BodegaId is > 0 ? dto.BodegaId.Value : DefaultBodegaId;
 
         var solicitud = new SolicitudMaterial
         {
@@ -235,12 +244,11 @@ public class SolicitudMaterialService : ISolicitudMaterialService
                 ? $" (orden #{productionOrderId})"
                 : string.Empty;
 
-        await _alertService.NotifyUsersAsync(
+        await NotifyBodeguerosDeBodegaAsync(
+            bodegaId,
             AlertType.SolicitudMaterialNueva,
             $"SIPITEX · Nueva solicitud {codigo}",
             $"Se creó la solicitud {codigo} de insumos libres{contexto} ({lineas.Count} ítem(s) por descripción).\n\nRevise Solicitudes de materiales en bodega.",
-            userIds: null,
-            role: UserRoles.Bodeguero,
             cancellationToken);
 
         return ServiceResult.Ok($"Solicitud {codigo} creada.");
@@ -401,4 +409,30 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     private static bool IsInstructor(string? role, int? userId) =>
         userId is > 0
         && string.Equals(role, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase);
+
+    private async Task NotifyBodeguerosDeBodegaAsync(
+        int bodegaId,
+        AlertType type,
+        string subject,
+        string body,
+        CancellationToken cancellationToken)
+    {
+        var ids = (await _userRepository.GetAllAsync(cancellationToken))
+            .Where(u => u.IsActive
+                        && string.Equals(u.Rol, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase)
+                        && u.BodegaId == bodegaId)
+            .Select(u => u.Id)
+            .ToList();
+
+        if (ids.Count == 0)
+            return;
+
+        await _alertService.NotifyUsersAsync(
+            type,
+            subject,
+            body,
+            userIds: ids,
+            role: null,
+            cancellationToken);
+    }
 }

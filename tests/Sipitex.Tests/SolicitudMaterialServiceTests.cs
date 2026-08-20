@@ -15,12 +15,23 @@ public class SolicitudMaterialServiceTests
     private readonly Mock<IFichaRepository> _fichas = new();
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IMaterialRepository> _materials = new();
+    private readonly Mock<IBodegaRepository> _bodegas = new();
+    private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<ICodigoGeneradorService> _codigos = new();
     private readonly Mock<IAlertService> _alerts = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private SolicitudMaterialService CreateSut()
     {
+        _bodegas
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Bodega { Id = 1, Nombre = "Bodega 1" });
+        _bodegas
+            .Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Bodega { Id = 2, Nombre = "Bodega 2" });
+        _users
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         _alerts
             .Setup(a => a.NotifyUsersAsync(
                 It.IsAny<AlertType>(),
@@ -36,6 +47,8 @@ public class SolicitudMaterialServiceTests
             _fichas.Object,
             _orders.Object,
             _materials.Object,
+            _bodegas.Object,
+            _users.Object,
             _codigos.Object,
             _alerts.Object,
             _uow.Object);
@@ -89,13 +102,6 @@ public class SolicitudMaterialServiceTests
         Assert.Null(saved.Detalles.First().CantidadAprobada);
         Assert.Equal(12m, saved.Detalles.First().CantidadSolicitada);
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        _alerts.Verify(a => a.NotifyUsersAsync(
-            AlertType.SolicitudMaterialNueva,
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            null,
-            UserRoles.Bodeguero,
-            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -469,6 +475,74 @@ public class SolicitudMaterialServiceTests
         var detail = await CreateSut().GetDetailAsync(1, 10, UserRoles.Instructor);
 
         Assert.Null(detail);
+    }
+
+    [Fact]
+    public async Task CreateAsync_InsumosLibres_BodegaIdInexistente_FallaSinExcepcion()
+    {
+        var result = await CreateSut().CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.InsumosLibres,
+                FichaId: null,
+                ProductionOrderId: null,
+                DescripcionLibre: "Pedido",
+                [new CreateDetalleSolicitudDto(null, 1, "Botón")],
+                BodegaId: 99),
+            solicitanteId: 10,
+            actorRole: UserRoles.Instructor,
+            actorName: "Laura");
+
+        Assert.False(result.Success);
+        Assert.Contains("Bodega no válida", result.Message, StringComparison.OrdinalIgnoreCase);
+        _solicitudes.Verify(
+            r => r.AddAsync(It.IsAny<SolicitudMaterial>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _codigos.Verify(c => c.GenerarCodigoSolicitudMaterialAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_PorFicha_NotificaSoloBodeguerosDeEsaBodega()
+    {
+        var ficha = FichaConInstructor(1, 10);
+        _fichas.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(ficha);
+        _materials.Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Material { Id = 5, Name = "Tela", Stock = 100, BodegaId = 2 });
+        _codigos.Setup(c => c.GenerarCodigoSolicitudMaterialAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync("SOL-NTF");
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _solicitudes
+            .Setup(r => r.AddAsync(It.IsAny<SolicitudMaterial>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var sut = CreateSut();
+        _users.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new User { Id = 21, Rol = UserRoles.Bodeguero, BodegaId = 1, IsActive = true },
+            new User { Id = 22, Rol = UserRoles.Bodeguero, BodegaId = 2, IsActive = true },
+            new User { Id = 23, Rol = UserRoles.Bodeguero, BodegaId = 2, IsActive = false }
+        ]);
+
+        var result = await sut.CreateAsync(
+            new CreateSolicitudMaterialDto(SolicitudMaterialTipo.PorFicha, 1, null, null, [new CreateDetalleSolicitudDto(5, 12)]),
+            solicitanteId: 10,
+            actorRole: UserRoles.Instructor,
+            actorName: "Laura");
+
+        Assert.True(result.Success, result.Message);
+        _alerts.Verify(a => a.NotifyUsersAsync(
+            AlertType.SolicitudMaterialNueva,
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.Is<IReadOnlyList<int>>(ids => ids.Count == 1 && ids[0] == 22),
+            null,
+            It.IsAny<CancellationToken>()), Times.Once);
+        _alerts.Verify(a => a.NotifyUsersAsync(
+            It.IsAny<AlertType>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<IReadOnlyList<int>?>(),
+            UserRoles.Bodeguero,
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 }
 
