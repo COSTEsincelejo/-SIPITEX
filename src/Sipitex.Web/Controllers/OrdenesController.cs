@@ -19,6 +19,7 @@ public class OrdenesController : Controller
     private readonly IInventoryService _inventoryService;
     private readonly IProductionFlowService _flowService;
     private readonly IUserAccountService _users;
+    private readonly IActivityLogService _activityLog;
 
     public OrdenesController(
         IProductionOrderService orderService,
@@ -26,7 +27,8 @@ public class OrdenesController : Controller
         IOrderMaterialService orderMaterialService,
         IInventoryService inventoryService,
         IProductionFlowService flowService,
-        IUserAccountService users)
+        IUserAccountService users,
+        IActivityLogService activityLog)
     {
         _orderService = orderService;
         _bomCatalog = bomCatalog;
@@ -34,6 +36,7 @@ public class OrdenesController : Controller
         _inventoryService = inventoryService;
         _flowService = flowService;
         _users = users;
+        _activityLog = activityLog;
     }
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero},{UserRoles.Instructor}")]
@@ -130,6 +133,17 @@ public class OrdenesController : Controller
             actorId,
             cancellationToken);
 
+        if (result.Success)
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.UpdateOrder,
+                ActivityLogEntities.ProductionOrder,
+                entityId: form.OrderId.ToString(),
+                details: $"Producto={form.ProductName}; Cantidad={form.TotalQuantity}; Fecha={form.Deadline:yyyy-MM-dd}; Cliente={form.ClientName}",
+                cancellationToken);
+        }
+
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(result.Success ? nameof(Detail) : nameof(Edit), new { id = form.OrderId });
@@ -148,6 +162,16 @@ public class OrdenesController : Controller
         }
 
         var result = await _orderService.ApproveOrderAsync(id, actorId, cancellationToken);
+        if (result.Success)
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.ApproveOrder,
+                ActivityLogEntities.ProductionOrder,
+                entityId: id.ToString(),
+                details: result.Message,
+                cancellationToken);
+        }
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Detail), new { id });
@@ -166,6 +190,16 @@ public class OrdenesController : Controller
         }
 
         var result = await _orderService.CancelOrderAsync(id, actorId, cancellationToken);
+        if (result.Success)
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.CancelOrder,
+                ActivityLogEntities.ProductionOrder,
+                entityId: id.ToString(),
+                details: result.Message,
+                cancellationToken);
+        }
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Detail), new { id });
@@ -192,6 +226,17 @@ public class OrdenesController : Controller
                 form.ClientName,
                 responsibleInstructorId),
             cancellationToken);
+
+        if (result.Success && TryGetUserId(out var actorId))
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.CreateOrder,
+                ActivityLogEntities.ProductionOrder,
+                entityId: form.ProductName?.Trim(),
+                details: $"Producto={form.ProductName?.Trim()}; Cantidad={form.TotalQuantity}; Fecha={form.Deadline:yyyy-MM-dd}; Cliente={form.ClientName}; {result.Message}",
+                cancellationToken);
+        }
 
         TempData["Message"] = result.Message ?? (result.Success ? "Orden creada." : "Error al crear orden.");
         TempData["IsSuccess"] = result.Success;

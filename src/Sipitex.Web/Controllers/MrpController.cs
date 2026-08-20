@@ -17,12 +17,18 @@ public class MrpController : Controller
     private readonly IMrpService _mrpService;
     private readonly IBomCatalogService _bomCatalog;
     private readonly IInventoryService _inventoryService;
+    private readonly IActivityLogService _activityLog;
 
-    public MrpController(IMrpService mrpService, IBomCatalogService bomCatalog, IInventoryService inventoryService)
+    public MrpController(
+        IMrpService mrpService,
+        IBomCatalogService bomCatalog,
+        IInventoryService inventoryService,
+        IActivityLogService activityLog)
     {
         _mrpService = mrpService;
         _bomCatalog = bomCatalog;
         _inventoryService = inventoryService;
+        _activityLog = activityLog;
     }
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero},{UserRoles.Instructor}")]
@@ -59,6 +65,16 @@ public class MrpController : Controller
     public async Task<IActionResult> AssignInstructor(int bomProductId, int instructorUserId, CancellationToken cancellationToken)
     {
         var result = await _bomCatalog.AssignInstructorAsync(bomProductId, instructorUserId, cancellationToken);
+        if (result.Success && TryGetActorUserId(out var actorId))
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.AssignBomInstructor,
+                ActivityLogEntities.BomProduct,
+                entityId: bomProductId.ToString(),
+                details: $"InstructorUserId={instructorUserId}; {result.Message}",
+                cancellationToken);
+        }
         TempData["Message"] = result.Message ?? (result.Success ? "Instructor asignado." : "No se pudo asignar.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
@@ -71,6 +87,16 @@ public class MrpController : Controller
     public async Task<IActionResult> RemoveInstructor(int bomProductId, int instructorUserId, CancellationToken cancellationToken)
     {
         var result = await _bomCatalog.RemoveInstructorAsync(bomProductId, instructorUserId, cancellationToken);
+        if (result.Success && TryGetActorUserId(out var actorId))
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.RemoveBomInstructor,
+                ActivityLogEntities.BomProduct,
+                entityId: bomProductId.ToString(),
+                details: $"InstructorUserId={instructorUserId}; {result.Message}",
+                cancellationToken);
+        }
         TempData["Message"] = result.Message ?? (result.Success ? "Instructor quitado." : "No se pudo quitar.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
@@ -95,6 +121,17 @@ public class MrpController : Controller
             vm.Message = result.Message;
             vm.IsSuccess = false;
             return View("Edit", vm);
+        }
+
+        if (TryGetActorUserId(out var actorId))
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.CreateBom,
+                ActivityLogEntities.BomProduct,
+                entityId: form.ProductName?.Trim(),
+                details: result.Message,
+                cancellationToken);
         }
 
         TempData["Message"] = result.Message;
@@ -126,6 +163,17 @@ public class MrpController : Controller
             return View(vm);
         }
 
+        if (TryGetActorUserId(out var actorId))
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.UpdateBom,
+                ActivityLogEntities.BomProduct,
+                entityId: id.ToString(),
+                details: $"Producto={form.ProductName?.Trim()}; {result.Message}",
+                cancellationToken);
+        }
+
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = true;
         return RedirectToAction(nameof(Index));
@@ -138,6 +186,16 @@ public class MrpController : Controller
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var result = await _bomCatalog.DeleteAsync(id, cancellationToken);
+        if (result.Success && TryGetActorUserId(out var actorId))
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.DeleteBom,
+                ActivityLogEntities.BomProduct,
+                entityId: id.ToString(),
+                details: result.Message,
+                cancellationToken);
+        }
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
@@ -357,4 +415,7 @@ public class MrpController : Controller
                 v.TallaOrden,
                 v.TallaNombre,
                 v.Valor)).ToList()));
+
+    private bool TryGetActorUserId(out int userId) =>
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId) && userId > 0;
 }

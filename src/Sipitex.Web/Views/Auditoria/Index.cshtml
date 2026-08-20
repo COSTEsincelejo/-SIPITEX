@@ -1,0 +1,115 @@
+@model AuditoriaIndexViewModel
+@{
+    ViewData["Title"] = "Auditoría";
+    ViewData["Breadcrumb"] = "SIPITEX / Análisis / Auditoría";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Auditoría</h2>
+        <div class="sub">Quién hizo qué: altas y cambios críticos (usuarios, bodegas, órdenes, fichas técnicas). Complementa el snapshot BOM de cada orden y el historial de ediciones de OP. Se muestran las 250 filas más recientes.</div>
+    </div>
+</div>
+
+<div class="card">
+    <form method="get" class="form-row" style="margin-bottom:1rem;flex-wrap:wrap;">
+        <div class="field">
+            <label class="field-label">Desde</label>
+            <input type="date" name="desde" value="@(Model.Desde?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="field">
+            <label class="field-label">Hasta</label>
+            <input type="date" name="hasta" value="@(Model.Hasta?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="field" style="min-width:180px;">
+            <label class="field-label">Acción</label>
+            <select name="accion">
+                <option value="">Todas</option>
+                @foreach (var a in Model.Actions)
+                {
+                    if (string.Equals(Model.Action, a, StringComparison.Ordinal))
+                    {
+                        <option value="@a" selected>@DisplayHelper.LabelActivityAction(a)</option>
+                    }
+                    else
+                    {
+                        <option value="@a">@DisplayHelper.LabelActivityAction(a)</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="field" style="min-width:160px;">
+            <label class="field-label">Entidad</label>
+            <select name="entity">
+                <option value="">Todas</option>
+                @foreach (var e in Model.Entities)
+                {
+                    if (string.Equals(Model.Entity, e, StringComparison.Ordinal))
+                    {
+                        <option value="@e" selected>@DisplayHelper.LabelActivityEntity(e)</option>
+                    }
+                    else
+                    {
+                        <option value="@e">@DisplayHelper.LabelActivityEntity(e)</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="field" style="min-width:180px;">
+            <label class="field-label">Usuario</label>
+            <select name="userId">
+                <option value="">Todos</option>
+                @foreach (var u in Model.Actors)
+                {
+                    if (Model.UserId == u.UserId)
+                    {
+                        <option value="@u.UserId" selected>@u.UserName</option>
+                    }
+                    else
+                    {
+                        <option value="@u.UserId">@u.UserName</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="field" style="align-self:flex-end;">
+            <button type="submit" class="small"><i class="fas fa-filter"></i> Filtrar</button>
+            <a class="small ghost" asp-action="Index">Limpiar</a>
+        </div>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha (UTC)</th>
+                    <th>Usuario</th>
+                    <th>Acción</th>
+                    <th>Entidad</th>
+                    <th>Id</th>
+                    <th>Detalle</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Entries.Count == 0)
+            {
+                <tr>
+                    <td colspan="6"><span class="hint">No hay eventos con los filtros seleccionados.</span></td>
+                </tr>
+            }
+            @foreach (var row in Model.Entries)
+            {
+                <tr>
+                    <td>@row.TimestampUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@row.UserName</td>
+                    <td><span class="badge badge-info">@DisplayHelper.LabelActivityAction(row.Action)</span></td>
+                    <td>@DisplayHelper.LabelActivityEntity(row.Entity)</td>
+                    <td>@(row.EntityId ?? "—")</td>
+                    <td class="user-funcion">@(string.IsNullOrWhiteSpace(row.Details) ? "—" : row.Details)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
