@@ -289,7 +289,8 @@ public record CreateQualityRecordDto(
     int Units,
     QualityResult Result,
     string? MotivoReproceso = null,
-    string? Responsable = null);
+    string? Responsable = null,
+    DateOnly Date = default);
 
 // --- Dashboard ---
 

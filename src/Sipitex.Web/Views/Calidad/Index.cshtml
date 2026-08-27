@@ -27,7 +27,11 @@
         </div>
         <div class="field" style="width:160px;">
             <label class="field-label">Unidades revisadas</label>
-            <input asp-for="Create.Units" type="number" min="1" required />
+            <input asp-for="Create.Units" type="number" min="1" required id="unitsInput" />
+        </div>
+        <div class="field" style="width:160px;">
+            <label class="field-label">Fecha de inspección</label>
+            <input asp-for="Create.Date" type="date" />
         </div>
         <div class="field">
             <label class="field-label">Resultado</label>
@@ -83,6 +87,7 @@
         }
         select?.addEventListener('change', sync);
         sync();
+        document.getElementById('unitsInput')?.focus();
     })();
 </script>
 }

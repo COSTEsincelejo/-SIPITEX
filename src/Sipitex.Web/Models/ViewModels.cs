@@ -344,6 +344,7 @@ public class CreateQualityForm
 {
     public int ProductionOrderId { get; set; }
     public int Units { get; set; }
+    public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
     public QualityResult Result { get; set; } = QualityResult.Aprobada;
     public string? MotivoReproceso { get; set; } // solo si es reproceso
     public string? Responsable { get; set; }

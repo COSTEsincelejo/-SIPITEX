@@ -75,6 +75,12 @@ public class QualityService : IQualityService
         if (order is null || dto.Units <= 0)
             return ServiceResult.Fail("Datos incompletos.");
 
+        var inspectionDate = dto.Date == default
+            ? DateOnly.FromDateTime(DateTime.Today)
+            : dto.Date;
+        if (inspectionDate > DateOnly.FromDateTime(DateTime.Today))
+            return ServiceResult.Fail("La fecha de inspección no puede ser futura.");
+
         // Reproceso obliga motivo y responsable
         if (dto.Result == QualityResult.Reproceso)
         {
@@ -83,7 +89,7 @@ public class QualityService : IQualityService
                 return ServiceResult.Fail("Para reproceso indique motivo y responsable.");
         }
 
-        // Armo la entidad con la fecha de hoy
+        // Armo la entidad con la fecha indicada en la inspección
         await _qualityRepository.AddAsync(new QualityRecord
         {
             ProductionOrderId = dto.ProductionOrderId,
@@ -92,7 +98,7 @@ public class QualityService : IQualityService
             // Solo guardo motivo/responsable si aplica reproceso
             MotivoReproceso = dto.Result == QualityResult.Reproceso ? dto.MotivoReproceso?.Trim() : null,
             Responsable = dto.Result == QualityResult.Reproceso ? dto.Responsable?.Trim() : null,
-            InspectionDate = DateOnly.FromDateTime(DateTime.Today)
+            InspectionDate = inspectionDate
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
