@@ -124,6 +124,62 @@ public class BodegaQueryFilterTests
         Assert.Empty(list);
     }
 
+    [Fact]
+    public async Task StockMovements_BodegueroBodega1_SoloVeFilasDeSuBodega()
+    {
+        var path = TempDb();
+        await SeedStockMovementsAsync(path);
+
+        await using var db = Create(path, new FixedCurrentBodegaAccessor([1]));
+        var list = await db.StockMovements.AsNoTracking().ToListAsync();
+
+        Assert.Equal(2, list.Count);
+        Assert.Contains(list, movement => movement.Referencia == "mov-b1a");
+        Assert.Contains(list, movement => movement.Referencia == "mov-b1b");
+        Assert.DoesNotContain(list, movement => movement.Referencia == "mov-b2");
+    }
+
+    [Fact]
+    public async Task StockMovements_BodegueroConDosBodegas_VeAmbasYNingunaOtra()
+    {
+        var path = TempDb();
+        await SeedStockMovementsAsync(path, includeBodega3: true);
+
+        await using var db = Create(path, new FixedCurrentBodegaAccessor([1, 2]));
+        var list = await db.StockMovements.AsNoTracking().ToListAsync();
+
+        Assert.Equal(3, list.Count);
+        Assert.Contains(list, movement => movement.Referencia == "mov-b1a");
+        Assert.Contains(list, movement => movement.Referencia == "mov-b1b");
+        Assert.Contains(list, movement => movement.Referencia == "mov-b2");
+        Assert.DoesNotContain(list, movement => movement.Referencia == "mov-b3");
+    }
+
+    [Fact]
+    public async Task StockMovements_AccessorNull_VeTodasLasBodegas()
+    {
+        var path = TempDb();
+        await SeedStockMovementsAsync(path, includeBodega3: true);
+
+        await using var db = Create(path, NullCurrentBodegaAccessor.Instance);
+        var list = await db.StockMovements.AsNoTracking().ToListAsync();
+
+        Assert.Equal(4, list.Count);
+        Assert.Contains(list, movement => movement.Referencia == "mov-b3");
+    }
+
+    [Fact]
+    public async Task StockMovements_BodegueroSinBodega_ListaVacia()
+    {
+        var path = TempDb();
+        await SeedStockMovementsAsync(path);
+
+        await using var db = Create(path, new FixedCurrentBodegaAccessor([]));
+        var list = await db.StockMovements.AsNoTracking().ToListAsync();
+
+        Assert.Empty(list);
+    }
+
     private static string TempDb() =>
         Path.Combine(Path.GetTempPath(), $"sipitex-gqf-{Guid.NewGuid():N}.db");
 
@@ -145,6 +201,47 @@ public class BodegaQueryFilterTests
             new Material { Code = "mat-b2", Name = "Forro 2", Unit = MaterialUnit.Metros, Stock = 8, BodegaId = 2 });
         if (includeBodega3)
             db.Materials.Add(new Material { Code = "mat-b3", Name = "Botón 3", Unit = MaterialUnit.Unidades, Stock = 4, BodegaId = 3 });
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedStockMovementsAsync(string path, bool includeBodega3 = false)
+    {
+        await using var db = Create(path, NullCurrentBodegaAccessor.Instance);
+        await db.Database.EnsureCreatedAsync();
+        if (includeBodega3)
+        {
+            db.Bodegas.Add(new Bodega { Nombre = "Bodega 3" });
+            await db.SaveChangesAsync();
+        }
+
+        var user = new User
+        {
+            Nombre = "Bodeguero",
+            Email = $"bodeguero-{Guid.NewGuid():N}@test.com",
+            PasswordHash = "x",
+            Rol = UserRoles.Bodeguero,
+            IsActive = true
+        };
+        db.Users.Add(user);
+        db.Materials.AddRange(
+            new Material { Code = "mat-b1a", Name = "Tela 1", Unit = MaterialUnit.Metros, Stock = 10, BodegaId = 1 },
+            new Material { Code = "mat-b1b", Name = "Hilo 1", Unit = MaterialUnit.Unidades, Stock = 5, BodegaId = 1 },
+            new Material { Code = "mat-b2", Name = "Forro 2", Unit = MaterialUnit.Metros, Stock = 8, BodegaId = 2 });
+        if (includeBodega3)
+            db.Materials.Add(new Material { Code = "mat-b3", Name = "Boton 3", Unit = MaterialUnit.Unidades, Stock = 4, BodegaId = 3 });
+        await db.SaveChangesAsync();
+
+        var materials = await db.Materials.OrderBy(material => material.Id).ToListAsync();
+        var references = new[] { "mov-b1a", "mov-b1b", "mov-b2", "mov-b3" };
+        db.StockMovements.AddRange(materials.Select((material, index) => new StockMovement
+        {
+            MaterialId = material.Id,
+            UsuarioId = user.Id,
+            TipoMovimiento = StockMovementType.Entrada,
+            Cantidad = 1,
+            StockResultante = material.Stock,
+            Referencia = references[index]
+        }));
         await db.SaveChangesAsync();
     }
 

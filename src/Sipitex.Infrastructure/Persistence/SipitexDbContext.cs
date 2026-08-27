@@ -633,6 +633,7 @@ public class SipitexDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(m => m.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(s => !RestrictToAssignedBodegas || CurrentBodegaIds.Contains(s.Material.BodegaId));
             e.HasIndex(m => m.FechaUtc);
             e.HasIndex(m => m.MaterialId);
             e.HasIndex(m => m.UsuarioId);
