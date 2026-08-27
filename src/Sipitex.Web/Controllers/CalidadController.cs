@@ -30,11 +30,15 @@ public class CalidadController : Controller
         var (userId, role, name) = CurrentViewer();
         // Instructor: solo órdenes asignadas (mismo alcance que PR #47)
         var orders = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken);
+        var lastOrderId = TempData["LastOrderId"] as int?;
+        var selectedOrderId = lastOrderId.HasValue && orders.Any(order => order.Id == lastOrderId.Value)
+            ? lastOrderId.Value
+            : orders.FirstOrDefault()?.Id ?? 0;
         return View(new CalidadIndexViewModel
         {
             Records = await _qualityService.GetRecordsAsync(userId, role, name, cancellationToken),
             Orders = orders,
-            Create = new CreateQualityForm { ProductionOrderId = orders.FirstOrDefault()?.Id ?? 0 },
+            Create = new CreateQualityForm { ProductionOrderId = selectedOrderId, Responsable = name },
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -56,14 +60,29 @@ public class CalidadController : Controller
                 form.Units,
                 form.Result,
                 form.MotivoReproceso,
-                form.Responsable),
+                form.Responsable,
+                form.Date),
             userId,
             role,
             name,
             cancellationToken);
 
-        TempData["Message"] = result.Message ?? (result.Success ? "Inspección registrada." : "Error al registrar.");
-        TempData["IsSuccess"] = result.Success;
+        if (!result.Success)
+        {
+            var orders = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken);
+            return View("Index", new CalidadIndexViewModel
+            {
+                Records = await _qualityService.GetRecordsAsync(userId, role, name, cancellationToken),
+                Orders = orders,
+                Create = form,
+                Message = result.Message ?? "Error al registrar.",
+                IsSuccess = false
+            });
+        }
+
+        TempData["LastOrderId"] = form.ProductionOrderId;
+        TempData["Message"] = result.Message ?? "Inspección registrada.";
+        TempData["IsSuccess"] = true;
         return RedirectToAction(nameof(Index));
     }
 

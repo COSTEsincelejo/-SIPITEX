@@ -95,6 +95,62 @@ public class QualityInstructorScopeTests
     }
 
     [Fact]
+    public async Task AddRecordAsync_FutureDate_FailsWithoutSaving()
+    {
+        _orderService.Setup(s => s.CanAccessOrderAsync(1, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-101", Status = OrderStatus.EnProceso });
+
+        var result = await CreateSut().AddRecordAsync(
+            new CreateQualityRecordDto(1, 8, QualityResult.Aprobada, Date: DateOnly.FromDateTime(DateTime.Today.AddDays(1))),
+            10, UserRoles.Instructor, "Laura");
+
+        Assert.False(result.Success);
+        Assert.Equal("La fecha de inspección no puede ser futura.", result.Message);
+        _quality.Verify(r => r.AddAsync(It.IsAny<QualityRecord>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddRecordAsync_PastDate_SavesExactDate()
+    {
+        var inspectionDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-3));
+        _orderService.Setup(s => s.CanAccessOrderAsync(1, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-101", Status = OrderStatus.EnProceso });
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().AddRecordAsync(
+            new CreateQualityRecordDto(1, 8, QualityResult.Aprobada, Date: inspectionDate),
+            10, UserRoles.Instructor, "Laura");
+
+        Assert.True(result.Success);
+        _quality.Verify(r => r.AddAsync(
+            It.Is<QualityRecord>(record => record.InspectionDate == inspectionDate),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddRecordAsync_DefaultDate_SavesToday()
+    {
+        _orderService.Setup(s => s.CanAccessOrderAsync(1, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-101", Status = OrderStatus.EnProceso });
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().AddRecordAsync(
+            new CreateQualityRecordDto(1, 8, QualityResult.Aprobada),
+            10, UserRoles.Instructor, "Laura");
+
+        Assert.True(result.Success);
+        _quality.Verify(r => r.AddAsync(
+            It.Is<QualityRecord>(record => record.InspectionDate == DateOnly.FromDateTime(DateTime.Today)),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task AddRecordAsync_Instructor_OnForeignOrder_Fails()
     {
         _orderService.Setup(s => s.CanAccessOrderAsync(2, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
