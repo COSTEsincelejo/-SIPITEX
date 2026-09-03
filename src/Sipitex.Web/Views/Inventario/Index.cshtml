@@ -7,7 +7,7 @@
     Layout = "_Layout";
     // Materiales con stock bajo para el banner de alerta
     var lowStock = Model.Materials.Where(m => m.IsLowStock).Select(m => m.Name).ToList();
-    var canManageStock = User.IsInRole("Administrador") || User.IsInRole("Bodeguero");
+    var canManageStock = User.IsInRole("Administrador") || User.IsInRole("EncargadoBodega");
     // Políticas más finas que el rol (permisos extendidos)
     var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
     var canApproveRequests = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeAprobarSolicitudes)).Succeeded;
@@ -81,7 +81,7 @@
                         <td>
                             @if (canManageStock)
                             {
-                                @* Bodeguero puede cambiar estado con un select que hace submit al cambiar *@
+                                @* Encargado de bodega puede cambiar estado con un select que hace submit al cambiar *@
                                 <form asp-action="UpdateStatus" method="post" class="row-actions">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="MaterialId" value="@mat.Id" />
@@ -252,6 +252,6 @@
         </div>
     }
     <div class="alert alert-info" style="margin-top:14px;">
-        <i class="fas fa-circle-info"></i> Admin solicita · Bodeguero aprueba o rechaza. Al aprobar, el stock se descuenta automáticamente.
+        <i class="fas fa-circle-info"></i> Admin solicita · Encargado de bodega aprueba o rechaza. Al aprobar, el stock se descuenta automáticamente.
     </div>
 </div>

@@ -23,7 +23,7 @@
     <div class="alert alert-info" style="margin-top:0;">
         <i class="fas fa-circle-info"></i>
         Use esto cuando no sepa el código exacto del material o no esté en el catálogo.
-        No reemplaza los materiales de la orden (BOM) ni la solicitud por ficha SENA.
+        No reemplaza los materiales de la orden (BOM) ni la solicitud por número de grupo SENA.
     </div>
 
     <form asp-action="SolicitarInsumos" method="post" id="insumos-libres-form">
@@ -37,7 +37,7 @@
 
         <div class="form-row" style="margin-top:12px;">
             <div class="field" style="flex:1;">
-                <label class="field-label">Ficha SENA (opcional)</label>
+                <label class="field-label">Número de grupo SENA (opcional)</label>
                 <select name="Form.FichaId" style="width:100%">
                     <option value="">— Sin vincular —</option>
                     @foreach (var item in Model.Fichas)
@@ -72,10 +72,10 @@
             </div>
             <div class="field" style="flex:1;">
                 <label class="field-label">Bodega destino</label>
-                <select name="Form.BodegaId" style="width:100%" required>
-                    @foreach (var item in Model.Bodegas)
+                <select name="Form.PlantaInventarioId" style="width:100%" required>
+                    @foreach (var item in Model.PlantasInventario)
                     {
-                        if ((f.BodegaId ?? 1) == item.Id)
+                        if ((f.PlantaInventarioId ?? 1) == item.Id)
                         {
                             <option value="@item.Id" selected>@item.Label</option>
                         }

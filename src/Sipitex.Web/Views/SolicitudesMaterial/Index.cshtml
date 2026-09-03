@@ -9,7 +9,7 @@
     <div>
         <h2>Mis solicitudes de materiales</h2>
         <div class="sub">@(Model.IsAdministrator
-            ? "Vista global: por ficha SENA e insumos libres"
+            ? "Vista global: por número de grupo SENA e insumos libres"
             : "Solo las solicitudes que usted ha creado")</div>
     </div>
     <a class="primary" asp-action="SolicitarInsumos"><i class="fas fa-comment-dots"></i> Solicitar insumos</a>
@@ -34,7 +34,7 @@
                     <tr>
                         <th>Código</th>
                         <th>Tipo</th>
-                        <th>Ficha</th>
+                        <th>Número de grupo</th>
                         <th>Estado</th>
                         <th>Fecha de solicitud</th>
                         @if (Model.IsAdministrator)

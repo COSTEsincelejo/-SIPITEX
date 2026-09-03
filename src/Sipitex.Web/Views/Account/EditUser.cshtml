@@ -4,7 +4,7 @@
     ViewData["Breadcrumb"] = "SIPITEX / Administración / Editar usuario";
     Layout = "_Layout";
     var fichas = ViewBag.Fichas as IEnumerable<Ficha> ?? Array.Empty<Ficha>();
-    var bodegas = ViewBag.Bodegas as IEnumerable<Bodega> ?? Array.Empty<Bodega>();
+    var plantasInventario = ViewBag.PlantasInventario as IEnumerable<PlantaInventario> ?? Array.Empty<PlantaInventario>();
     // El admin principal no se le puede cambiar el rol
     var isAdminUser = string.Equals(Model.Rol, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
 }
@@ -53,7 +53,7 @@
             }
         </div>
         <div class="field" data-role-field="instructor">
-            <label class="field-label">Ficha asignada</label>
+            <label class="field-label">Número de grupo asignado</label>
             <select asp-for="FichaAsignadaId">
                 <option value="">Sin asignar</option>
                 @foreach (var ficha in fichas)
@@ -64,13 +64,13 @@
         </div>
         <div class="field" data-role-field="bodeguero">
             <label class="field-label">Bodegas asignadas</label>
-            <select asp-for="BodegaIds" multiple size="4">
-                @foreach (var bodega in bodegas)
+            <select asp-for="PlantaInventarioIds" multiple size="4">
+                @foreach (var p in plantasInventario)
                 {
-                    <option value="@bodega.Id">@bodega.Nombre</option>
+                    <option value="@p.Id">@p.Nombre</option>
                 }
             </select>
-            <p class="hint" style="margin-top:.35rem;">Obligatorio para Bodeguero: seleccione una o varias. Un usuario legado sin bodegas puede asignárselas aquí. Mantenga Ctrl (o Cmd) para marcar varias.</p>
+            <p class="hint" style="margin-top:.35rem;">Obligatorio para Encargado de bodega: seleccione una o varias. Un usuario legado sin bodegas puede asignárselas aquí. Mantenga Ctrl (o Cmd) para marcar varias.</p>
         </div>
         <div class="field">
             <label class="field-label">Permisos extendidos</label>
@@ -100,11 +100,11 @@
 (function () {
     const rol = document.querySelector('[name="Rol"]');
     const ficha = document.querySelector('[data-role-field="instructor"]');
-    const bodega = document.querySelector('[data-role-field="bodeguero"]');
+    const encargadoDiv = document.querySelector('[data-role-field="encargado-bodega"]');
     function sync() {
         const value = rol?.value || '';
         if (ficha) ficha.hidden = value !== 'Instructor';
-        if (bodega) bodega.hidden = value !== 'Bodeguero';
+        if (encargadoDiv) encargadoDiv.hidden = value !== 'EncargadoBodega';
     }
     rol?.addEventListener('change', sync);
     sync();

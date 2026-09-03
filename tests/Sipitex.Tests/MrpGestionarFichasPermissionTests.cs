@@ -49,7 +49,7 @@ public class MrpGestionarFichasPermissionTests
     [Fact]
     public void PuedeGestionarFichasTecnicas_Bodeguero_IsAllowedWithoutClaim()
     {
-        var user = CreatePrincipal(UserRoles.Bodeguero);
+        var user = CreatePrincipal(UserRoles.EncargadoBodega);
         Assert.True(PermissionRules.PuedeGestionarFichasTecnicas(user));
     }
 

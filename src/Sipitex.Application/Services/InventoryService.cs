@@ -185,7 +185,7 @@ public class InventoryService : IInventoryService
         IEnumerable<MaterialRequest> scoped = requests;
         if (IsInstructor(viewerRole, viewerUserId))
             scoped = requests.Where(r => r.SolicitanteId == viewerUserId);
-        else if (!IsAdmin(viewerRole) && !IsBodeguero(viewerRole))
+        else if (!IsAdmin(viewerRole) && !IsEncargadoBodega(viewerRole))
             scoped = [];
 
         return scoped.Select(r => new MaterialRequestDto(
@@ -311,8 +311,8 @@ public class InventoryService : IInventoryService
     private static bool IsAdmin(string? role) =>
         string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsBodeguero(string? role) =>
-        string.Equals(role, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase);
+    private static bool IsEncargadoBodega(string? role) =>
+        string.Equals(role, UserRoles.EncargadoBodega, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsInstructor(string? role, int? userId) =>
         userId is > 0

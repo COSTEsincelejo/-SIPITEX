@@ -39,7 +39,7 @@ public class OrdenesController : Controller
         _activityLog = activityLog;
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero},{UserRoles.Instructor}")]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoBodega},{UserRoles.Instructor}")]
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
@@ -56,7 +56,7 @@ public class OrdenesController : Controller
     }
 
     // Detalle MES completo (materiales + etapas + historial + inventario terminado)
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero},{UserRoles.Instructor}")]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoBodega},{UserRoles.Instructor}")]
     [HttpGet]
     public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
     {

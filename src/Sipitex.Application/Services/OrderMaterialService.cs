@@ -45,7 +45,7 @@ public class OrderMaterialService : IOrderMaterialService
         return MapDetail(order, lines);
     }
 
-    public async Task<IReadOnlyList<ProductionOrderDto>> GetOrdersForBodegaAsync(
+    public async Task<IReadOnlyList<ProductionOrderDto>> GetOrdersForPlantaInventarioAsync(
         CancellationToken cancellationToken = default)
     {
         var orders = await _orderRepository.GetAllAsync(cancellationToken);
@@ -103,14 +103,14 @@ public class OrderMaterialService : IOrderMaterialService
         if (order.MaterialsStatus == OrderMaterialsStatus.NoAplica
             || order.MaterialsStatus == OrderMaterialsStatus.ListaParaProduccion)
         {
-            order.MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega;
+            order.MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario;
             _orderRepository.Update(order);
         }
         else if (order.MaterialsStatus == OrderMaterialsStatus.MaterialesValidados
                  || order.MaterialsStatus == OrderMaterialsStatus.EntregaParcial)
         {
             // Nuevo requisito pendiente → vuelve a revisión
-            order.MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega;
+            order.MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario;
             _orderRepository.Update(order);
         }
 
@@ -188,7 +188,7 @@ public class OrderMaterialService : IOrderMaterialService
         if (order.MaterialsStatus == OrderMaterialsStatus.NoAplica
             || order.MaterialsStatus == OrderMaterialsStatus.ListaParaProduccion)
         {
-            order.MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega;
+            order.MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario;
             _orderRepository.Update(order);
         }
 
@@ -240,7 +240,7 @@ public class OrderMaterialService : IOrderMaterialService
         CancellationToken cancellationToken = default)
     {
         if (bodegueroId <= 0)
-            return ServiceResult.Fail("Bodeguero no válido.");
+            return ServiceResult.Fail("Encargado de bodega no válido.");
 
         var order = await _orderRepository.GetByIdAsync(dto.OrderId, cancellationToken);
         if (order is null)
@@ -355,7 +355,7 @@ public class OrderMaterialService : IOrderMaterialService
 
         // Conserva MaterialesValidados si ya se validó y aún no hay entregas
         if (order.MaterialsStatus != OrderMaterialsStatus.MaterialesValidados)
-            order.MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega;
+            order.MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario;
     }
 
     private static OrderMaterialsDetailDto MapDetail(

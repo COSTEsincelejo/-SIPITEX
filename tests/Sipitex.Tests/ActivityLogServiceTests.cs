@@ -113,7 +113,7 @@ public class ActivityLogServiceTests : IDisposable
         var sut = CreateSut();
         await sut.LogAsync(7, ActivityLogActions.CreateOrder, ActivityLogEntities.ProductionOrder, "Camisa", "Cantidad=10");
         await sut.LogAsync(7, ActivityLogActions.UpdateBom, ActivityLogEntities.BomProduct, "5", "Producto=Pantalón");
-        await sut.LogAsync(7, ActivityLogActions.UpdateUser, ActivityLogEntities.User, "12", "BodegaIds=1,2");
+        await sut.LogAsync(7, ActivityLogActions.UpdateUser, ActivityLogEntities.User, "12", "PlantaInventarioIds=1,2");
 
         var orders = await sut.QueryAsync(null, null, ActivityLogActions.CreateOrder, null, 7);
         var order = Assert.Single(orders);
@@ -125,7 +125,7 @@ public class ActivityLogServiceTests : IDisposable
 
         var bodegaChange = await sut.QueryAsync(null, null, ActivityLogActions.UpdateUser, ActivityLogEntities.User, 7);
         Assert.Single(bodegaChange);
-        Assert.Contains("BodegaIds=1,2", bodegaChange[0].Details);
+        Assert.Contains("PlantaInventarioIds=1,2", bodegaChange[0].Details);
 
         Assert.Empty(await sut.QueryAsync(null, null, ActivityLogActions.CreateOrder, null, userId: 99));
     }
@@ -188,7 +188,7 @@ public class AccountActivityLogInstrumentationTests
     private readonly Mock<IPasswordResetService> _passwordReset = new();
     private readonly Mock<IFuncionalidadesReportService> _funcionalidades = new();
     private readonly Mock<IActivityLogService> _activity = new();
-    private readonly Mock<IBodegaService> _bodegas = new();
+    private readonly Mock<IPlantaInventarioService> _bodegas = new();
     private readonly Mock<IWebHostEnvironment> _env = new();
 
     private AccountController CreateController(int actorId = 1, string actorName = "Admin")
@@ -402,8 +402,8 @@ public class AccountActivityLogInstrumentationTests
                 Id = 12,
                 Nombre = "Pedro Bodega",
                 Email = "bodega@sipitex.test",
-                Rol = UserRoles.Bodeguero,
-                BodegaIds = [1, 2],
+                Rol = UserRoles.EncargadoBodega,
+                PlantaInventarioIds = [1, 2],
                 IsActive = true
             }, CancellationToken.None);
         }
@@ -416,7 +416,7 @@ public class AccountActivityLogInstrumentationTests
             ActivityLogActions.UpdateUser,
             ActivityLogEntities.User,
             "12",
-            It.Is<string?>(d => d != null && d.Contains("BodegaIds=1,2", StringComparison.Ordinal)),
+            It.Is<string?>(d => d != null && d.Contains("PlantaInventarioIds=1,2", StringComparison.Ordinal)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }

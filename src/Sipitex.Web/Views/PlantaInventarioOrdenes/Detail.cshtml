@@ -1,11 +1,11 @@
-@model BodegaOrdenDetailViewModel
+@model PlantaInventarioOrdenDetailViewModel
 @{
     ViewData["Title"] = $"Entrega {Model.Detail.OrderNumber}";
-    ViewData["Breadcrumb"] = "SIPITEX / Operación / Bodega · Órdenes / Detalle";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Planta de inventario · Órdenes / Detalle";
     Layout = "_Layout";
     var d = Model.Detail;
     var puedeEntregar = d.Status == OrderStatus.EnProceso
-        && d.MaterialsStatus is OrderMaterialsStatus.PendienteRevisionBodega
+        && d.MaterialsStatus is OrderMaterialsStatus.PendienteRevisionPlantaInventario
         or OrderMaterialsStatus.MaterialesValidados
         or OrderMaterialsStatus.EntregaParcial;
 }

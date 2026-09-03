@@ -143,7 +143,7 @@ public class StockMovementLedgerTests
             Id = 1,
             OrderNumber = "OP-101",
             Status = OrderStatus.EnProceso,
-            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega
+            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario
         };
         var line = new ProductionOrderMaterialRequirement
         {

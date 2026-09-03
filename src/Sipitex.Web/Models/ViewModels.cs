@@ -243,7 +243,7 @@ public class CreateInsumosLibresForm
     public int? FichaId { get; set; }
     public int? ProductionOrderId { get; set; }
     // Destino de insumos libres; si no se envía, el servicio usa Bodega 1.
-    public int? BodegaId { get; set; } = 1;
+    public int? PlantaInventarioId { get; set; } = 1;
     public string? Observaciones { get; set; }
     public List<CreateInsumoLibreItemForm> Detalles { get; set; } = [new()];
 }
@@ -259,11 +259,11 @@ public class SolicitarInsumosViewModel
     public CreateInsumosLibresForm Form { get; set; } = new();
     public IReadOnlyList<(int Id, string Label)> Fichas { get; set; } = [];
     public IReadOnlyList<(int Id, string Label)> Ordenes { get; set; } = [];
-    // Catálogo seed AddBodegas (Bodega 1 / Bodega 2); el form pasa Form.BodegaId al DTO.
-    public IReadOnlyList<(int Id, string Label)> Bodegas { get; set; } =
+    // Catálogo seed AddBodegas (Bodega 1 / Bodega 2); el form pasa Form.PlantaInventarioId al DTO.
+    public IReadOnlyList<(int Id, string Label)> PlantasInventario { get; set; } =
     [
-        (1, "Bodega 1"),
-        (2, "Bodega 2")
+        (1, "Planta de Inventario 1"),
+        (2, "Planta de Inventario 2")
     ];
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
@@ -286,8 +286,8 @@ public class SolicitudMaterialDetailViewModel
     public bool IsSuccess { get; set; }
 }
 
-// Listado Bodeguero: solicitudes de materiales
-public class BodegaSolicitudesIndexViewModel
+// Listado Encargado de bodega: solicitudes de materiales
+public class PlantaInventarioSolicitudesIndexViewModel
 {
     public IReadOnlyList<SolicitudMaterialListItemDto> Solicitudes { get; set; } = [];
     public bool SoloPendientes { get; set; } = true;
@@ -295,8 +295,8 @@ public class BodegaSolicitudesIndexViewModel
     public bool IsSuccess { get; set; }
 }
 
-// Detalle / resolución Bodeguero
-public class BodegaSolicitudDetailViewModel
+// Detalle / resolución Encargado de bodega
+public class PlantaInventarioSolicitudDetailViewModel
 {
     public SolicitudMaterialResolucionDto Solicitud { get; set; } = null!;
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
@@ -382,21 +382,21 @@ public class EmptyStateModel
     public string? ActionHref { get; set; } // link del botón (opcional)
 }
 
-// Catálogo de bodegas (admin): listado + alta
-public class BodegasIndexViewModel
+// Catálogo de plantas de inventario (admin): listado + alta
+public class PlantasInventarioIndexViewModel
 {
-    public IReadOnlyList<Bodega> Bodegas { get; set; } = [];
-    public CreateBodegaForm Form { get; set; } = new();
+    public IReadOnlyList<PlantaInventario> PlantasInventario { get; set; } = [];
+    public CreatePlantaInventarioForm Form { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
 
-public class CreateBodegaForm
+public class CreatePlantaInventarioForm
 {
     public string Nombre { get; set; } = string.Empty;
 }
 
-public class EditBodegaViewModel
+public class EditPlantaInventarioViewModel
 {
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;
@@ -467,32 +467,32 @@ public class AddOrderMaterialForm
     public string? Observations { get; set; }
 }
 
-public class BodegaOrdenesIndexViewModel
+public class PlantaInventarioOrdenesIndexViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
 
-public class BodegaOrdenDetailViewModel
+public class PlantaInventarioOrdenDetailViewModel
 {
     public OrderMaterialsDetailDto Detail { get; set; } = null!;
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
 
-public class BodegaReingresoViewModel
+public class PlantaInventarioReingresoViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
     public IReadOnlyList<OrderStageDto> Stages { get; set; } = [];
     public IReadOnlyList<string> StageNames { get; set; } = [];
-    public BodegaReingresoForm Form { get; set; } = new();
+    public PlantaInventarioReingresoForm Form { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
 
-public class BodegaReingresoForm
+public class PlantaInventarioReingresoForm
 {
     public int OrderId { get; set; }
     public int StageId { get; set; }

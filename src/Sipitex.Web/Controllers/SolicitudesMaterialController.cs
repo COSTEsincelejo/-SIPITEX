@@ -92,7 +92,7 @@ public class SolicitudesMaterialController : Controller
                 form.DescripcionLibre,
                 detalles,
                 form.Observaciones,
-                form.BodegaId),
+                form.PlantaInventarioId),
             solicitanteId,
             role,
             name,

@@ -37,7 +37,7 @@ public class AlertNotifyUsersTests
             Id = 1,
             Nombre = "Bodega On",
             Email = "on@test.com",
-            Rol = UserRoles.Bodeguero,
+            Rol = UserRoles.EncargadoBodega,
             IsActive = true
         };
         var bodegueroOff = new User
@@ -45,7 +45,7 @@ public class AlertNotifyUsersTests
             Id = 2,
             Nombre = "Bodega Off",
             Email = "off@test.com",
-            Rol = UserRoles.Bodeguero,
+            Rol = UserRoles.EncargadoBodega,
             IsActive = true
         };
 
@@ -74,7 +74,7 @@ public class AlertNotifyUsersTests
             "Asunto",
             "Cuerpo",
             userIds: null,
-            role: UserRoles.Bodeguero);
+            role: UserRoles.EncargadoBodega);
 
         Assert.Equal(1, sent);
         _email.Verify(e => e.SendAsync("on@test.com", "Bodega On", "Asunto", "Cuerpo", It.IsAny<CancellationToken>()), Times.Once);

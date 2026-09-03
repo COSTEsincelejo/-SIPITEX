@@ -12,7 +12,7 @@
 </div>
 
 <div class="module-grid">
-    @if (User.IsInRole("Administrador") || User.IsInRole("Bodeguero"))
+    @if (User.IsInRole("Administrador") || User.IsInRole("EncargadoBodega"))
     {
         <a class="module-link" asp-controller="Inventario" asp-action="Index">
             <i class="fas fa-boxes-stacked"></i>

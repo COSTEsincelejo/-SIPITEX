@@ -92,8 +92,8 @@ public class StageReentryTests
         var result = await CreateSut().RegisterStageReentryAsync(
             new StageReentryDto(10, stageId, Quantity: 5, MaterialId: 4, Observations: "Retorno"),
             actorUserId: 8,
-            actorName: "Bodega",
-            actorRole: UserRoles.Bodeguero);
+            actorName: "PlantaInventario",
+            actorRole: UserRoles.EncargadoBodega);
 
         Assert.True(result.Success);
         Assert.Equal(105m, material.Stock);
@@ -131,7 +131,7 @@ public class StageReentryTests
 
         var result = await CreateSut().RegisterStageReentryAsync(
             new StageReentryDto(2, 3, 15, MaterialId: null, Observations: "Lote"),
-            8, "Bodega", UserRoles.Bodeguero);
+            8, "PlantaInventario", UserRoles.EncargadoBodega);
 
         Assert.True(result.Success);
         Assert.Equal(15, stage.QuantityWithdrawn);
@@ -150,7 +150,7 @@ public class StageReentryTests
             3, "Inst", UserRoles.Instructor);
 
         Assert.False(result.Success);
-        Assert.Contains("Bodeguero", result.Message);
+        Assert.Contains("encargado de bodega", result.Message, StringComparison.OrdinalIgnoreCase);
         _stockMovements.Verify(
             r => r.AddAsync(It.IsAny<StockMovement>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -158,16 +158,16 @@ public class StageReentryTests
     }
 
     [Fact]
-    public void BodegaOrdenesController_ReingresoActions_AreBodegueroOnly_NotInstructor()
+    public void PlantaInventarioOrdenesController_ReingresoActions_AreBodegueroOnly_NotInstructor()
     {
-        var classAttr = typeof(BodegaOrdenesController).GetCustomAttribute<AuthorizeAttribute>();
+        var classAttr = typeof(PlantaInventarioOrdenesController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(classAttr);
-        Assert.Equal(UserRoles.Bodeguero, classAttr!.Roles);
+        Assert.Equal(UserRoles.EncargadoBodega, classAttr!.Roles);
         Assert.DoesNotContain(UserRoles.Instructor, classAttr.Roles!, StringComparison.Ordinal);
 
-        var reingresoMethods = typeof(BodegaOrdenesController)
+        var reingresoMethods = typeof(PlantaInventarioOrdenesController)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-            .Where(m => m.Name == nameof(BodegaOrdenesController.Reingreso))
+            .Where(m => m.Name == nameof(PlantaInventarioOrdenesController.Reingreso))
             .ToList();
         Assert.Equal(2, reingresoMethods.Count);
 

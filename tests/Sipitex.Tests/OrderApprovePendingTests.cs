@@ -160,7 +160,7 @@ public class OrderApprovePendingTests
             Id = 1,
             OrderNumber = "OP-101",
             Status = OrderStatus.Pendiente,
-            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega
+            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario
         };
         var line = new ProductionOrderMaterialRequirement
         {
@@ -212,7 +212,7 @@ public class OrderApprovePendingTests
         var result = await sut.AddMaterialAsync(new AddOrderMaterialDto(1, 5, 2m, null));
 
         Assert.True(result.Success);
-        Assert.Equal(OrderMaterialsStatus.PendienteRevisionBodega, order.MaterialsStatus);
+        Assert.Equal(OrderMaterialsStatus.PendienteRevisionPlantaInventario, order.MaterialsStatus);
     }
 
     [Fact]

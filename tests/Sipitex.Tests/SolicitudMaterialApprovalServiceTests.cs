@@ -222,7 +222,7 @@ public class SolicitudMaterialApprovalServiceTests
         Assert.Equal(40m, solicitud.Detalles.First(d => d.Id == 2).Material.Stock);
         Assert.NotNull(entrega);
         Assert.Equal("ENT-0001", entrega!.Codigo);
-        Assert.Equal(9, entrega.BodegueroId);
+        Assert.Equal(9, entrega.EncargadoBodegaId);
         _alertService.Verify(a => a.NotifyUsersAsync(
             AlertType.SolicitudMaterialResuelta,
             It.IsAny<string>(),
@@ -442,7 +442,7 @@ public class SolicitudMaterialApprovalServiceTests
     [Fact]
     public async Task ResolveSolicitudAsync_MapeoMaterialDeOtraBodega_Falla()
     {
-        var materialAjeno = new Material { Id = 8, Name = "Hilo", Stock = 40, BodegaId = 2 };
+        var materialAjeno = new Material { Id = 8, Name = "Hilo", Stock = 40, PlantaInventarioId = 2 };
         var solicitud = new SolicitudMaterial
         {
             Id = 20,
@@ -450,7 +450,7 @@ public class SolicitudMaterialApprovalServiceTests
             Tipo = SolicitudMaterialTipo.InsumosLibres,
             SolicitanteId = 10,
             Estado = SolicitudMaterialEstado.Pendiente,
-            BodegaId = 1,
+            PlantaInventarioId = 1,
             Detalles =
             [
                 new DetalleSolicitudMaterial
@@ -499,7 +499,7 @@ public class SolicitudMaterialApprovalServiceTests
             Tipo = SolicitudMaterialTipo.InsumosLibres,
             SolicitanteId = 10,
             Estado = SolicitudMaterialEstado.Pendiente,
-            BodegaId = 2,
+            PlantaInventarioId = 2,
             Detalles =
             [
                 new DetalleSolicitudMaterial
@@ -542,7 +542,7 @@ public class SolicitudMaterialApprovalServiceTests
 
         Assert.True(result.Success, result.Message);
         Assert.NotNull(created);
-        Assert.Equal(2, created!.BodegaId);
+        Assert.Equal(2, created!.PlantaInventarioId);
         Assert.Equal("Cinta bies", created.Name);
         Assert.Equal(77, solicitud.Detalles.Single().MaterialId);
     }

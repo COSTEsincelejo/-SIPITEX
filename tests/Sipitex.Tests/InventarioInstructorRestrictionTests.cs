@@ -109,7 +109,7 @@ public class InventarioInstructorRestrictionTests
     public void PuedeConsultarInventario_AdminAndBodeguero_Allowed()
     {
         Assert.True(PermissionRules.PuedeConsultarInventario(Principal(1, UserRoles.Administrador)));
-        Assert.True(PermissionRules.PuedeConsultarInventario(Principal(2, UserRoles.Bodeguero)));
+        Assert.True(PermissionRules.PuedeConsultarInventario(Principal(2, UserRoles.EncargadoBodega)));
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public class InventarioInstructorRestrictionTests
 
         var list = await CreateInventoryService().GetRequestsAsync(
             viewerUserId: 5,
-            viewerRole: UserRoles.Bodeguero);
+            viewerRole: UserRoles.EncargadoBodega);
 
         Assert.Equal(2, list.Count);
     }

@@ -31,7 +31,7 @@ public class MrpController : Controller
         _activityLog = activityLog;
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero},{UserRoles.Instructor}")]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoBodega},{UserRoles.Instructor}")]
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
@@ -249,7 +249,7 @@ public class MrpController : Controller
     private bool IsConsultaInstructorScoped() =>
         User.IsInRole(UserRoles.Instructor)
         && !User.IsInRole(UserRoles.Administrador)
-        && !User.IsInRole(UserRoles.Bodeguero)
+        && !User.IsInRole(UserRoles.EncargadoBodega)
         && !PermissionRules.PuedeGestionarFichasTecnicas(User);
 
     private async Task<BomProductEditViewModel> BuildEditVm(

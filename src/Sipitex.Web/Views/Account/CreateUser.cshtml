@@ -5,13 +5,13 @@
     Layout = "_Layout";
     // Fichas disponibles para asignar (viene del controlador en ViewBag)
     var fichas = ViewBag.Fichas as IEnumerable<Ficha> ?? Array.Empty<Ficha>();
-    var bodegas = ViewBag.Bodegas as IEnumerable<Bodega> ?? Array.Empty<Bodega>();
+    var plantasInventario = ViewBag.PlantasInventario as IEnumerable<PlantaInventario> ?? Array.Empty<PlantaInventario>();
 }
 
 <div class="page-header">
     <div>
         <h2>Crear usuario</h2>
-        <div class="sub">Solo el administrador puede crear cuentas. Elija Administrador, Instructor o Bodeguero. Ellos podrán luego actualizar su foto y contraseña en Mi perfil.</div>
+        <div class="sub">Solo el administrador puede crear cuentas. Elija Administrador, Instructor o Encargado de bodega. Ellos podrán luego actualizar su foto y contraseña en Mi perfil.</div>
     </div>
 </div>
 
@@ -42,7 +42,7 @@
             </select>
         </div>
         <div class="field" data-role-field="instructor">
-            <label class="field-label">Ficha asignada</label>
+            <label class="field-label">Número de grupo asignado</label>
             <select asp-for="FichaAsignadaId">
                 <option value="">Sin asignar</option>
                 @foreach (var ficha in fichas)
@@ -53,13 +53,13 @@
         </div>
         <div class="field" data-role-field="bodeguero" hidden>
             <label class="field-label">Bodegas asignadas</label>
-            <select asp-for="BodegaIds" multiple size="4">
-                @foreach (var bodega in bodegas)
+            <select asp-for="PlantaInventarioIds" multiple size="4">
+                @foreach (var p in plantasInventario)
                 {
-                    <option value="@bodega.Id">@bodega.Nombre</option>
+                    <option value="@p.Id">@p.Nombre</option>
                 }
             </select>
-            <p class="hint" style="margin-top:.35rem;">Obligatorio para Bodeguero: seleccione una o varias. Sin ninguna bodega no podrá ver la cola de solicitudes. Mantenga Ctrl (o Cmd) para marcar varias.</p>
+            <p class="hint" style="margin-top:.35rem;">Obligatorio para Encargado de bodega: seleccione una o varias. Sin ninguna bodega no podrá ver la cola de solicitudes. Mantenga Ctrl (o Cmd) para marcar varias.</p>
         </div>
         <div class="field">
             <label class="field-label">Permisos extendidos</label>
@@ -85,11 +85,11 @@
 (function () {
     const rol = document.querySelector('[name="Rol"]');
     const ficha = document.querySelector('[data-role-field="instructor"]');
-    const bodega = document.querySelector('[data-role-field="bodeguero"]');
+    const encargadoDiv = document.querySelector('[data-role-field="encargado-bodega"]');
     function sync() {
         const value = rol?.value || '';
         if (ficha) ficha.hidden = value !== 'Instructor';
-        if (bodega) bodega.hidden = value !== 'Bodeguero';
+        if (encargadoBodega) encargadoBodega.hidden = value !== 'EncargadoBodega';
     }
     rol?.addEventListener('change', sync);
     sync();

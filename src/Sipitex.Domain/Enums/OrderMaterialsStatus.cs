@@ -4,7 +4,7 @@ namespace Sipitex.Domain.Enums;
 public enum OrderMaterialsStatus
 {
     NoAplica,                // Sin materiales asociados — producción libre (comportamiento legacy)
-    PendienteRevisionBodega, // Hay requisitos; bodega aún no valida/entrega
+    PendienteRevisionPlantaInventario, // Hay requisitos; planta de inventario aún no valida/entrega
     MaterialesValidados,     // Bodega revisó disponibilidad
     EntregaParcial,          // Se entregó solo parte de lo requerido
     ListaParaProduccion      // Todo lo requerido fue entregado

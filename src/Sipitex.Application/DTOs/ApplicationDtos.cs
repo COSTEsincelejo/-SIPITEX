@@ -342,9 +342,9 @@ public record CreateDetalleSolicitudDto(
     string? DescripcionItem = null);
 
 // Alta de solicitud: Tipo discrimina validaciones (PorFicha vs InsumosLibres)
-// BodegaId: InsumosLibres lo usa si viene (> 0); si es null, el servicio cae a Bodega 1 (backfill AddBodegas).
-// PorFicha lo ignora y toma el BodegaId de los materiales. Si hay más de una bodega entre los
-// materiales, se rechaza (una solicitud = una bodega), aunque el bodeguero tenga varias asignadas.
+// PlantaInventarioId: InsumosLibres lo usa si viene (> 0); si es null, el servicio cae a Bodega 1 (backfill AddBodegas).
+// PorFicha lo ignora y toma el PlantaInventarioId de los materiales. Si hay más de una planta de inventario entre los
+// materiales, se rechaza (una solicitud = una planta de inventario), aunque el bodeguero tenga varias asignadas.
 public record CreateSolicitudMaterialDto(
     SolicitudMaterialTipo Tipo,
     int? FichaId,
@@ -352,9 +352,9 @@ public record CreateSolicitudMaterialDto(
     string? DescripcionLibre,
     IReadOnlyList<CreateDetalleSolicitudDto> Detalles,
     string? Observaciones = null,
-    int? BodegaId = null);
+    int? PlantaInventarioId = null);
 
-// Fila del listado "Mis solicitudes" / cola Bodega
+// Fila del listado "Mis solicitudes" / cola Planta de inventario
 public record SolicitudMaterialListItemDto(
     int Id,
     string Codigo,
@@ -399,7 +399,7 @@ public record DetalleResolucionDto(
     decimal? CantidadAprobada,
     DetalleSolicitudEstado EstadoItem);
 
-// Detalle para Bodeguero (resolución)
+// Detalle para Encargado de bodega (resolución)
 public record SolicitudMaterialResolucionDto(
     int Id,
     string Codigo,
