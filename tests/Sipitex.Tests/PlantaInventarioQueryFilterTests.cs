@@ -7,10 +7,10 @@ using Sipitex.Infrastructure.Persistence;
 namespace Sipitex.Tests;
 
 /// <summary>
-/// Global Query Filters de Material/SolicitudMaterial según ICurrentBodegaAccessor.
+/// Global Query Filters de Material/SolicitudMaterial según ICurrentPlantaInventarioAccessor.
 /// Consulta directa al DbContext, sin servicios.
 /// </summary>
-public class BodegaQueryFilterTests
+public class PlantaInventarioQueryFilterTests
 {
     [Fact]
     public async Task Materials_BodegueroBodega1_SoloVeFilasDeBodega1()
@@ -18,11 +18,11 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedMaterialsAsync(path);
 
-        await using var db = Create(path, new FixedCurrentBodegaAccessor([1]));
+        await using var db = Create(path, new FixedCurrentPlantaInventarioAccessor([1]));
         var list = await db.Materials.AsNoTracking().ToListAsync();
 
         Assert.Equal(2, list.Count);
-        Assert.All(list, m => Assert.Equal(1, m.BodegaId));
+        Assert.All(list, m => Assert.Equal(1, m.PlantaInventarioId));
         Assert.DoesNotContain(list, m => m.Code == "mat-b2");
     }
 
@@ -32,7 +32,7 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedMaterialsAsync(path, includeBodega3: true);
 
-        await using var db = Create(path, new FixedCurrentBodegaAccessor([1, 2]));
+        await using var db = Create(path, new FixedCurrentPlantaInventarioAccessor([1, 2]));
         var list = await db.Materials.AsNoTracking().ToListAsync();
 
         Assert.Equal(3, list.Count);
@@ -47,10 +47,10 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedMaterialsAsync(path);
 
-        await using var db = Create(path, new FixedCurrentBodegaAccessor([1, 2]));
+        await using var db = Create(path, new FixedCurrentPlantaInventarioAccessor([1, 2]));
         var sql = db.Materials.ToQueryString();
 
-        Assert.Contains("BodegaId", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("PlantaInventarioId", sql, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("ClientEval", sql, StringComparison.OrdinalIgnoreCase);
         Assert.True(
             sql.Contains("IN", StringComparison.OrdinalIgnoreCase)
@@ -65,7 +65,7 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedMaterialsAsync(path);
 
-        await using var db = Create(path, NullCurrentBodegaAccessor.Instance);
+        await using var db = Create(path, NullCurrentPlantaInventarioAccessor.Instance);
         var list = await db.Materials.AsNoTracking().ToListAsync();
 
         Assert.Equal(3, list.Count);
@@ -78,7 +78,7 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedSolicitudesAsync(path);
 
-        await using var db = Create(path, new FixedCurrentBodegaAccessor([1]));
+        await using var db = Create(path, new FixedCurrentPlantaInventarioAccessor([1]));
         var list = await db.SolicitudesMaterial.AsNoTracking().ToListAsync();
 
         Assert.Single(list);
@@ -91,7 +91,7 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedSolicitudesAsync(path, includeBodega3: true);
 
-        await using var db = Create(path, new FixedCurrentBodegaAccessor([1, 2]));
+        await using var db = Create(path, new FixedCurrentPlantaInventarioAccessor([1, 2]));
         var list = await db.SolicitudesMaterial.AsNoTracking().ToListAsync();
 
         Assert.Equal(2, list.Count);
@@ -106,7 +106,7 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedSolicitudesAsync(path);
 
-        await using var db = Create(path, NullCurrentBodegaAccessor.Instance);
+        await using var db = Create(path, NullCurrentPlantaInventarioAccessor.Instance);
         var list = await db.SolicitudesMaterial.AsNoTracking().ToListAsync();
 
         Assert.Equal(2, list.Count);
@@ -118,7 +118,7 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedMaterialsAsync(path);
 
-        await using var db = Create(path, new FixedCurrentBodegaAccessor([]));
+        await using var db = Create(path, new FixedCurrentPlantaInventarioAccessor([]));
         var list = await db.Materials.AsNoTracking().ToListAsync();
 
         Assert.Empty(list);
@@ -130,7 +130,7 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedStockMovementsAsync(path);
 
-        await using var db = Create(path, new FixedCurrentBodegaAccessor([1]));
+        await using var db = Create(path, new FixedCurrentPlantaInventarioAccessor([1]));
         var list = await db.StockMovements.AsNoTracking().ToListAsync();
 
         Assert.Equal(2, list.Count);
@@ -145,7 +145,7 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedStockMovementsAsync(path, includeBodega3: true);
 
-        await using var db = Create(path, new FixedCurrentBodegaAccessor([1, 2]));
+        await using var db = Create(path, new FixedCurrentPlantaInventarioAccessor([1, 2]));
         var list = await db.StockMovements.AsNoTracking().ToListAsync();
 
         Assert.Equal(3, list.Count);
@@ -161,7 +161,7 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedStockMovementsAsync(path, includeBodega3: true);
 
-        await using var db = Create(path, NullCurrentBodegaAccessor.Instance);
+        await using var db = Create(path, NullCurrentPlantaInventarioAccessor.Instance);
         var list = await db.StockMovements.AsNoTracking().ToListAsync();
 
         Assert.Equal(4, list.Count);
@@ -174,7 +174,7 @@ public class BodegaQueryFilterTests
         var path = TempDb();
         await SeedStockMovementsAsync(path);
 
-        await using var db = Create(path, new FixedCurrentBodegaAccessor([]));
+        await using var db = Create(path, new FixedCurrentPlantaInventarioAccessor([]));
         var list = await db.StockMovements.AsNoTracking().ToListAsync();
 
         Assert.Empty(list);
@@ -183,52 +183,52 @@ public class BodegaQueryFilterTests
     private static string TempDb() =>
         Path.Combine(Path.GetTempPath(), $"sipitex-gqf-{Guid.NewGuid():N}.db");
 
-    private static SipitexDbContext Create(string path, ICurrentBodegaAccessor accessor) =>
+    private static SipitexDbContext Create(string path, ICurrentPlantaInventarioAccessor accessor) =>
         new(new DbContextOptionsBuilder<SipitexDbContext>().UseSqlite($"Data Source={path}").Options, accessor);
 
     private static async Task SeedMaterialsAsync(string path, bool includeBodega3 = false)
     {
-        await using var db = Create(path, NullCurrentBodegaAccessor.Instance);
+        await using var db = Create(path, NullCurrentPlantaInventarioAccessor.Instance);
         await db.Database.EnsureCreatedAsync();
         if (includeBodega3)
         {
-            db.Bodegas.Add(new Bodega { Nombre = "Bodega 3" });
+            db.PlantasInventario.Add(new PlantaInventario { Nombre = "Bodega 3" });
             await db.SaveChangesAsync();
         }
         db.Materials.AddRange(
-            new Material { Code = "mat-b1a", Name = "Tela 1", Unit = MaterialUnit.Metros, Stock = 10, BodegaId = 1 },
-            new Material { Code = "mat-b1b", Name = "Hilo 1", Unit = MaterialUnit.Unidades, Stock = 5, BodegaId = 1 },
-            new Material { Code = "mat-b2", Name = "Forro 2", Unit = MaterialUnit.Metros, Stock = 8, BodegaId = 2 });
+            new Material { Code = "mat-b1a", Name = "Tela 1", Unit = MaterialUnit.Metros, Stock = 10, PlantaInventarioId = 1 },
+            new Material { Code = "mat-b1b", Name = "Hilo 1", Unit = MaterialUnit.Unidades, Stock = 5, PlantaInventarioId = 1 },
+            new Material { Code = "mat-b2", Name = "Forro 2", Unit = MaterialUnit.Metros, Stock = 8, PlantaInventarioId = 2 });
         if (includeBodega3)
-            db.Materials.Add(new Material { Code = "mat-b3", Name = "Botón 3", Unit = MaterialUnit.Unidades, Stock = 4, BodegaId = 3 });
+            db.Materials.Add(new Material { Code = "mat-b3", Name = "Botón 3", Unit = MaterialUnit.Unidades, Stock = 4, PlantaInventarioId = 3 });
         await db.SaveChangesAsync();
     }
 
     private static async Task SeedStockMovementsAsync(string path, bool includeBodega3 = false)
     {
-        await using var db = Create(path, NullCurrentBodegaAccessor.Instance);
+        await using var db = Create(path, NullCurrentPlantaInventarioAccessor.Instance);
         await db.Database.EnsureCreatedAsync();
         if (includeBodega3)
         {
-            db.Bodegas.Add(new Bodega { Nombre = "Bodega 3" });
+            db.PlantasInventario.Add(new PlantaInventario { Nombre = "Bodega 3" });
             await db.SaveChangesAsync();
         }
 
         var user = new User
         {
-            Nombre = "Bodeguero",
+            Nombre = "EncargadoBodega",
             Email = $"bodeguero-{Guid.NewGuid():N}@test.com",
             PasswordHash = "x",
-            Rol = UserRoles.Bodeguero,
+            Rol = UserRoles.EncargadoBodega,
             IsActive = true
         };
         db.Users.Add(user);
         db.Materials.AddRange(
-            new Material { Code = "mat-b1a", Name = "Tela 1", Unit = MaterialUnit.Metros, Stock = 10, BodegaId = 1 },
-            new Material { Code = "mat-b1b", Name = "Hilo 1", Unit = MaterialUnit.Unidades, Stock = 5, BodegaId = 1 },
-            new Material { Code = "mat-b2", Name = "Forro 2", Unit = MaterialUnit.Metros, Stock = 8, BodegaId = 2 });
+            new Material { Code = "mat-b1a", Name = "Tela 1", Unit = MaterialUnit.Metros, Stock = 10, PlantaInventarioId = 1 },
+            new Material { Code = "mat-b1b", Name = "Hilo 1", Unit = MaterialUnit.Unidades, Stock = 5, PlantaInventarioId = 1 },
+            new Material { Code = "mat-b2", Name = "Forro 2", Unit = MaterialUnit.Metros, Stock = 8, PlantaInventarioId = 2 });
         if (includeBodega3)
-            db.Materials.Add(new Material { Code = "mat-b3", Name = "Boton 3", Unit = MaterialUnit.Unidades, Stock = 4, BodegaId = 3 });
+            db.Materials.Add(new Material { Code = "mat-b3", Name = "Boton 3", Unit = MaterialUnit.Unidades, Stock = 4, PlantaInventarioId = 3 });
         await db.SaveChangesAsync();
 
         var materials = await db.Materials.OrderBy(material => material.Id).ToListAsync();
@@ -247,11 +247,11 @@ public class BodegaQueryFilterTests
 
     private static async Task SeedSolicitudesAsync(string path, bool includeBodega3 = false)
     {
-        await using var db = Create(path, NullCurrentBodegaAccessor.Instance);
+        await using var db = Create(path, NullCurrentPlantaInventarioAccessor.Instance);
         await db.Database.EnsureCreatedAsync();
         if (includeBodega3)
         {
-            db.Bodegas.Add(new Bodega { Nombre = "Bodega 3" });
+            db.PlantasInventario.Add(new PlantaInventario { Nombre = "Bodega 3" });
             await db.SaveChangesAsync();
         }
         var instructor = new User
@@ -271,14 +271,14 @@ public class BodegaQueryFilterTests
                 Codigo = "SOL-B1",
                 SolicitanteId = instructor.Id,
                 Estado = SolicitudMaterialEstado.Pendiente,
-                BodegaId = 1
+                PlantaInventarioId = 1
             },
             new SolicitudMaterial
             {
                 Codigo = "SOL-B2",
                 SolicitanteId = instructor.Id,
                 Estado = SolicitudMaterialEstado.Pendiente,
-                BodegaId = 2
+                PlantaInventarioId = 2
             });
         if (includeBodega3)
         {
@@ -287,7 +287,7 @@ public class BodegaQueryFilterTests
                 Codigo = "SOL-B3",
                 SolicitanteId = instructor.Id,
                 Estado = SolicitudMaterialEstado.Pendiente,
-                BodegaId = 3
+                PlantaInventarioId = 3
             });
         }
 

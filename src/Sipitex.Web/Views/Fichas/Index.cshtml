@@ -26,13 +26,13 @@
 @if (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
 {
     <div class="card">
-        <div class="card-title"><i class="fas fa-plus-circle"></i> Registrar ficha</div>
+        <div class="card-title"><i class="fas fa-plus-circle"></i> Registrar grupo</div>
         <form asp-action="CreateFicha" method="post" class="create-ficha-form">
             @Html.AntiForgeryToken()
             <div class="create-ficha-grid">
                 <div class="field">
-                    <label class="field-label">Código de ficha</label>
-                    <input asp-for="CreateFicha.FichaCode" placeholder="Ej. FICHA-T4" required maxlength="30" />
+                    <label class="field-label">Número de grupo</label>
+                    <input asp-for="CreateFicha.FichaCode" placeholder="Ej. 3065370" required maxlength="30" />
                 </div>
                 <div class="field">
                     <label class="field-label">Proceso</label>
@@ -93,23 +93,23 @@
                 </div>
             </div>
             <div class="create-ficha-actions">
-                <button type="submit" class="primary"><i class="fas fa-save"></i> Registrar ficha</button>
+                <button type="submit" class="primary"><i class="fas fa-save"></i> Registrar grupo</button>
             </div>
         </form>
     </div>
 }
 
 <div class="card">
-    <div class="card-title teal"><i class="fas fa-chalkboard-user"></i> Fichas de aprendices / procesos</div>
+    <div class="card-title teal"><i class="fas fa-chalkboard-user"></i> Grupos de aprendices / procesos</div>
     @if (!Model.Fichas.Any())
     {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-chalkboard-user", Title = "Sin fichas asignadas", Text = "No tiene fichas vinculadas a su cuenta de instructor.", ActionText = "Pida al administrador que le asigne una ficha en Usuarios." }' />
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-chalkboard-user", Title = "Sin grupos asignados", Text = "No tiene fichas vinculadas a su cuenta de instructor.", ActionText = "Pida al administrador que le asigne un grupo en Usuarios." }' />
     }
     else
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Ficha</th><th>Proceso</th><th>Instructores</th><th>Turno</th><th>Orden asignada</th><th>Registro rápido</th><th>Materiales</th></tr></thead>
+                <thead><tr><th>Número de grupo</th><th>Proceso</th><th>Instructores</th><th>Turno</th><th>Orden asignada</th><th>Registro rápido</th><th>Materiales</th></tr></thead>
                 <tbody>
                 @foreach (var ficha in Model.Fichas)
                 {
@@ -242,7 +242,7 @@
                                     <div class="solicitud-form-title">
                                         Solicitar materiales para <strong>@ficha.FichaCode</strong>
                                         <div class="hint" style="font-weight:normal;margin-top:4px;">
-                                            Materiales del catálogo ligados a su ficha de formación.
+                                            Materiales del catálogo ligados a su grupo de formación.
                                         </div>
                                     </div>
                                     <div class="solicitud-rows" data-solicitud-rows>
@@ -327,7 +327,7 @@
                 <select asp-for="Register.ProductionOrderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber"))"></select>
             </div>
             <div class="field">
-                <label class="field-label">Ficha</label>
+                <label class="field-label">Número de grupo</label>
                 <select asp-for="Register.FichaId">
                     @foreach (var f in Model.Fichas)
                     {
@@ -355,8 +355,8 @@
     <div class="card-title"><i class="fas fa-filter"></i> Buscar fichas y sesiones</div>
     <form asp-action="Index" method="get" class="form-row">
         <div class="field" style="flex:1;min-width:160px;">
-            <label class="field-label">Ficha</label>
-            <input type="text" name="fichaCode" value="@Model.FichaCodeFilter" placeholder="Código de ficha" style="width:100%" />
+            <label class="field-label">Número de grupo</label>
+            <input type="text" name="fichaCode" value="@Model.FichaCodeFilter" placeholder="Número de grupo" style="width:100%" />
         </div>
         <div class="field" style="flex:1;min-width:160px;">
             <label class="field-label">Instructor</label>
@@ -410,7 +410,7 @@
                 <thead>
                     <tr>
                         <th>Fecha</th>
-                        <th>Ficha</th>
+                        <th>Número de grupo</th>
                         <th>Instructor</th>
                         <th>Turno</th>
                         <th>Orden</th>

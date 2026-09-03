@@ -122,7 +122,7 @@ public class ProductionOrderService : IProductionOrderService
         CancellationToken cancellationToken = default)
     {
         if (string.Equals(viewerRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(viewerRole, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase))
+            || string.Equals(viewerRole, UserRoles.EncargadoBodega, StringComparison.OrdinalIgnoreCase))
             return true;
 
         if (!IsInstructorViewer(viewerRole, viewerUserId))

@@ -26,7 +26,7 @@ public class OrderMaterialServiceTests
     }
 
     [Fact]
-    public async Task AddMaterialAsync_SetsPendienteRevisionBodega()
+    public async Task AddMaterialAsync_SetsPendienteRevisionPlantaInventario()
     {
         var order = new ProductionOrder
         {
@@ -43,7 +43,7 @@ public class OrderMaterialServiceTests
         var result = await CreateSut().AddMaterialAsync(new AddOrderMaterialDto(1, 5, 12, null));
 
         Assert.True(result.Success);
-        Assert.Equal(OrderMaterialsStatus.PendienteRevisionBodega, order.MaterialsStatus);
+        Assert.Equal(OrderMaterialsStatus.PendienteRevisionPlantaInventario, order.MaterialsStatus);
         _reqs.Verify(r => r.AddAsync(It.Is<ProductionOrderMaterialRequirement>(
             l => l.MaterialId == 5 && l.QuantityRequired == 12), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -57,7 +57,7 @@ public class OrderMaterialServiceTests
             Id = 1,
             OrderNumber = "OP-101",
             Status = OrderStatus.EnProceso,
-            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega
+            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario
         };
         var line = new ProductionOrderMaterialRequirement
         {
@@ -122,7 +122,7 @@ public class OrderMaterialServiceTests
     public async Task DeliverAsync_NeverAllowsNegativeStock()
     {
         var material = new Material { Id = 5, Name = "Hilo", Stock = 3, Unit = MaterialUnit.Metros };
-        var order = new ProductionOrder { Id = 1, Status = OrderStatus.EnProceso, MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega };
+        var order = new ProductionOrder { Id = 1, Status = OrderStatus.EnProceso, MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario };
         var line = new ProductionOrderMaterialRequirement
         {
             Id = 9, ProductionOrderId = 1, MaterialId = 5, Material = material,
@@ -162,7 +162,7 @@ public class OrderMaterialServiceTests
             TotalQuantity = 100,
             ProducedQuantity = 0,
             Status = OrderStatus.EnProceso,
-            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega
+            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario
         };
         orders.Setup(o => o.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(order);
 

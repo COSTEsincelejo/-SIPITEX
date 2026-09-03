@@ -24,15 +24,15 @@ public interface ISolicitudMaterialService
         CancellationToken cancellationToken = default);
 
     // Listado para Bodeguero de las bodegas asignadas.
-    // viewerBodegaIds null o vacío → lista vacía (bodeguero sin asignaciones: el controlador bloquea).
-    Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForBodegaAsync(
-        IReadOnlyList<int>? viewerBodegaIds,
+    // viewerPlantaInventarioIds null o vacío → lista vacía (bodeguero sin asignaciones: el controlador bloquea).
+    Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForPlantaInventarioAsync(
+        IReadOnlyList<int>? viewerPlantaInventarioIds,
         bool soloPendientes = true,
         CancellationToken cancellationToken = default);
 
     // Detalle con stock actual para resolución. null si no existe, viewer sin bodegas, o es de otra bodega.
     Task<SolicitudMaterialResolucionDto?> GetResolucionDetailAsync(
         int id,
-        IReadOnlyList<int>? viewerBodegaIds,
+        IReadOnlyList<int>? viewerPlantaInventarioIds,
         CancellationToken cancellationToken = default);
 }

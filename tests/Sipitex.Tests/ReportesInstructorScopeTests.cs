@@ -159,7 +159,7 @@ public class ReportesInstructorScopeTests
     [Fact]
     public async Task Inventario_Bodeguero_AllowsGlobalExport()
     {
-        var controller = CreateController(Principal(3, UserRoles.Bodeguero, "Bodega"));
+        var controller = CreateController(Principal(3, UserRoles.EncargadoBodega, "PlantaInventario"));
 
         var result = await controller.Inventario(format: "excel", cancellationToken: CancellationToken.None);
 
@@ -189,7 +189,7 @@ public class ReportesInstructorScopeTests
     [Fact]
     public async Task Ordenes_Bodeguero_KeepsGlobalWhenNoFilter()
     {
-        var controller = CreateController(Principal(3, UserRoles.Bodeguero, "Bodega"));
+        var controller = CreateController(Principal(3, UserRoles.EncargadoBodega, "PlantaInventario"));
 
         await controller.Ordenes(cancellationToken: CancellationToken.None);
 

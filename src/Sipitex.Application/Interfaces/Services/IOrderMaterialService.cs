@@ -7,7 +7,7 @@ public interface IOrderMaterialService
 {
     Task<OrderMaterialsDetailDto?> GetDetailAsync(int orderId, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<ProductionOrderDto>> GetOrdersForBodegaAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ProductionOrderDto>> GetOrdersForPlantaInventarioAsync(CancellationToken cancellationToken = default);
 
     Task<ServiceResult> AddMaterialAsync(AddOrderMaterialDto dto, CancellationToken cancellationToken = default);
 

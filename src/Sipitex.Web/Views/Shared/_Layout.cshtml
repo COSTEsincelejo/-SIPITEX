@@ -48,25 +48,25 @@
             <div class="nav-group-label">Operación</div>
             <a class="@NavClass("Ordenes")" asp-controller="Ordenes" asp-action="Index"><i class="fas fa-clipboard-list"></i> Órdenes de producción</a>
             <a class="@NavClass("Mrp")" asp-controller="Mrp" asp-action="Index"><i class="fas fa-diagram-project"></i> MRP / Materiales</a>
-            @* Inventario general: Admin y Bodeguero. Instructor consulta materiales vía MRP. *@
-            @if (User.IsInRole("Administrador") || User.IsInRole("Bodeguero"))
+            @* Inventario general: Admin y Encargado de bodega. Instructor consulta materiales vía MRP. *@
+            @if (User.IsInRole("Administrador") || User.IsInRole("EncargadoBodega"))
             {
                 <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
             }
             @* Catálogo de bodegas: solo Administrador (BodegasController). *@
             @if (User.IsInRole("Administrador"))
             {
-                <a class="@NavClass("Bodegas")" asp-controller="Bodegas" asp-action="Index"><i class="fas fa-warehouse"></i> Bodegas</a>
+                <a class="@NavClass("Bodegas")" asp-controller="PlantasInventario" asp-action="Index"><i class="fas fa-warehouse"></i> Plantas de inventario</a>
             }
-            @* Cola de SolicitudMaterial solo Bodeguero *@
-            @if (User.IsInRole("Bodeguero"))
+            @* Cola de SolicitudMaterial solo Encargado de bodega *@
+            @if (User.IsInRole("EncargadoBodega"))
             {
-                <a class="@NavClass("BodegaSolicitudes")" asp-controller="BodegaSolicitudes" asp-action="Index"><i class="fas fa-truck-ramp-box"></i> Solicitudes de materiales</a>
-                <a class="@NavClass("BodegaOrdenes")" asp-controller="BodegaOrdenes" asp-action="Index"><i class="fas fa-clipboard-check"></i> Materiales de órdenes</a>
+                <a class="@NavClass("BodegaSolicitudes")" asp-controller="PlantaInventarioSolicitudes" asp-action="Index"><i class="fas fa-truck-ramp-box"></i> Solicitudes de materiales</a>
+                <a class="@NavClass("BodegaOrdenes")" asp-controller="PlantaInventarioOrdenes" asp-action="Index"><i class="fas fa-clipboard-check"></i> Materiales de órdenes</a>
                 <a class="@(controller.Equals("BodegaOrdenes", StringComparison.OrdinalIgnoreCase) && action.Equals("Reingreso", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
-                   asp-controller="BodegaOrdenes" asp-action="Reingreso"><i class="fas fa-rotate-left"></i> Reingreso desde etapas</a>
+                   asp-controller="PlantaInventarioOrdenes" asp-action="Reingreso"><i class="fas fa-rotate-left"></i> Reingreso desde etapas</a>
             }
-            @if (User.IsInRole("Administrador") || User.IsInRole("Bodeguero"))
+            @if (User.IsInRole("Administrador") || User.IsInRole("EncargadoBodega"))
             {
                 <a class="@(controller.Equals("Inventario", StringComparison.OrdinalIgnoreCase) && action.Equals("Movimientos", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
                    asp-controller="Inventario" asp-action="Movimientos"><i class="fas fa-clock-rotate-left"></i> Movimientos de stock</a>

@@ -190,7 +190,7 @@ public class ProductionOrderEditCancelTests
         {
             Id = 1,
             Status = OrderStatus.Cancelada,
-            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega
+            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario
         };
         var line = new ProductionOrderMaterialRequirement
         {
@@ -233,7 +233,7 @@ public class ProductionOrderEditCancelTests
                 Assert.NotNull(attr);
                 Assert.Equal(UserRoles.Administrador, attr!.Roles);
                 Assert.DoesNotContain(UserRoles.Instructor, attr.Roles!, StringComparison.Ordinal);
-                Assert.DoesNotContain(UserRoles.Bodeguero, attr.Roles!, StringComparison.Ordinal);
+                Assert.DoesNotContain(UserRoles.EncargadoBodega, attr.Roles!, StringComparison.Ordinal);
             }
         }
     }

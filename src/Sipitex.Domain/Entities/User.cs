@@ -24,25 +24,25 @@ public class User
     // Navegación a esa ficha (EF Core la llena si hago Include)
     public Ficha? FichaAsignada { get; set; }
 
-    // Asignaciones M2M a bodegas (solo aplica a Rol == Bodeguero; vacío en el resto)
-    public ICollection<UserBodega> UserBodegas { get; set; } = [];
+    // Asignaciones M2M a plantas de inventario (solo aplica a Rol == EncargadoBodega; vacío en el resto)
+    public ICollection<UserPlantaInventario> UserPlantasInventario { get; set; } = [];
 
-    public IReadOnlyList<int> GetAssignedBodegaIds() =>
-        UserBodegas
-            .Select(ub => ub.BodegaId)
+    public IReadOnlyList<int> GetAssignedPlantaInventarioIds() =>
+        UserPlantasInventario
+            .Select(up => up.PlantaInventarioId)
             .Where(id => id > 0)
             .Distinct()
             .OrderBy(id => id)
             .ToList();
 
-    public string FormatAssignedBodegas()
+    public string FormatAssignedPlantasInventario()
     {
-        if (UserBodegas.Count == 0)
+        if (UserPlantasInventario.Count == 0)
             return "—";
 
         return string.Join(", ",
-            UserBodegas
-                .Select(ub => ub.Bodega?.Nombre ?? $"#{ub.BodegaId}")
+            UserPlantasInventario
+                .Select(up => up.PlantaInventario?.Nombre ?? $"#{up.PlantaInventarioId}")
                 .OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
     }
 
@@ -65,14 +65,14 @@ public static class UserRoles
     // Valor exacto que se guarda en User.Rol y en ClaimTypes.Role
     public const string Administrador = "Administrador";
     public const string Instructor = "Instructor";
-    public const string Bodeguero = "Bodeguero";
+    public const string EncargadoBodega = "EncargadoBodega";
 
     // Todos los roles válidos (para validar en ediciones)
     public static readonly string[] All =
     [
         Administrador,
         Instructor,
-        Bodeguero
+        EncargadoBodega
     ];
 
     // Roles que el admin puede crear/asignar desde la UI (incluye Administrador — gap #1)
@@ -80,6 +80,6 @@ public static class UserRoles
     [
         Administrador,
         Instructor,
-        Bodeguero
+        EncargadoBodega
     ];
 }

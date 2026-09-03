@@ -8,49 +8,49 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
-// Resolución de SolicitudMaterial por Bodeguero (PorFicha + InsumosLibres)
-[Authorize(Roles = UserRoles.Bodeguero)]
-public class BodegaSolicitudesController : Controller
+// Resolución de SolicitudMaterial por Encargado de bodega (PorFicha + InsumosLibres)
+[Authorize(Roles = UserRoles.EncargadoBodega)]
+public class PlantaInventarioSolicitudesController : Controller
 {
-    internal const string BodegaNoAsignadaMessage =
-        "Su usuario de bodega no tiene ninguna bodega asignada. Pida al administrador que le asigne al menos una para ver y resolver solicitudes.";
+    internal const string PlantaInventarioNoAsignadaMessage =
+        "Su usuario de planta de inventario no tiene ninguna planta asignada. Pida al administrador que le asigne al menos una para ver y resolver solicitudes.";
 
     private readonly ISolicitudMaterialService _solicitudService;
     private readonly ISolicitudMaterialApprovalService _approvalService;
     private readonly IInventoryService _inventoryService;
-    private readonly ICurrentBodegaAccessor _bodegaAccessor;
+    private readonly ICurrentPlantaInventarioAccessor _plantaInventarioAccessor;
 
-    public BodegaSolicitudesController(
+    public PlantaInventarioSolicitudesController(
         ISolicitudMaterialService solicitudService,
         ISolicitudMaterialApprovalService approvalService,
         IInventoryService inventoryService,
-        ICurrentBodegaAccessor bodegaAccessor)
+        ICurrentPlantaInventarioAccessor plantaInventarioAccessor)
     {
         _solicitudService = solicitudService;
         _approvalService = approvalService;
         _inventoryService = inventoryService;
-        _bodegaAccessor = bodegaAccessor;
+        _plantaInventarioAccessor = plantaInventarioAccessor;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index(string? estado, CancellationToken cancellationToken)
     {
         var soloPendientes = !string.Equals(estado, "todas", StringComparison.OrdinalIgnoreCase);
-        var viewerBodegaIds = GetViewerBodegaIds();
-        if (viewerBodegaIds is null)
+        var viewerPlantaInventarioIds = GetViewerPlantaInventarioIds();
+        if (viewerPlantaInventarioIds is null)
         {
-            return View(new BodegaSolicitudesIndexViewModel
+            return View(new PlantaInventarioSolicitudesIndexViewModel
             {
                 Solicitudes = [],
                 SoloPendientes = soloPendientes,
-                Message = BodegaNoAsignadaMessage,
+                Message = PlantaInventarioNoAsignadaMessage,
                 IsSuccess = false
             });
         }
 
-        var list = await _solicitudService.GetListForBodegaAsync(viewerBodegaIds, soloPendientes, cancellationToken);
+        var list = await _solicitudService.GetListForPlantaInventarioAsync(viewerPlantaInventarioIds, soloPendientes, cancellationToken);
 
-        return View(new BodegaSolicitudesIndexViewModel
+        return View(new PlantaInventarioSolicitudesIndexViewModel
         {
             Solicitudes = list,
             SoloPendientes = soloPendientes,
@@ -62,19 +62,19 @@ public class BodegaSolicitudesController : Controller
     [HttpGet]
     public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
     {
-        var viewerBodegaIds = GetViewerBodegaIds();
-        if (viewerBodegaIds is null)
+        var viewerPlantaInventarioIds = GetViewerPlantaInventarioIds();
+        if (viewerPlantaInventarioIds is null)
         {
-            TempData["Message"] = BodegaNoAsignadaMessage;
+            TempData["Message"] = PlantaInventarioNoAsignadaMessage;
             TempData["IsSuccess"] = false;
             return RedirectToAction(nameof(Index));
         }
 
-        var detail = await _solicitudService.GetResolucionDetailAsync(id, viewerBodegaIds, cancellationToken);
+        var detail = await _solicitudService.GetResolucionDetailAsync(id, viewerPlantaInventarioIds, cancellationToken);
         if (detail is null)
             return NotFound();
 
-        return View(new BodegaSolicitudDetailViewModel
+        return View(new PlantaInventarioSolicitudDetailViewModel
         {
             Solicitud = detail,
             Materials = await _inventoryService.GetMaterialsAsync(cancellationToken),
@@ -91,21 +91,21 @@ public class BodegaSolicitudesController : Controller
     {
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var bodegueroId))
         {
-            TempData["Message"] = "Debe iniciar sesión como bodeguero.";
+            TempData["Message"] = "Debe iniciar sesión como encargado de bodega.";
             TempData["IsSuccess"] = false;
             return RedirectToAction(nameof(Index));
         }
 
-        var viewerBodegaIds = GetViewerBodegaIds();
-        if (viewerBodegaIds is null)
+        var viewerPlantaInventarioIds = GetViewerPlantaInventarioIds();
+        if (viewerPlantaInventarioIds is null)
         {
-            TempData["Message"] = BodegaNoAsignadaMessage;
+            TempData["Message"] = PlantaInventarioNoAsignadaMessage;
             TempData["IsSuccess"] = false;
             return RedirectToAction(nameof(Index));
         }
 
         var scoped = await _solicitudService.GetResolucionDetailAsync(
-            form.SolicitudId, viewerBodegaIds, cancellationToken);
+            form.SolicitudId, viewerPlantaInventarioIds, cancellationToken);
         if (scoped is null)
         {
             TempData["Message"] = "La solicitud no pertenece a su bodega.";
@@ -139,9 +139,9 @@ public class BodegaSolicitudesController : Controller
     }
 
     // Bodeguero sin asignaciones o sesión no restringida: no se listan todas las bodegas.
-    private IReadOnlyList<int>? GetViewerBodegaIds()
+    private IReadOnlyList<int>? GetViewerPlantaInventarioIds()
     {
-        var ids = _bodegaAccessor.BodegaIds;
+        var ids = _plantaInventarioAccessor.PlantaInventarioIds;
         if (ids is null || ids.Count == 0)
             return null;
         return ids;

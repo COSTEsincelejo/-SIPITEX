@@ -464,7 +464,7 @@ public class ProductionFlowService : IProductionFlowService
         CancellationToken cancellationToken = default)
     {
         if (!IsWarehouseOrAdmin(actorRole))
-            return ServiceResult.Fail("Solo Bodeguero o Administrador pueden registrar reingresos desde etapas.");
+            return ServiceResult.Fail("Solo el encargado de bodega o Administrador pueden registrar reingresos desde etapas.");
 
         if (dto.Quantity <= 0) return ServiceResult.Fail("Cantidad inválida.");
 
@@ -656,7 +656,7 @@ public class ProductionFlowService : IProductionFlowService
 
     private static bool IsWarehouseOrAdmin(string actorRole) =>
         string.Equals(actorRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase)
-        || string.Equals(actorRole, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase);
+        || string.Equals(actorRole, UserRoles.EncargadoBodega, StringComparison.OrdinalIgnoreCase);
 
     // Núcleo compartido con PartialInventoryIn (producto terminado) — sin SaveChanges
     private async Task<ServiceResult> ApplyFinishedGoodInventoryInAsync(

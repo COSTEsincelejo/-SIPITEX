@@ -55,7 +55,7 @@ public class OrdenesCrearPermissionTests
     [Fact]
     public void PuedeCrearOrdenes_Bodeguero_IsDenied()
     {
-        Assert.False(PermissionRules.PuedeCrearOrdenes(CreatePrincipal(UserRoles.Bodeguero)));
+        Assert.False(PermissionRules.PuedeCrearOrdenes(CreatePrincipal(UserRoles.EncargadoBodega)));
     }
 
     [Fact]

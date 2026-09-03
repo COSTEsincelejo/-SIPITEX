@@ -40,11 +40,11 @@ public class SolicitudMaterial
 
     public string? Observaciones { get; set; }
 
-    // FK obligatoria a la bodega que atiende esta solicitud (default 1 = Bodega 1, alineado al backfill)
-    public int BodegaId { get; set; } = 1;
+    // FK obligatoria a la planta de inventario que atiende esta solicitud (default 1 = Planta 1, alineado al backfill)
+    public int PlantaInventarioId { get; set; } = 1;
 
-    // Navegación a la bodega
-    public Bodega Bodega { get; set; } = null!;
+    // Navegación a la planta de inventario
+    public PlantaInventario PlantaInventario { get; set; } = null!;
 
     public ICollection<DetalleSolicitudMaterial> Detalles { get; set; } = new List<DetalleSolicitudMaterial>();
 

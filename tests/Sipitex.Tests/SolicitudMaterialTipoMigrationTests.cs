@@ -203,7 +203,7 @@ public class SolicitudMaterialTipoMigrationTests
                     Tipo = SolicitudMaterialTipo.PorFicha,
                     FichaId = ficha.Id,
                     SolicitanteId = user.Id,
-                    BodegaId = 1,
+                    PlantaInventarioId = 1,
                     Estado = SolicitudMaterialEstado.Pendiente,
                     FechaSolicitud = DateTime.UtcNow
                 });

@@ -34,7 +34,7 @@ Este documento describe **qué debe hacer** el sistema SIPITEX.
 
 Sirve para:
 
-- Acordar el alcance entre instructores, bodega, administración y el equipo de desarrollo.
+- Acordar el alcance entre instructores, planta de inventario, administración y el equipo de desarrollo.
 - Guiar la implementación y las pruebas.
 - Presentar el diseño con diagramas UML y el modelo de datos.
 
@@ -46,7 +46,7 @@ SIPITEX es una aplicación web para la **intranet del centro de formación**. Pe
 |--------|----------|
 | **Usuarios** | Login, roles y permisos |
 | **Inventario** | Materiales, stock y estado físico |
-| **Solicitudes** | Pedidos de material y aprobación en bodega |
+| **Solicitudes** | Pedidos de material y aprobación en planta de inventario |
 | **Órdenes** | Órdenes de producción de cualquier prenda |
 | **MRP / BOM** | Lista de materiales y cálculo de requerimientos |
 | **Fichas** | Aprendices / procesos y registro de producción |
@@ -107,7 +107,7 @@ SIPITEX es una aplicación web **monolítica por capas** (arquitectura limpia si
 2. Registrar y consultar materiales (niveles: Agotado / Por agotarse / Normal).  
 3. Crear órdenes de producción para cualquier producto.  
 4. Mantener el BOM y simular el MRP.  
-5. Solicitar, aprobar o rechazar salidas de bodega.  
+5. Solicitar, aprobar o rechazar salidas de planta de inventario.  
 6. Registrar producción por ficha y avance de la orden.  
 7. Registrar inspecciones de calidad.  
 8. Generar reportes filtrables y alertas.
@@ -117,7 +117,7 @@ SIPITEX es una aplicación web **monolítica por capas** (arquitectura limpia si
 | Actor | Rol en el centro | Qué hace en SIPITEX |
 |-------|------------------|---------------------|
 | **Administrador** | Gestión del sistema | Usuarios, permisos, órdenes, reportes y alertas |
-| **Bodeguero** | Almacén | Stock, estado del material y aprobación de solicitudes |
+| **Encargado de planta de inventario** | Almacén | Stock, estado del material y aprobación de solicitudes |
 | **Instructor** | Formación / línea de producción | Solicitudes, sesiones de producción y calidad |
 
 ### 2.4 Restricciones
@@ -199,7 +199,7 @@ Muestra **quién** usa el sistema y **qué puede hacer**.
 
 #### Matriz actor ↔ caso de uso
 
-| Caso de uso | Admin | Bodeguero | Instructor |
+| Caso de uso | Admin | Encargado de planta de inventario | Instructor |
 |-------------|:-----:|:---------:|:----------:|
 | 1. Iniciar sesión | ✓ | ✓ | ✓ |
 | 2. Gestionar usuarios | ✓ | | |
@@ -274,7 +274,7 @@ Modelo de la **base de datos**: tablas, claves y relaciones.
 |-----|--------|------------|
 | Administrador | `admin@sipitex.test` | `Admin123!` |
 | Instructor | `instructor@sipitex.test` | `Instructor123!` |
-| Bodeguero | `bodega@sipitex.test` | `Bodega123!` |
+| Encargado de planta de inventario | `planta de inventario@sipitex.test` | `Bodega123!` |
 
 ### 5.2 Cómo ejecutar el sistema
 

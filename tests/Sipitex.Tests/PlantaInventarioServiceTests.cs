@@ -9,12 +9,12 @@ using Sipitex.Web.Controllers;
 
 namespace Sipitex.Tests;
 
-public class BodegaServiceTests
+public class PlantaInventarioServiceTests
 {
-    private readonly Mock<IBodegaRepository> _bodegas = new();
+    private readonly Mock<IPlantaInventarioRepository> _bodegas = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
-    private BodegaService CreateSut() => new(_bodegas.Object, _uow.Object);
+    private PlantaInventarioService CreateSut() => new(_bodegas.Object, _uow.Object);
 
     [Fact]
     public async Task CreateAsync_NombreValido_CreaBodega()
@@ -23,10 +23,10 @@ public class BodegaServiceTests
             .ReturnsAsync(false);
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        Bodega? saved = null;
+        PlantaInventario? saved = null;
         _bodegas
-            .Setup(r => r.AddAsync(It.IsAny<Bodega>(), It.IsAny<CancellationToken>()))
-            .Callback<Bodega, CancellationToken>((b, _) => saved = b)
+            .Setup(r => r.AddAsync(It.IsAny<PlantaInventario>(), It.IsAny<CancellationToken>()))
+            .Callback<PlantaInventario, CancellationToken>((b, _) => saved = b)
             .Returns(Task.CompletedTask);
 
         var result = await CreateSut().CreateAsync("  Bodega 3  ");
@@ -44,7 +44,7 @@ public class BodegaServiceTests
 
         Assert.False(result.Success);
         Assert.Contains("obligatorio", result.Message, StringComparison.OrdinalIgnoreCase);
-        _bodegas.Verify(r => r.AddAsync(It.IsAny<Bodega>(), It.IsAny<CancellationToken>()), Times.Never);
+        _bodegas.Verify(r => r.AddAsync(It.IsAny<PlantaInventario>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -57,13 +57,13 @@ public class BodegaServiceTests
 
         Assert.False(result.Success);
         Assert.Contains("Ya existe", result.Message, StringComparison.OrdinalIgnoreCase);
-        _bodegas.Verify(r => r.AddAsync(It.IsAny<Bodega>(), It.IsAny<CancellationToken>()), Times.Never);
+        _bodegas.Verify(r => r.AddAsync(It.IsAny<PlantaInventario>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task UpdateAsync_NombreValido_RenombraSinTocarId()
     {
-        var bodega = new Bodega { Id = 2, Nombre = "Bodega 2" };
+        var bodega = new PlantaInventario { Id = 2, Nombre = "Bodega 2" };
         _bodegas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(bodega);
         _bodegas.Setup(r => r.ExistsByNombreAsync("Anexo norte", It.IsAny<CancellationToken>(), 2))
             .ReturnsAsync(false);
@@ -81,7 +81,7 @@ public class BodegaServiceTests
     [Fact]
     public async Task UpdateAsync_NombreDuplicado_Falla()
     {
-        var bodega = new Bodega { Id = 2, Nombre = "Bodega 2" };
+        var bodega = new PlantaInventario { Id = 2, Nombre = "Bodega 2" };
         _bodegas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(bodega);
         _bodegas.Setup(r => r.ExistsByNombreAsync("Bodega 1", It.IsAny<CancellationToken>(), 2))
             .ReturnsAsync(true);
@@ -90,13 +90,13 @@ public class BodegaServiceTests
 
         Assert.False(result.Success);
         Assert.Contains("Ya existe", result.Message, StringComparison.OrdinalIgnoreCase);
-        _bodegas.Verify(r => r.Update(It.IsAny<Bodega>()), Times.Never);
+        _bodegas.Verify(r => r.Update(It.IsAny<PlantaInventario>()), Times.Never);
     }
 
     [Fact]
     public async Task UpdateAsync_Inexistente_Falla()
     {
-        _bodegas.Setup(r => r.GetByIdAsync(99, It.IsAny<CancellationToken>())).ReturnsAsync((Bodega?)null);
+        _bodegas.Setup(r => r.GetByIdAsync(99, It.IsAny<CancellationToken>())).ReturnsAsync((PlantaInventario?)null);
 
         var result = await CreateSut().UpdateAsync(99, "Nueva");
 
@@ -107,11 +107,11 @@ public class BodegaServiceTests
     [Fact]
     public async Task DeleteAsync_SinDependencias_Elimina()
     {
-        var bodega = new Bodega { Id = 3, Nombre = "Bodega 3" };
+        var bodega = new PlantaInventario { Id = 3, Nombre = "Bodega 3" };
         _bodegas.Setup(r => r.GetByIdAsync(3, It.IsAny<CancellationToken>())).ReturnsAsync(bodega);
         _bodegas.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(3);
         _bodegas.Setup(r => r.CountDependenciasAsync(3, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new BodegaDependencias(0, 0, 0));
+            .ReturnsAsync(new PlantaInventarioDependencias(0, 0, 0));
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var result = await CreateSut().DeleteAsync(3);
@@ -124,56 +124,56 @@ public class BodegaServiceTests
     [Fact]
     public async Task DeleteAsync_ConMateriales_FallaSinBorrar()
     {
-        var bodega = new Bodega { Id = 2, Nombre = "Bodega 2" };
+        var bodega = new PlantaInventario { Id = 2, Nombre = "Bodega 2" };
         _bodegas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(bodega);
         _bodegas.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
         _bodegas.Setup(r => r.CountDependenciasAsync(2, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new BodegaDependencias(4, 0, 0));
+            .ReturnsAsync(new PlantaInventarioDependencias(4, 0, 0));
 
         var result = await CreateSut().DeleteAsync(2);
 
         Assert.False(result.Success);
         Assert.Contains("4 material", result.Message, StringComparison.OrdinalIgnoreCase);
-        _bodegas.Verify(r => r.Remove(It.IsAny<Bodega>()), Times.Never);
+        _bodegas.Verify(r => r.Remove(It.IsAny<PlantaInventario>()), Times.Never);
     }
 
     [Fact]
     public async Task DeleteAsync_ConSolicitudesYBodegueros_FallaConMensajeClaro()
     {
-        var bodega = new Bodega { Id = 2, Nombre = "Bodega 2" };
+        var bodega = new PlantaInventario { Id = 2, Nombre = "Bodega 2" };
         _bodegas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(bodega);
         _bodegas.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
         _bodegas.Setup(r => r.CountDependenciasAsync(2, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new BodegaDependencias(0, 2, 1));
+            .ReturnsAsync(new PlantaInventarioDependencias(0, 2, 1));
 
         var result = await CreateSut().DeleteAsync(2);
 
         Assert.False(result.Success);
         Assert.Contains("2 solicitud", result.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("1 bodeguero", result.Message, StringComparison.OrdinalIgnoreCase);
-        _bodegas.Verify(r => r.Remove(It.IsAny<Bodega>()), Times.Never);
+        Assert.Contains("1 encargado", result.Message, StringComparison.OrdinalIgnoreCase);
+        _bodegas.Verify(r => r.Remove(It.IsAny<PlantaInventario>()), Times.Never);
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task DeleteAsync_UltimaBodega_Falla()
     {
-        var bodega = new Bodega { Id = 2, Nombre = "Bodega 2" };
+        var bodega = new PlantaInventario { Id = 2, Nombre = "Bodega 2" };
         _bodegas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(bodega);
         _bodegas.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var result = await CreateSut().DeleteAsync(2);
 
         Assert.False(result.Success);
-        Assert.Contains("última bodega", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("última planta de inventario", result.Message, StringComparison.OrdinalIgnoreCase);
         _bodegas.Verify(r => r.CountDependenciasAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
-        _bodegas.Verify(r => r.Remove(It.IsAny<Bodega>()), Times.Never);
+        _bodegas.Verify(r => r.Remove(It.IsAny<PlantaInventario>()), Times.Never);
     }
 
     [Fact]
     public async Task DeleteAsync_Bodega1PorDefecto_Falla()
     {
-        var bodega = new Bodega { Id = 1, Nombre = "Bodega 1" };
+        var bodega = new PlantaInventario { Id = 1, Nombre = "Bodega 1" };
         _bodegas.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(bodega);
         _bodegas.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
 
@@ -181,26 +181,26 @@ public class BodegaServiceTests
 
         Assert.False(result.Success);
         Assert.Contains("por defecto", result.Message, StringComparison.OrdinalIgnoreCase);
-        _bodegas.Verify(r => r.Remove(It.IsAny<Bodega>()), Times.Never);
+        _bodegas.Verify(r => r.Remove(It.IsAny<PlantaInventario>()), Times.Never);
     }
 
     [Fact]
-    public void BodegasController_SoloAdministrador_NoBodegueroNiInstructor()
+    public void PlantasInventarioController_SoloAdministrador_NoBodegueroNiInstructor()
     {
-        var classAttr = typeof(BodegasController).GetCustomAttribute<AuthorizeAttribute>();
+        var classAttr = typeof(PlantasInventarioController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(classAttr);
         Assert.Equal(UserRoles.Administrador, classAttr!.Roles);
-        Assert.DoesNotContain(UserRoles.Bodeguero, classAttr.Roles!, StringComparison.Ordinal);
+        Assert.DoesNotContain(UserRoles.EncargadoBodega, classAttr.Roles!, StringComparison.Ordinal);
         Assert.DoesNotContain(UserRoles.Instructor, classAttr.Roles!, StringComparison.Ordinal);
 
-        foreach (var method in typeof(BodegasController)
+        foreach (var method in typeof(PlantasInventarioController)
                      .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-                     .Where(m => m.Name is nameof(BodegasController.Edit) or nameof(BodegasController.Delete)))
+                     .Where(m => m.Name is nameof(PlantasInventarioController.Edit) or nameof(PlantasInventarioController.Delete)))
         {
             var methodAttr = method.GetCustomAttribute<AuthorizeAttribute>();
             if (methodAttr?.Roles is string roles)
             {
-                Assert.DoesNotContain(UserRoles.Bodeguero, roles, StringComparison.Ordinal);
+                Assert.DoesNotContain(UserRoles.EncargadoBodega, roles, StringComparison.Ordinal);
                 Assert.DoesNotContain(UserRoles.Instructor, roles, StringComparison.Ordinal);
             }
         }
@@ -219,7 +219,7 @@ public class BodegaServiceTests
                 var attr = method.GetCustomAttribute<AuthorizeAttribute>();
                 Assert.NotNull(attr);
                 Assert.Equal(UserRoles.Administrador, attr!.Roles);
-                Assert.DoesNotContain(UserRoles.Bodeguero, attr.Roles!, StringComparison.Ordinal);
+                Assert.DoesNotContain(UserRoles.EncargadoBodega, attr.Roles!, StringComparison.Ordinal);
             }
         }
     }

@@ -12,18 +12,18 @@ public class UserAccountService : IUserAccountService
 {
     private readonly IUserRepository _userRepository;
     private readonly IFichaRepository _fichaRepository;
-    private readonly IBodegaRepository _bodegaRepository;
+    private readonly IPlantaInventarioRepository _plantaInventarioRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public UserAccountService(
         IUserRepository userRepository,
         IFichaRepository fichaRepository,
-        IBodegaRepository bodegaRepository,
+        IPlantaInventarioRepository plantaInventarioRepository,
         IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _fichaRepository = fichaRepository;
-        _bodegaRepository = bodegaRepository;
+        _plantaInventarioRepository = plantaInventarioRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -58,7 +58,7 @@ public class UserAccountService : IUserAccountService
         string password,
         string rol,
         int? fichaAsignadaId,
-        IReadOnlyList<int>? bodegaIds,
+        IReadOnlyList<int>? plantaInventarioIds,
         IReadOnlyList<string> permisos,
         CancellationToken cancellationToken = default)
     {
@@ -66,9 +66,9 @@ public class UserAccountService : IUserAccountService
         var validation = Validate(nombre, email, password, rol, requirePassword: true, creatableOnly: true);
         if (validation is not null) return validation;
 
-        var resolvedBodega = await ResolveBodegaIdsAsync(rol, bodegaIds, cancellationToken);
+        var resolvedBodega = await ResolvePlantaInventarioIdsAsync(rol, plantaInventarioIds, cancellationToken);
         if (!resolvedBodega.Success)
-            return ServiceResult.Fail(resolvedBodega.Message ?? "Bodega no válida.");
+            return ServiceResult.Fail(resolvedBodega.Message ?? "Planta de inventario no válida.");
 
         // No puede repetirse el correo
         if (await _userRepository.EmailExistsAsync(email.Trim(), null, cancellationToken))
@@ -85,7 +85,7 @@ public class UserAccountService : IUserAccountService
             PermisosExtendidos = ExtendedPermissions.Serialize(permisos),
             IsActive = true
         };
-        ReplaceUserBodegas(user, resolvedBodega.BodegaIds);
+        ReplaceUserPlantasInventario(user, resolvedBodega.PlantaInventarioIds);
 
         // INSERT en Users
         _userRepository.Add(user);
@@ -103,7 +103,7 @@ public class UserAccountService : IUserAccountService
         string password,
         string rol,
         int? fichaAsignadaId,
-        IReadOnlyList<int>? bodegaIds,
+        IReadOnlyList<int>? plantaInventarioIds,
         IReadOnlyList<string> permisos,
         bool isActive,
         CancellationToken cancellationToken = default)
@@ -112,9 +112,9 @@ public class UserAccountService : IUserAccountService
         var validation = Validate(nombre, email, password, rol, requirePassword: false, creatableOnly: false);
         if (validation is not null) return validation;
 
-        var resolvedBodega = await ResolveBodegaIdsAsync(rol, bodegaIds, cancellationToken);
+        var resolvedBodega = await ResolvePlantaInventarioIdsAsync(rol, plantaInventarioIds, cancellationToken);
         if (!resolvedBodega.Success)
-            return ServiceResult.Fail(resolvedBodega.Message ?? "Bodega no válida.");
+            return ServiceResult.Fail(resolvedBodega.Message ?? "Planta de inventario no válida.");
 
         // Busco el usuario que vamos a modificar
         var user = await _userRepository.GetByIdAsync(id, cancellationToken);
@@ -141,7 +141,7 @@ public class UserAccountService : IUserAccountService
         user.Email = email.Trim().ToLowerInvariant();
         user.Rol = rol;
         user.FichaAsignadaId = fichaAsignadaId;
-        ReplaceUserBodegas(user, resolvedBodega.BodegaIds);
+        ReplaceUserPlantasInventario(user, resolvedBodega.PlantaInventarioIds);
         user.PermisosExtendidos = ExtendedPermissions.Serialize(permisos);
         user.IsActive = isActive;
 
@@ -279,7 +279,7 @@ public class UserAccountService : IUserAccountService
         if (creatableOnly)
         {
             if (!UserRoles.CreatableByAdmin.Contains(rol))
-                return ServiceResult.Fail("Rol no válido. Elija Administrador, Instructor o Bodeguero.");
+                return ServiceResult.Fail("Rol no válido. Elija Administrador, Instructor o Encargado de bodega.");
         }
         else if (!UserRoles.All.Contains(rol))
         {
@@ -289,44 +289,44 @@ public class UserAccountService : IUserAccountService
         return null;
     }
 
-    // Bodeguero exige ≥1 bodega existente; otros roles ignoran el valor y quedan sin asignaciones.
-    private async Task<(bool Success, string? Message, IReadOnlyList<int> BodegaIds)> ResolveBodegaIdsAsync(
+    // EncargadoBodega exige ≥1 planta existente; otros roles ignoran el valor y quedan sin asignaciones.
+    private async Task<(bool Success, string? Message, IReadOnlyList<int> PlantaInventarioIds)> ResolvePlantaInventarioIdsAsync(
         string rol,
-        IReadOnlyList<int>? bodegaIds,
+        IReadOnlyList<int>? plantaInventarioIds,
         CancellationToken cancellationToken)
     {
-        if (!string.Equals(rol, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(rol, UserRoles.EncargadoBodega, StringComparison.OrdinalIgnoreCase))
             return (true, null, []);
 
-        var requested = (bodegaIds ?? [])
+        var requested = (plantaInventarioIds ?? [])
             .Where(id => id > 0)
             .Distinct()
             .ToList();
         if (requested.Count == 0)
-            return (false, "Debe asignar al menos una bodega al bodeguero.", []);
+            return (false, "Debe asignar al menos una planta de inventario al encargado de bodega.", []);
 
-        var catalog = await _bodegaRepository.GetAllAsync(cancellationToken);
+        var catalog = await _plantaInventarioRepository.GetAllAsync(cancellationToken);
         var validIds = catalog.Select(b => b.Id).ToHashSet();
         if (requested.Any(id => !validIds.Contains(id)))
-            return (false, "Bodega no válida.", []);
+            return (false, "Planta de inventario no válida.", []);
 
         return (true, null, requested);
     }
 
-    private static void ReplaceUserBodegas(User user, IReadOnlyList<int> bodegaIds)
+    private static void ReplaceUserPlantasInventario(User user, IReadOnlyList<int> plantaInventarioIds)
     {
-        var desired = bodegaIds.Where(id => id > 0).Distinct().ToHashSet();
-        var toRemove = user.UserBodegas.Where(ub => !desired.Contains(ub.BodegaId)).ToList();
+        var desired = plantaInventarioIds.Where(id => id > 0).Distinct().ToHashSet();
+        var toRemove = user.UserPlantasInventario.Where(up => !desired.Contains(up.PlantaInventarioId)).ToList();
         foreach (var row in toRemove)
-            user.UserBodegas.Remove(row);
+            user.UserPlantasInventario.Remove(row);
 
-        var existing = user.UserBodegas.Select(ub => ub.BodegaId).ToHashSet();
+        var existing = user.UserPlantasInventario.Select(up => up.PlantaInventarioId).ToHashSet();
         foreach (var id in desired.Where(id => !existing.Contains(id)))
         {
-            var row = new UserBodega { BodegaId = id };
+            var row = new UserPlantaInventario { PlantaInventarioId = id };
             if (user.Id > 0)
                 row.UserId = user.Id;
-            user.UserBodegas.Add(row);
+            user.UserPlantasInventario.Add(row);
         }
     }
 

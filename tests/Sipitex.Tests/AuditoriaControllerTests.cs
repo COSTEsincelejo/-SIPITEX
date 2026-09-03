@@ -21,7 +21,7 @@ public class AuditoriaControllerTests
         var classAttr = typeof(AuditoriaController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(classAttr);
         Assert.Equal(UserRoles.Administrador, classAttr!.Roles);
-        Assert.DoesNotContain(UserRoles.Bodeguero, classAttr.Roles!, StringComparison.Ordinal);
+        Assert.DoesNotContain(UserRoles.EncargadoBodega, classAttr.Roles!, StringComparison.Ordinal);
         Assert.DoesNotContain(UserRoles.Instructor, classAttr.Roles!, StringComparison.Ordinal);
     }
 

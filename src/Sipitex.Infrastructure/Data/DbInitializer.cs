@@ -104,7 +104,7 @@ public static class DbInitializer
 
         // Estos siempre corren (idempotentes) por si faltan usuarios o prefs
         await SeedUsersAsync(context);
-        await EnsureDemoBodegueroBodegaAsync(context);
+        await EnsureDemoEncargadoBodegaPlantaAsync(context);
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
         await EnsureBomProductsAndSnapshotsAsync(context);
@@ -296,10 +296,10 @@ public static class DbInitializer
                 Nombre = "Pedro Bodega",
                 Email = "bodega@sipitex.test",
                 PasswordHash = PasswordHasher.Hash("Bodega123!"),
-                Rol = UserRoles.Bodeguero,
+                Rol = UserRoles.EncargadoBodega,
                 PermisosExtendidos = string.Empty,
                 IsActive = true,
-                UserBodegas = { new UserBodega { BodegaId = 1 } }
+                UserPlantasInventario = { new UserPlantaInventario { PlantaInventarioId = 1 } }
             });
 
         await context.SaveChangesAsync();
@@ -307,16 +307,16 @@ public static class DbInitializer
 
     // Demo legado: bodega@sipitex.test nació sin bodega. Solo ese usuario se asigna a Bodega 1;
     // otros bodegueros sin bodega siguen bloqueados en la cola hasta que el admin los asigne.
-    private static async Task EnsureDemoBodegueroBodegaAsync(SipitexDbContext context)
+    private static async Task EnsureDemoEncargadoBodegaPlantaAsync(SipitexDbContext context)
     {
         var demo = await context.Users
-            .Include(u => u.UserBodegas)
+            .Include(u => u.UserPlantasInventario)
             .FirstOrDefaultAsync(u =>
-                u.Email == "bodega@sipitex.test" && u.Rol == UserRoles.Bodeguero);
-        if (demo is null || demo.UserBodegas.Count > 0)
+                u.Email == "bodega@sipitex.test" && u.Rol == UserRoles.EncargadoBodega);
+        if (demo is null || demo.UserPlantasInventario.Count > 0)
             return;
 
-        demo.UserBodegas.Add(new UserBodega { UserId = demo.Id, BodegaId = 1 });
+        demo.UserPlantasInventario.Add(new UserPlantaInventario { UserId = demo.Id, PlantaInventarioId = 1 });
         await context.SaveChangesAsync();
     }
 
@@ -426,9 +426,9 @@ public static class DbInitializer
             ("RF02", "Autenticación con credenciales propias por rol.", "Usuarios", ComplianceStatus.Cumple, "Login con cookies de autenticación."),
             ("RF03", "Registrar entradas con fecha, cantidad y unidad.", "Inventario", ComplianceStatus.Cumple, "Fecha de última entrada en material."),
             ("RF04", "Consultar stock disponible en tiempo real.", "Inventario", ComplianceStatus.Cumple, "Actualización reactiva."),
-            ("RF05", "Bodeguero registra estado del material (Bueno/Regular/Deteriorado).", "Inventario", ComplianceStatus.Cumple, "Selector de estado en inventario."),
+            ("RF05", "Encargado de bodega registra estado del material (Bueno/Regular/Deteriorado).", "Inventario", ComplianceStatus.Cumple, "Selector de estado en inventario."),
             ("RF06", "Instructor solicita materiales (orden, producto, cantidad).", "Salida", ComplianceStatus.Cumple, "Formulario de solicitud."),
-            ("RF07", "Bodeguero aprueba / rechaza y registra entrega.", "Salida", ComplianceStatus.Cumple, "Aprobación y rechazo implementados."),
+            ("RF07", "Encargado de bodega aprueba / rechaza y registra entrega.", "Salida", ComplianceStatus.Cumple, "Aprobación y rechazo implementados."),
             ("RF08", "Salida trazada por orden y producto.", "Salida", ComplianceStatus.Parcial, "Se guarda orderId pero no historial visible."),
             ("RF09", "Admin crea órdenes con producto, cantidad y fecha.", "Órdenes", ComplianceStatus.Cumple, "Formulario completo."),
             ("RF10", "Estados: Pendiente, En Proceso, Finalizada, Cancelada.", "Órdenes", ComplianceStatus.Parcial, "Solo 'En Proceso' y 'Finalizada'."),

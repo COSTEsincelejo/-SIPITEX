@@ -15,7 +15,7 @@ public interface IUserAccountService
         string password,
         string rol,
         int? fichaAsignadaId,
-        IReadOnlyList<int>? bodegaIds,
+        IReadOnlyList<int>? plantaInventarioIds,
         IReadOnlyList<string> permisos,
         CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateUserAsync(
@@ -25,7 +25,7 @@ public interface IUserAccountService
         string password,
         string rol,
         int? fichaAsignadaId,
-        IReadOnlyList<int>? bodegaIds,
+        IReadOnlyList<int>? plantaInventarioIds,
         IReadOnlyList<string> permisos,
         bool isActive,
         CancellationToken cancellationToken = default);

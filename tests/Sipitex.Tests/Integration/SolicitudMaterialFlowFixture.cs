@@ -32,7 +32,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
     // --- Seed IDs (rellenados en SeedAsync) ---
     public int AdminId { get; private set; }
     public int InstructorId { get; private set; }
-    public int BodegueroId { get; private set; }
+    public int EncargadoBodegaId { get; private set; }
     public int FichaAsignadaId { get; private set; }
     public int FichaAjenaId { get; private set; }
     public int MaterialAmplioId { get; private set; }
@@ -96,9 +96,9 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             Nombre = "Bodeguero Test",
             Email = "bodega.int@test.local",
             PasswordHash = PasswordHasher.Hash("Bodega123!"),
-            Rol = UserRoles.Bodeguero,
+            Rol = UserRoles.EncargadoBodega,
             IsActive = true,
-            UserBodegas = { new UserBodega { BodegaId = 1 } }
+            UserPlantasInventario = { new UserPlantaInventario { PlantaInventarioId = 1 } }
         };
 
         Context.Users.AddRange(admin, instructor, bodeguero);
@@ -106,7 +106,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
 
         AdminId = admin.Id;
         InstructorId = instructor.Id;
-        BodegueroId = bodeguero.Id;
+        EncargadoBodegaId = bodeguero.Id;
 
         var matAmplio = new Material
         {
@@ -117,7 +117,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             MinStock = 10,
             Status = MaterialStatus.Bueno,
             LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
-            BodegaId = 1
+            PlantaInventarioId = 1
         };
         var matJusto = new Material
         {
@@ -128,7 +128,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             MinStock = 1,
             Status = MaterialStatus.Bueno,
             LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
-            BodegaId = 1
+            PlantaInventarioId = 1
         };
         var matCero = new Material
         {
@@ -139,7 +139,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             MinStock = 1,
             Status = MaterialStatus.Bueno,
             LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
-            BodegaId = 1
+            PlantaInventarioId = 1
         };
 
         Context.Materials.AddRange(matAmplio, matJusto, matCero);
@@ -191,7 +191,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
         var fichaRepo = new FichaRepository(Context);
         var materialRepo = new MaterialRepository(Context);
         var userRepo = new UserRepository(Context);
-        var bodegaRepo = new BodegaRepository(Context);
+        var bodegaRepo = new PlantaInventarioRepository(Context);
         var alertRepo = new AlertRepository(Context);
         // Repos que AlertService exige pero NotifyUsersAsync no usa en evaluación
         var materialRequestRepo = new MaterialRequestRepository(Context);

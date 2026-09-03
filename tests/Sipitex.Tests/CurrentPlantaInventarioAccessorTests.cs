@@ -7,7 +7,7 @@ using Sipitex.Web.Authorization;
 
 namespace Sipitex.Tests;
 
-public class CurrentBodegaAccessorTests
+public class CurrentPlantaInventarioAccessorTests
 {
     [Fact]
     public void BodegaIds_SinHttpContext_EsNull()
@@ -15,46 +15,46 @@ public class CurrentBodegaAccessorTests
         var http = new Mock<IHttpContextAccessor>();
         http.SetupGet(h => h.HttpContext).Returns((HttpContext?)null);
 
-        Assert.Null(new CurrentBodegaAccessor(http.Object).BodegaIds);
+        Assert.Null(new CurrentPlantaInventarioAccessor(http.Object).PlantaInventarioIds);
     }
 
     [Fact]
     public void BodegaIds_Administrador_EsNull()
     {
-        var accessor = ForUser(UserRoles.Administrador, bodegaClaims: [1]);
-        Assert.Null(accessor.BodegaIds);
+        var accessor = ForUser(UserRoles.Administrador, plantaInventarioClaims: [1]);
+        Assert.Null(accessor.PlantaInventarioIds);
     }
 
     [Fact]
     public void BodegaIds_Instructor_EsNull()
     {
-        var accessor = ForUser(UserRoles.Instructor, bodegaClaims: [2]);
-        Assert.Null(accessor.BodegaIds);
+        var accessor = ForUser(UserRoles.Instructor, plantaInventarioClaims: [2]);
+        Assert.Null(accessor.PlantaInventarioIds);
     }
 
     [Fact]
     public void BodegaIds_BodegueroConClaim_DevuelveBodega()
     {
-        var accessor = ForUser(UserRoles.Bodeguero, bodegaClaims: [2]);
-        Assert.Equal([2], accessor.BodegaIds);
+        var accessor = ForUser(UserRoles.EncargadoBodega, plantaInventarioClaims: [2]);
+        Assert.Equal([2], accessor.PlantaInventarioIds);
     }
 
     [Fact]
     public void BodegaIds_BodegueroConVariosClaims_DevuelveTodas()
     {
-        var accessor = ForUser(UserRoles.Bodeguero, bodegaClaims: [1, 2]);
-        Assert.Equal([1, 2], accessor.BodegaIds);
+        var accessor = ForUser(UserRoles.EncargadoBodega, plantaInventarioClaims: [1, 2]);
+        Assert.Equal([1, 2], accessor.PlantaInventarioIds);
     }
 
     [Fact]
     public void BodegaIds_BodegueroSinClaim_DevuelveListaVacia()
     {
-        var accessor = ForUser(UserRoles.Bodeguero, bodegaClaims: []);
-        Assert.NotNull(accessor.BodegaIds);
-        Assert.Empty(accessor.BodegaIds!);
+        var accessor = ForUser(UserRoles.EncargadoBodega, plantaInventarioClaims: []);
+        Assert.NotNull(accessor.PlantaInventarioIds);
+        Assert.Empty(accessor.PlantaInventarioIds!);
     }
 
-    private static CurrentBodegaAccessor ForUser(string role, int[] bodegaClaims)
+    private static CurrentPlantaInventarioAccessor ForUser(string role, int[] plantaInventarioClaims)
     {
         var claims = new List<Claim>
         {
@@ -62,8 +62,8 @@ public class CurrentBodegaAccessorTests
             new(ClaimTypes.Role, role),
             new(ClaimTypes.Name, "Test")
         };
-        foreach (var id in bodegaClaims.Where(id => id > 0))
-            claims.Add(new Claim(BodegaClaimTypes.BodegaId, id.ToString()));
+        foreach (var id in plantaInventarioClaims.Where(id => id > 0))
+            claims.Add(new Claim(PlantaInventarioClaimTypes.PlantaInventarioId, id.ToString()));
 
         var http = new DefaultHttpContext
         {
@@ -71,6 +71,6 @@ public class CurrentBodegaAccessorTests
         };
         var accessor = new Mock<IHttpContextAccessor>();
         accessor.SetupGet(h => h.HttpContext).Returns(http);
-        return new CurrentBodegaAccessor(accessor.Object);
+        return new CurrentPlantaInventarioAccessor(accessor.Object);
     }
 }

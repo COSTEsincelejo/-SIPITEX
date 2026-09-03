@@ -49,10 +49,10 @@ public class StockMovementHistoryFilterTests
         {
             var user = new User
             {
-                Nombre = "Bodeguero",
+                Nombre = "EncargadoBodega",
                 Email = "bodega@test.local",
                 PasswordHash = "x",
-                Rol = UserRoles.Bodeguero
+                Rol = UserRoles.EncargadoBodega
             };
             var matA = new Material
             {
@@ -63,7 +63,7 @@ public class StockMovementHistoryFilterTests
                 MinStock = 10,
                 Status = MaterialStatus.Bueno,
                 LastEntryDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                BodegaId = 1
+                PlantaInventarioId = 1
             };
             var matB = new Material
             {
@@ -74,7 +74,7 @@ public class StockMovementHistoryFilterTests
                 MinStock = 5,
                 Status = MaterialStatus.Bueno,
                 LastEntryDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                BodegaId = 1
+                PlantaInventarioId = 1
             };
             db.Users.Add(user);
             db.Materials.AddRange(matA, matB);
