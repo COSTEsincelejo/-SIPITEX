@@ -11,6 +11,7 @@ public static class ActivityLogActions
     public const string CreatePlantaInventario = "CreatePlantaInventario";
     public const string UpdatePlantaInventario = "UpdatePlantaInventario";
     public const string DeletePlantaInventario = "DeletePlantaInventario";
+    public const string ReassignPlantaInventario = "ReassignPlantaInventario";
 
     public const string CreateOrder = "CreateOrder";
     public const string UpdateOrder = "UpdateOrder";
@@ -22,6 +23,13 @@ public static class ActivityLogActions
     public const string DeleteBom = "DeleteBom";
     public const string AssignBomInstructor = "AssignBomInstructor";
     public const string RemoveBomInstructor = "RemoveBomInstructor";
+    public const string RegisterConsumoMaterial = "RegisterConsumoMaterial";
+    public const string ChangeProductState = "ChangeProductState";
+
+    // Acciones genéricas del interceptor EF Core (SaveChanges)
+    public const string Create = "Create";
+    public const string Update = "Update";
+    public const string Delete = "Delete";
 }
 
 public static class ActivityLogEntities
@@ -30,4 +38,9 @@ public static class ActivityLogEntities
     public const string PlantaInventario = "PlantaInventario";
     public const string ProductionOrder = "ProductionOrder";
     public const string BomProduct = "BomProduct";
+    public const string ConsumoMaterial = "ConsumoMaterial";
+    public const string Material = "Material";
+    public const string GrupoConfeccion = "GrupoConfeccion";
+    public const string QualityRecord = "QualityRecord";
+    public const string ActaMovimiento = "ActaMovimiento";
 }

@@ -18,6 +18,9 @@ public class BomProduct
     // Si false, CreateOrderAsync rechaza el producto aunque tenga BOM
     public bool HabilitadoParaOrdenes { get; set; } = true;
 
+    // Código de negocio único (PRD-0001). Distinto del Id de BD.
+    public string Codigo { get; set; } = string.Empty;
+
     // --- Fase A: metadatos base (todos opcionales) ---
     public string? Referencia { get; set; }
     public string? Linea { get; set; }

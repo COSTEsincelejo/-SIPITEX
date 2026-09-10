@@ -8,22 +8,33 @@ namespace Sipitex.Application.DTOs;
 public record MaterialDto(
     int Id,
     string Name,
-    string UnitDisplay, // unidad legible (m, kg, ud)
+    string UnitDisplay,
     MaterialUnit Unit,
     decimal Stock,
     MaterialStatus Status,
     decimal MinStock,
-    bool IsLowStock, // true si hay que alertar
-    DateOnly LastEntryDate);
+    bool IsLowStock,
+    DateOnly LastEntryDate,
+    decimal CostoAdquisicion = 0);
 
 // Datos para crear material nuevo (origen tipifica la Entrada del ledger)
-public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit, StockEntryOrigin Origen);
+public record CreateMaterialDto(
+    string Name,
+    decimal Stock,
+    MaterialUnit Unit,
+    StockEntryOrigin Origen,
+    decimal CostoAdquisicion = 0);
 
 // Ajuste manual de stock; Origen obligatorio cuando NewStock > stock actual
 public record AdjustStockDto(int MaterialId, decimal NewStock, StockEntryOrigin? Origen = null);
 
 // Edición de metadatos del material (nombre, unidad, mínimo) — no toca stock
-public record UpdateMaterialDto(int MaterialId, string Name, MaterialUnit Unit, decimal MinStock);
+public record UpdateMaterialDto(
+    int MaterialId,
+    string Name,
+    MaterialUnit Unit,
+    decimal MinStock,
+    decimal? CostoAdquisicion = null);
 
 // Cambiar estado físico del material
 public record UpdateMaterialStatusDto(int MaterialId, MaterialStatus Status);
@@ -76,7 +87,8 @@ public record ProductionOrderDto(
     // Viewer: preparar materiales (BomProductInstructor ∪ etapa MES). Default true p/ Admin listados sin viewer.
     bool CanManageMaterials = true,
     // Viewer: producción/MES (CanAccessOrderAsync). Default true.
-    bool CanOperateProduction = true);
+    bool CanOperateProduction = true,
+    EstadoProducto EstadoProducto = EstadoProducto.MateriaPrima);
 
 // Alta de orden nueva
 public record CreateProductionOrderDto(
@@ -154,7 +166,8 @@ public record UpsertBomProductDto(
     string? Digitacion = null,
     IReadOnlyList<BomProductTallaDto>? Tallas = null,
     IReadOnlyList<BomProductPiezaDto>? Piezas = null,
-    IReadOnlyList<BomProductMedidaDto>? Medidas = null);
+    IReadOnlyList<BomProductMedidaDto>? Medidas = null,
+    string? Codigo = null);
 
 // Talla de ficha técnica (Fase A)
 public record BomProductTallaDto(int? Id, string Nombre, int Orden);
@@ -212,7 +225,56 @@ public record BomRecipeLineDetailDto(
     string MaterialName,
     decimal QuantityPerUnit,
     MaterialUnit Unit,
+    string UnitDisplay,
+    string MaterialCode = "");
+
+public record FichaTecnicaMaterialDto(
+    int MaterialId,
+    string MaterialCode,
+    string MaterialName,
+    decimal QuantityPerUnit,
+    MaterialUnit Unit,
     string UnitDisplay);
+
+public record FichaTecnicaMaterialsDto(
+    int BomProductId,
+    string ProductName,
+    string? Referencia,
+    bool HabilitadoParaOrdenes,
+    IReadOnlyList<FichaTecnicaMaterialDto> Materials,
+    string? Codigo = null);
+
+public record ConsumoCostoLineaDto(decimal Cantidad, decimal CostoUnitario);
+
+public record ConsumoCostoResumenDto(
+    int ProductionOrderId,
+    decimal CantidadTotal,
+    decimal CostoPromedioPonderado,
+    decimal CostoTotal);
+
+public record ConsumoMaterialDto(
+    int Id,
+    int ProductionOrderId,
+    string OrderNumber,
+    int? GrupoConfeccionId,
+    int MaterialId,
+    string MaterialCode,
+    string MaterialName,
+    decimal Cantidad,
+    string UnitDisplay,
+    DateTime FechaUtc,
+    int ResponsableUserId,
+    string ResponsableNombre,
+    decimal CostoUnitario,
+    decimal CostoTotal);
+
+public record RegisterConsumoMaterialDto(
+    int ProductionOrderId,
+    int MaterialId,
+    decimal Cantidad,
+    int ResponsableUserId,
+    int? GrupoConfeccionId = null,
+    DateTime? FechaUtc = null);
 
 // Resultado completo de simular MRP
 public record MrpSimulationResultDto(
@@ -281,7 +343,8 @@ public record QualityRecordDto(
     QualityResult Result,
     DateOnly Date,
     string? MotivoReproceso,
-    string? Responsable);
+    string? Responsable,
+    CalidadClasificacion Clasificacion = CalidadClasificacion.Bueno);
 
 // Crear inspección nueva
 public record CreateQualityRecordDto(
@@ -290,7 +353,8 @@ public record CreateQualityRecordDto(
     QualityResult Result,
     string? MotivoReproceso = null,
     string? Responsable = null,
-    DateOnly Date = default);
+    DateOnly Date = default,
+    CalidadClasificacion Clasificacion = CalidadClasificacion.Bueno);
 
 // --- Dashboard ---
 
@@ -576,3 +640,93 @@ public record PartialWithdrawalDto(
     string? Observations,
     int? AuthorizedByUserId);
 public record UpsertStagePermissionDto(int UserId, string StageName, bool Allowed);
+
+public record GarmentCostDto(
+    int ProductionOrderId,
+    string OrderNumber,
+    decimal CostoMateriales,
+    decimal HorasManoObra,
+    decimal TarifaHora,
+    decimal CostoManoObra,
+    decimal Total,
+    string Formula);
+
+public record GrupoConfeccionDto(
+    int Id,
+    int ProductionOrderId,
+    string OrderNumber,
+    int InstructorUserId,
+    string InstructorNombre,
+    DateOnly FechaRealizacion,
+    TimeOnly HoraInicio,
+    TimeOnly? HoraFin,
+    int CantidadPrendas);
+
+public record CreateGrupoConfeccionDto(
+    int ProductionOrderId,
+    int InstructorUserId,
+    DateOnly FechaRealizacion,
+    TimeOnly HoraInicio,
+    TimeOnly? HoraFin = null,
+    int CantidadPrendas = 0);
+
+public record GrupoConsumoCruzadoDto(
+    GrupoConfeccionDto Grupo,
+    string OrderNumber,
+    IReadOnlyList<ConsumoMaterialDto> Consumos);
+
+public record ActaDetalleDto(
+    int Id,
+    ActaItemTipo ItemTipo,
+    string Descripcion,
+    decimal Cantidad,
+    string? Unidad,
+    int? MaterialId,
+    int? ConsumoMaterialId,
+    int? StockMovementId,
+    int? ProductionOrderId);
+
+public record ActaMovimientoDto(
+    int Id,
+    string Numero,
+    ActaTipo Tipo,
+    ActaOrigen Origen,
+    DateTime FechaUtc,
+    string? Observaciones,
+    int? ProductionOrderId,
+    string? OrderNumber,
+    EstadoProducto? EstadoProductoOrigen,
+    EstadoProducto? EstadoProductoDestino,
+    string EntregaNombre,
+    string EntregaCargo,
+    DateTime? EntregaConformidadUtc,
+    string RecibeNombre,
+    string RecibeCargo,
+    DateTime? RecibeConformidadUtc,
+    int CreadoPorUserId,
+    string CreadoPorNombre,
+    IReadOnlyList<ActaDetalleDto> Detalles);
+
+public record CreateActaDto(
+    ActaTipo Tipo,
+    ActaOrigen Origen,
+    string EntregaNombre,
+    string EntregaCargo,
+    bool EntregaConforme,
+    string RecibeNombre,
+    string RecibeCargo,
+    bool RecibeConforme,
+    int CreadoPorUserId,
+    string? Observaciones = null,
+    int? ProductionOrderId = null,
+    EstadoProducto? EstadoOrigen = null,
+    EstadoProducto? EstadoDestino = null,
+    IReadOnlyList<int>? StockMovementIds = null,
+    IReadOnlyList<int>? ConsumoIds = null);
+
+public record ServiceResult<T>(bool Success, string? Message, T? Value)
+{
+    public static ServiceResult<T> Ok(T value, string? message = null) => new(true, message, value);
+    public static ServiceResult<T> Fail(string message) => new(false, message, default);
+}
+

@@ -17,6 +17,142 @@ namespace Sipitex.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimiento", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CreadoPorUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("EntregaCargo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EntregaConformidadUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntregaNombre")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EstadoProductoDestino")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EstadoProductoOrigen")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FechaUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ProductionOrderId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RecibeCargo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("RecibeConformidadUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RecibeNombre")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreadoPorUserId");
+
+                    b.HasIndex("FechaUtc");
+
+                    b.HasIndex("Numero")
+                        .IsUnique();
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.ToTable("ActasMovimiento", (string)null);
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimientoDetalle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ActaMovimientoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Cantidad")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ConsumoMaterialId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(240)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ItemTipo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("MaterialId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ProductionOrderId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("StockMovementId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Unidad")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActaMovimientoId");
+
+                    b.HasIndex("ConsumoMaterialId");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.HasIndex("StockMovementId");
+
+                    b.ToTable("ActasMovimientoDetalle", (string)null);
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.ActivityLog", b =>
                 {
                     b.Property<int>("Id")
@@ -165,6 +301,11 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Property<int?>("AnioMuestrario")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("DescripcionPrenda")
                         .HasMaxLength(4000)
                         .HasColumnType("TEXT");
@@ -228,6 +369,9 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
 
                     b.HasIndex("ProductName")
                         .IsUnique();
@@ -381,6 +525,50 @@ namespace Sipitex.Infrastructure.Migrations
                     b.HasIndex("BomProductId", "Orden");
 
                     b.ToTable("BomProductTallas");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.ConsumoMaterial", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Cantidad")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CostoUnitario")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FechaUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("GrupoConfeccionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ProductionOrderId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ResponsableUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FechaUtc");
+
+                    b.HasIndex("GrupoConfeccionId");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.HasIndex("ResponsableUserId");
+
+                    b.ToTable("ConsumosMaterial");
                 });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.DetalleSolicitudMaterial", b =>
@@ -622,6 +810,41 @@ namespace Sipitex.Infrastructure.Migrations
                     b.ToTable("FunctionalRequirements");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.GrupoConfeccion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CantidadPrendas")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("FechaRealizacion")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly?>("HoraFin")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly>("HoraInicio")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("InstructorUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ProductionOrderId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FechaRealizacion");
+
+                    b.HasIndex("InstructorUserId");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.ToTable("GruposConfeccion");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.InstructorStagePermission", b =>
                 {
                     b.Property<int>("Id")
@@ -653,6 +876,10 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CostoAdquisicion")
+                        .HasPrecision(18, 4)
                         .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("LastEntryDate")
@@ -830,6 +1057,11 @@ namespace Sipitex.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -843,11 +1075,13 @@ namespace Sipitex.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
+                            Activo = true,
                             Nombre = "Planta de Inventario 1"
                         },
                         new
                         {
                             Id = 2,
+                            Activo = true,
                             Nombre = "Planta de Inventario 2"
                         });
                 });
@@ -919,6 +1153,11 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateOnly>("Deadline")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EstadoProducto")
+                        .IsRequired()
+                        .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("MaterialsStatus")
@@ -1235,6 +1474,11 @@ namespace Sipitex.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Clasificacion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly>("InspectionDate")
                         .HasColumnType("TEXT");
 
@@ -1344,6 +1588,10 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal?>("CostoUnitario")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("FechaUtc")
                         .HasColumnType("TEXT");
 
@@ -1449,6 +1697,63 @@ namespace Sipitex.Infrastructure.Migrations
                     b.HasIndex("PlantaInventarioId");
 
                     b.ToTable("UserPlantasInventario");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimiento", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.User", "CreadoPor")
+                        .WithMany()
+                        .HasForeignKey("CreadoPorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany()
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreadoPor");
+
+                    b.Navigation("ProductionOrder");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimientoDetalle", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.ActaMovimiento", "ActaMovimiento")
+                        .WithMany("Detalles")
+                        .HasForeignKey("ActaMovimientoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ConsumoMaterial", "ConsumoMaterial")
+                        .WithMany()
+                        .HasForeignKey("ConsumoMaterialId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Sipitex.Domain.Entities.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany()
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Sipitex.Domain.Entities.StockMovement", "StockMovement")
+                        .WithMany()
+                        .HasForeignKey("StockMovementId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ActaMovimiento");
+
+                    b.Navigation("ConsumoMaterial");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("ProductionOrder");
+
+                    b.Navigation("StockMovement");
                 });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.AlertDelivery", b =>
@@ -1563,6 +1868,40 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("BomProduct");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.ConsumoMaterial", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.GrupoConfeccion", "GrupoConfeccion")
+                        .WithMany("Consumos")
+                        .HasForeignKey("GrupoConfeccionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Sipitex.Domain.Entities.Material", "Material")
+                        .WithMany("Consumos")
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany("Consumos")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.User", "Responsable")
+                        .WithMany()
+                        .HasForeignKey("ResponsableUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GrupoConfeccion");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("ProductionOrder");
+
+                    b.Navigation("Responsable");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.DetalleSolicitudMaterial", b =>
                 {
                     b.HasOne("Sipitex.Domain.Entities.Material", "Material")
@@ -1649,6 +1988,25 @@ namespace Sipitex.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("ActorUser");
+
+                    b.Navigation("ProductionOrder");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.GrupoConfeccion", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.User", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany("GruposConfeccion")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
 
                     b.Navigation("ProductionOrder");
                 });
@@ -1984,6 +2342,11 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimiento", b =>
+                {
+                    b.Navigation("Detalles");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.BomProduct", b =>
                 {
                     b.Navigation("Instructors");
@@ -2012,9 +2375,16 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("Instructors");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.GrupoConfeccion", b =>
+                {
+                    b.Navigation("Consumos");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.Material", b =>
                 {
                     b.Navigation("BomItems");
+
+                    b.Navigation("Consumos");
 
                     b.Navigation("Requests");
 
@@ -2041,7 +2411,11 @@ namespace Sipitex.Infrastructure.Migrations
 
                     b.Navigation("ChangeLogs");
 
+                    b.Navigation("Consumos");
+
                     b.Navigation("Fichas");
+
+                    b.Navigation("GruposConfeccion");
 
                     b.Navigation("HistoryEntries");
 

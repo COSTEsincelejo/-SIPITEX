@@ -60,7 +60,8 @@ public class BomCatalogService : IBomCatalogService
                 i.Material.Name,
                 i.QuantityPerUnit,
                 i.Unit,
-                UnitHelper.ToDisplay(i.Unit))).ToList(),
+                UnitHelper.ToDisplay(i.Unit),
+                i.Material.Code)).ToList(),
             product.Referencia,
             product.Linea,
             product.TallaInicial,
@@ -92,6 +93,42 @@ public class BomCatalogService : IBomCatalogService
                 .Select(MapMedida)
                 .ToList());
     }
+
+    public async Task<FichaTecnicaMaterialsDto?> GetMaterialsByFichaIdAsync(
+        int bomProductId,
+        CancellationToken cancellationToken = default)
+    {
+        var product = await _bomRepository.GetProductByIdAsync(bomProductId, cancellationToken);
+        return product is null ? null : MapMaterials(product);
+    }
+
+    public async Task<FichaTecnicaMaterialsDto?> GetMaterialsByProductCodigoAsync(
+        string codigo,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(codigo))
+            return null;
+
+        var product = await _bomRepository.FindByProductCodigoAsync(codigo, cancellationToken);
+        return product is null ? null : MapMaterials(product);
+    }
+
+    private static FichaTecnicaMaterialsDto MapMaterials(BomProduct product) => new(
+        product.Id,
+        product.ProductName,
+        product.Referencia,
+        product.HabilitadoParaOrdenes,
+        product.Items
+            .OrderBy(i => i.Material.Code)
+            .Select(i => new FichaTecnicaMaterialDto(
+                i.MaterialId,
+                i.Material.Code,
+                i.Material.Name,
+                i.QuantityPerUnit,
+                i.Unit,
+                UnitHelper.ToDisplay(i.Unit)))
+            .ToList(),
+        product.Codigo);
 
     private static BomProductMedidaDto MapMedida(BomProductMedida m) => new(
         m.Id,
@@ -133,12 +170,17 @@ public class BomCatalogService : IBomCatalogService
         if (!linesResult.Success)
             return ServiceResult.Fail(linesResult.Error!);
 
+        var codigoResult = await ResolveCodigoAsync(dto.Codigo, currentCodigo: null, excludeId: null, cancellationToken);
+        if (codigoResult.Error is not null)
+            return ServiceResult.Fail(codigoResult.Error);
+
         var product = new BomProduct
         {
             ProductName = name,
             IsReference = dto.IsReference,
             Notes = NormalizeNotes(dto.Notes, dto.IsReference),
-            HabilitadoParaOrdenes = dto.HabilitadoParaOrdenes
+            HabilitadoParaOrdenes = dto.HabilitadoParaOrdenes,
+            Codigo = codigoResult.Codigo
         };
         ApplyMetadata(product, dto);
         ApplyTallas(product, dto.Tallas);
@@ -179,10 +221,15 @@ public class BomCatalogService : IBomCatalogService
         if (!linesResult.Success)
             return ServiceResult.Fail(linesResult.Error!);
 
+        var codigoResult = await ResolveCodigoAsync(dto.Codigo, product.Codigo, id, cancellationToken);
+        if (codigoResult.Error is not null)
+            return ServiceResult.Fail(codigoResult.Error);
+
         product.ProductName = name;
         product.IsReference = dto.IsReference;
         product.Notes = NormalizeNotes(dto.Notes, dto.IsReference);
         product.HabilitadoParaOrdenes = dto.HabilitadoParaOrdenes;
+        product.Codigo = codigoResult.Codigo;
         ApplyMetadata(product, dto);
 
         // Quitar medidas primero (evita FK huérfanas al reemplazar tallas)
@@ -342,6 +389,33 @@ public class BomCatalogService : IBomCatalogService
 
     private static int CountNamedTallas(IReadOnlyList<BomProductTallaDto>? tallas) =>
         tallas?.Count(t => !string.IsNullOrWhiteSpace(t.Nombre)) ?? 0;
+
+    private async Task<(string Codigo, string? Error)> ResolveCodigoAsync(
+        string? requested,
+        string? currentCodigo,
+        int? excludeId,
+        CancellationToken cancellationToken)
+    {
+        string codigo;
+        if (!string.IsNullOrWhiteSpace(requested))
+        {
+            codigo = requested.Trim().ToUpperInvariant();
+        }
+        else if (!string.IsNullOrWhiteSpace(currentCodigo))
+        {
+            codigo = currentCodigo.Trim();
+        }
+        else
+        {
+            var last = await _bomRepository.GetLastCodigoAsync(cancellationToken);
+            codigo = CodigoGeneradorService.SiguienteCodigo("PRD-", last);
+        }
+
+        if (await _bomRepository.ExistsByCodigoAsync(codigo, cancellationToken, excludeId))
+            return ("", "Ya existe un producto con ese código.");
+
+        return (codigo, null);
+    }
 
     private static void ApplyMetadata(BomProduct product, UpsertBomProductDto dto)
     {

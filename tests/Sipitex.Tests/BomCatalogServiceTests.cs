@@ -248,4 +248,58 @@ public class BomCatalogServiceTests
         Assert.True(result.Success);
         _boms.Verify(r => r.RemoveProduct(product), Times.Once);
     }
+
+    [Fact]
+    public async Task GetMaterialsByFichaIdAsync_ReturnsCodeNameQtyAndUnit()
+    {
+        var product = new BomProduct
+        {
+            Id = 3,
+            ProductName = "Camisa",
+            Referencia = "CAM-001",
+            HabilitadoParaOrdenes = true,
+            Items =
+            [
+                new BomItem
+                {
+                    MaterialId = 1,
+                    Material = Mat(1, "Tela Jersey"),
+                    QuantityPerUnit = 1.6m,
+                    Unit = MaterialUnit.Metros
+                }
+            ]
+        };
+        _boms.Setup(r => r.GetProductByIdAsync(3, It.IsAny<CancellationToken>())).ReturnsAsync(product);
+
+        var dto = await CreateSut().GetMaterialsByFichaIdAsync(3);
+
+        Assert.NotNull(dto);
+        Assert.Equal("CAM-001", dto!.Referencia);
+        var line = Assert.Single(dto.Materials);
+        Assert.Equal("mat1", line.MaterialCode);
+        Assert.Equal("Tela Jersey", line.MaterialName);
+        Assert.Equal(1.6m, line.QuantityPerUnit);
+        Assert.Equal("metro", line.UnitDisplay);
+    }
+
+    [Fact]
+    public async Task GetMaterialsByProductCodigoAsync_PrefersActiveFicha()
+    {
+        var product = new BomProduct
+        {
+            Id = 8,
+            ProductName = "Camisa",
+            Referencia = "CAM-001",
+            HabilitadoParaOrdenes = true,
+            Items = []
+        };
+        _boms.Setup(r => r.FindByProductCodigoAsync("CAM-001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        var dto = await CreateSut().GetMaterialsByProductCodigoAsync("CAM-001");
+
+        Assert.NotNull(dto);
+        Assert.Equal(8, dto!.BomProductId);
+        Assert.True(dto.HabilitadoParaOrdenes);
+    }
 }

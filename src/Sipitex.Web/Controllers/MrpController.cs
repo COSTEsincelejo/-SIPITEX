@@ -201,6 +201,56 @@ public class MrpController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega},{UserRoles.Instructor}")]
+    [HttpGet]
+    public async Task<IActionResult> Materials(int id, CancellationToken cancellationToken)
+    {
+        var dto = await _bomCatalog.GetMaterialsByFichaIdAsync(id, cancellationToken);
+        if (dto is null)
+            return NotFound();
+
+        if (await IsProductForbiddenAsync(dto.BomProductId, cancellationToken))
+            return Forbid();
+
+        return View(new FichaTecnicaMaterialsViewModel { Ficha = dto });
+    }
+
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega},{UserRoles.Instructor}")]
+    [HttpGet]
+    public async Task<IActionResult> MaterialsByCodigo(string? codigo, CancellationToken cancellationToken)
+    {
+        FichaTecnicaMaterialsDto? dto = null;
+        string? message = null;
+        if (!string.IsNullOrWhiteSpace(codigo))
+        {
+            dto = await _bomCatalog.GetMaterialsByProductCodigoAsync(codigo, cancellationToken);
+            if (dto is null)
+            {
+                message = "No hay ficha técnica con ese código (Referencia) o nombre de producto. El código de negocio único se agrega en el módulo de producto; hoy se usa Referencia o el nombre.";
+            }
+            else if (await IsProductForbiddenAsync(dto.BomProductId, cancellationToken))
+            {
+                dto = null;
+                message = "No puede consultar una ficha técnica que no tiene asignada.";
+            }
+        }
+
+        return View("Materials", new FichaTecnicaMaterialsViewModel
+        {
+            Ficha = dto,
+            Codigo = codigo,
+            Message = message
+        });
+    }
+
+    private async Task<bool> IsProductForbiddenAsync(int bomProductId, CancellationToken cancellationToken)
+    {
+        if (!IsConsultaInstructorScoped())
+            return false;
+        var scoped = await GetScopedProductsAsync(cancellationToken);
+        return scoped.All(p => p.Id != bomProductId);
+    }
+
     private async Task<MrpIndexViewModel> BuildIndexVm(
         CancellationToken cancellationToken,
         MrpSimulationForm? simulation = null)

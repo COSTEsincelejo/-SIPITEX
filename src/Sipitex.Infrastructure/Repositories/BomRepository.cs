@@ -91,4 +91,41 @@ public class BomRepository : IBomRepository
             .Distinct()
             .OrderBy(n => n)
             .ToListAsync(cancellationToken);
+
+    public async Task<BomProduct?> FindByProductCodigoAsync(string codigo, CancellationToken cancellationToken = default)
+    {
+        var key = codigo.Trim().ToLower();
+        var matches = await _context.BomProducts
+            .Include(p => p.Items)
+                .ThenInclude(i => i.Material)
+            .Where(p =>
+                p.Codigo.ToLower() == key
+                || (p.Referencia != null && p.Referencia.ToLower() == key)
+                || p.ProductName.ToLower() == key)
+            .ToListAsync(cancellationToken);
+
+        return matches
+            .OrderByDescending(p => p.HabilitadoParaOrdenes)
+            .ThenBy(p => p.Id)
+            .FirstOrDefault();
+    }
+
+    public async Task<string?> GetLastCodigoAsync(CancellationToken cancellationToken = default) =>
+        await _context.BomProducts
+            .Where(p => p.Codigo.StartsWith("PRD-"))
+            .OrderByDescending(p => p.Codigo)
+            .Select(p => p.Codigo)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public Task<bool> ExistsByCodigoAsync(
+        string codigo,
+        CancellationToken cancellationToken = default,
+        int? excludeId = null)
+    {
+        var key = codigo.Trim().ToLower();
+        var query = _context.BomProducts.Where(p => p.Codigo.ToLower() == key);
+        if (excludeId is int id)
+            query = query.Where(p => p.Id != id);
+        return query.AnyAsync(cancellationToken);
+    }
 }

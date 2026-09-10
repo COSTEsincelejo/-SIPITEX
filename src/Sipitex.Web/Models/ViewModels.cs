@@ -36,6 +36,7 @@ public class CreateMaterialForm
     public decimal Stock { get; set; }
     public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
     public StockEntryOrigin Origen { get; set; } = StockEntryOrigin.Compra;
+    public decimal CostoAdquisicion { get; set; }
 }
 
 // Formulario para pedir material a plantaInventario
@@ -61,6 +62,7 @@ public class EditMaterialForm
     public string Name { get; set; } = string.Empty;
     public MaterialUnit Unit { get; set; }
     public decimal MinStock { get; set; }
+    public decimal CostoAdquisicion { get; set; }
 }
 
 // Pantalla de órdenes de producción
@@ -346,6 +348,7 @@ public class CreateQualityForm
     public int Units { get; set; }
     public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
     public QualityResult Result { get; set; } = QualityResult.Aprobada;
+    public CalidadClasificacion Clasificacion { get; set; } = CalidadClasificacion.Bueno;
     public string? MotivoReproceso { get; set; } // solo si es reproceso
     public string? Responsable { get; set; }
 }
@@ -402,6 +405,21 @@ public class EditPlantaInventarioViewModel
     public string Nombre { get; set; } = string.Empty;
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
+}
+
+public class DeletePlantaInventarioViewModel
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public bool Activo { get; set; }
+    public int Materiales { get; set; }
+    public int Solicitudes { get; set; }
+    public int Encargados { get; set; }
+    public decimal StockTotal { get; set; }
+    public bool RequiresReassignment => Materiales > 0 || Solicitudes > 0 || Encargados > 0;
+    public IReadOnlyList<PlantaInventario> Destinos { get; set; } = [];
+    public int DestinoId { get; set; }
+    public string? Message { get; set; }
 }
 
 // Pantalla de reportes con filtros opcionales
@@ -527,4 +545,91 @@ public class AuditoriaIndexViewModel
     public string? Action { get; set; }
     public string? Entity { get; set; }
     public int? UserId { get; set; }
+}
+
+public class FichaTecnicaMaterialsViewModel
+{
+    public FichaTecnicaMaterialsDto? Ficha { get; set; }
+    public string? Codigo { get; set; }
+    public string? Message { get; set; }
+}
+
+public class ConsumosIndexViewModel
+{
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public IReadOnlyList<ConsumoMaterialDto> Consumos { get; set; } = [];
+    public ConsumoCostoResumenDto? Costo { get; set; }
+    public RegisterConsumoForm Form { get; set; } = new();
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class RegisterConsumoForm
+{
+    public int ProductionOrderId { get; set; }
+    public int MaterialId { get; set; }
+    public decimal Cantidad { get; set; }
+    public DateTime? FechaLocal { get; set; }
+}
+
+public class GruposConfeccionIndexViewModel
+{
+    public IReadOnlyList<GrupoConfeccionDto> Grupos { get; set; } = [];
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<InstructorOptionDto> Instructors { get; set; } = [];
+    public CreateGrupoConfeccionForm Form { get; set; } = new();
+    public GrupoConsumoCruzadoDto? Cruzado { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class CreateGrupoConfeccionForm
+{
+    public int ProductionOrderId { get; set; }
+    public int InstructorUserId { get; set; }
+    public DateOnly FechaRealizacion { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+    public TimeOnly HoraInicio { get; set; } = new(8, 0);
+    public TimeOnly? HoraFin { get; set; }
+    public int CantidadPrendas { get; set; }
+}
+
+public class CostosIndexViewModel
+{
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public int? OrderId { get; set; }
+    public GarmentCostDto? Costo { get; set; }
+}
+
+public class ActasIndexViewModel
+{
+    public IReadOnlyList<ActaMovimientoDto> Actas { get; set; } = [];
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class ActaCreateViewModel
+{
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<StockMovementDto> Movimientos { get; set; } = [];
+    public IReadOnlyList<ConsumoMaterialDto> Consumos { get; set; } = [];
+    public CreateActaForm Form { get; set; } = new();
+}
+
+public class CreateActaForm
+{
+    public ActaTipo Tipo { get; set; } = ActaTipo.Egreso;
+    public ActaOrigen Origen { get; set; } = ActaOrigen.Consumo;
+    public string EntregaNombre { get; set; } = string.Empty;
+    public string EntregaCargo { get; set; } = string.Empty;
+    public bool EntregaConforme { get; set; } = true;
+    public string RecibeNombre { get; set; } = string.Empty;
+    public string RecibeCargo { get; set; } = string.Empty;
+    public bool RecibeConforme { get; set; } = true;
+    public string? Observaciones { get; set; }
+    public int? ProductionOrderId { get; set; }
+    public EstadoProducto EstadoOrigen { get; set; } = EstadoProducto.MateriaPrima;
+    public EstadoProducto EstadoDestino { get; set; } = EstadoProducto.Corte;
+    public int[] StockMovementIds { get; set; } = [];
+    public int[] ConsumoIds { get; set; } = [];
 }

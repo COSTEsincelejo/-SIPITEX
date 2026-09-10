@@ -117,11 +117,25 @@ public static class DisplayHelper
     };
 
     // Colores para resultados de inspección de calidad
+    public static string BadgeClass(CalidadClasificacion clasificacion) => clasificacion switch
+    {
+        CalidadClasificacion.Bueno => "badge-success",
+        CalidadClasificacion.Regular => "badge-warning",
+        _ => "badge-danger"
+    };
+
+    public static string BadgeClass(EstadoProducto estado) => estado switch
+    {
+        EstadoProducto.ProductoTerminado or EstadoProducto.VentaEntrega => "badge-success",
+        EstadoProducto.Calidad or EstadoProducto.Confeccion => "badge-info",
+        _ => "badge-warning"
+    };
+
     public static string BadgeClass(QualityResult result) => result switch
     {
         QualityResult.Aprobada => "badge-success",
         QualityResult.Reproceso => "badge-warning",
-        _ => "badge-danger" // Rechazada
+        _ => "badge-danger"
     };
 
     // Colores para cumplimiento normativo (si aplica en reportes)
@@ -168,6 +182,15 @@ public static class DisplayHelper
         QualityResult.Aprobada => "Aprobada",
         QualityResult.Reproceso => "Reproceso",
         QualityResult.Rechazada => "Rechazada",
+        ActaTipo.Ingreso => "Ingreso",
+        ActaTipo.Egreso => "Egreso",
+        ActaOrigen.Manual => "Manual",
+        ActaOrigen.Stock => "Movimientos de stock",
+        ActaOrigen.Consumo => "Consumo de materiales",
+        ActaOrigen.EstadoProducto => "Transición de estado",
+        ActaItemTipo.Material => "Material",
+        ActaItemTipo.ProductoEnProceso => "Producto en proceso",
+        ActaItemTipo.ProductoTerminado => "Producto terminado",
         _ => value.ToString()
     };
 
@@ -183,6 +206,7 @@ public static class DisplayHelper
         "UpdatePlantaInventario" => "Renombrar planta de inventario",
         "DeleteBodega" => "Eliminar planta de inventario",
         "DeletePlantaInventario" => "Eliminar planta de inventario",
+        "ReassignPlantaInventario" => "Reasignar planta de inventario",
         "CreateOrder" => "Crear orden",
         "UpdateOrder" => "Editar orden",
         "ApproveOrder" => "Aprobar orden",
@@ -192,6 +216,11 @@ public static class DisplayHelper
         "DeleteBom" => "Eliminar ficha técnica",
         "AssignBomInstructor" => "Asignar instructor a BOM",
         "RemoveBomInstructor" => "Quitar instructor de BOM",
+        "RegisterConsumoMaterial" => "Registrar consumo de material",
+        "ChangeProductState" => "Cambio de estado de producto",
+        "Create" => "Crear",
+        "Update" => "Editar",
+        "Delete" => "Eliminar",
         _ => string.IsNullOrWhiteSpace(action) ? "—" : action
     };
 
@@ -202,6 +231,11 @@ public static class DisplayHelper
         "PlantaInventario" => "Planta de inventario",
         "ProductionOrder" => "Orden de producción",
         "BomProduct" => "Ficha técnica (BOM)",
+        "ConsumoMaterial" => "Consumo de material",
+        "Material" => "Material",
+        "GrupoConfeccion" => "Grupo de confección",
+        "QualityRecord" => "Registro de calidad",
+        "ActaMovimiento" => "Acta de movimiento",
         _ => string.IsNullOrWhiteSpace(entity) ? "—" : entity
     };
 }

@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Interfaces.Services;
@@ -11,4 +12,5 @@ public interface IPlantaInventarioService
     Task<ServiceResult> CreateAsync(string nombre, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateAsync(int id, string nombre, CancellationToken cancellationToken = default);
     Task<ServiceResult> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    Task<PlantaInventarioDependencias> GetDependenciasAsync(int id, CancellationToken cancellationToken = default);
 }

@@ -12,6 +12,7 @@ public static class ApplicationServiceExtensions
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentPlantaInventarioAccessor, CurrentPlantaInventarioAccessor>();
+        services.AddScoped<IAuditActorAccessor, HttpAuditActorAccessor>();
         // Consumo de materiales en producción
         services.AddScoped<ProductionConsumptionService>();
 
@@ -30,6 +31,14 @@ public static class ApplicationServiceExtensions
         // MRP y fichas de producción
         services.AddScoped<IMrpService, MrpService>();
         services.AddScoped<IBomCatalogService, BomCatalogService>();
+        services.AddScoped<IMaterialConsumptionCostService, MaterialConsumptionCostService>();
+        services.AddScoped<IMaterialConsumptionService, MaterialConsumptionService>();
+        services.AddScoped<IProductStateMachine, ProductStateMachine>();
+        services.AddScoped<IProductLifecycleService, ProductLifecycleService>();
+        services.AddScoped<IGrupoConfeccionService, GrupoConfeccionService>();
+        services.AddScoped<IGarmentCostingService, GarmentCostingService>();
+        services.AddScoped<IActaMovimientoService, ActaMovimientoService>();
+        services.AddScoped<IFichaService, FichaService>();
         services.AddScoped<IFichaService, FichaService>();
 
         // Control de calidad y estadísticas del dashboard
@@ -39,6 +48,7 @@ public static class ApplicationServiceExtensions
         // Cuentas de usuario, plantasInventario y recuperar contraseña
         services.AddScoped<IUserAccountService, UserAccountService>();
         services.AddScoped<IPlantaInventarioService, PlantaInventarioService>();
+        services.AddScoped<IPlantaInventarioReassignmentService, PlantaInventarioReassignmentService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
 
         // Alertas por correo y evaluación programada

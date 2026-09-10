@@ -79,10 +79,20 @@
                 <a class="@(controller.Equals("SolicitudesMaterial", StringComparison.OrdinalIgnoreCase) && action.Equals("SolicitarInsumos", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
                    asp-controller="SolicitudesMaterial" asp-action="SolicitarInsumos"><i class="fas fa-comment-dots"></i> Solicitar insumos</a>
                 <a class="@NavClass("Calidad")" asp-controller="Calidad" asp-action="Index"><i class="fas fa-clipboard-check"></i> Control de calidad</a>
+                <a class="@NavClass("GruposConfeccion")" asp-controller="GruposConfeccion" asp-action="Index"><i class="fas fa-people-group"></i> Grupos de confección</a>
+                <a class="@NavClass("Consumos")" asp-controller="Consumos" asp-action="Index"><i class="fas fa-scissors"></i> Consumo de materiales</a>
+            }
+            @if (User.IsInRole("Administrador") || User.IsInRole("Instructor") || User.IsInRole("Encargado de bodega"))
+            {
+                <a class="@NavClass("Actas")" asp-controller="Actas" asp-action="Index"><i class="fas fa-file-signature"></i> Actas de ingreso/egreso</a>
             }
         </nav>
         <nav class="nav-group">
             <div class="nav-group-label">Análisis</div>
+            @if (User.IsInRole("Administrador") || User.IsInRole("Instructor"))
+            {
+                <a class="@NavClass("Costos")" asp-controller="Costos" asp-action="Index"><i class="fas fa-coins"></i> Costeo de prendas</a>
+            }
             <a class="@NavClass("Estadisticas")" asp-controller="Estadisticas" asp-action="Index"><i class="fas fa-chart-line"></i> Estadísticas</a>
             <a class="@NavClass("Reportes")" asp-controller="Reportes" asp-action="Index"><i class="fas fa-file-export"></i> Reportes</a>
             <a class="@NavClass("Alertas")" asp-controller="Alertas" asp-action="Index"><i class="fas fa-bell"></i> Alertas</a>

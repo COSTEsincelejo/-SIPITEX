@@ -34,8 +34,12 @@
             <input asp-for="Create.Date" type="date" />
         </div>
         <div class="field">
-            <label class="field-label">Resultado</label>
+            <label class="field-label">Resultado (flujo)</label>
             <select asp-for="Create.Result" asp-items="Html.GetEnumSelectList<QualityResult>()" id="qualityResult"></select>
+        </div>
+        <div class="field">
+            <label class="field-label">Clasificación prenda</label>
+            <select asp-for="Create.Clasificacion" asp-items="Html.GetEnumSelectList<CalidadClasificacion>()"></select>
         </div>
         <div class="field reprocess-fields" style="flex:1;min-width:180px;">
             <label class="field-label">Motivo reproceso</label>
@@ -56,7 +60,7 @@
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Orden</th><th>Unidades</th><th>Resultado</th><th>Motivo</th><th>Responsable</th><th>Fecha</th></tr></thead>
+                <thead><tr><th>Orden</th><th>Unidades</th><th>Resultado</th><th>Clasificación</th><th>Motivo</th><th>Responsable</th><th>Fecha</th></tr></thead>
                 <tbody>
                 @foreach (var record in Model.Records)
                 {
@@ -64,6 +68,7 @@
                         <td>@record.OrderNumber</td>
                         <td>@record.Units</td>
                         <td><span class="badge @DisplayHelper.BadgeClass(record.Result)">@DisplayHelper.StatusText(record.Result)</span></td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(record.Clasificacion)">@record.Clasificacion</span></td>
                         <td>@(record.MotivoReproceso ?? "—")</td>
                         <td>@(record.Responsable ?? "—")</td>
                         <td>@record.Date.ToString("yyyy-MM-dd")</td>

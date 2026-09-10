@@ -1,0 +1,85 @@
+@model FichaTecnicaMaterialsViewModel
+@{
+    ViewData["Title"] = "Materiales de ficha técnica";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / MRP / Materiales";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Materiales de ficha técnica</h2>
+        <div class="sub">Código, nombre, cantidad por unidad de producto y unidad de medida</div>
+    </div>
+    <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver al MRP</a>
+</div>
+
+<div class="card">
+    <form asp-action="MaterialsByCodigo" method="get" class="form-row">
+        <div class="field" style="flex:1;min-width:220px;">
+            <label class="field-label">Código / referencia / nombre</label>
+            <input type="search" name="codigo" value="@Model.Codigo" placeholder="Ej. CAM-001 o Camisa" />
+        </div>
+        <div class="field" style="align-self:flex-end;">
+            <button type="submit" class="primary">Consultar</button>
+        </div>
+    </form>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-warning">@Model.Message</div>
+}
+
+@if (Model.Ficha is null)
+{
+    <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-diagram-project", Title = "Sin ficha", Text = "Indique el Id o el código de un producto con ficha técnica activa." }' />
+}
+else
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-diagram-project"></i> @Model.Ficha.ProductName</div>
+        <p>
+            Referencia: <strong>@(string.IsNullOrWhiteSpace(Model.Ficha.Referencia) ? "—" : Model.Ficha.Referencia)</strong>
+            · Código: <strong>@(string.IsNullOrWhiteSpace(Model.Ficha.Codigo) ? "—" : Model.Ficha.Codigo)</strong>
+            ·
+            @if (Model.Ficha.HabilitadoParaOrdenes)
+            {
+                <span class="badge badge-success">Ficha activa</span>
+            }
+            else
+            {
+                <span class="badge badge-warning">No habilitada para órdenes</span>
+            }
+        </p>
+        @if (Model.Ficha.Materials.Count == 0)
+        {
+            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin materiales", Text = "Esta ficha técnica no tiene receta de materiales." }' />
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Material</th>
+                            <th>Cantidad por unidad</th>
+                            <th>Unidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var m in Model.Ficha.Materials)
+                    {
+                        <tr>
+                            <td>@m.MaterialCode</td>
+                            <td>@m.MaterialName</td>
+                            <td>@m.QuantityPerUnit.ToString("0.####")</td>
+                            <td>@m.UnitDisplay</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
