@@ -209,6 +209,9 @@ public static class DisplayHelper
         "RemoveBomInstructor" => "Quitar instructor de BOM",
         "RegisterConsumoMaterial" => "Registrar consumo de material",
         "ChangeProductState" => "Cambio de estado de producto",
+        "Create" => "Crear",
+        "Update" => "Editar",
+        "Delete" => "Eliminar",
         _ => string.IsNullOrWhiteSpace(action) ? "—" : action
     };
 
@@ -220,6 +223,9 @@ public static class DisplayHelper
         "ProductionOrder" => "Orden de producción",
         "BomProduct" => "Ficha técnica (BOM)",
         "ConsumoMaterial" => "Consumo de material",
+        "Material" => "Material",
+        "GrupoConfeccion" => "Grupo de confección",
+        "QualityRecord" => "Registro de calidad",
         _ => string.IsNullOrWhiteSpace(entity) ? "—" : entity
     };
 }
