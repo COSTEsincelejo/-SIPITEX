@@ -98,14 +98,17 @@ public static class FuncionalidadesCatalog
 
         // --- PlantaInventario ---
         new("PlantaInventario — solicitudes", "Cola de solicitudes",
-            "Lista todas las solicitudes de material pendientes o resueltas.",
-            UserRoles.EncargadoDeBodega),
+            "Lista solicitudes de material pendientes o resueltas. Encargado: su planta. Instructor: sus grupos. Admin: todas.",
+            $"{UserRoles.Administrador}, {UserRoles.Instructor}, {UserRoles.EncargadoDeBodega}"),
         new("PlantaInventario — solicitudes", "Resolver solicitud",
             "Aprueba o rechaza una solicitud y genera código de entrega.",
-            UserRoles.EncargadoDeBodega),
+            $"{UserRoles.Administrador}, {UserRoles.EncargadoDeBodega}"),
+        new("PlantaInventario — órdenes", "Materiales de órdenes",
+            "Consulta y entrega insumos asociados a órdenes. Instructor: solo consulta las suyas.",
+            $"{UserRoles.Administrador}, {UserRoles.Instructor}, {UserRoles.EncargadoDeBodega}"),
         new("PlantaInventario — órdenes", "Reingreso desde etapas",
             "Registra materiales o producto terminado que regresan desde Trazo, Corte, Confección, Control de Calidad o Terminado.",
-            UserRoles.EncargadoDeBodega),
+            $"{UserRoles.Administrador}, {UserRoles.EncargadoDeBodega}"),
 
         // --- Calidad ---
         new("Control de calidad", "Consultar inspecciones",

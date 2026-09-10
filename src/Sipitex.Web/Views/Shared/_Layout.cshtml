@@ -58,13 +58,16 @@
             {
                 <a class="@NavClass("PlantasInventario")" asp-controller="PlantasInventario" asp-action="Index"><i class="fas fa-warehouse"></i> Plantas de inventario</a>
             }
-            @* Cola de SolicitudMaterial solo EncargadoDeBodega *@
-            @if (User.IsInRole("Encargado de bodega"))
+            @* Cola de solicitudes y materiales de órdenes: Admin (todo), Encargado (su planta), Instructor (sus grupos/órdenes). *@
+            @if (User.IsInRole("Administrador") || User.IsInRole("Instructor") || User.IsInRole("Encargado de bodega"))
             {
-                <a class="@NavClass("PlantaInventarioSolicitudes")" asp-controller="PlantaInventarioSolicitudes" asp-action="Index"><i class="fas fa-truck-ramp-box"></i> Solicitudes de materiales</a>
-                <a class="@NavClass("PlantaInventarioOrdenes")" asp-controller="PlantaInventarioOrdenes" asp-action="Index"><i class="fas fa-clipboard-check"></i> Materiales de órdenes</a>
-                <a class="@(controller.Equals("PlantaInventarioOrdenes", StringComparison.OrdinalIgnoreCase) && action.Equals("Reingreso", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
-                   asp-controller="PlantaInventarioOrdenes" asp-action="Reingreso"><i class="fas fa-rotate-left"></i> Reingreso desde etapas</a>
+                <a class="@NavClass("PlantasInventarioSolicitudes")" asp-controller="PlantasInventarioSolicitudes" asp-action="Index"><i class="fas fa-truck-ramp-box"></i> Solicitudes de materiales</a>
+                <a class="@NavClass("PlantasInventarioOrdenes")" asp-controller="PlantasInventarioOrdenes" asp-action="Index"><i class="fas fa-clipboard-check"></i> Materiales de órdenes</a>
+            }
+            @if (User.IsInRole("Administrador") || User.IsInRole("Encargado de bodega"))
+            {
+                <a class="@(controller.Equals("PlantasInventarioOrdenes", StringComparison.OrdinalIgnoreCase) && action.Equals("Reingreso", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
+                   asp-controller="PlantasInventarioOrdenes" asp-action="Reingreso"><i class="fas fa-rotate-left"></i> Reingreso desde etapas</a>
             }
             @if (User.IsInRole("Administrador") || User.IsInRole("Encargado de bodega"))
             {

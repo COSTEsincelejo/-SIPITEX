@@ -10,7 +10,10 @@
         <h2>Materiales de órdenes</h2>
         <div class="sub">Revisar stock y entregar insumos asociados a órdenes de producción</div>
     </div>
-    <a class="ghost" asp-action="Reingreso"><i class="fas fa-rotate-left"></i> Reingreso desde etapas</a>
+    @if (Model.CanReingresar)
+    {
+        <a class="ghost" asp-action="Reingreso"><i class="fas fa-rotate-left"></i> Reingreso desde etapas</a>
+    }
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
@@ -42,7 +45,7 @@
                     <td>@o.ProductName</td>
                     <td><span class="badge @DisplayHelper.BadgeClass(o.MaterialsStatus)">@DisplayHelper.StatusText(o.MaterialsStatus)</span></td>
                     <td>@o.ProducedQuantity / @o.TotalQuantity</td>
-                    <td><a class="small primary" asp-action="Detail" asp-route-id="@o.Id">Revisar / entregar</a></td>
+                    <td><a class="small @(Model.CanEntregar ? "primary" : "ghost")" asp-action="Detail" asp-route-id="@o.Id">@(Model.CanEntregar ? "Revisar / entregar" : "Ver")</a></td>
                 </tr>
             }
             </tbody>

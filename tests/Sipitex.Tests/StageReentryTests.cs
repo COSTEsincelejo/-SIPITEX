@@ -158,12 +158,13 @@ public class StageReentryTests
     }
 
     [Fact]
-    public void PlantasInventarioOrdenesController_ReingresoActions_AreEncargadoDeBodegaOnly_NotInstructor()
+    public void PlantasInventarioOrdenesController_ReingresoActions_AreEncargadoDeBodegaOrAdmin_NotInstructor()
     {
         var classAttr = typeof(PlantasInventarioOrdenesController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(classAttr);
-        Assert.Equal(UserRoles.EncargadoDeBodega, classAttr!.Roles);
-        Assert.DoesNotContain(UserRoles.Instructor, classAttr.Roles!, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.EncargadoDeBodega, classAttr!.Roles!, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.Administrador, classAttr.Roles!, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.Instructor, classAttr.Roles!, StringComparison.Ordinal);
 
         var reingresoMethods = typeof(PlantasInventarioOrdenesController)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
@@ -171,12 +172,13 @@ public class StageReentryTests
             .ToList();
         Assert.Equal(2, reingresoMethods.Count);
 
-        // Ningún override abre la acción a Instructor
         foreach (var method in reingresoMethods)
         {
             var methodAttr = method.GetCustomAttribute<AuthorizeAttribute>();
-            if (methodAttr?.Roles is string roles)
-                Assert.DoesNotContain(UserRoles.Instructor, roles, StringComparison.Ordinal);
+            Assert.NotNull(methodAttr);
+            Assert.Contains(UserRoles.EncargadoDeBodega, methodAttr!.Roles!, StringComparison.Ordinal);
+            Assert.Contains(UserRoles.Administrador, methodAttr.Roles!, StringComparison.Ordinal);
+            Assert.DoesNotContain(UserRoles.Instructor, methodAttr.Roles!, StringComparison.Ordinal);
         }
     }
 

@@ -5,7 +5,7 @@
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Solicitudes de materiales / Detalle";
     Layout = "_Layout";
     var s = Model.Solicitud;
-    var puedeResolver = s.Estado == SolicitudMaterialEstado.Pendiente;
+    var puedeResolver = Model.CanResolver && s.Estado == SolicitudMaterialEstado.Pendiente;
     var esInsumosLibres = s.Tipo == SolicitudMaterialTipo.InsumosLibres;
 }
 
