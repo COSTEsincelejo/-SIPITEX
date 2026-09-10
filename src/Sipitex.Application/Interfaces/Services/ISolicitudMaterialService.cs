@@ -31,8 +31,23 @@ public interface ISolicitudMaterialService
         CancellationToken cancellationToken = default);
 
     // Detalle con stock actual para resolución. null si no existe, viewer sin plantasInventario, o es de otra plantaInventario.
+    // unrestricted: Admin (todas las plantas) o Instructor que ya pasó el filtro de grupo.
     Task<SolicitudMaterialResolucionDto?> GetResolucionDetailAsync(
         int id,
         IReadOnlyList<int>? viewerPlantaInventarioIds,
+        bool unrestricted = false,
+        CancellationToken cancellationToken = default);
+
+    // Instructor: solicitudes que creó o cuya ficha/grupo le pertenece.
+    Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForInstructorGruposAsync(
+        int instructorUserId,
+        string? instructorName,
+        bool soloPendientes = true,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> InstructorCanViewSolicitudAsync(
+        int solicitudId,
+        int instructorUserId,
+        string? instructorName,
         CancellationToken cancellationToken = default);
 }

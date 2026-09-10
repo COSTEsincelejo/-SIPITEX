@@ -293,6 +293,7 @@ public class PlantasInventarioSolicitudesIndexViewModel
 {
     public IReadOnlyList<SolicitudMaterialListItemDto> Solicitudes { get; set; } = [];
     public bool SoloPendientes { get; set; } = true;
+    public bool CanResolver { get; set; } = true;
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -302,6 +303,7 @@ public class PlantaInventarioSolicitudDetailViewModel
 {
     public SolicitudMaterialResolucionDto Solicitud { get; set; } = null!;
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public bool CanResolver { get; set; } = true;
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -488,6 +490,8 @@ public class AddOrderMaterialForm
 public class PlantasInventarioOrdenesIndexViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public bool CanEntregar { get; set; } = true;
+    public bool CanReingresar { get; set; } = true;
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -495,6 +499,7 @@ public class PlantasInventarioOrdenesIndexViewModel
 public class PlantaInventarioOrdenDetailViewModel
 {
     public OrderMaterialsDetailDto Detail { get; set; } = null!;
+    public bool CanEntregar { get; set; } = true;
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -619,7 +624,7 @@ public class ActaCreateViewModel
 public class CreateActaForm
 {
     public ActaTipo Tipo { get; set; } = ActaTipo.Egreso;
-    public ActaOrigen Origen { get; set; } = ActaOrigen.Consumo;
+    public ActaOrigen Origen { get; set; } = ActaOrigen.Manual;
     public string EntregaNombre { get; set; } = string.Empty;
     public string EntregaCargo { get; set; } = string.Empty;
     public bool EntregaConforme { get; set; } = true;

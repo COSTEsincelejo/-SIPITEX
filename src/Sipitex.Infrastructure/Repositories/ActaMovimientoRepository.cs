@@ -17,6 +17,7 @@ public class ActaMovimientoRepository : IActaMovimientoRepository
     public Task<ActaMovimiento?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _db.ActasMovimiento
             .Include(a => a.Detalles)
+                .ThenInclude(d => d.Material)
             .Include(a => a.ProductionOrder)
             .Include(a => a.CreadoPor)
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
@@ -25,6 +26,7 @@ public class ActaMovimientoRepository : IActaMovimientoRepository
         await _db.ActasMovimiento
             .AsNoTracking()
             .Include(a => a.Detalles)
+                .ThenInclude(d => d.Material)
             .Include(a => a.ProductionOrder)
             .Include(a => a.CreadoPor)
             .OrderByDescending(a => a.FechaUtc)

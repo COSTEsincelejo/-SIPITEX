@@ -308,17 +308,55 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         return scoped.Select(MapListItem).ToList();
     }
 
+    public async Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForInstructorGruposAsync(
+        int instructorUserId,
+        string? instructorName,
+        bool soloPendientes = true,
+        CancellationToken cancellationToken = default)
+    {
+        if (instructorUserId <= 0)
+            return [];
+
+        var all = await _solicitudRepository.GetAllWithFichaAsync(cancellationToken);
+        IEnumerable<SolicitudMaterial> scoped = all.Where(s =>
+            InstructorOwnsOrGroup(s, instructorUserId, instructorName));
+        if (soloPendientes)
+            scoped = scoped.Where(s => s.Estado == SolicitudMaterialEstado.Pendiente);
+
+        return scoped.Select(MapListItem).ToList();
+    }
+
+    public async Task<bool> InstructorCanViewSolicitudAsync(
+        int solicitudId,
+        int instructorUserId,
+        string? instructorName,
+        CancellationToken cancellationToken = default)
+    {
+        if (instructorUserId <= 0)
+            return false;
+
+        var solicitud = await _solicitudRepository.GetByIdWithDetallesAsync(solicitudId, cancellationToken);
+        return solicitud is not null && InstructorOwnsOrGroup(solicitud, instructorUserId, instructorName);
+    }
+
     public async Task<SolicitudMaterialResolucionDto?> GetResolucionDetailAsync(
         int id,
         IReadOnlyList<int>? viewerPlantaInventarioIds,
+        bool unrestricted = false,
         CancellationToken cancellationToken = default)
     {
-        var allowed = NormalizeViewerPlantaInventarioIds(viewerPlantaInventarioIds);
-        if (allowed.Count == 0)
-            return null;
+        HashSet<int> allowed = [];
+        if (!unrestricted)
+        {
+            allowed = NormalizeViewerPlantaInventarioIds(viewerPlantaInventarioIds);
+            if (allowed.Count == 0)
+                return null;
+        }
 
         var solicitud = await _solicitudRepository.GetByIdWithDetallesAsync(id, cancellationToken);
-        if (solicitud is null || !allowed.Contains(solicitud.PlantaInventarioId))
+        if (solicitud is null)
+            return null;
+        if (!unrestricted && !allowed.Contains(solicitud.PlantaInventarioId))
             return null;
 
         return new SolicitudMaterialResolucionDto(
@@ -384,6 +422,18 @@ public class SolicitudMaterialService : ISolicitudMaterialService
 
         return IsInstructor(actorRole, actorUserId)
                && BelongsToInstructor(ficha, actorUserId, actorName);
+    }
+
+    private static bool InstructorOwnsOrGroup(
+        SolicitudMaterial solicitud,
+        int instructorUserId,
+        string? instructorName)
+    {
+        if (solicitud.SolicitanteId == instructorUserId)
+            return true;
+
+        return solicitud.Ficha is not null
+               && BelongsToInstructor(solicitud.Ficha, instructorUserId, instructorName);
     }
 
     private static bool BelongsToInstructor(Ficha ficha, int instructorUserId, string? instructorName)

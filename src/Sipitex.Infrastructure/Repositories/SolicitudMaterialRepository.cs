@@ -18,6 +18,7 @@ public class SolicitudMaterialRepository : ISolicitudMaterialRepository
     public Task<SolicitudMaterial?> GetByIdWithDetallesAsync(int id, CancellationToken cancellationToken = default) =>
         _context.SolicitudesMaterial
             .Include(s => s.Ficha)
+                .ThenInclude(f => f!.Instructors)
             .Include(s => s.Solicitante)
             .Include(s => s.Detalles)
             .ThenInclude(d => d.Material)
@@ -27,6 +28,7 @@ public class SolicitudMaterialRepository : ISolicitudMaterialRepository
     public async Task<IReadOnlyList<SolicitudMaterial>> GetAllWithFichaAsync(CancellationToken cancellationToken = default) =>
         await _context.SolicitudesMaterial
             .Include(s => s.Ficha)
+                .ThenInclude(f => f!.Instructors)
             .Include(s => s.Solicitante)
             .OrderByDescending(s => s.FechaSolicitud)
             .ToListAsync(cancellationToken);

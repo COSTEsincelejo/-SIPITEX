@@ -9,8 +9,8 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
-// Cola de planta de inventario para materiales asociados a órdenes de producción (extensión)
-[Authorize(Roles = UserRoles.EncargadoDeBodega)]
+// Materiales de órdenes: Encargado/Admin operan; Instructor consulta las suyas.
+[Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor},{UserRoles.EncargadoDeBodega}")]
 public class PlantasInventarioOrdenesController : Controller
 {
     private readonly IOrderMaterialService _orderMaterialService;
@@ -33,9 +33,20 @@ public class PlantasInventarioOrdenesController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
+        var orders = await _orderMaterialService.GetOrdersForPlantaInventarioAsync(cancellationToken);
+        if (IsInstructorOnly())
+        {
+            var (userId, role, name) = CurrentViewer();
+            var allowed = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken);
+            var allowedIds = allowed.Select(o => o.Id).ToHashSet();
+            orders = orders.Where(o => allowedIds.Contains(o.Id)).ToList();
+        }
+
         return View(new PlantasInventarioOrdenesIndexViewModel
         {
-            Orders = await _orderMaterialService.GetOrdersForPlantaInventarioAsync(cancellationToken),
+            Orders = orders,
+            CanEntregar = CanOperarPlanta(),
+            CanReingresar = CanOperarPlanta(),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -44,6 +55,9 @@ public class PlantasInventarioOrdenesController : Controller
     [HttpGet]
     public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
     {
+        if (!await CanViewOrderAsync(id, cancellationToken))
+            return NotFound();
+
         var detail = await _orderMaterialService.GetDetailAsync(id, cancellationToken);
         if (detail is null) return NotFound();
         if (detail.MaterialsStatus == Domain.Enums.OrderMaterialsStatus.NoAplica)
@@ -52,13 +66,14 @@ public class PlantasInventarioOrdenesController : Controller
         return View(new PlantaInventarioOrdenDetailViewModel
         {
             Detail = detail,
+            CanEntregar = CanOperarPlanta(),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
     }
 
-    // Gap #14: reingreso desde etapas MES hacia plantaInventario / inventario terminado
     [HttpGet]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     public async Task<IActionResult> Reingreso(int? orderId, CancellationToken cancellationToken)
     {
         return View(await BuildReingresoViewModel(orderId, cancellationToken));
@@ -66,13 +81,14 @@ public class PlantasInventarioOrdenesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     public async Task<IActionResult> Reingreso(
         [Bind(Prefix = "Form")] PlantaInventarioReingresoForm form,
         CancellationToken cancellationToken)
     {
-        if (!TryGetActor(out var encargadoDeBodegaId, out var nombre))
+        if (!TryGetActor(out var actorId, out var nombre))
         {
-            TempData["Message"] = "Sesión de encargado de bodega no válida.";
+            TempData["Message"] = "Sesión no válida.";
             TempData["IsSuccess"] = false;
             return RedirectToAction(nameof(Reingreso), new { orderId = form.OrderId });
         }
@@ -87,9 +103,9 @@ public class PlantasInventarioOrdenesController : Controller
 
         var result = await _flowService.RegisterStageReentryAsync(
             new StageReentryDto(form.OrderId, form.StageId, form.Quantity, materialId, form.Observations),
-            encargadoDeBodegaId,
+            actorId,
             nombre,
-            UserRoles.EncargadoDeBodega,
+            User.FindFirstValue(ClaimTypes.Role) ?? UserRoles.EncargadoDeBodega,
             cancellationToken);
 
         TempData["Message"] = result.Message;
@@ -99,6 +115,7 @@ public class PlantasInventarioOrdenesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     public async Task<IActionResult> ValidateStock(int id, CancellationToken cancellationToken)
     {
         var result = await _orderMaterialService.ValidateStockAsync(id, cancellationToken);
@@ -109,11 +126,12 @@ public class PlantasInventarioOrdenesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     public async Task<IActionResult> Deliver([Bind(Prefix = "Deliver")] DeliverOrderMaterialsForm form, CancellationToken cancellationToken)
     {
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var encargadoDeBodegaId))
         {
-            TempData["Message"] = "Sesión de encargado de bodega no válida.";
+            TempData["Message"] = "Sesión no válida.";
             TempData["IsSuccess"] = false;
             return RedirectToAction(nameof(Index));
         }
@@ -136,14 +154,15 @@ public class PlantasInventarioOrdenesController : Controller
         int? orderId,
         CancellationToken cancellationToken)
     {
-        var orders = await _orderService.GetOrdersAsync(cancellationToken: cancellationToken);
+        var (userId, role, name) = CurrentViewer();
+        var orders = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken);
         var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
         IReadOnlyList<OrderStageDto> stages = [];
 
         if (orderId is int oid and > 0)
         {
-            var uid = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
-            var mes = await _flowService.GetMesDetailAsync(oid, uid, UserRoles.EncargadoDeBodega, cancellationToken);
+            var mes = await _flowService.GetMesDetailAsync(
+                oid, userId, role ?? UserRoles.EncargadoDeBodega, cancellationToken);
             if (mes is not null)
             {
                 stages = mes.Stages
@@ -166,6 +185,31 @@ public class PlantasInventarioOrdenesController : Controller
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         };
+    }
+
+    private async Task<bool> CanViewOrderAsync(int orderId, CancellationToken cancellationToken)
+    {
+        if (CanOperarPlanta())
+            return true;
+
+        var (userId, role, name) = CurrentViewer();
+        return await _orderService.CanAccessOrderAsync(orderId, userId, role, name, cancellationToken);
+    }
+
+    private bool CanOperarPlanta() =>
+        User.IsInRole(UserRoles.Administrador) || User.IsInRole(UserRoles.EncargadoDeBodega);
+
+    private bool IsInstructorOnly() =>
+        User.IsInRole(UserRoles.Instructor)
+        && !User.IsInRole(UserRoles.Administrador)
+        && !User.IsInRole(UserRoles.EncargadoDeBodega);
+
+    private (int? UserId, string? Role, string? Name) CurrentViewer()
+    {
+        int? userId = null;
+        if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id))
+            userId = id;
+        return (userId, User.FindFirstValue(ClaimTypes.Role), User.FindFirstValue(ClaimTypes.Name));
     }
 
     private bool TryGetActor(out int userId, out string nombre)

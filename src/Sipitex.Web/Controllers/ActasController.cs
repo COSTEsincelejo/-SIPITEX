@@ -16,17 +16,20 @@ public class ActasController : Controller
     private readonly IProductionOrderService _orders;
     private readonly IStockMovementService _stock;
     private readonly IMaterialConsumptionService _consumos;
+    private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
 
     public ActasController(
         IActaMovimientoService actas,
         IProductionOrderService orders,
         IStockMovementService stock,
-        IMaterialConsumptionService consumos)
+        IMaterialConsumptionService consumos,
+        ICurrentPlantaInventarioAccessor plantaAccessor)
     {
         _actas = actas;
         _orders = orders;
         _stock = stock;
         _consumos = consumos;
+        _plantaAccessor = plantaAccessor;
     }
 
     [HttpGet]
@@ -34,9 +37,10 @@ public class ActasController : Controller
     {
         ViewData["Title"] = "Actas de ingreso y egreso";
         ViewData["Breadcrumb"] = "SIPITEX / Operación / Actas";
+        var filter = await BuildFilterAsync(cancellationToken);
         return View(new ActasIndexViewModel
         {
-            Actas = await _actas.GetAllAsync(cancellationToken),
+            Actas = await _actas.GetAllAsync(filter, cancellationToken),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -55,11 +59,12 @@ public class ActasController : Controller
             Orders = orders,
             Movimientos = await _stock.GetHistoryAsync(null, null, null, cancellationToken),
             Consumos = selected is int oid
-                ? await _consumos.GetByOrderAsync(selected.Value, cancellationToken)
+                ? await _consumos.GetByOrderAsync(oid, cancellationToken)
                 : [],
             Form = new CreateActaForm
             {
                 ProductionOrderId = selected,
+                Origen = ActaOrigen.Manual,
                 EntregaNombre = name ?? string.Empty,
                 EntregaCargo = role ?? string.Empty
             }
@@ -105,7 +110,8 @@ public class ActasController : Controller
     [HttpGet]
     public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
     {
-        var acta = await _actas.GetByIdAsync(id, cancellationToken);
+        var filter = await BuildFilterAsync(cancellationToken);
+        var acta = await _actas.GetByIdAsync(id, filter, cancellationToken);
         if (acta is null)
             return NotFound();
         ViewData["Title"] = acta.Numero;
@@ -116,10 +122,33 @@ public class ActasController : Controller
     [HttpGet]
     public async Task<IActionResult> Pdf(int id, CancellationToken cancellationToken)
     {
+        var filter = await BuildFilterAsync(cancellationToken);
+        var visible = await _actas.GetByIdAsync(id, filter, cancellationToken);
+        if (visible is null)
+            return NotFound();
         var result = await _actas.ExportPdfAsync(id, cancellationToken);
         if (!result.Success || result.Value is null)
             return NotFound();
         return File(result.Value.Content, result.Value.ContentType, result.Value.FileName);
+    }
+
+    private async Task<ActaViewerFilter?> BuildFilterAsync(CancellationToken cancellationToken)
+    {
+        var (userId, role, name) = CurrentViewer();
+        if (userId is not int uid || string.IsNullOrWhiteSpace(role))
+            return null;
+        if (string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase))
+            return new ActaViewerFilter(role, uid, [], []);
+
+        IReadOnlyList<int> plantas = _plantaAccessor.PlantaInventarioIds ?? [];
+        IReadOnlyCollection<int> orders = [];
+        if (string.Equals(role, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase))
+        {
+            var list = await _orders.GetOrdersAsync(uid, role, name, cancellationToken);
+            orders = list.Select(o => o.Id).ToHashSet();
+        }
+
+        return new ActaViewerFilter(role, uid, plantas, orders);
     }
 
     private (int? UserId, string? Role, string? Name) CurrentViewer()

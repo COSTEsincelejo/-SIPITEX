@@ -175,4 +175,70 @@ public class ActaMovimientoServiceTests
         Assert.Contains("Corte", line.Descripcion, StringComparison.Ordinal);
         Assert.Null(result.Value.EntregaConformidadUtc);
     }
+
+    [Fact]
+    public async Task CreateAsync_OrigenManual_CreaDetallePorDefecto()
+    {
+        SeedActorAndCapture();
+        ActaMovimiento? saved = null;
+        _actas.Setup(r => r.AddAsync(It.IsAny<ActaMovimiento>(), It.IsAny<CancellationToken>()))
+            .Callback<ActaMovimiento, CancellationToken>((a, _) =>
+            {
+                a.Id = 1;
+                a.CreadoPor = new User { Id = 7, Nombre = "Ana" };
+                saved = a;
+            })
+            .Returns(Task.CompletedTask);
+        _actas.Setup(r => r.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => saved);
+
+        var result = await CreateSut().CreateAsync(new CreateActaDto(
+            ActaTipo.Ingreso, ActaOrigen.Manual,
+            "Pedro", "Encargado de bodega", true,
+            "Laura", "Instructor", true,
+            7, Observaciones: "Ingreso tela planta 1"));
+
+        Assert.True(result.Success, result.Message);
+        var line = Assert.Single(result.Value!.Detalles);
+        Assert.Contains("Ingreso tela", line.Descripcion, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_Encargado_SoloVeActasDeSuPlantaOPropias()
+    {
+        _actas.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new ActaMovimiento
+            {
+                Id = 1,
+                Numero = "ACT-0001",
+                CreadoPorUserId = 7,
+                CreadoPor = new User { Id = 7, Nombre = "Pedro" },
+                Detalles = []
+            },
+            new ActaMovimiento
+            {
+                Id = 2,
+                Numero = "ACT-0002",
+                CreadoPorUserId = 99,
+                CreadoPor = new User { Id = 99, Nombre = "Otro" },
+                Detalles =
+                [
+                    new ActaMovimientoDetalle
+                    {
+                        Material = new Material { Id = 1, PlantaInventarioId = 2, Name = "Tela" }
+                    }
+                ]
+            }
+        ]);
+
+        var propias = await CreateSut().GetAllAsync(new ActaViewerFilter(
+            UserRoles.EncargadoDeBodega, 7, [1], []));
+
+        Assert.Equal("ACT-0001", Assert.Single(propias).Numero);
+
+        var dePlanta2 = await CreateSut().GetAllAsync(new ActaViewerFilter(
+            UserRoles.EncargadoDeBodega, 8, [2], []));
+        Assert.Equal("ACT-0002", Assert.Single(dePlanta2).Numero);
+    }
 }

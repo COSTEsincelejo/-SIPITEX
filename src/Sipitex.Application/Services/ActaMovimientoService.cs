@@ -36,16 +36,23 @@ public class ActaMovimientoService : IActaMovimientoService
         _uow = uow;
     }
 
-    public async Task<IReadOnlyList<ActaMovimientoDto>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ActaMovimientoDto>> GetAllAsync(
+        ActaViewerFilter? filter = null,
+        CancellationToken cancellationToken = default)
     {
         var rows = await _actas.GetAllAsync(cancellationToken);
-        return rows.Select(Map).ToList();
+        return rows.Where(a => IsVisible(a, filter)).Select(Map).ToList();
     }
 
-    public async Task<ActaMovimientoDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<ActaMovimientoDto?> GetByIdAsync(
+        int id,
+        ActaViewerFilter? filter = null,
+        CancellationToken cancellationToken = default)
     {
         var acta = await _actas.GetByIdAsync(id, cancellationToken);
-        return acta is null ? null : Map(acta);
+        if (acta is null || !IsVisible(acta, filter))
+            return null;
+        return Map(acta);
     }
 
     public async Task<ServiceResult<ActaMovimientoDto>> CreateAsync(
@@ -63,7 +70,7 @@ public class ActaMovimientoService : IActaMovimientoService
 
         var detalles = await BuildDetallesAsync(dto, cancellationToken);
         if (detalles.Count == 0)
-            return ServiceResult<ActaMovimientoDto>.Fail("El acta debe incluir al menos un ítem.");
+            return ServiceResult<ActaMovimientoDto>.Fail(EmptyItemsMessage(dto.Origen));
 
         ProductionOrder? order = null;
         if (dto.ProductionOrderId is int oid)
@@ -103,7 +110,7 @@ public class ActaMovimientoService : IActaMovimientoService
 
     public async Task<ServiceResult<ReportFileDto>> ExportPdfAsync(int id, CancellationToken cancellationToken = default)
     {
-        var acta = await GetByIdAsync(id, cancellationToken);
+        var acta = await GetByIdAsync(id, filter: null, cancellationToken);
         if (acta is null)
             return ServiceResult<ReportFileDto>.Fail("Acta no encontrada.");
         return ServiceResult<ReportFileDto>.Ok(_pdf.Render(acta));
@@ -118,9 +125,18 @@ public class ActaMovimientoService : IActaMovimientoService
             ActaOrigen.Stock => await FromStockAsync(dto, cancellationToken),
             ActaOrigen.Consumo => await FromConsumosAsync(dto, cancellationToken),
             ActaOrigen.EstadoProducto => FromEstado(dto),
+            ActaOrigen.Manual => FromManual(dto),
             _ => []
         };
     }
+
+    private static string EmptyItemsMessage(ActaOrigen origen) => origen switch
+    {
+        ActaOrigen.Stock => "Seleccione al menos un movimiento de stock de su planta.",
+        ActaOrigen.Consumo => "La orden no tiene consumos, o no marcó ninguno. Elija origen Manual o Stock.",
+        ActaOrigen.EstadoProducto => "Indique orden, estado origen y estado destino para un acta de transición.",
+        _ => "El acta debe incluir al menos un ítem."
+    };
 
     private async Task<List<ActaMovimientoDetalle>> FromStockAsync(
         CreateActaDto dto,
@@ -187,6 +203,50 @@ public class ActaMovimientoService : IActaMovimientoService
                 Unidad = "unidad"
             }
         ];
+    }
+
+    private static List<ActaMovimientoDetalle> FromManual(CreateActaDto dto)
+    {
+        var desc = string.IsNullOrWhiteSpace(dto.Observaciones)
+            ? "Acta manual de ingreso/egreso"
+            : dto.Observaciones.Trim();
+
+        return
+        [
+            new ActaMovimientoDetalle
+            {
+                ItemTipo = ActaItemTipo.Material,
+                ProductionOrderId = dto.ProductionOrderId,
+                Descripcion = Trunc(desc, 240),
+                Cantidad = 1,
+                Unidad = "unidad"
+            }
+        ];
+    }
+
+    private static bool IsVisible(ActaMovimiento acta, ActaViewerFilter? filter)
+    {
+        if (filter is null)
+            return true;
+        if (string.Equals(filter.Role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (string.Equals(filter.Role, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase))
+        {
+            if (acta.CreadoPorUserId == filter.UserId)
+                return true;
+            return acta.Detalles.Any(d =>
+                d.Material is not null && filter.PlantaInventarioIds.Contains(d.Material.PlantaInventarioId));
+        }
+
+        if (string.Equals(filter.Role, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase))
+        {
+            if (acta.CreadoPorUserId == filter.UserId)
+                return true;
+            return acta.ProductionOrderId is int oid && filter.AllowedOrderIds.Contains(oid);
+        }
+
+        return false;
     }
 
     private static ActaMovimientoDto Map(ActaMovimiento a) => new(

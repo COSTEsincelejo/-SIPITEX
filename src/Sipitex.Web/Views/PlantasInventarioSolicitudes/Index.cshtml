@@ -67,9 +67,9 @@
                         <td>@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
                         <td><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></td>
                         <td>
-                            <a class="small @(s.Estado == SolicitudMaterialEstado.Pendiente ? "primary" : "ghost")"
+                            <a class="small @(s.Estado == SolicitudMaterialEstado.Pendiente && Model.CanResolver ? "primary" : "ghost")"
                                asp-action="Detail" asp-route-id="@s.Id">
-                                @(s.Estado == SolicitudMaterialEstado.Pendiente ? "Resolver" : "Ver")
+                                @(s.Estado == SolicitudMaterialEstado.Pendiente && Model.CanResolver ? "Resolver" : "Ver")
                             </a>
                         </td>
                     </tr>

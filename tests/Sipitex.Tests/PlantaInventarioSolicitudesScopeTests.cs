@@ -21,6 +21,7 @@ public class PlantaInventarioSolicitudesScopeTests
     private readonly Mock<ISolicitudMaterialApprovalService> _approval = new();
     private readonly Mock<IInventoryService> _inventory = new();
     private readonly Mock<ICurrentPlantaInventarioAccessor> _plantaInventario = new();
+    private readonly Mock<IPlantaInventarioService> _plantas = new();
 
     private PlantasInventarioSolicitudesController CreateController(ClaimsPrincipal user)
     {
@@ -28,7 +29,8 @@ public class PlantaInventarioSolicitudesScopeTests
             _solicitudes.Object,
             _approval.Object,
             _inventory.Object,
-            _plantaInventario.Object)
+            _plantaInventario.Object,
+            _plantas.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -123,6 +125,60 @@ public class PlantaInventarioSolicitudesScopeTests
         Assert.False(vm.IsSuccess);
         Assert.Contains("plantaInventario asignada", vm.Message, StringComparison.OrdinalIgnoreCase);
 
+        _solicitudes.Verify(
+            s => s.GetListForPlantaInventarioAsync(It.IsAny<IReadOnlyList<int>?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Index_Administrador_ListaTodasLasPlantas()
+    {
+        _plantas.Setup(p => p.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new PlantaInventario { Id = 1, Nombre = "P1" },
+                new PlantaInventario { Id = 2, Nombre = "P2" }
+            ]);
+        _solicitudes
+            .Setup(s => s.GetListForPlantaInventarioAsync(
+                It.Is<IReadOnlyList<int>>(x => x.Count == 2 && x.Contains(1) && x.Contains(2)),
+                true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Item(1, "SOL-ALL")]);
+
+        var controller = CreateController(Principal(1, UserRoles.Administrador));
+        var result = await controller.Index(estado: null, CancellationToken.None);
+
+        var view = Assert.IsType<ViewResult>(result);
+        var vm = Assert.IsType<PlantasInventarioSolicitudesIndexViewModel>(view.Model);
+        Assert.True(vm.CanResolver);
+        Assert.Single(vm.Solicitudes);
+        _solicitudes.Verify(
+            s => s.GetListForInstructorGruposAsync(It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Index_Instructor_UsaListaDeSusGrupos_SinResolver()
+    {
+        _solicitudes
+            .Setup(s => s.GetListForInstructorGruposAsync(10, "Pedro", true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Item(3, "SOL-INS")]);
+
+        var instructor = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.NameIdentifier, "10"),
+            new Claim(ClaimTypes.Role, UserRoles.Instructor),
+            new Claim(ClaimTypes.Name, "Pedro")
+        ], "Test"));
+
+        var controller = CreateController(instructor);
+        var result = await controller.Index(estado: null, CancellationToken.None);
+
+        var view = Assert.IsType<ViewResult>(result);
+        var vm = Assert.IsType<PlantasInventarioSolicitudesIndexViewModel>(view.Model);
+        Assert.False(vm.CanResolver);
+        Assert.Equal("SOL-INS", Assert.Single(vm.Solicitudes).Codigo);
         _solicitudes.Verify(
             s => s.GetListForPlantaInventarioAsync(It.IsAny<IReadOnlyList<int>?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
             Times.Never);

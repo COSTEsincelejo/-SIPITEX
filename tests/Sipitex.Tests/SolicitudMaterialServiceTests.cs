@@ -484,6 +484,49 @@ public class SolicitudMaterialServiceTests
     }
 
     [Fact]
+    public async Task GetListForInstructorGruposAsync_IncluyeSolicitudDeSuFichaAunqueOtroSolicitante()
+    {
+        _solicitudes.Setup(r => r.GetAllWithFichaAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new SolicitudMaterial
+            {
+                Id = 1,
+                Codigo = "SOL-GRUPO",
+                SolicitanteId = 20,
+                Estado = SolicitudMaterialEstado.Pendiente,
+                FechaSolicitud = DateTime.UtcNow,
+                Ficha = new Ficha
+                {
+                    NumeroGrupo = "F1",
+                    InstructorUserId = 10,
+                    Instructors = [new FichaInstructor { FichaId = 1, UserId = 10 }]
+                },
+                Solicitante = new User { Nombre = "Carlos" }
+            },
+            new SolicitudMaterial
+            {
+                Id = 2,
+                Codigo = "SOL-AJENA",
+                SolicitanteId = 30,
+                Estado = SolicitudMaterialEstado.Pendiente,
+                FechaSolicitud = DateTime.UtcNow,
+                Ficha = new Ficha
+                {
+                    NumeroGrupo = "F2",
+                    InstructorUserId = 99,
+                    Instructors = [new FichaInstructor { FichaId = 2, UserId = 99 }]
+                },
+                Solicitante = new User { Nombre = "Otro" }
+            }
+        ]);
+
+        var list = await CreateSut().GetListForInstructorGruposAsync(10, "Laura");
+
+        Assert.Single(list);
+        Assert.Equal("SOL-GRUPO", list[0].Codigo);
+    }
+
+    [Fact]
     public async Task GetDetailAsync_InstructorAjeno_DevuelveNull()
     {
         _solicitudes.Setup(r => r.GetByIdWithDetallesAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(

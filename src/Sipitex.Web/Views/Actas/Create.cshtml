@@ -8,7 +8,7 @@
 <div class="page-header">
     <div>
         <h2>Nueva acta</h2>
-        <div class="sub">Elige el origen (stock, consumos o transición de estado) y registra la conformidad de entrega y recepción.</div>
+        <p class="hint">Origen Manual registra un ítem con las observaciones (o un texto por defecto). Stock exige marcar movimientos de su planta. Consumo usa los de la orden.</p>
     </div>
     <div>
         <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
@@ -29,9 +29,12 @@
             </div>
             <div class="field">
                 <label class="field-label">Orden</label>
-                <select asp-for="Form.ProductionOrderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.Form.ProductionOrderId))">
+                <select asp-for="Form.ProductionOrderId"
+                        asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.Form.ProductionOrderId))"
+                        onchange="window.location='@Url.Action("Create")?orderId=' + this.value">
                     <option value="">—</option>
                 </select>
+                <p class="hint">Al cambiar la orden se recargan los consumos asociados.</p>
             </div>
         </div>
 
