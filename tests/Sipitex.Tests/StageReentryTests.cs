@@ -35,7 +35,8 @@ public class StageReentryTests
         _users.Object,
         _materials.Object,
         _stockMovements.Object,
-        _uow.Object);
+        _uow.Object,
+        NullLogger<ProductionFlowService>.Instance);
 
     private static ProductionOrderStage CreateStage(int id, string name, int orderId, int available = 40) =>
         new()

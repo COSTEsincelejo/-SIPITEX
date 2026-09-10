@@ -169,7 +169,8 @@ public class OrderMaterialServiceTests
         var sut = new ProductionOrderService(
             orders.Object, boms.Object, snapshots.Object, reqs.Object,
             flowRepo.Object, flowService.Object, changeLogs.Object, fichas.Object, uow.Object,
-            new ProductionConsumptionService(boms.Object, materials.Object));
+            new ProductionConsumptionService(boms.Object, materials.Object),
+            NullLogger<ProductionOrderService>.Instance);
 
         var result = await sut.RegisterProductionAsync(2, 5);
 

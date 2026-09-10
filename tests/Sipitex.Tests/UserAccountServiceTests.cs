@@ -30,7 +30,8 @@ public class UserAccountServiceTests
                 new PlantaInventario { Id = 2, Nombre = "PlantaInventario 2" }
             ]);
 
-        return new(_userRepository.Object, _fichaRepository.Object, _plantaInventarioRepository.Object, _unitOfWork.Object);
+        return new(_userRepository.Object, _fichaRepository.Object, _plantaInventarioRepository.Object, _unitOfWork.Object,
+            NullLogger<UserAccountService>.Instance);
     }
 
     private static User CreateUser(string email, string password, bool isActive = true, string rol = UserRoles.Instructor) => new()

@@ -25,6 +25,12 @@ Copiar carpeta `publish` al servidor IIS o ejecutar:
 
 Para producción, usar ruta absoluta a la BD en el servidor.
 
+`Seed:DemoUsers` debe quedar en `false`. Defina `ADMIN_SEED_PASSWORD` para el administrador inicial (`admin@sipitex.local`) si la base está vacía. Los usuarios `*@sipitex.test` no se crean en este entorno.
+
+El motor sigue siendo **SQLite** (volumen Docker / archivo `sipitex.db`). No se retoma PostgreSQL en este cierre.
+
+`Costing:LaborHourRate` permanece en `0` hasta confirmar la tarifa real de CMTC; `/Costos` muestra aviso de mano de obra no incluida.
+
 ## 5.3 IIS (opcional)
 
 1. Instalar [ASP.NET Core Hosting Bundle](https://dotnet.microsoft.com/download/dotnet/10.0)  

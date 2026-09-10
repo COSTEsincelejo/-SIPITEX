@@ -59,3 +59,24 @@ Gestionar la producción textil del centro: inventario de materias primas, órde
 Documento de requisitos aprobado → base para diseño (Fase 2).
 
 La matriz de cumplimiento RF/RNF se documenta en este archivo y se siembra en la base de datos para referencia del proyecto.
+
+## 1.6 Módulos posteriores (ya implementados)
+
+Además del alcance original RF01–RF20, el código incluye:
+
+| Módulo | Controller | Uso |
+|--------|------------|-----|
+| Plantas de inventario | `PlantasInventarioController` | Catálogo, alta/edición y reasignación |
+| Solicitudes de planta | `PlantasInventarioSolicitudesController` | Cola de `SolicitudMaterial` por planta y rol |
+| Órdenes de planta | `PlantasInventarioOrdenesController` | Entrega y reingreso de materiales de orden |
+| Grupos de confección | `GruposConfeccionController` | Horas y prendas para costeo de mano de obra |
+| Consumos | `ConsumosController` | Consumo real (no solo teórico BOM) |
+| Costeo | `CostosController` | Costo de prenda (material histórico + tarifa) |
+| Actas | `ActasController` | Ingreso/egreso con conformidad simple |
+| Auditoría | `AuditoriaController` | Trazabilidad de acciones críticas |
+| Solicitudes de ficha | `SolicitudesMaterialController` | Pedidos multi-ítem desde ficha o insumos libres |
+| Búsqueda | `BusquedaController` | API JSON del buscador |
+| Inicio | `HomeController` | Landing y error |
+
+Detalle de mapeo: [`03-Implementacion.md`](03-Implementacion.md).
+

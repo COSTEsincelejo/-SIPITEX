@@ -22,7 +22,8 @@ public class ProductionFlowServiceTests
 
     private ProductionFlowService CreateSut() =>
         new(_orders.Object, _flow.Object, _materials.Object, _snapshots.Object, _boms.Object, _users.Object,
-            _materialRepository.Object, _stockMovements.Object, _uow.Object);
+            _materialRepository.Object, _stockMovements.Object, _uow.Object,
+            NullLogger<ProductionFlowService>.Instance);
 
     [Fact]
     public async Task EnsureStagesForOrder_CreatesDefaultFlowOnce()

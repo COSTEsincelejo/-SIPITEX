@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Sipitex.Application;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
@@ -12,11 +14,16 @@ public class CostosController : Controller
 {
     private readonly IGarmentCostingService _costing;
     private readonly IProductionOrderService _orders;
+    private readonly CostingOptions _costingOptions;
 
-    public CostosController(IGarmentCostingService costing, IProductionOrderService orders)
+    public CostosController(
+        IGarmentCostingService costing,
+        IProductionOrderService orders,
+        IOptions<CostingOptions> costingOptions)
     {
         _costing = costing;
         _orders = orders;
+        _costingOptions = costingOptions.Value;
     }
 
     [HttpGet]
@@ -36,7 +43,8 @@ public class CostosController : Controller
         {
             Orders = orders,
             OrderId = selected,
-            Costo = costo
+            Costo = costo,
+            LaborHourRateUnconfigured = !_costingOptions.IsConfigured
         });
     }
 

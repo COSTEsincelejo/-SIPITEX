@@ -39,7 +39,8 @@ public class ProductionOrderEditCancelTests
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object,
             _flowRepo.Object, _flowService.Object, _changeLogs.Object, _fichas.Object, _uow.Object,
-            new ProductionConsumptionService(_boms.Object, _materials.Object));
+            new ProductionConsumptionService(_boms.Object, _materials.Object),
+            NullLogger<ProductionOrderService>.Instance);
     }
 
     private static BomProduct Product(string name = "Camisa") => new()

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
@@ -23,6 +24,7 @@ public class ProductionFlowService : IProductionFlowService
     private readonly IMaterialRepository _materialRepository;
     private readonly IStockMovementRepository _stockMovements;
     private readonly IUnitOfWork _uow;
+    private readonly ILogger<ProductionFlowService> _logger;
 
     public ProductionFlowService(
         IProductionOrderRepository orders,
@@ -33,7 +35,8 @@ public class ProductionFlowService : IProductionFlowService
         IUserRepository users,
         IMaterialRepository materialRepository,
         IStockMovementRepository stockMovements,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        ILogger<ProductionFlowService> logger)
     {
         _orders = orders;
         _flow = flow;
@@ -44,6 +47,7 @@ public class ProductionFlowService : IProductionFlowService
         _materialRepository = materialRepository;
         _stockMovements = stockMovements;
         _uow = uow;
+        _logger = logger;
     }
 
     public async Task EnsureDefaultTemplatesAsync(CancellationToken cancellationToken = default)
@@ -318,6 +322,9 @@ public class ProductionFlowService : IProductionFlowService
             $"Etapa «{stage.Name}» finalizada." + (next is null ? "" : $" Siguiente: «{next.Name}»."),
             actorUserId, actorName, stage.Id, stage.Name, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation(
+            "Etapa {StageId} «{StageName}» de orden {OrderId} finalizada por usuario {ActorUserId}",
+            stage.Id, stage.Name, stage.ProductionOrderId, actorUserId);
         return ServiceResult.Ok(next is null
             ? "Etapa finalizada. No hay más etapas en el flujo."
             : $"Etapa finalizada. Flujo en «{next.Name}».");
@@ -608,6 +615,9 @@ public class ProductionFlowService : IProductionFlowService
             $"Etapa «{stage.Name}» {verb}.",
             actorUserId, actorName, stage.Id, stage.Name, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation(
+            "Etapa {StageId} «{StageName}» de orden {OrderId} {Verb} por usuario {ActorUserId}",
+            stage.Id, stage.Name, stage.ProductionOrderId, verb, actorUserId);
         return ServiceResult.Ok($"Etapa {verb}.");
     }
 
