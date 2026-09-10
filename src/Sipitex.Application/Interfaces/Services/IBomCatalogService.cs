@@ -28,4 +28,7 @@ public interface IBomCatalogService
 
     // Instructores activos disponibles para asignar a ficha técnica
     Task<IReadOnlyList<InstructorOptionDto>> GetAssignableInstructorsAsync(CancellationToken cancellationToken = default);
+
+    Task<FichaTecnicaMaterialsDto?> GetMaterialsByFichaIdAsync(int bomProductId, CancellationToken cancellationToken = default);
+    Task<FichaTecnicaMaterialsDto?> GetMaterialsByProductCodigoAsync(string codigo, CancellationToken cancellationToken = default);
 }

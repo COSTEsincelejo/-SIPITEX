@@ -23,6 +23,7 @@ public static class ActivityLogActions
     public const string DeleteBom = "DeleteBom";
     public const string AssignBomInstructor = "AssignBomInstructor";
     public const string RemoveBomInstructor = "RemoveBomInstructor";
+    public const string RegisterConsumoMaterial = "RegisterConsumoMaterial";
 }
 
 public static class ActivityLogEntities
@@ -31,4 +32,5 @@ public static class ActivityLogEntities
     public const string PlantaInventario = "PlantaInventario";
     public const string ProductionOrder = "ProductionOrder";
     public const string BomProduct = "BomProduct";
+    public const string ConsumoMaterial = "ConsumoMaterial";
 }

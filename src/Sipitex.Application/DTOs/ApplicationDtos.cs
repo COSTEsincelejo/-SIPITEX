@@ -8,22 +8,33 @@ namespace Sipitex.Application.DTOs;
 public record MaterialDto(
     int Id,
     string Name,
-    string UnitDisplay, // unidad legible (m, kg, ud)
+    string UnitDisplay,
     MaterialUnit Unit,
     decimal Stock,
     MaterialStatus Status,
     decimal MinStock,
-    bool IsLowStock, // true si hay que alertar
-    DateOnly LastEntryDate);
+    bool IsLowStock,
+    DateOnly LastEntryDate,
+    decimal CostoAdquisicion = 0);
 
 // Datos para crear material nuevo (origen tipifica la Entrada del ledger)
-public record CreateMaterialDto(string Name, decimal Stock, MaterialUnit Unit, StockEntryOrigin Origen);
+public record CreateMaterialDto(
+    string Name,
+    decimal Stock,
+    MaterialUnit Unit,
+    StockEntryOrigin Origen,
+    decimal CostoAdquisicion = 0);
 
 // Ajuste manual de stock; Origen obligatorio cuando NewStock > stock actual
 public record AdjustStockDto(int MaterialId, decimal NewStock, StockEntryOrigin? Origen = null);
 
 // Edición de metadatos del material (nombre, unidad, mínimo) — no toca stock
-public record UpdateMaterialDto(int MaterialId, string Name, MaterialUnit Unit, decimal MinStock);
+public record UpdateMaterialDto(
+    int MaterialId,
+    string Name,
+    MaterialUnit Unit,
+    decimal MinStock,
+    decimal? CostoAdquisicion = null);
 
 // Cambiar estado físico del material
 public record UpdateMaterialStatusDto(int MaterialId, MaterialStatus Status);
@@ -212,7 +223,55 @@ public record BomRecipeLineDetailDto(
     string MaterialName,
     decimal QuantityPerUnit,
     MaterialUnit Unit,
+    string UnitDisplay,
+    string MaterialCode = "");
+
+public record FichaTecnicaMaterialDto(
+    int MaterialId,
+    string MaterialCode,
+    string MaterialName,
+    decimal QuantityPerUnit,
+    MaterialUnit Unit,
     string UnitDisplay);
+
+public record FichaTecnicaMaterialsDto(
+    int BomProductId,
+    string ProductName,
+    string? Referencia,
+    bool HabilitadoParaOrdenes,
+    IReadOnlyList<FichaTecnicaMaterialDto> Materials);
+
+public record ConsumoCostoLineaDto(decimal Cantidad, decimal CostoUnitario);
+
+public record ConsumoCostoResumenDto(
+    int ProductionOrderId,
+    decimal CantidadTotal,
+    decimal CostoPromedioPonderado,
+    decimal CostoTotal);
+
+public record ConsumoMaterialDto(
+    int Id,
+    int ProductionOrderId,
+    string OrderNumber,
+    int? GrupoConfeccionId,
+    int MaterialId,
+    string MaterialCode,
+    string MaterialName,
+    decimal Cantidad,
+    string UnitDisplay,
+    DateTime FechaUtc,
+    int ResponsableUserId,
+    string ResponsableNombre,
+    decimal CostoUnitario,
+    decimal CostoTotal);
+
+public record RegisterConsumoMaterialDto(
+    int ProductionOrderId,
+    int MaterialId,
+    decimal Cantidad,
+    int ResponsableUserId,
+    int? GrupoConfeccionId = null,
+    DateTime? FechaUtc = null);
 
 // Resultado completo de simular MRP
 public record MrpSimulationResultDto(

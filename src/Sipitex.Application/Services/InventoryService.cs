@@ -69,7 +69,8 @@ public class InventoryService : IInventoryService
             Stock = dto.Stock,
             MinStock = 10, // por ahora fijo, después podría ser configurable
             Status = MaterialStatus.Bueno,
-            LastEntryDate = DateOnly.FromDateTime(DateTime.Today)
+            LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
+            CostoAdquisicion = Math.Max(0, dto.CostoAdquisicion)
         };
 
         // INSERT en el contexto de EF
@@ -85,7 +86,8 @@ public class InventoryService : IInventoryService
             Origen = dto.Origen,
             Cantidad = material.Stock,
             StockResultante = material.Stock,
-            Referencia = $"Material:{material.Id}"
+            Referencia = $"Material:{material.Id}",
+            CostoUnitario = material.CostoAdquisicion
         }, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok("Material agregado.");
@@ -155,6 +157,12 @@ public class InventoryService : IInventoryService
         material.Name = dto.Name.Trim();
         material.Unit = dto.Unit;
         material.MinStock = dto.MinStock;
+        if (dto.CostoAdquisicion is decimal costo)
+        {
+            if (costo < 0)
+                return ServiceResult.Fail("El costo de adquisición no puede ser negativo.");
+            material.CostoAdquisicion = costo;
+        }
         _materialRepository.Update(material);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok($"Material «{material.Name}» actualizado.");
@@ -306,7 +314,8 @@ public class InventoryService : IInventoryService
         m.Status,
         m.MinStock,
         m.Stock < m.MinStock,
-        m.LastEntryDate);
+        m.LastEntryDate,
+        m.CostoAdquisicion);
 
     private static bool IsAdmin(string? role) =>
         string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);

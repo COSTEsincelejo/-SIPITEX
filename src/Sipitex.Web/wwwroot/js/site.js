@@ -289,6 +289,7 @@
       { texto: 'Mis solicitudes', url: '/SolicitudesMaterial', keywords: 'solicitudes material pedido', icon: 'fa-clipboard-list' },
       { texto: 'Solicitudes de materiales', url: '/PlantaInventarioSolicitudes', keywords: 'plantaInventario solicitudes materiales cola', icon: 'fa-truck-ramp-box' },
       { texto: 'Control de calidad', url: '/Calidad', keywords: 'calidad inspección reproceso', icon: 'fa-clipboard-check' },
+      { texto: 'Consumo de materiales', url: '/Consumos', keywords: 'consumo materiales ficha costo promedio', icon: 'fa-scissors' },
       { texto: 'Estadísticas', url: '/Estadisticas', keywords: 'estadísticas kpi dashboard gráficos', icon: 'fa-chart-line' },
       { texto: 'Reportes', url: '/Reportes', keywords: 'reportes pdf excel exportar', icon: 'fa-file-export' },
       { texto: 'Alertas', url: '/Alertas', keywords: 'alertas notificaciones correo', icon: 'fa-bell' },

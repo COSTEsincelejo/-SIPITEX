@@ -25,6 +25,19 @@
 }
 
 <div class="card">
+    <div class="card-title"><i class="fas fa-barcode"></i> Materiales por código de producto</div>
+    <form asp-action="MaterialsByCodigo" method="get" class="form-row">
+        <div class="field" style="flex:1;min-width:220px;">
+            <label class="field-label">Código / referencia / nombre</label>
+            <input type="search" name="codigo" placeholder="Ej. CAM-001 o Camisa" />
+        </div>
+        <div class="field" style="align-self:flex-end;">
+            <button type="submit" class="primary">Consultar materiales</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
     <div class="card-title amber"><i class="fas fa-clipboard-list"></i> ficha técnica por producto</div>
     @if (!Model.Products.Any())
     {
@@ -50,7 +63,10 @@
                     var assignedIds = (p.Instructors ?? []).Select(i => i.UserId).ToHashSet();
                     var availableToAssign = Model.Instructors.Where(i => !assignedIds.Contains(i.Id)).ToList();
                     <tr>
-                        <td><strong>@p.ProductName</strong></td>
+                        <td>
+                            <strong>@p.ProductName</strong>
+                            <div><a class="small ghost" asp-action="Materials" asp-route-id="@p.Id">Ver materiales</a></div>
+                        </td>
                         <td>@p.MaterialCount</td>
                         <td>
                             @if (p.IsReference)
