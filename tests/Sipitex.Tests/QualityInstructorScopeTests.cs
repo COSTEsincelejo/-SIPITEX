@@ -29,6 +29,7 @@ public class QualityInstructorScopeTests
         _quality.Object,
         _orders.Object,
         _orderService.Object,
+        new Mock<IProductLifecycleService>().Object,
         _uow.Object);
 
     private static QualityRecord Record(int orderId, string orderNumber, int units = 5) => new()

@@ -1,0 +1,129 @@
+@model GruposConfeccionIndexViewModel
+@{
+    ViewData["Title"] = "Grupos de confección";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Grupos de confección";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Grupos de confección</h2>
+        <div class="sub">Instructor, horario y cantidad. Desde acá se cruza el grupo con la orden y sus consumos de material.</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-people-group"></i> Nuevo grupo</div>
+    <form asp-action="Create" method="post" class="form-row">
+        @Html.AntiForgeryToken()
+        <div class="field">
+            <label class="field-label">Orden</label>
+            <select asp-for="Form.ProductionOrderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber"))"></select>
+        </div>
+        <div class="field">
+            <label class="field-label">Instructor</label>
+            <select asp-for="Form.InstructorUserId" asp-items="@(new SelectList(Model.Instructors, "Id", "Nombre"))"></select>
+        </div>
+        <div class="field">
+            <label class="field-label">Fecha</label>
+            <input asp-for="Form.FechaRealizacion" type="date" />
+        </div>
+        <div class="field">
+            <label class="field-label">Inicio</label>
+            <input asp-for="Form.HoraInicio" type="time" />
+        </div>
+        <div class="field">
+            <label class="field-label">Fin</label>
+            <input asp-for="Form.HoraFin" type="time" />
+        </div>
+        <div class="field" style="width:120px;">
+            <label class="field-label">Prendas</label>
+            <input asp-for="Form.CantidadPrendas" type="number" min="0" />
+        </div>
+        <button type="submit" class="primary">Crear</button>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-list"></i> Grupos</div>
+    @if (!Model.Grupos.Any())
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-people-group", Title = "Sin grupos", Text = "Cree el primer grupo de confección." }' />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Orden</th>
+                        <th>Instructor</th>
+                        <th>Fecha</th>
+                        <th>Horario</th>
+                        <th>Prendas</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var g in Model.Grupos)
+                {
+                    <tr>
+                        <td>@g.OrderNumber</td>
+                        <td>@g.InstructorNombre</td>
+                        <td>@g.FechaRealizacion.ToString("yyyy-MM-dd")</td>
+                        <td>@g.HoraInicio.ToString("HH\\:mm") – @(g.HoraFin?.ToString("HH\\:mm") ?? "en curso")</td>
+                        <td>@g.CantidadPrendas</td>
+                        <td>
+                            <a class="small ghost" asp-action="Index" asp-route-grupoId="@g.Id">Materiales</a>
+                            @if (g.HoraFin is null)
+                            {
+                                <form asp-action="Cerrar" method="post" class="row-actions" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@g.Id" />
+                                    <input type="time" name="horaFin" required />
+                                    <input type="number" name="cantidadPrendas" value="@g.CantidadPrendas" min="0" style="width:72px" />
+                                    <button type="submit" class="small">Cerrar</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (Model.Cruzado is not null)
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-link"></i> Cruzado grupo → orden @Model.Cruzado.OrderNumber → materiales</div>
+        @if (!Model.Cruzado.Consumos.Any())
+        {
+            <p>Esta orden aún no tiene consumos registrados.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Material</th><th>Cantidad</th><th>Costo</th></tr></thead>
+                    <tbody>
+                    @foreach (var c in Model.Cruzado.Consumos)
+                    {
+                        <tr>
+                            <td>@c.MaterialCode @c.MaterialName</td>
+                            <td>@c.Cantidad.ToString("0.####") @c.UnitDisplay</td>
+                            <td>@c.CostoTotal.ToString("0.####")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}

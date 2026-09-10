@@ -108,7 +108,8 @@ public class ProductionOrderService : IProductionOrderService
                 flowPct,
                 combined,
                 canManageMaterials,
-                canOperateProduction));
+                canOperateProduction,
+                order.EstadoProducto));
         }
 
         return result;

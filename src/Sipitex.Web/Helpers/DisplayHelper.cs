@@ -117,11 +117,25 @@ public static class DisplayHelper
     };
 
     // Colores para resultados de inspección de calidad
+    public static string BadgeClass(CalidadClasificacion clasificacion) => clasificacion switch
+    {
+        CalidadClasificacion.Bueno => "badge-success",
+        CalidadClasificacion.Regular => "badge-warning",
+        _ => "badge-danger"
+    };
+
+    public static string BadgeClass(EstadoProducto estado) => estado switch
+    {
+        EstadoProducto.ProductoTerminado or EstadoProducto.VentaEntrega => "badge-success",
+        EstadoProducto.Calidad or EstadoProducto.Confeccion => "badge-info",
+        _ => "badge-warning"
+    };
+
     public static string BadgeClass(QualityResult result) => result switch
     {
         QualityResult.Aprobada => "badge-success",
         QualityResult.Reproceso => "badge-warning",
-        _ => "badge-danger" // Rechazada
+        _ => "badge-danger"
     };
 
     // Colores para cumplimiento normativo (si aplica en reportes)
@@ -194,6 +208,7 @@ public static class DisplayHelper
         "AssignBomInstructor" => "Asignar instructor a BOM",
         "RemoveBomInstructor" => "Quitar instructor de BOM",
         "RegisterConsumoMaterial" => "Registrar consumo de material",
+        "ChangeProductState" => "Cambio de estado de producto",
         _ => string.IsNullOrWhiteSpace(action) ? "—" : action
     };
 
