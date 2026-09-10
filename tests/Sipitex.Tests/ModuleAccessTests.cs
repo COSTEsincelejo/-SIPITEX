@@ -1,15 +1,15 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 
 namespace Sipitex.Tests;
 
-public class ModuleAccessTests : IClassFixture<ModuleAccessTests.SipitexWebApplicationFactory>
+[Collection(WebAppCollection.Name)]
+public class ModuleAccessTests
 {
-    private readonly SipitexWebApplicationFactory _factory;
+    private readonly SipitexWebAppFactory _factory;
 
-    public ModuleAccessTests(SipitexWebApplicationFactory factory) => _factory = factory;
+    public ModuleAccessTests(SipitexWebAppFactory factory) => _factory = factory;
 
     [Fact]
     public async Task Encargado_MenuTypoSingular_ReturnsNotFound_PluralOk()
@@ -125,46 +125,5 @@ public class ModuleAccessTests : IClassFixture<ModuleAccessTests.SipitexWebAppli
 
         Assert.True(match.Success, "No se encontró el token antiforgery en el login.");
         return match.Groups[1].Value;
-    }
-
-    public sealed class SipitexWebApplicationFactory : WebApplicationFactory<Program>, IDisposable
-    {
-        private readonly string _dbPath = Path.Combine(
-            Path.GetTempPath(),
-            $"sipitex-modules-{Guid.NewGuid():N}.db");
-
-        protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
-        {
-            builder.UseSetting(
-                Microsoft.AspNetCore.Hosting.WebHostDefaults.EnvironmentKey,
-                "Development");
-
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["ConnectionStrings:DefaultConnection"] = $"Data Source={_dbPath}",
-                    ["Email:Enabled"] = "false"
-                });
-            });
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            try
-            {
-                if (File.Exists(_dbPath)) File.Delete(_dbPath);
-                foreach (var suffix in new[] { "-shm", "-wal" })
-                {
-                    var side = _dbPath + suffix;
-                    if (File.Exists(side)) File.Delete(side);
-                }
-            }
-            catch
-            {
-                // best-effort cleanup
-            }
-        }
     }
 }
