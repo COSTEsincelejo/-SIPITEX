@@ -593,3 +593,10 @@ public class CreateGrupoConfeccionForm
     public TimeOnly? HoraFin { get; set; }
     public int CantidadPrendas { get; set; }
 }
+
+public class CostosIndexViewModel
+{
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public int? OrderId { get; set; }
+    public GarmentCostDto? Costo { get; set; }
+}

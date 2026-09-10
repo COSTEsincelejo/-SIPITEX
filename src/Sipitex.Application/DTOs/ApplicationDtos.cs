@@ -641,6 +641,16 @@ public record PartialWithdrawalDto(
     int? AuthorizedByUserId);
 public record UpsertStagePermissionDto(int UserId, string StageName, bool Allowed);
 
+public record GarmentCostDto(
+    int ProductionOrderId,
+    string OrderNumber,
+    decimal CostoMateriales,
+    decimal HorasManoObra,
+    decimal TarifaHora,
+    decimal CostoManoObra,
+    decimal Total,
+    string Formula);
+
 public record GrupoConfeccionDto(
     int Id,
     int ProductionOrderId,
