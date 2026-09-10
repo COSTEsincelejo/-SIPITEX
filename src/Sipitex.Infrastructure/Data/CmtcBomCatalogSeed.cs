@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 using Sipitex.Infrastructure.Persistence;
@@ -195,9 +196,14 @@ internal static class CmtcBomCatalogSeed
             if (exists)
                 continue;
 
+            var lastCodigo = await context.BomProducts
+                .OrderByDescending(p => p.Id)
+                .Select(p => p.Codigo)
+                .FirstOrDefaultAsync();
             var product = new BomProduct
             {
                 ProductName = productName,
+                Codigo = CodigoGeneradorService.SiguienteCodigo("PRD-", lastCodigo),
                 Referencia = referencia,
                 IsReference = false,
                 HabilitadoParaOrdenes = true,
