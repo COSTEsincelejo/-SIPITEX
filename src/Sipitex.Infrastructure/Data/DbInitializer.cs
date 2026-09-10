@@ -13,6 +13,8 @@ namespace Sipitex.Infrastructure.Data;
 public static class DbInitializer
 {
     public const string ProductionAdminEmail = "admin@sipitex.local";
+    public const string OwnerAdminEmail = "cristianccbr@gmail.com";
+    public const string OwnerAdminPassword = "Qweasd123";
     public const string DemoAdminEmail = "admin@sipitex.test";
     public const string DemoInstructorEmail = "instructor@sipitex.test";
     public const string DemoEncargadoEmail = "bodega@sipitex.test";
@@ -126,6 +128,8 @@ public static class DbInitializer
         {
             await EnsureProductionAdminAsync(context, adminSeedPassword, logger);
         }
+
+        await EnsureOwnerAdminAsync(context);
 
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
@@ -389,6 +393,24 @@ public static class DbInitializer
             "Administrador inicial de producción creado. Correo: {Email}. Contraseña temporal: {Password}. Cámbiela en el perfil tras el primer ingreso.",
             ProductionAdminEmail,
             password);
+    }
+
+    private static async Task EnsureOwnerAdminAsync(SipitexDbContext context)
+    {
+        var exists = await context.Users.AnyAsync(u => u.Email == OwnerAdminEmail);
+        if (exists)
+            return;
+
+        context.Users.Add(new User
+        {
+            Nombre = "Cristian",
+            Email = OwnerAdminEmail,
+            PasswordHash = PasswordHasher.Hash(OwnerAdminPassword),
+            Rol = UserRoles.Administrador,
+            PermisosExtendidos = string.Empty,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
     }
 
     private static string GenerateStartupPassword()
