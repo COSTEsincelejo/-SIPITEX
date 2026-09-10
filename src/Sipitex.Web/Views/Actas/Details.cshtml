@@ -1,0 +1,75 @@
+@model ActaMovimientoDto
+@{
+    ViewData["Title"] = Model.Numero;
+    ViewData["Breadcrumb"] = $"SIPITEX / Operación / Actas / {Model.Numero}";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>@Model.Numero · @DisplayHelper.StatusText(Model.Tipo)</h2>
+        <div class="sub">@Model.FechaUtc.ToString("yyyy-MM-dd HH:mm") UTC · Origen @DisplayHelper.StatusText(Model.Origen)</div>
+    </div>
+    <div>
+        <a class="primary" asp-action="Pdf" asp-route-id="@Model.Id"><i class="fas fa-file-pdf"></i> Descargar PDF</a>
+        <button type="button" class="ghost" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+        <a class="ghost" asp-action="Index">Volver</a>
+    </div>
+</div>
+
+<div class="card">
+    @if (!string.IsNullOrWhiteSpace(Model.OrderNumber))
+    {
+        <p>Orden: <strong>@Model.OrderNumber</strong></p>
+    }
+    @if (Model.EstadoProductoOrigen is { } from && Model.EstadoProductoDestino is { } to)
+    {
+        <p>Estado de producto: @from → @to</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.Observaciones))
+    {
+        <p>Observaciones: @Model.Observaciones</p>
+    }
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tipo de ítem</th>
+                    <th>Descripción</th>
+                    <th>Cantidad</th>
+                    <th>Unidad</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var d in Model.Detalles)
+            {
+                <tr>
+                    <td>@DisplayHelper.StatusText(d.ItemTipo)</td>
+                    <td>@d.Descripcion</td>
+                    <td>@d.Cantidad.ToString("0.####")</td>
+                    <td>@(d.Unidad ?? "—")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="form-row">
+        <div class="field">
+            <div class="card-title">Quien entrega</div>
+            <p><strong>@Model.EntregaNombre</strong></p>
+            <p class="hint">@(string.IsNullOrWhiteSpace(Model.EntregaCargo) ? "Cargo no indicado" : Model.EntregaCargo)</p>
+            <p>@(Model.EntregaConformidadUtc is DateTime te ? $"Conforme · {te:yyyy-MM-dd HH:mm} UTC" : "Pendiente de conformidad")</p>
+        </div>
+        <div class="field">
+            <div class="card-title">Quien recibe</div>
+            <p><strong>@Model.RecibeNombre</strong></p>
+            <p class="hint">@(string.IsNullOrWhiteSpace(Model.RecibeCargo) ? "Cargo no indicado" : Model.RecibeCargo)</p>
+            <p>@(Model.RecibeConformidadUtc is DateTime tr ? $"Conforme · {tr:yyyy-MM-dd HH:mm} UTC" : "Pendiente de conformidad")</p>
+        </div>
+    </div>
+    <p class="hint">Firma manuscrita / gráfica: pendiente de confirmar. Esta versión registra conformidad simple.</p>
+</div>

@@ -600,3 +600,36 @@ public class CostosIndexViewModel
     public int? OrderId { get; set; }
     public GarmentCostDto? Costo { get; set; }
 }
+
+public class ActasIndexViewModel
+{
+    public IReadOnlyList<ActaMovimientoDto> Actas { get; set; } = [];
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class ActaCreateViewModel
+{
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<StockMovementDto> Movimientos { get; set; } = [];
+    public IReadOnlyList<ConsumoMaterialDto> Consumos { get; set; } = [];
+    public CreateActaForm Form { get; set; } = new();
+}
+
+public class CreateActaForm
+{
+    public ActaTipo Tipo { get; set; } = ActaTipo.Egreso;
+    public ActaOrigen Origen { get; set; } = ActaOrigen.Consumo;
+    public string EntregaNombre { get; set; } = string.Empty;
+    public string EntregaCargo { get; set; } = string.Empty;
+    public bool EntregaConforme { get; set; } = true;
+    public string RecibeNombre { get; set; } = string.Empty;
+    public string RecibeCargo { get; set; } = string.Empty;
+    public bool RecibeConforme { get; set; } = true;
+    public string? Observaciones { get; set; }
+    public int? ProductionOrderId { get; set; }
+    public EstadoProducto EstadoOrigen { get; set; } = EstadoProducto.MateriaPrima;
+    public EstadoProducto EstadoDestino { get; set; } = EstadoProducto.Corte;
+    public int[] StockMovementIds { get; set; } = [];
+    public int[] ConsumoIds { get; set; } = [];
+}

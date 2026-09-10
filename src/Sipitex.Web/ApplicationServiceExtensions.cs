@@ -37,6 +37,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IProductLifecycleService, ProductLifecycleService>();
         services.AddScoped<IGrupoConfeccionService, GrupoConfeccionService>();
         services.AddScoped<IGarmentCostingService, GarmentCostingService>();
+        services.AddScoped<IActaMovimientoService, ActaMovimientoService>();
         services.AddScoped<IFichaService, FichaService>();
         services.AddScoped<IFichaService, FichaService>();
 

@@ -82,6 +82,10 @@
                 <a class="@NavClass("GruposConfeccion")" asp-controller="GruposConfeccion" asp-action="Index"><i class="fas fa-people-group"></i> Grupos de confección</a>
                 <a class="@NavClass("Consumos")" asp-controller="Consumos" asp-action="Index"><i class="fas fa-scissors"></i> Consumo de materiales</a>
             }
+            @if (User.IsInRole("Administrador") || User.IsInRole("Instructor") || User.IsInRole("Encargado de bodega"))
+            {
+                <a class="@NavClass("Actas")" asp-controller="Actas" asp-action="Index"><i class="fas fa-file-signature"></i> Actas de ingreso/egreso</a>
+            }
         </nav>
         <nav class="nav-group">
             <div class="nav-group-label">Análisis</div>

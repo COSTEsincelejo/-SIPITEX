@@ -182,6 +182,15 @@ public static class DisplayHelper
         QualityResult.Aprobada => "Aprobada",
         QualityResult.Reproceso => "Reproceso",
         QualityResult.Rechazada => "Rechazada",
+        ActaTipo.Ingreso => "Ingreso",
+        ActaTipo.Egreso => "Egreso",
+        ActaOrigen.Manual => "Manual",
+        ActaOrigen.Stock => "Movimientos de stock",
+        ActaOrigen.Consumo => "Consumo de materiales",
+        ActaOrigen.EstadoProducto => "Transición de estado",
+        ActaItemTipo.Material => "Material",
+        ActaItemTipo.ProductoEnProceso => "Producto en proceso",
+        ActaItemTipo.ProductoTerminado => "Producto terminado",
         _ => value.ToString()
     };
 
@@ -226,6 +235,7 @@ public static class DisplayHelper
         "Material" => "Material",
         "GrupoConfeccion" => "Grupo de confección",
         "QualityRecord" => "Registro de calidad",
+        "ActaMovimiento" => "Acta de movimiento",
         _ => string.IsNullOrWhiteSpace(entity) ? "—" : entity
     };
 }

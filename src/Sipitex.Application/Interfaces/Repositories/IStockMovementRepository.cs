@@ -15,4 +15,8 @@ public interface IStockMovementRepository
         DateTime? toUtc,
         int? materialId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StockMovement>> GetByIdsAsync(
+        IReadOnlyList<int> ids,
+        CancellationToken cancellationToken = default);
 }
