@@ -6,8 +6,11 @@ public class PlantaInventario
     // PK
     public int Id { get; set; }
 
-    // Nombre para mostrar (ej. "PlantaInventario 1")
+    // Nombre para mostrar (ej. "Planta de Inventario 1")
     public string Nombre { get; set; } = string.Empty;
+
+    // Baja lógica: no se borra físicamente para no romper historial de stock/solicitudes.
+    public bool Activo { get; set; } = true;
 
     // Catálogo de materiales de esta plantaInventario
     public ICollection<Material> Materiales { get; set; } = [];

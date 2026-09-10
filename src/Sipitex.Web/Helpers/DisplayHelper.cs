@@ -183,6 +183,7 @@ public static class DisplayHelper
         "UpdatePlantaInventario" => "Renombrar planta de inventario",
         "DeleteBodega" => "Eliminar planta de inventario",
         "DeletePlantaInventario" => "Eliminar planta de inventario",
+        "ReassignPlantaInventario" => "Reasignar planta de inventario",
         "CreateOrder" => "Crear orden",
         "UpdateOrder" => "Editar orden",
         "ApproveOrder" => "Aprobar orden",

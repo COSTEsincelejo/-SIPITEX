@@ -75,9 +75,10 @@ public class SipitexDbContext : DbContext
         {
             e.HasKey(b => b.Id);
             e.Property(b => b.Nombre).HasMaxLength(80).IsRequired();
+            e.Property(b => b.Activo).HasDefaultValue(true);
             e.HasData(
-                new PlantaInventario { Id = 1, Nombre = "Planta de Inventario 1" },
-                new PlantaInventario { Id = 2, Nombre = "Planta de Inventario 2" });
+                new PlantaInventario { Id = 1, Nombre = "Planta de Inventario 1", Activo = true },
+                new PlantaInventario { Id = 2, Nombre = "Planta de Inventario 2", Activo = true });
         });
 
         // --- Material ---

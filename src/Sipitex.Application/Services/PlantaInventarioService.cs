@@ -6,8 +6,8 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Services;
 
-// CRUD de plantasInventario. Nombre único (case-insensitive). El borrado es físico
-// y se rechaza si hay dependencias o si es la última / la plantaInventario por defecto.
+// CRUD de plantas de inventario. Nombre único (case-insensitive).
+// La baja es lógica (Activo=false) para no romper historial. Con stock se exige reasignación.
 public class PlantaInventarioService : IPlantaInventarioService
 {
     private const int MaxNombreLength = 80;
@@ -66,10 +66,18 @@ public class PlantaInventarioService : IPlantaInventarioService
             return ServiceResult.Fail(
                 "No se puede eliminar Planta de Inventario 1: el sistema la usa como planta de inventario por defecto al crear solicitudes de insumos libres.");
 
-        if (await _plantas.CountAsync(cancellationToken) <= 1)
-            return ServiceResult.Fail("No se puede eliminar la última planta de inventario del sistema.");
+        if (await _plantas.CountActivasAsync(cancellationToken) <= 1)
+            return ServiceResult.Fail("No se puede eliminar la última planta de inventario activa del sistema.");
+
+        if (!plantaInventario.Activo)
+            return ServiceResult.Fail("La planta de inventario ya está inactiva.");
 
         var deps = await _plantas.CountDependenciasAsync(id, cancellationToken);
+        if (deps.HasStock)
+            return ServiceResult.Fail(
+                $"No se puede eliminar «{plantaInventario.Nombre}»: tiene stock asociado ({deps.StockTotal} unidades). " +
+                "Reasigne el inventario a otra planta de inventario antes de eliminar.");
+
         if (deps.Any)
         {
             var partes = new List<string>();
@@ -80,13 +88,20 @@ public class PlantaInventarioService : IPlantaInventarioService
             if (deps.Encargados > 0)
                 partes.Add($"{deps.Encargados} encargado(s) de bodega");
             return ServiceResult.Fail(
-                $"No se puede eliminar «{plantaInventario.Nombre}»: tiene {string.Join(", ", partes)} asociados. Reasígnelos o elimínelos antes.");
+                $"No se puede eliminar «{plantaInventario.Nombre}»: tiene {string.Join(", ", partes)} asociados. " +
+                "Use la reasignación a otra planta o elimínelos antes.");
         }
 
-        _plantas.Remove(plantaInventario);
+        plantaInventario.Activo = false;
+        _plantas.Update(plantaInventario);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok($"Planta de inventario «{plantaInventario.Nombre}» eliminada.");
+        return ServiceResult.Ok($"Planta de inventario «{plantaInventario.Nombre}» desactivada.");
     }
+
+    public Task<PlantaInventarioDependencias> GetDependenciasAsync(
+        int id,
+        CancellationToken cancellationToken = default) =>
+        _plantas.CountDependenciasAsync(id, cancellationToken);
 
     private async Task<(string Nombre, string? Error)> ValidateNombreAsync(
         string nombre,

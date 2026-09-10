@@ -109,7 +109,7 @@ public class PlantaInventarioServiceTests
     {
         var plantaInventario = new PlantaInventario { Id = 3, Nombre = "PlantaInventario 3" };
         _plantas.Setup(r => r.GetByIdAsync(3, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
-        _plantas.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(3);
+        _plantas.Setup(r => r.CountActivasAsync(It.IsAny<CancellationToken>())).ReturnsAsync(3);
         _plantas.Setup(r => r.CountDependenciasAsync(3, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PlantaInventarioDependencias(0, 0, 0));
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
@@ -117,7 +117,9 @@ public class PlantaInventarioServiceTests
         var result = await CreateSut().DeleteAsync(3);
 
         Assert.True(result.Success, result.Message);
-        _plantas.Verify(r => r.Remove(plantaInventario), Times.Once);
+        Assert.False(plantaInventario.Activo);
+        _plantas.Verify(r => r.Update(plantaInventario), Times.Once);
+        _plantas.Verify(r => r.Remove(It.IsAny<PlantaInventario>()), Times.Never);
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -126,7 +128,7 @@ public class PlantaInventarioServiceTests
     {
         var plantaInventario = new PlantaInventario { Id = 2, Nombre = "PlantaInventario 2" };
         _plantas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
-        _plantas.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
+        _plantas.Setup(r => r.CountActivasAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
         _plantas.Setup(r => r.CountDependenciasAsync(2, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PlantaInventarioDependencias(4, 0, 0));
 
@@ -142,7 +144,7 @@ public class PlantaInventarioServiceTests
     {
         var plantaInventario = new PlantaInventario { Id = 2, Nombre = "PlantaInventario 2" };
         _plantas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
-        _plantas.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
+        _plantas.Setup(r => r.CountActivasAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
         _plantas.Setup(r => r.CountDependenciasAsync(2, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PlantaInventarioDependencias(0, 2, 1));
 
@@ -160,7 +162,7 @@ public class PlantaInventarioServiceTests
     {
         var plantaInventario = new PlantaInventario { Id = 2, Nombre = "PlantaInventario 2" };
         _plantas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
-        _plantas.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _plantas.Setup(r => r.CountActivasAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var result = await CreateSut().DeleteAsync(2);
 
@@ -175,13 +177,30 @@ public class PlantaInventarioServiceTests
     {
         var plantaInventario = new PlantaInventario { Id = 1, Nombre = "PlantaInventario 1" };
         _plantas.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
-        _plantas.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
+        _plantas.Setup(r => r.CountActivasAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
 
         var result = await CreateSut().DeleteAsync(1);
 
         Assert.False(result.Success);
         Assert.Contains("por defecto", result.Message, StringComparison.OrdinalIgnoreCase);
         _plantas.Verify(r => r.Remove(It.IsAny<PlantaInventario>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ConStock_FallaPidiendoReasignacion()
+    {
+        var plantaInventario = new PlantaInventario { Id = 2, Nombre = "Anexo" };
+        _plantas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
+        _plantas.Setup(r => r.CountActivasAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
+        _plantas.Setup(r => r.CountDependenciasAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlantaInventarioDependencias(1, 0, 0, StockTotal: 15));
+
+        var result = await CreateSut().DeleteAsync(2);
+
+        Assert.False(result.Success);
+        Assert.Contains("stock asociado", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Reasigne", result.Message, StringComparison.OrdinalIgnoreCase);
+        _plantas.Verify(r => r.Update(It.IsAny<PlantaInventario>()), Times.Never);
     }
 
     [Fact]

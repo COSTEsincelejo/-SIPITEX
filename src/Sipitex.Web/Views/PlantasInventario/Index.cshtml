@@ -8,7 +8,7 @@
 <div class="page-header">
     <div>
         <h2>Plantas de inventario</h2>
-        <div class="sub">Cree, renombre o elimine plantas de inventario. Planta de Inventario 1 y Planta de Inventario 2 vienen del sistema; puede agregar más. No se puede borrar una planta con materiales, solicitudes o encargados, ni la última planta de inventario, ni Planta de Inventario 1 (usada por defecto).</div>
+        <div class="sub">Cree, renombre o desactive plantas de inventario. Planta de Inventario 1 no se puede eliminar (es la planta por defecto). Si hay stock, hay que reasignarlo a otra planta antes de desactivar.</div>
     </div>
 </div>
 
@@ -48,6 +48,7 @@
                     <tr>
                         <th>Id</th>
                         <th>Nombre</th>
+                        <th>Estado</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -58,14 +59,22 @@
                         <td>@b.Id</td>
                         <td><strong>@b.Nombre</strong></td>
                         <td>
+                            @if (b.Activo)
+                            {
+                                <span class="badge badge-success">Activa</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-warning">Inactiva</span>
+                            }
+                        </td>
+                        <td>
                             <div class="row-actions">
                                 <a asp-action="Edit" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-pen"></i> Editar</a>
-                                <form asp-action="Delete" method="post" style="display:inline;"
-                                      data-confirm="¿Eliminar «@b.Nombre»? Solo se permite si no tiene materiales, solicitudes ni encargados.">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@b.Id" />
-                                    <button type="submit" class="small danger"><i class="fas fa-trash"></i> Eliminar</button>
-                                </form>
+                                @if (b.Activo)
+                                {
+                                    <a asp-action="Delete" asp-route-id="@b.Id" class="btn small danger"><i class="fas fa-trash"></i> Eliminar</a>
+                                }
                             </div>
                         </td>
                     </tr>

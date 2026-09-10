@@ -404,6 +404,21 @@ public class EditPlantaInventarioViewModel
     public bool IsSuccess { get; set; }
 }
 
+public class DeletePlantaInventarioViewModel
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public bool Activo { get; set; }
+    public int Materiales { get; set; }
+    public int Solicitudes { get; set; }
+    public int Encargados { get; set; }
+    public decimal StockTotal { get; set; }
+    public bool RequiresReassignment => Materiales > 0 || Solicitudes > 0 || Encargados > 0;
+    public IReadOnlyList<PlantaInventario> Destinos { get; set; } = [];
+    public int DestinoId { get; set; }
+    public string? Message { get; set; }
+}
+
 // Pantalla de reportes con filtros opcionales
 public class ReportesIndexViewModel
 {
