@@ -20,6 +20,9 @@ public class QualityRecord
     // Resultado: Aprobada / Reproceso / Rechazada
     public QualityResult Result { get; set; }
 
+    // Clasificación de la prenda (Bueno / Regular / Malo). Independiente de Result.
+    public CalidadClasificacion Clasificacion { get; set; } = CalidadClasificacion.Bueno;
+
     // Motivo cuando es Reproceso (null en los otros casos)
     public string? MotivoReproceso { get; set; }
 

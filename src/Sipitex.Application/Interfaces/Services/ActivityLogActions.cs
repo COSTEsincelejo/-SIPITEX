@@ -24,6 +24,7 @@ public static class ActivityLogActions
     public const string AssignBomInstructor = "AssignBomInstructor";
     public const string RemoveBomInstructor = "RemoveBomInstructor";
     public const string RegisterConsumoMaterial = "RegisterConsumoMaterial";
+    public const string ChangeProductState = "ChangeProductState";
 }
 
 public static class ActivityLogEntities

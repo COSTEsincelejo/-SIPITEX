@@ -67,6 +67,7 @@ public class SipitexDbContext : DbContext
     public DbSet<OrderChangeLog> OrderChangeLogs => Set<OrderChangeLog>();
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>(); // Auditoría global transversal
     public DbSet<ConsumoMaterial> ConsumosMaterial => Set<ConsumoMaterial>();
+    public DbSet<GrupoConfeccion> GruposConfeccion => Set<GrupoConfeccion>();
 
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -107,6 +108,8 @@ public class SipitexDbContext : DbContext
             e.HasKey(p => p.Id);
             e.Property(p => p.ProductName).HasMaxLength(80).IsRequired();
             e.HasIndex(p => p.ProductName).IsUnique();
+            e.Property(p => p.Codigo).HasMaxLength(40).IsRequired();
+            e.HasIndex(p => p.Codigo).IsUnique();
             e.Property(p => p.Notes).HasMaxLength(500);
             // Fase A — metadatos opcionales
             e.Property(p => p.Referencia).HasMaxLength(40);
@@ -222,6 +225,7 @@ public class SipitexDbContext : DbContext
             // Que no se repita el número de orden
             e.HasIndex(o => o.OrderNumber).IsUnique();
             e.Property(o => o.MaterialsStatus).HasConversion<string>().HasMaxLength(40);
+            e.Property(o => o.EstadoProducto).HasConversion<string>().HasMaxLength(40);
             e.HasOne(o => o.CurrentStage)
                 .WithMany()
                 .HasForeignKey(o => o.CurrentStageId)
@@ -323,6 +327,7 @@ public class SipitexDbContext : DbContext
             e.Property(q => q.Responsable).HasMaxLength(120); // Quién responde por el reproceso
             // Inspección ligada a una orden
             e.HasOne(q => q.ProductionOrder).WithMany(o => o.QualityRecords).HasForeignKey(q => q.ProductionOrderId);
+            e.Property(q => q.Clasificacion).HasConversion<string>().HasMaxLength(20);
         });
 
         // --- ProductionSession ---
@@ -693,9 +698,30 @@ public class SipitexDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(c => c.ResponsableUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.GrupoConfeccion)
+                .WithMany(g => g.Consumos)
+                .HasForeignKey(c => c.GrupoConfeccionId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(c => c.ProductionOrderId);
             e.HasIndex(c => c.MaterialId);
             e.HasIndex(c => c.FechaUtc);
+            e.HasIndex(c => c.GrupoConfeccionId);
+        });
+
+        modelBuilder.Entity<GrupoConfeccion>(e =>
+        {
+            e.HasKey(g => g.Id);
+            e.HasOne(g => g.ProductionOrder)
+                .WithMany(o => o.GruposConfeccion)
+                .HasForeignKey(g => g.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(g => g.Instructor)
+                .WithMany()
+                .HasForeignKey(g => g.InstructorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(g => g.ProductionOrderId);
+            e.HasIndex(g => g.InstructorUserId);
+            e.HasIndex(g => g.FechaRealizacion);
         });
     }
 }

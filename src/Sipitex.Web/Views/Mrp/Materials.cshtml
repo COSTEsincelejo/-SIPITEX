@@ -40,6 +40,7 @@ else
         <div class="card-title"><i class="fas fa-diagram-project"></i> @Model.Ficha.ProductName</div>
         <p>
             Referencia: <strong>@(string.IsNullOrWhiteSpace(Model.Ficha.Referencia) ? "—" : Model.Ficha.Referencia)</strong>
+            · Código: <strong>@(string.IsNullOrWhiteSpace(Model.Ficha.Codigo) ? "—" : Model.Ficha.Codigo)</strong>
             ·
             @if (Model.Ficha.HabilitadoParaOrdenes)
             {

@@ -127,7 +127,8 @@ public class BomCatalogService : IBomCatalogService
                 i.QuantityPerUnit,
                 i.Unit,
                 UnitHelper.ToDisplay(i.Unit)))
-            .ToList());
+            .ToList(),
+        product.Codigo);
 
     private static BomProductMedidaDto MapMedida(BomProductMedida m) => new(
         m.Id,
@@ -169,12 +170,17 @@ public class BomCatalogService : IBomCatalogService
         if (!linesResult.Success)
             return ServiceResult.Fail(linesResult.Error!);
 
+        var codigoResult = await ResolveCodigoAsync(dto.Codigo, currentCodigo: null, excludeId: null, cancellationToken);
+        if (codigoResult.Error is not null)
+            return ServiceResult.Fail(codigoResult.Error);
+
         var product = new BomProduct
         {
             ProductName = name,
             IsReference = dto.IsReference,
             Notes = NormalizeNotes(dto.Notes, dto.IsReference),
-            HabilitadoParaOrdenes = dto.HabilitadoParaOrdenes
+            HabilitadoParaOrdenes = dto.HabilitadoParaOrdenes,
+            Codigo = codigoResult.Codigo
         };
         ApplyMetadata(product, dto);
         ApplyTallas(product, dto.Tallas);
@@ -215,10 +221,15 @@ public class BomCatalogService : IBomCatalogService
         if (!linesResult.Success)
             return ServiceResult.Fail(linesResult.Error!);
 
+        var codigoResult = await ResolveCodigoAsync(dto.Codigo, product.Codigo, id, cancellationToken);
+        if (codigoResult.Error is not null)
+            return ServiceResult.Fail(codigoResult.Error);
+
         product.ProductName = name;
         product.IsReference = dto.IsReference;
         product.Notes = NormalizeNotes(dto.Notes, dto.IsReference);
         product.HabilitadoParaOrdenes = dto.HabilitadoParaOrdenes;
+        product.Codigo = codigoResult.Codigo;
         ApplyMetadata(product, dto);
 
         // Quitar medidas primero (evita FK huérfanas al reemplazar tallas)
@@ -378,6 +389,33 @@ public class BomCatalogService : IBomCatalogService
 
     private static int CountNamedTallas(IReadOnlyList<BomProductTallaDto>? tallas) =>
         tallas?.Count(t => !string.IsNullOrWhiteSpace(t.Nombre)) ?? 0;
+
+    private async Task<(string Codigo, string? Error)> ResolveCodigoAsync(
+        string? requested,
+        string? currentCodigo,
+        int? excludeId,
+        CancellationToken cancellationToken)
+    {
+        string codigo;
+        if (!string.IsNullOrWhiteSpace(requested))
+        {
+            codigo = requested.Trim().ToUpperInvariant();
+        }
+        else if (!string.IsNullOrWhiteSpace(currentCodigo))
+        {
+            codigo = currentCodigo.Trim();
+        }
+        else
+        {
+            var last = await _bomRepository.GetLastCodigoAsync(cancellationToken);
+            codigo = CodigoGeneradorService.SiguienteCodigo("PRD-", last);
+        }
+
+        if (await _bomRepository.ExistsByCodigoAsync(codigo, cancellationToken, excludeId))
+            return ("", "Ya existe un producto con ese código.");
+
+        return (codigo, null);
+    }
 
     private static void ApplyMetadata(BomProduct product, UpsertBomProductDto dto)
     {

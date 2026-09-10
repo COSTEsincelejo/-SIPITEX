@@ -54,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IProductionFlowRepository, ProductionFlowRepository>(); // Flujo MES
         services.AddScoped<IStockMovementRepository, StockMovementRepository>(); // Historial de stock
         services.AddScoped<IConsumoMaterialRepository, ConsumoMaterialRepository>();
+        services.AddScoped<IGrupoConfeccionRepository, GrupoConfeccionRepository>();
         services.AddScoped<IOrderChangeLogRepository, OrderChangeLogRepository>(); // Auditoría ediciones de orden
         services.AddScoped<IOrderChangeLogRepository, OrderChangeLogRepository>(); // Auditoría ediciones de orden
         services.AddScoped<IActivityLogService, ActivityLogService>(); // Auditoría global transversal

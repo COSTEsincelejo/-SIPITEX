@@ -57,7 +57,7 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "Users"));
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
             // ... + MaterialRequestSolicitante + ActivityLog + InsumosLibres + AddBodegas + AddUserBodegas + RenameNomenclatura = 24
-            Assert.Equal(26, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(27, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "PlantasInventario"));
             Assert.True(await TableExistsAsync(dbPath, "UserPlantasInventario"));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
@@ -77,6 +77,7 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(dbPath, "OrderChangeLogs"));
             Assert.True(await TableExistsAsync(dbPath, "ActivityLogs"));
             Assert.True(await TableExistsAsync(dbPath, "ConsumosMaterial"));
+            Assert.True(await TableExistsAsync(dbPath, "GruposConfeccion"));
             Assert.True(await TableExistsAsync(dbPath, "MaterialRequests"));
         }
         finally
@@ -116,7 +117,7 @@ public class MigrationBaselineTests
             }
 
             Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(26, await CountMigrationRowsAsync(dbPath));
+            Assert.Equal(27, await CountMigrationRowsAsync(dbPath));
             Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
             Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
             Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
@@ -184,7 +185,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(26, before);
+            Assert.Equal(27, before);
 
             await using (var context = CreateContext(dbPath))
             {
