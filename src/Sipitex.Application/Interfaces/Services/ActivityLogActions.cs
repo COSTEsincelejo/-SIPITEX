@@ -11,6 +11,7 @@ public static class ActivityLogActions
     public const string CreatePlantaInventario = "CreatePlantaInventario";
     public const string UpdatePlantaInventario = "UpdatePlantaInventario";
     public const string DeletePlantaInventario = "DeletePlantaInventario";
+    public const string ReassignPlantaInventario = "ReassignPlantaInventario";
 
     public const string CreateOrder = "CreateOrder";
     public const string UpdateOrder = "UpdateOrder";

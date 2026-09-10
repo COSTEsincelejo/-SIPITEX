@@ -329,7 +329,7 @@ public class UserAccountServiceTests
             []);
 
         Assert.False(result.Success);
-        Assert.Contains("al menos una plantaInventario", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("al menos una planta de inventario", result.Message, StringComparison.OrdinalIgnoreCase);
         _userRepository.Verify(r => r.Add(It.IsAny<User>()), Times.Never);
     }
 
