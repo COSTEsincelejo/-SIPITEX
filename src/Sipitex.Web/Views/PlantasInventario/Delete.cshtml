@@ -1,0 +1,68 @@
+@model DeletePlantaInventarioViewModel
+@{
+    ViewData["Title"] = "Eliminar planta de inventario";
+    ViewData["Breadcrumb"] = "SIPITEX / Administración / Plantas de inventario / Eliminar";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Eliminar «@Model.Nombre»</h2>
+        <div class="sub">La baja es lógica (la planta queda inactiva). El historial de movimientos de stock se conserva.</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="danger" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card" style="max-width:640px;">
+    <p>
+        Materiales: <strong>@Model.Materiales</strong> ·
+        Stock: <strong>@Model.StockTotal</strong> ·
+        Solicitudes: <strong>@Model.Solicitudes</strong> ·
+        Encargados: <strong>@Model.Encargados</strong>
+    </p>
+
+    @if (!Model.Activo)
+    {
+        <p>Esta planta ya está inactiva.</p>
+        <a asp-action="Index" class="small ghost">Volver</a>
+    }
+    else if (Model.RequiresReassignment)
+    {
+        <p>Hay dependencias. Elija la planta de inventario destino para mover el stock, el historial de movimientos y las solicitudes. Después se desactivará el origen.</p>
+        @if (Model.Destinos.Count == 0)
+        {
+            <p class="alert alert-danger">No hay otra planta activa para reasignar. Cree una antes de eliminar esta.</p>
+            <a asp-action="Index" class="small ghost">Volver</a>
+        }
+        else
+        {
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <div class="field">
+                    <label class="field-label" for="destinoId">Planta destino</label>
+                    <select name="destinoId" id="destinoId" required>
+                        @foreach (var d in Model.Destinos)
+                        {
+                            <option value="@d.Id" selected="@(d.Id == Model.DestinoId ? "selected" : null)">@d.Nombre</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="danger">Reasignar y desactivar</button>
+                <a asp-action="Index" class="small ghost">Cancelar</a>
+            </form>
+        }
+    }
+    else
+    {
+        <p>No hay stock ni dependencias. Se desactivará la planta.</p>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="danger">Desactivar</button>
+            <a asp-action="Index" class="small ghost">Cancelar</a>
+        </form>
+    }
+</div>

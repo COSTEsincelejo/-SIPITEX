@@ -39,6 +39,7 @@ public static class ApplicationServiceExtensions
         // Cuentas de usuario, plantasInventario y recuperar contraseña
         services.AddScoped<IUserAccountService, UserAccountService>();
         services.AddScoped<IPlantaInventarioService, PlantaInventarioService>();
+        services.AddScoped<IPlantaInventarioReassignmentService, PlantaInventarioReassignmentService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
 
         // Alertas por correo y evaluación programada

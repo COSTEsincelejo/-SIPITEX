@@ -529,7 +529,9 @@ public class AccountController : Controller
     private async Task PopulateUserFormLookupsAsync(CancellationToken cancellationToken)
     {
         ViewBag.Fichas = await GetFichasAsync(cancellationToken);
-        ViewBag.PlantasInventario = await _plantaService.GetAllAsync(cancellationToken);
+        ViewBag.PlantasInventario = (await _plantaService.GetAllAsync(cancellationToken))
+            .Where(p => p.Activo)
+            .ToList();
     }
 
     // Para el combo de ficha al crear/editar usuario
