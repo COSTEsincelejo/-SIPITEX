@@ -60,7 +60,8 @@ public class BomCatalogService : IBomCatalogService
                 i.Material.Name,
                 i.QuantityPerUnit,
                 i.Unit,
-                UnitHelper.ToDisplay(i.Unit))).ToList(),
+                UnitHelper.ToDisplay(i.Unit),
+                i.Material.Code)).ToList(),
             product.Referencia,
             product.Linea,
             product.TallaInicial,
@@ -92,6 +93,41 @@ public class BomCatalogService : IBomCatalogService
                 .Select(MapMedida)
                 .ToList());
     }
+
+    public async Task<FichaTecnicaMaterialsDto?> GetMaterialsByFichaIdAsync(
+        int bomProductId,
+        CancellationToken cancellationToken = default)
+    {
+        var product = await _bomRepository.GetProductByIdAsync(bomProductId, cancellationToken);
+        return product is null ? null : MapMaterials(product);
+    }
+
+    public async Task<FichaTecnicaMaterialsDto?> GetMaterialsByProductCodigoAsync(
+        string codigo,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(codigo))
+            return null;
+
+        var product = await _bomRepository.FindByProductCodigoAsync(codigo, cancellationToken);
+        return product is null ? null : MapMaterials(product);
+    }
+
+    private static FichaTecnicaMaterialsDto MapMaterials(BomProduct product) => new(
+        product.Id,
+        product.ProductName,
+        product.Referencia,
+        product.HabilitadoParaOrdenes,
+        product.Items
+            .OrderBy(i => i.Material.Code)
+            .Select(i => new FichaTecnicaMaterialDto(
+                i.MaterialId,
+                i.Material.Code,
+                i.Material.Name,
+                i.QuantityPerUnit,
+                i.Unit,
+                UnitHelper.ToDisplay(i.Unit)))
+            .ToList());
 
     private static BomProductMedidaDto MapMedida(BomProductMedida m) => new(
         m.Id,

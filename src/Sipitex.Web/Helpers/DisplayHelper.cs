@@ -193,6 +193,7 @@ public static class DisplayHelper
         "DeleteBom" => "Eliminar ficha técnica",
         "AssignBomInstructor" => "Asignar instructor a BOM",
         "RemoveBomInstructor" => "Quitar instructor de BOM",
+        "RegisterConsumoMaterial" => "Registrar consumo de material",
         _ => string.IsNullOrWhiteSpace(action) ? "—" : action
     };
 
@@ -203,6 +204,7 @@ public static class DisplayHelper
         "PlantaInventario" => "Planta de inventario",
         "ProductionOrder" => "Orden de producción",
         "BomProduct" => "Ficha técnica (BOM)",
+        "ConsumoMaterial" => "Consumo de material",
         _ => string.IsNullOrWhiteSpace(entity) ? "—" : entity
     };
 }

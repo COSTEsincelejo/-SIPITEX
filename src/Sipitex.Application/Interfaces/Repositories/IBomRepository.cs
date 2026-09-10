@@ -20,4 +20,5 @@ public interface IBomRepository
     void RemovePieza(BomProductPieza pieza);
     void RemoveMedida(BomProductMedida medida);
     Task<IReadOnlyList<string>> GetProductNamesUsingMaterialAsync(int materialId, CancellationToken cancellationToken = default);
+    Task<BomProduct?> FindByProductCodigoAsync(string codigo, CancellationToken cancellationToken = default);
 }
