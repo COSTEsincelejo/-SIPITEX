@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore; // Consultas async y MigrateAsync
 using Sipitex.Application.Helpers; // PasswordHasher para los usuarios de prueba
+using Sipitex.Application.Services; // CodigoGeneradorService (PRD-#### en seed)
 using Sipitex.Domain.Entities; // Entidades que inserto en el seed
 using Sipitex.Domain.Enums; // MaterialUnit, OrderStatus, UserRoles...
 using Sipitex.Infrastructure.Persistence; // SipitexDbContext
@@ -37,6 +38,7 @@ public static class DbInitializer
             var bomCamisa = new BomProduct
             {
                 ProductName = "Camisa",
+                Codigo = CodigoGeneradorService.SiguienteCodigo("PRD-", null),
                 IsReference = false,
                 HabilitadoParaOrdenes = true,
                 Notes = null
@@ -44,6 +46,7 @@ public static class DbInitializer
             var bomPantalon = new BomProduct
             {
                 ProductName = "Pantalón",
+                Codigo = CodigoGeneradorService.SiguienteCodigo("PRD-", bomCamisa.Codigo),
                 IsReference = false,
                 HabilitadoParaOrdenes = true,
                 Notes = null
@@ -125,9 +128,14 @@ public static class DbInitializer
             if (await context.BomProducts.AnyAsync(p => p.ProductName == name))
                 continue;
 
+            var lastCodigo = await context.BomProducts
+                .OrderByDescending(p => p.Id)
+                .Select(p => p.Codigo)
+                .FirstOrDefaultAsync();
             var product = new BomProduct
             {
                 ProductName = name,
+                Codigo = CodigoGeneradorService.SiguienteCodigo("PRD-", lastCodigo),
                 IsReference = false,
                 HabilitadoParaOrdenes = true
             };

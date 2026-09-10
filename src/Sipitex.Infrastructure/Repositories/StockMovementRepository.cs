@@ -43,4 +43,19 @@ public class StockMovementRepository : IStockMovementRepository
             .ThenByDescending(m => m.Id)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<StockMovement>> GetByIdsAsync(
+        IReadOnlyList<int> ids,
+        CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0)
+            return [];
+
+        return await _db.StockMovements
+            .AsNoTracking()
+            .Include(m => m.Material)
+            .Include(m => m.Usuario)
+            .Where(m => ids.Contains(m.Id))
+            .ToListAsync(cancellationToken);
+    }
 }

@@ -18,7 +18,8 @@ public sealed class AuditSaveChangesInterceptor : SaveChangesInterceptor
         nameof(ProductionOrder),
         nameof(ConsumoMaterial),
         nameof(GrupoConfeccion),
-        nameof(QualityRecord)
+        nameof(QualityRecord),
+        nameof(ActaMovimiento)
     };
 
     private static readonly JsonSerializerOptions JsonOptions = new()

@@ -68,6 +68,8 @@ public class SipitexDbContext : DbContext
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>(); // Auditoría global transversal
     public DbSet<ConsumoMaterial> ConsumosMaterial => Set<ConsumoMaterial>();
     public DbSet<GrupoConfeccion> GruposConfeccion => Set<GrupoConfeccion>();
+    public DbSet<ActaMovimiento> ActasMovimiento => Set<ActaMovimiento>();
+    public DbSet<ActaMovimientoDetalle> ActasMovimientoDetalle => Set<ActaMovimientoDetalle>();
 
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -722,6 +724,62 @@ public class SipitexDbContext : DbContext
             e.HasIndex(g => g.ProductionOrderId);
             e.HasIndex(g => g.InstructorUserId);
             e.HasIndex(g => g.FechaRealizacion);
+        });
+
+        modelBuilder.Entity<ActaMovimiento>(e =>
+        {
+            e.ToTable("ActasMovimiento");
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Numero).HasMaxLength(20).IsRequired();
+            e.HasIndex(a => a.Numero).IsUnique();
+            e.Property(a => a.Tipo).HasConversion<string>().HasMaxLength(20);
+            e.Property(a => a.Origen).HasConversion<string>().HasMaxLength(30);
+            e.Property(a => a.EstadoProductoOrigen).HasConversion<string>().HasMaxLength(40);
+            e.Property(a => a.EstadoProductoDestino).HasConversion<string>().HasMaxLength(40);
+            e.Property(a => a.Observaciones).HasMaxLength(1000);
+            e.Property(a => a.EntregaNombre).HasMaxLength(120).IsRequired();
+            e.Property(a => a.EntregaCargo).HasMaxLength(80);
+            e.Property(a => a.RecibeNombre).HasMaxLength(120).IsRequired();
+            e.Property(a => a.RecibeCargo).HasMaxLength(80);
+            e.HasOne(a => a.ProductionOrder)
+                .WithMany()
+                .HasForeignKey(a => a.ProductionOrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.CreadoPor)
+                .WithMany()
+                .HasForeignKey(a => a.CreadoPorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(a => a.Detalles)
+                .WithOne(d => d.ActaMovimiento)
+                .HasForeignKey(d => d.ActaMovimientoId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(a => a.FechaUtc);
+        });
+
+        modelBuilder.Entity<ActaMovimientoDetalle>(e =>
+        {
+            e.ToTable("ActasMovimientoDetalle");
+            e.HasKey(d => d.Id);
+            e.Property(d => d.ItemTipo).HasConversion<string>().HasMaxLength(40);
+            e.Property(d => d.Descripcion).HasMaxLength(240).IsRequired();
+            e.Property(d => d.Cantidad).HasPrecision(18, 4);
+            e.Property(d => d.Unidad).HasMaxLength(40);
+            e.HasOne(d => d.Material)
+                .WithMany()
+                .HasForeignKey(d => d.MaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(d => d.ConsumoMaterial)
+                .WithMany()
+                .HasForeignKey(d => d.ConsumoMaterialId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(d => d.StockMovement)
+                .WithMany()
+                .HasForeignKey(d => d.StockMovementId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(d => d.ProductionOrder)
+                .WithMany()
+                .HasForeignKey(d => d.ProductionOrderId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
