@@ -62,6 +62,8 @@ public static class DependencyInjection
         services.AddScoped<IStockMovementRepository, StockMovementRepository>(); // Historial de stock
         services.AddScoped<IConsumoMaterialRepository, ConsumoMaterialRepository>();
         services.AddScoped<IGrupoConfeccionRepository, GrupoConfeccionRepository>();
+        services.AddScoped<IActaMovimientoRepository, ActaMovimientoRepository>();
+        services.AddScoped<IActaPdfService, ActaPdfService>();
         services.AddScoped<IOrderChangeLogRepository, OrderChangeLogRepository>(); // Auditoría ediciones de orden
         services.AddScoped<IOrderChangeLogRepository, OrderChangeLogRepository>(); // Auditoría ediciones de orden
         services.AddScoped<IActivityLogService, ActivityLogService>(); // Auditoría global transversal

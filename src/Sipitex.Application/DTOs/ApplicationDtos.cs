@@ -674,3 +674,59 @@ public record GrupoConsumoCruzadoDto(
     GrupoConfeccionDto Grupo,
     string OrderNumber,
     IReadOnlyList<ConsumoMaterialDto> Consumos);
+
+public record ActaDetalleDto(
+    int Id,
+    ActaItemTipo ItemTipo,
+    string Descripcion,
+    decimal Cantidad,
+    string? Unidad,
+    int? MaterialId,
+    int? ConsumoMaterialId,
+    int? StockMovementId,
+    int? ProductionOrderId);
+
+public record ActaMovimientoDto(
+    int Id,
+    string Numero,
+    ActaTipo Tipo,
+    ActaOrigen Origen,
+    DateTime FechaUtc,
+    string? Observaciones,
+    int? ProductionOrderId,
+    string? OrderNumber,
+    EstadoProducto? EstadoProductoOrigen,
+    EstadoProducto? EstadoProductoDestino,
+    string EntregaNombre,
+    string EntregaCargo,
+    DateTime? EntregaConformidadUtc,
+    string RecibeNombre,
+    string RecibeCargo,
+    DateTime? RecibeConformidadUtc,
+    int CreadoPorUserId,
+    string CreadoPorNombre,
+    IReadOnlyList<ActaDetalleDto> Detalles);
+
+public record CreateActaDto(
+    ActaTipo Tipo,
+    ActaOrigen Origen,
+    string EntregaNombre,
+    string EntregaCargo,
+    bool EntregaConforme,
+    string RecibeNombre,
+    string RecibeCargo,
+    bool RecibeConforme,
+    int CreadoPorUserId,
+    string? Observaciones = null,
+    int? ProductionOrderId = null,
+    EstadoProducto? EstadoOrigen = null,
+    EstadoProducto? EstadoDestino = null,
+    IReadOnlyList<int>? StockMovementIds = null,
+    IReadOnlyList<int>? ConsumoIds = null);
+
+public record ServiceResult<T>(bool Success, string? Message, T? Value)
+{
+    public static ServiceResult<T> Ok(T value, string? message = null) => new(true, message, value);
+    public static ServiceResult<T> Fail(string message) => new(false, message, default);
+}
+

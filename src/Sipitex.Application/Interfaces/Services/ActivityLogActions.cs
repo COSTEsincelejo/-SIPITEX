@@ -42,4 +42,5 @@ public static class ActivityLogEntities
     public const string Material = "Material";
     public const string GrupoConfeccion = "GrupoConfeccion";
     public const string QualityRecord = "QualityRecord";
+    public const string ActaMovimiento = "ActaMovimiento";
 }
