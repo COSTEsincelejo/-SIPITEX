@@ -29,7 +29,7 @@ public interface IProductionFlowService
 
     Task<ServiceResult> PartialInventoryInAsync(PartialInventoryInDto dto, int actorUserId, string actorName, string actorRole, CancellationToken cancellationToken = default);
 
-    // Reingreso Bodeguero/Admin desde etapa (material → StockMovement; producto → mismo núcleo que PartialInventoryIn)
+    // Reingreso EncargadoDeBodega/Admin desde etapa (material → StockMovement; producto → mismo núcleo que PartialInventoryIn)
     Task<ServiceResult> RegisterStageReentryAsync(
         StageReentryDto dto,
         int actorUserId,

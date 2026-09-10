@@ -9,16 +9,16 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
-// Cola de bodega para materiales asociados a órdenes de producción (extensión)
-[Authorize(Roles = UserRoles.Bodeguero)]
-public class BodegaOrdenesController : Controller
+// Cola de planta de inventario para materiales asociados a órdenes de producción (extensión)
+[Authorize(Roles = UserRoles.EncargadoDeBodega)]
+public class PlantasInventarioOrdenesController : Controller
 {
     private readonly IOrderMaterialService _orderMaterialService;
     private readonly IProductionOrderService _orderService;
     private readonly IProductionFlowService _flowService;
     private readonly IInventoryService _inventoryService;
 
-    public BodegaOrdenesController(
+    public PlantasInventarioOrdenesController(
         IOrderMaterialService orderMaterialService,
         IProductionOrderService orderService,
         IProductionFlowService flowService,
@@ -33,9 +33,9 @@ public class BodegaOrdenesController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        return View(new BodegaOrdenesIndexViewModel
+        return View(new PlantasInventarioOrdenesIndexViewModel
         {
-            Orders = await _orderMaterialService.GetOrdersForBodegaAsync(cancellationToken),
+            Orders = await _orderMaterialService.GetOrdersForPlantaInventarioAsync(cancellationToken),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -49,7 +49,7 @@ public class BodegaOrdenesController : Controller
         if (detail.MaterialsStatus == Domain.Enums.OrderMaterialsStatus.NoAplica)
             return RedirectToAction(nameof(Index));
 
-        return View(new BodegaOrdenDetailViewModel
+        return View(new PlantaInventarioOrdenDetailViewModel
         {
             Detail = detail,
             Message = TempData["Message"] as string,
@@ -57,7 +57,7 @@ public class BodegaOrdenesController : Controller
         });
     }
 
-    // Gap #14: reingreso desde etapas MES hacia bodega / inventario terminado
+    // Gap #14: reingreso desde etapas MES hacia plantaInventario / inventario terminado
     [HttpGet]
     public async Task<IActionResult> Reingreso(int? orderId, CancellationToken cancellationToken)
     {
@@ -67,12 +67,12 @@ public class BodegaOrdenesController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reingreso(
-        [Bind(Prefix = "Form")] BodegaReingresoForm form,
+        [Bind(Prefix = "Form")] PlantaInventarioReingresoForm form,
         CancellationToken cancellationToken)
     {
-        if (!TryGetActor(out var bodegueroId, out var nombre))
+        if (!TryGetActor(out var encargadoDeBodegaId, out var nombre))
         {
-            TempData["Message"] = "Sesión de bodeguero no válida.";
+            TempData["Message"] = "Sesión de encargado de bodega no válida.";
             TempData["IsSuccess"] = false;
             return RedirectToAction(nameof(Reingreso), new { orderId = form.OrderId });
         }
@@ -87,9 +87,9 @@ public class BodegaOrdenesController : Controller
 
         var result = await _flowService.RegisterStageReentryAsync(
             new StageReentryDto(form.OrderId, form.StageId, form.Quantity, materialId, form.Observations),
-            bodegueroId,
+            encargadoDeBodegaId,
             nombre,
-            UserRoles.Bodeguero,
+            UserRoles.EncargadoDeBodega,
             cancellationToken);
 
         TempData["Message"] = result.Message;
@@ -111,9 +111,9 @@ public class BodegaOrdenesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Deliver([Bind(Prefix = "Deliver")] DeliverOrderMaterialsForm form, CancellationToken cancellationToken)
     {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var bodegueroId))
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var encargadoDeBodegaId))
         {
-            TempData["Message"] = "Sesión de bodeguero no válida.";
+            TempData["Message"] = "Sesión de encargado de bodega no válida.";
             TempData["IsSuccess"] = false;
             return RedirectToAction(nameof(Index));
         }
@@ -124,7 +124,7 @@ public class BodegaOrdenesController : Controller
 
         var result = await _orderMaterialService.DeliverAsync(
             new DeliverOrderMaterialsDto(form.OrderId, items, form.Observations),
-            bodegueroId,
+            encargadoDeBodegaId,
             cancellationToken);
 
         TempData["Message"] = result.Message;
@@ -132,7 +132,7 @@ public class BodegaOrdenesController : Controller
         return RedirectToAction(nameof(Detail), new { id = form.OrderId });
     }
 
-    private async Task<BodegaReingresoViewModel> BuildReingresoViewModel(
+    private async Task<PlantaInventarioReingresoViewModel> BuildReingresoViewModel(
         int? orderId,
         CancellationToken cancellationToken)
     {
@@ -143,7 +143,7 @@ public class BodegaOrdenesController : Controller
         if (orderId is int oid and > 0)
         {
             var uid = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
-            var mes = await _flowService.GetMesDetailAsync(oid, uid, UserRoles.Bodeguero, cancellationToken);
+            var mes = await _flowService.GetMesDetailAsync(oid, uid, UserRoles.EncargadoDeBodega, cancellationToken);
             if (mes is not null)
             {
                 stages = mes.Stages
@@ -152,13 +152,13 @@ public class BodegaOrdenesController : Controller
             }
         }
 
-        return new BodegaReingresoViewModel
+        return new PlantaInventarioReingresoViewModel
         {
             Orders = orders,
             Materials = materials,
             Stages = stages,
             StageNames = ProductionFlowService.DefaultStageNames,
-            Form = new BodegaReingresoForm
+            Form = new PlantaInventarioReingresoForm
             {
                 OrderId = orderId ?? 0,
                 Quantity = 1
@@ -171,7 +171,7 @@ public class BodegaOrdenesController : Controller
     private bool TryGetActor(out int userId, out string nombre)
     {
         userId = 0;
-        nombre = User.Identity?.Name ?? "Bodeguero";
+        nombre = User.Identity?.Name ?? "Encargado de bodega";
         return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId) && userId > 0;
     }
 }

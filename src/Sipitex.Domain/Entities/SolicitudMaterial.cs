@@ -34,17 +34,17 @@ public class SolicitudMaterial
 
     public DateTime? FechaResolucion { get; set; }
 
-    // Bodeguero (u otro actor) que resolvió la solicitud
+    // EncargadoDeBodega (u otro actor) que resolvió la solicitud
     public int? ResueltoPorId { get; set; }
     public User? ResueltoPor { get; set; }
 
     public string? Observaciones { get; set; }
 
-    // FK obligatoria a la bodega que atiende esta solicitud (default 1 = Bodega 1, alineado al backfill)
-    public int BodegaId { get; set; } = 1;
+    // FK obligatoria a la plantaInventario que atiende esta solicitud (default 1 = PlantaInventario 1, alineado al backfill)
+    public int PlantaInventarioId { get; set; } = 1;
 
-    // Navegación a la bodega
-    public Bodega Bodega { get; set; } = null!;
+    // Navegación a la plantaInventario
+    public PlantaInventario PlantaInventario { get; set; } = null!;
 
     public ICollection<DetalleSolicitudMaterial> Detalles { get; set; } = new List<DetalleSolicitudMaterial>();
 

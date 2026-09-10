@@ -46,7 +46,7 @@ La base de datos SQLite (`sipitex.db`) se crea automáticamente al iniciar media
 |--------|------------|-----|
 | `admin@sipitex.test` | `Admin123!` | Administrador |
 | `instructor@sipitex.test` | `Instructor123!` | Instructor |
-| `bodega@sipitex.test` | `Bodega123!` | Bodeguero |
+| `bodega@sipitex.test` | `Bodega123!` | Encargado de bodega |
 
 ## Docker Compose
 
@@ -60,10 +60,11 @@ Abrir `http://localhost:8080`. La base de datos persiste en el volumen `sipitex-
 
 | Módulo | Ruta | Descripción |
 |--------|------|-------------|
-| Inventario | `/Inventario` | Materiales, stock, solicitudes de bodega |
+| Inventario | `/Inventario` | Materiales, stock, solicitudes de planta de inventario |
 | Órdenes | `/Ordenes` | Órdenes de producción y avance |
 | MRP | `/Mrp` | BOM y simulación de requerimientos |
-| Fichas | `/Fichas` | Registro de producción por ficha |
+| Fichas | `/Fichas` | Registro de producción por grupo SENA |
+| Plantas de inventario | `/PlantasInventario` | Catálogo de plantas de inventario |
 | Calidad | `/Calidad` | Inspecciones de calidad |
 | Estadísticas | `/Estadisticas` | KPIs y gráficos |
 | Reportes | `/Reportes` | Exportación PDF / Excel |

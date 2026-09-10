@@ -153,7 +153,7 @@ public class SolicitudMaterialTipoMigrationTests
                     .SingleAsync(s => s.Codigo == "SOL-MIG-1");
                 Assert.Equal(SolicitudMaterialTipo.PorFicha, solicitud.Tipo);
                 Assert.Equal("FICHA-MIG", (await context.Fichas.AsNoTracking()
-                    .SingleAsync(f => f.Id == solicitud.FichaId)).FichaCode);
+                    .SingleAsync(f => f.Id == solicitud.FichaId)).NumeroGrupo);
             }
         }
         finally
@@ -189,7 +189,7 @@ public class SolicitudMaterialTipoMigrationTests
 
                 var ficha = new Ficha
                 {
-                    FichaCode = "F-RT",
+                    NumeroGrupo = "F-RT",
                     ProcessName = "Corte",
                     InstructorName = "Round Trip",
                     Turno = ""
@@ -203,7 +203,7 @@ public class SolicitudMaterialTipoMigrationTests
                     Tipo = SolicitudMaterialTipo.PorFicha,
                     FichaId = ficha.Id,
                     SolicitanteId = user.Id,
-                    BodegaId = 1,
+                    PlantaInventarioId = 1,
                     Estado = SolicitudMaterialEstado.Pendiente,
                     FechaSolicitud = DateTime.UtcNow
                 });

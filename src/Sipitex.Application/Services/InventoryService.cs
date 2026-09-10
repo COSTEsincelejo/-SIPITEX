@@ -8,7 +8,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
-// Inventario de materiales y solicitudes de bodega
+// Inventario de materiales y solicitudes de planta de inventario
 public class InventoryService : IInventoryService
 {
     private readonly IMaterialRepository _materialRepository;
@@ -185,7 +185,7 @@ public class InventoryService : IInventoryService
         IEnumerable<MaterialRequest> scoped = requests;
         if (IsInstructor(viewerRole, viewerUserId))
             scoped = requests.Where(r => r.SolicitanteId == viewerUserId);
-        else if (!IsAdmin(viewerRole) && !IsBodeguero(viewerRole))
+        else if (!IsAdmin(viewerRole) && !IsEncargadoDeBodega(viewerRole))
             scoped = [];
 
         return scoped.Select(r => new MaterialRequestDto(
@@ -224,7 +224,7 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok("Solicitud creada.");
     }
 
-    // Bodega aprueba: descuenta stock y marca la solicitud
+    // PlantaInventario aprueba: descuenta stock y marca la solicitud
     public async Task<ServiceResult> ApproveRequestAsync(
         int requestId,
         int actorUserId,
@@ -239,7 +239,7 @@ public class InventoryService : IInventoryService
         if (request is null || request.Status != RequestStatus.Pendiente)
             return ServiceResult.Fail("Solicitud no válida.");
 
-        // Acá reviso si alcanza el stock en bodega
+        // Acá reviso si alcanza el stock en planta de inventario
         if (request.Material.Stock < request.Quantity)
             return ServiceResult.Fail("Stock insuficiente para aprobar solicitud.");
 
@@ -288,7 +288,7 @@ public class InventoryService : IInventoryService
         if (products.Count > 0)
         {
             return ServiceResult.Fail(
-                $"No se puede eliminar «{material.Name}»: está en fichas técnicas de {string.Join(", ", products)}. Quítelo de esas recetas antes.");
+                $"No se puede eliminar «{material.Name}»: está en ficha técnica de {string.Join(", ", products)}. Quítelo de esas recetas antes.");
         }
 
         _materialRepository.Remove(material);
@@ -311,8 +311,8 @@ public class InventoryService : IInventoryService
     private static bool IsAdmin(string? role) =>
         string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsBodeguero(string? role) =>
-        string.Equals(role, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase);
+    private static bool IsEncargadoDeBodega(string? role) =>
+        string.Equals(role, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsInstructor(string? role, int? userId) =>
         userId is > 0

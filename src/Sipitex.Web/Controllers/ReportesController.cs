@@ -49,7 +49,7 @@ public class ReportesController : Controller
         });
     }
 
-    // Inventario global: Admin/Bodeguero. Instructor sin acceso (alineado gap #12 / PR #47).
+    // Inventario global: Admin/EncargadoDeBodega. Instructor sin acceso (alineado gap #12 / PR #47).
     [HttpGet]
     public async Task<IActionResult> Inventario(
         string format = "pdf",
@@ -113,7 +113,7 @@ public class ReportesController : Controller
             ResolveFilter(instructorId, fichaId, jornada, fecha, mes, anio),
             cancellationToken));
 
-    // Actividad del instructor: Instructor forzado a sí mismo; Admin/Bodeguero eligen en query
+    // Actividad del instructor: Instructor forzado a sí mismo; Admin/EncargadoDeBodega eligen en query
     [HttpGet]
     public async Task<IActionResult> ActividadInstructor(
         string format = "pdf",
@@ -131,7 +131,7 @@ public class ReportesController : Controller
         return FileResult(await _reportService.ExportActividadInstructorAsync(format, filter, cancellationToken));
     }
 
-    // Instructor: siempre InstructorId = NameIdentifier (ignora query). Admin/Bodeguero: query intacta.
+    // Instructor: siempre InstructorId = NameIdentifier (ignora query). Admin/EncargadoDeBodega: query intacta.
     private ReportFilterDto? ResolveFilter(
         int? instructorId,
         int? fichaId,

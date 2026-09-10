@@ -2,7 +2,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Domain.Entities;
 
-// Material de bodega (tela, hilo, botones, etc.)
+// Material de planta de inventario (tela, hilo, botones, etc.)
 public class Material
 {
     // PK
@@ -17,7 +17,7 @@ public class Material
     // Unidad de medida: Metros, Unidades o Kg
     public MaterialUnit Unit { get; set; }
 
-    // Cantidad actual en bodega (puede tener decimales)
+    // Cantidad actual en planta de inventario (puede tener decimales)
     public decimal Stock { get; set; }
 
     // Umbral mínimo; si Stock < MinStock dispara alerta de stock bajo
@@ -29,11 +29,11 @@ public class Material
     // Fecha de la última entrada/ajuste de stock (solo día, sin hora)
     public DateOnly LastEntryDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
-    // FK obligatoria a la bodega dueña de este material (default 1 = Bodega 1, alineado al backfill)
-    public int BodegaId { get; set; } = 1;
+    // FK obligatoria a la plantaInventario dueña de este material (default 1 = PlantaInventario 1, alineado al backfill)
+    public int PlantaInventarioId { get; set; } = 1;
 
-    // Navegación a la bodega
-    public Bodega Bodega { get; set; } = null!;
+    // Navegación a la plantaInventario
+    public PlantaInventario PlantaInventario { get; set; } = null!;
 
     // Relación 1-N: en qué ítems del BOM aparece este material
     public ICollection<BomItem> BomItems { get; set; } = [];

@@ -2,12 +2,12 @@ using Sipitex.Application.DTOs;
 
 namespace Sipitex.Application.Interfaces.Services;
 
-// Materiales opcionales de una orden + entrega desde bodega
+// Materiales opcionales de una orden + entrega desde planta de inventario
 public interface IOrderMaterialService
 {
     Task<OrderMaterialsDetailDto?> GetDetailAsync(int orderId, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<ProductionOrderDto>> GetOrdersForBodegaAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ProductionOrderDto>> GetOrdersForPlantaInventarioAsync(CancellationToken cancellationToken = default);
 
     Task<ServiceResult> AddMaterialAsync(AddOrderMaterialDto dto, CancellationToken cancellationToken = default);
 
@@ -20,6 +20,6 @@ public interface IOrderMaterialService
 
     Task<ServiceResult> DeliverAsync(
         DeliverOrderMaterialsDto dto,
-        int bodegueroId,
+        int encargadoDeBodegaId,
         CancellationToken cancellationToken = default);
 }

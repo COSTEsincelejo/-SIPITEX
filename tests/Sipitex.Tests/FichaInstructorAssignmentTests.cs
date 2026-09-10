@@ -43,7 +43,7 @@ public class FichaInstructorAssignmentTests
         Assert.True(result.Success);
         _fichas.Verify(r => r.AddAsync(
             It.Is<Ficha>(f =>
-                f.FichaCode == "FICHA-N1"
+                f.NumeroGrupo == "FICHA-N1"
                 && f.Instructors.Count == 2
                 && f.InstructorUserId == 10
                 && f.InstructorName.Contains("Carlos")
@@ -78,7 +78,7 @@ public class FichaInstructorAssignmentTests
         var ficha = new Ficha
         {
             Id = 5,
-            FichaCode = "FICHA-T1",
+            NumeroGrupo = "FICHA-T1",
             InstructorUserId = 10,
             InstructorName = "Laura Gómez",
             Instructors =
@@ -104,7 +104,7 @@ public class FichaInstructorAssignmentTests
         var ficha = new Ficha
         {
             Id = 5,
-            FichaCode = "FICHA-T1",
+            NumeroGrupo = "FICHA-T1",
             InstructorUserId = 10,
             Instructors =
             [
@@ -128,7 +128,7 @@ public class FichaInstructorAssignmentTests
             new Ficha
             {
                 Id = 1,
-                FichaCode = "F1",
+                NumeroGrupo = "F1",
                 ProcessName = "Trazo",
                 InstructorUserId = 99,
                 InstructorName = "Otro",
@@ -141,7 +141,7 @@ public class FichaInstructorAssignmentTests
             new Ficha
             {
                 Id = 2,
-                FichaCode = "F2",
+                NumeroGrupo = "F2",
                 InstructorUserId = 20,
                 Instructors = [new FichaInstructor { UserId = 20, User = Instructor(20, "Carlos") }]
             }
@@ -150,7 +150,7 @@ public class FichaInstructorAssignmentTests
         var result = await CreateSut().GetFichasAsync(10, UserRoles.Instructor, "Laura Gómez");
 
         Assert.Single(result);
-        Assert.Equal("F1", result[0].FichaCode);
+        Assert.Equal("F1", result[0].NumeroGrupo);
         Assert.Equal(2, result[0].Instructors!.Count);
     }
 }

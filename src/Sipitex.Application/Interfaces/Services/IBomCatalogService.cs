@@ -2,10 +2,10 @@ using Sipitex.Application.DTOs;
 
 namespace Sipitex.Application.Interfaces.Services;
 
-// CRUD de fichas técnicas (productos BOM) y asignación a instructores
+// CRUD de ficha técnica (productos BOM) y asignación a instructores
 public interface IBomCatalogService
 {
-    // assignedInstructorUserId: si se indica, solo fichas técnicas asignadas a ese instructor
+    // assignedInstructorUserId: si se indica, solo ficha técnica asignadas a ese instructor
     Task<IReadOnlyList<BomProductListItemDto>> GetProductsAsync(
         int? assignedInstructorUserId = null,
         CancellationToken cancellationToken = default);
@@ -26,6 +26,6 @@ public interface IBomCatalogService
         int instructorUserId,
         CancellationToken cancellationToken = default);
 
-    // Instructores activos disponibles para asignar a fichas técnicas
+    // Instructores activos disponibles para asignar a ficha técnica
     Task<IReadOnlyList<InstructorOptionDto>> GetAssignableInstructorsAsync(CancellationToken cancellationToken = default);
 }

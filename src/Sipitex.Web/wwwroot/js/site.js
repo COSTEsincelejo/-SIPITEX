@@ -251,7 +251,7 @@
       reindex();
     });
 
-    // Bodega: validar CantidadAprobada <= max (min solicitada, stock) antes de enviar
+    // PlantaInventario: validar CantidadAprobada <= max (min solicitada, stock) antes de enviar
     document.querySelectorAll('[data-resolucion-form]').forEach((form) => {
       form.addEventListener('submit', (e) => {
         const inputs = [...form.querySelectorAll('input[data-max-aprobada]')];
@@ -282,18 +282,18 @@
 
     const apiUrl = root.getAttribute('data-search-api') || '/api/busqueda';
     const modules = [
-      { texto: 'Inventario', url: '/Inventario', keywords: 'inventario materiales stock bodega', icon: 'fa-boxes-stacked' },
+      { texto: 'Inventario', url: '/Inventario', keywords: 'inventario materiales stock plantaInventario', icon: 'fa-boxes-stacked' },
       { texto: 'Órdenes de producción', url: '/Ordenes', keywords: 'ordenes órdenes producción op', icon: 'fa-clipboard-list' },
       { texto: 'MRP / Materiales', url: '/Mrp', keywords: 'mrp bom materiales requerimientos ficha técnica', icon: 'fa-diagram-project' },
       { texto: 'Fichas & producción', url: '/Fichas', keywords: 'fichas producción instructor turno', icon: 'fa-people-group' },
       { texto: 'Mis solicitudes', url: '/SolicitudesMaterial', keywords: 'solicitudes material pedido', icon: 'fa-clipboard-list' },
-      { texto: 'Solicitudes de materiales', url: '/BodegaSolicitudes', keywords: 'bodega solicitudes materiales cola', icon: 'fa-truck-ramp-box' },
+      { texto: 'Solicitudes de materiales', url: '/PlantaInventarioSolicitudes', keywords: 'plantaInventario solicitudes materiales cola', icon: 'fa-truck-ramp-box' },
       { texto: 'Control de calidad', url: '/Calidad', keywords: 'calidad inspección reproceso', icon: 'fa-clipboard-check' },
       { texto: 'Estadísticas', url: '/Estadisticas', keywords: 'estadísticas kpi dashboard gráficos', icon: 'fa-chart-line' },
       { texto: 'Reportes', url: '/Reportes', keywords: 'reportes pdf excel exportar', icon: 'fa-file-export' },
       { texto: 'Alertas', url: '/Alertas', keywords: 'alertas notificaciones correo', icon: 'fa-bell' },
       { texto: 'Usuarios', url: '/Account/Users', keywords: 'usuarios administración cuentas', icon: 'fa-users-gear' },
-      { texto: 'Bodegas', url: '/Bodegas', keywords: 'bodegas administración almacén bodeguero', icon: 'fa-warehouse' },
+      { texto: 'Plantas de inventario', url: '/PlantasInventario', keywords: 'plantas inventario administración almacén encargado bodega bodega', icon: 'fa-warehouse' },
       { texto: 'Mi perfil', url: '/Account/Profile', keywords: 'perfil cuenta foto contraseña', icon: 'fa-user' }
     ];
 

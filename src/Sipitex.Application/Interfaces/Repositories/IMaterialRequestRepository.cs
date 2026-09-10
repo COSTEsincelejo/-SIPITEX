@@ -2,7 +2,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Interfaces.Repositories;
 
-// Solicitudes de material hacia bodega
+// Solicitudes de material hacia plantaInventario
 public interface IMaterialRequestRepository
 {
     Task<IReadOnlyList<MaterialRequest>> GetAllAsync(CancellationToken cancellationToken = default);

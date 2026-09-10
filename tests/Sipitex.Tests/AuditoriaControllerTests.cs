@@ -16,12 +16,12 @@ namespace Sipitex.Tests;
 public class AuditoriaControllerTests
 {
     [Fact]
-    public void AuditoriaController_SoloAdministrador_NoBodegueroNiInstructor()
+    public void AuditoriaController_SoloAdministrador_NoEncargadoDeBodegaNiInstructor()
     {
         var classAttr = typeof(AuditoriaController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(classAttr);
         Assert.Equal(UserRoles.Administrador, classAttr!.Roles);
-        Assert.DoesNotContain(UserRoles.Bodeguero, classAttr.Roles!, StringComparison.Ordinal);
+        Assert.DoesNotContain(UserRoles.EncargadoDeBodega, classAttr.Roles!, StringComparison.Ordinal);
         Assert.DoesNotContain(UserRoles.Instructor, classAttr.Roles!, StringComparison.Ordinal);
     }
 
@@ -170,7 +170,7 @@ public class MrpActivityLogInstrumentationTests
     public async Task Edit_OnSuccess_LogsUpdateBom()
     {
         _bom.Setup(s => s.UpdateAsync(5, It.IsAny<UpsertBomProductDto>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServiceResult.Ok("Ficha técnica «Camisa» actualizada."));
+            .ReturnsAsync(ServiceResult.Ok("ficha técnica «Camisa» actualizada."));
 
         var controller = CreateController();
         var form = new BomProductEditForm { ProductName = "Camisa" };

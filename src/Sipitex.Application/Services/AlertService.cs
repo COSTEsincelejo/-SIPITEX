@@ -16,7 +16,7 @@ public class AlertService : IAlertService
     private readonly IUserRepository _userRepository;
     // Repo de materiales para detectar stock bajo
     private readonly IMaterialRepository _materialRepository;
-    // Repo de solicitudes pendientes de bodega
+    // Repo de solicitudes pendientes de planta de inventario
     private readonly IMaterialRequestRepository _requestRepository;
     // Repo de órdenes de producción (vencimiento, atrasos)
     private readonly IProductionOrderRepository _orderRepository;
@@ -253,7 +253,7 @@ public class AlertService : IAlertService
             events.Add(new AlertEvent(
                 AlertType.SolicitudPendiente,
                 $"SIPITEX · {pending.Count} solicitud(es) pendiente(s)",
-                $"Solicitudes pendientes de bodega:\n{lines}\n\nApruebe o rechace en Inventario."));
+                $"Solicitudes pendientes de planta de inventario:\n{lines}\n\nApruebe o rechace en Inventario."));
         }
 
         // Traigo todas las órdenes para revisar plazos

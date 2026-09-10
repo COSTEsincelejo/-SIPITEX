@@ -13,10 +13,10 @@ public class ProductionOrderMaterialRequirement
     public int MaterialId { get; set; }
     public Material Material { get; set; } = null!;
 
-    // Cantidad que la orden necesita que bodega entregue
+    // Cantidad que la orden necesita que plantaInventario entregue
     public decimal QuantityRequired { get; set; }
 
-    // Acumulado realmente entregado por bodega (nunca > QuantityRequired)
+    // Acumulado realmente entregado por plantaInventario (nunca > QuantityRequired)
     public decimal QuantityDelivered { get; set; }
 
     // Unidad congelada al asociar (reutiliza MaterialUnit del inventario)

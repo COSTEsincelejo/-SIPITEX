@@ -12,7 +12,7 @@ public interface IProductionOrderService
         string? viewerName = null,
         CancellationToken cancellationToken = default);
 
-    // Admin/Bodeguero: siempre. Instructor: solo si es responsable asignado (etapa MES o ficha).
+    // Admin/EncargadoDeBodega: siempre. Instructor: solo si es responsable asignado (etapa MES o ficha).
     Task<bool> CanAccessOrderAsync(
         int orderId,
         int? viewerUserId,

@@ -125,7 +125,7 @@
                         }
                         else if (order.Status != OrderStatus.Finalizada && !order.CanRegisterProduction)
                         {
-                            <span class="hint">Pendiente bodega</span>
+                            <span class="hint">Pendiente planta de inventario</span>
                         }
                         @if (User.IsInRole("Administrador") && order.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada))
                         {

@@ -1,7 +1,7 @@
-@model BodegaOrdenesIndexViewModel
+@model PlantasInventarioOrdenesIndexViewModel
 @{
     ViewData["Title"] = "Materiales de órdenes";
-    ViewData["Breadcrumb"] = "SIPITEX / Operación / Bodega · Órdenes";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / PlantaInventario · Órdenes";
     Layout = "_Layout";
 }
 
@@ -33,7 +33,7 @@
             <tbody>
             @if (Model.Orders.Count == 0)
             {
-                <tr><td colspan="5"><span class="hint">No hay órdenes con materiales pendientes de bodega.</span></td></tr>
+                <tr><td colspan="5"><span class="hint">No hay órdenes con materiales pendientes de planta de inventario.</span></td></tr>
             }
             @foreach (var o in Model.Orders)
             {

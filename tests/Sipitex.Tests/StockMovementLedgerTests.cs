@@ -143,7 +143,7 @@ public class StockMovementLedgerTests
             Id = 1,
             OrderNumber = "OP-101",
             Status = OrderStatus.EnProceso,
-            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega
+            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario
         };
         var line = new ProductionOrderMaterialRequirement
         {
@@ -178,7 +178,7 @@ public class StockMovementLedgerTests
 
         var result = await sut.DeliverAsync(
             new DeliverOrderMaterialsDto(1, [new DeliverOrderMaterialItemDto(9, 20)], null),
-            bodegueroId: 3);
+            encargadoDeBodegaId: 3);
 
         Assert.True(result.Success);
         Assert.NotNull(captured);

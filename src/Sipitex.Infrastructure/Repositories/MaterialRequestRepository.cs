@@ -5,7 +5,7 @@ using Sipitex.Infrastructure.Persistence; // SipitexDbContext
 
 namespace Sipitex.Infrastructure.Repositories;
 
-// Solicitudes de salida de materiales (instructor pide, bodeguero aprueba)
+// Solicitudes de salida de materiales (instructor pide, encargadoDeBodega aprueba)
 public class MaterialRequestRepository : IMaterialRequestRepository
 {
     private readonly SipitexDbContext _context;

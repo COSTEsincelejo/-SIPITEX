@@ -92,7 +92,7 @@ public class SolicitudesMaterialController : Controller
                 form.DescripcionLibre,
                 detalles,
                 form.Observaciones,
-                form.BodegaId),
+                form.PlantaInventarioId),
             solicitanteId,
             role,
             name,
@@ -164,7 +164,7 @@ public class SolicitudesMaterialController : Controller
         return new SolicitarInsumosViewModel
         {
             Form = form ?? new CreateInsumosLibresForm(),
-            Fichas = fichas.Select(f => (f.Id, f.FichaCode)).ToList(),
+            Fichas = fichas.Select(f => (f.Id, f.NumeroGrupo)).ToList(),
             Ordenes = orders.Select(o => (o.Id, $"{o.OrderNumber} · {o.ProductName}")).ToList(),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false

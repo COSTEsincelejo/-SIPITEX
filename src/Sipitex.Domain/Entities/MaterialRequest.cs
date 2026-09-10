@@ -2,7 +2,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Domain.Entities;
 
-// Solicitud de material: producción pide X a bodega
+// Solicitud de material: producción pide X a plantaInventario
 public class MaterialRequest
 {
     // PK
@@ -29,7 +29,7 @@ public class MaterialRequest
     // Navegación al solicitante
     public User? Solicitante { get; set; }
 
-    // Estado: arranca Pendiente hasta que bodega apruebe/rechace
+    // Estado: arranca Pendiente hasta que plantaInventario apruebe/rechace
     public RequestStatus Status { get; set; } = RequestStatus.Pendiente;
 
     // Momento en que se creó la solicitud

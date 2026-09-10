@@ -8,7 +8,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
-// Flujo MES aditivo: no altera consumo BOM ni materiales de bodega
+// Flujo MES aditivo: no altera consumo BOM ni materiales de planta de inventario
 public class ProductionFlowService : IProductionFlowService
 {
     public static readonly string[] DefaultStageNames =
@@ -455,7 +455,7 @@ public class ProductionFlowService : IProductionFlowService
         return result;
     }
 
-    // Gap #14: reingreso Bodeguero/Admin desde Trazo…Terminado (material → ledger; producto → PartialInventoryIn)
+    // Gap #14: reingreso EncargadoDeBodega/Admin desde Trazo…Terminado (material → ledger; producto → PartialInventoryIn)
     public async Task<ServiceResult> RegisterStageReentryAsync(
         StageReentryDto dto,
         int actorUserId,
@@ -464,7 +464,7 @@ public class ProductionFlowService : IProductionFlowService
         CancellationToken cancellationToken = default)
     {
         if (!IsWarehouseOrAdmin(actorRole))
-            return ServiceResult.Fail("Solo Bodeguero o Administrador pueden registrar reingresos desde etapas.");
+            return ServiceResult.Fail("Solo Encargado de bodega o Administrador pueden registrar reingresos desde etapas.");
 
         if (dto.Quantity <= 0) return ServiceResult.Fail("Cantidad inválida.");
 
@@ -473,7 +473,7 @@ public class ProductionFlowService : IProductionFlowService
         var closed = RejectIfOrderClosed(orderGate);
         if (closed is not null) return closed;
 
-        // Bodeguero/Admin: no exige permiso de instructor por etapa (gap #14)
+        // EncargadoDeBodega/Admin: no exige permiso de instructor por etapa (gap #14)
         var stage = await _flow.GetStageByIdAsync(dto.StageId, cancellationToken);
         if (stage is null) return ServiceResult.Fail("Etapa no encontrada.");
         if (stage.ProductionOrderId != dto.OrderId)
@@ -656,7 +656,7 @@ public class ProductionFlowService : IProductionFlowService
 
     private static bool IsWarehouseOrAdmin(string actorRole) =>
         string.Equals(actorRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase)
-        || string.Equals(actorRole, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase);
+        || string.Equals(actorRole, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase);
 
     // Núcleo compartido con PartialInventoryIn (producto terminado) — sin SaveChanges
     private async Task<ServiceResult> ApplyFinishedGoodInventoryInAsync(
@@ -730,7 +730,7 @@ public class ProductionFlowService : IProductionFlowService
         return ServiceResult.Ok($"Ingresadas {quantity} unidades al inventario de producto terminado. Orden sigue abierta si falta meta.");
     }
 
-    // Material que regresa a bodega desde una etapa MES + StockMovement Entrada (gap #14/#15)
+    // Material que regresa a plantaInventario desde una etapa MES + StockMovement Entrada (gap #14/#15)
     private async Task<ServiceResult> ApplyMaterialStageReentryAsync(
         int orderId,
         ProductionOrderStage stage,
@@ -780,7 +780,7 @@ public class ProductionFlowService : IProductionFlowService
         }, cancellationToken);
 
         await AddHistory(order.Id, ProductionHistoryEventType.PartialInventoryIn,
-            $"Reingreso a bodega: +{quantity} «{material.Name}» desde «{stage.Name}».",
+            $"Reingreso a plantaInventario: +{quantity} «{material.Name}» desde «{stage.Name}».",
             actorUserId, actorName, stage.Id, stage.Name, cancellationToken, quantity);
 
         return ServiceResult.Ok($"Reingreso registrado: +{quantity} de «{material.Name}» desde «{stage.Name}».");

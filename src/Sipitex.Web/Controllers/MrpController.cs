@@ -10,7 +10,7 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
-// BOM, fichas técnicas y simulación MRP
+// BOM, ficha técnica y simulación MRP
 [Authorize]
 public class MrpController : Controller
 {
@@ -31,7 +31,7 @@ public class MrpController : Controller
         _activityLog = activityLog;
     }
 
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero},{UserRoles.Instructor}")]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega},{UserRoles.Instructor}")]
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
@@ -179,7 +179,7 @@ public class MrpController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // Delete: misma policy que Create/Edit (Admin, Bodeguero o Instructor con Mrp.GestionarFichas)
+    // Delete: misma policy que Create/Edit (Admin, EncargadoDeBodega o Instructor con Mrp.GestionarFichas)
     [Authorize(Policy = AuthorizationPolicyNames.PuedeGestionarFichasTecnicas)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -235,8 +235,8 @@ public class MrpController : Controller
 
     private async Task<IReadOnlyList<BomProductListItemDto>> GetScopedProductsAsync(CancellationToken cancellationToken)
     {
-        // Instructor con Mrp.GestionarFichas (o Admin/Bodeguero): ve todas.
-        // Instructor solo consulta: solo fichas técnicas asignadas (gap #4).
+        // Instructor con Mrp.GestionarFichas (o Admin/EncargadoDeBodega): ve todas.
+        // Instructor solo consulta: solo ficha técnica asignadas (gap #4).
         if (IsConsultaInstructorScoped()
             && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var instructorId))
         {
@@ -249,7 +249,7 @@ public class MrpController : Controller
     private bool IsConsultaInstructorScoped() =>
         User.IsInRole(UserRoles.Instructor)
         && !User.IsInRole(UserRoles.Administrador)
-        && !User.IsInRole(UserRoles.Bodeguero)
+        && !User.IsInRole(UserRoles.EncargadoDeBodega)
         && !PermissionRules.PuedeGestionarFichasTecnicas(User);
 
     private async Task<BomProductEditViewModel> BuildEditVm(

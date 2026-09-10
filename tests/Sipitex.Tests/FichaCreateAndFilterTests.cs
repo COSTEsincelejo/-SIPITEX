@@ -39,7 +39,7 @@ public class FichaCreateAndFilterTests
         Assert.True(result.Success);
         Assert.Contains("FICHA-N1", result.Message);
         _fichas.Verify(r => r.AddAsync(
-            It.Is<Ficha>(f => f.FichaCode == "FICHA-N1" && f.Turno == "Mañana" && f.ProcessName == "Corte"),
+            It.Is<Ficha>(f => f.NumeroGrupo == "FICHA-N1" && f.Turno == "Mañana" && f.ProcessName == "Corte"),
             It.IsAny<CancellationToken>()), Times.Once);
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -67,7 +67,7 @@ public class FichaCreateAndFilterTests
                 Id = 1,
                 Units = 5,
                 SessionDate = DateTime.Now,
-                Ficha = new Ficha { FichaCode = "F1", InstructorName = "Laura Gómez", Turno = "Mañana" },
+                Ficha = new Ficha { NumeroGrupo = "F1", InstructorName = "Laura Gómez", Turno = "Mañana" },
                 ProductionOrder = new ProductionOrder { OrderNumber = "OP-001" }
             },
             new ProductionSession
@@ -75,7 +75,7 @@ public class FichaCreateAndFilterTests
                 Id = 2,
                 Units = 8,
                 SessionDate = DateTime.Now,
-                Ficha = new Ficha { FichaCode = "F2", InstructorName = "Carlos Méndez", Turno = "Tarde" },
+                Ficha = new Ficha { NumeroGrupo = "F2", InstructorName = "Carlos Méndez", Turno = "Tarde" },
                 ProductionOrder = new ProductionOrder { OrderNumber = "OP-002" }
             },
             new ProductionSession
@@ -83,7 +83,7 @@ public class FichaCreateAndFilterTests
                 Id = 3,
                 Units = 3,
                 SessionDate = DateTime.Now,
-                Ficha = new Ficha { FichaCode = "F3", InstructorName = "Laura Gómez", Turno = "Tarde" },
+                Ficha = new Ficha { NumeroGrupo = "F3", InstructorName = "Laura Gómez", Turno = "Tarde" },
                 ProductionOrder = new ProductionOrder { OrderNumber = "OP-003" }
             }
         ]);
@@ -96,7 +96,7 @@ public class FichaCreateAndFilterTests
             .ToList();
 
         Assert.Single(filtered);
-        Assert.Equal("F1", filtered[0].FichaCode);
+        Assert.Equal("F1", filtered[0].NumeroGrupo);
         Assert.Equal("Mañana", filtered[0].Turno);
         Assert.Equal("Laura Gómez", filtered[0].InstructorName);
     }

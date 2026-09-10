@@ -81,12 +81,12 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
     public async Task<ServiceResult> ResolveSolicitudAsync(
         int solicitudId,
         IReadOnlyList<ResolveDetalleDto> items,
-        int bodegueroId,
+        int encargadoDeBodegaId,
         string? observaciones = null,
         CancellationToken cancellationToken = default)
     {
-        if (bodegueroId <= 0)
-            return ServiceResult.Fail("Bodeguero no válido.");
+        if (encargadoDeBodegaId <= 0)
+            return ServiceResult.Fail("Encargado de bodega no válido.");
 
         var solicitud = await _solicitudRepository.GetByIdWithDetallesAsync(solicitudId, cancellationToken);
         if (solicitud is null)
@@ -117,7 +117,7 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
             if (decision.CantidadAprobada > 0)
             {
                 var mapError = await EnsureDetalleMappedAsync(
-                    detalle, decision, solicitud.BodegaId, cancellationToken);
+                    detalle, decision, solicitud.PlantaInventarioId, cancellationToken);
                 if (mapError is not null)
                     return ServiceResult.Fail(mapError);
 
@@ -137,7 +137,7 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
                 foreach (var detalle in solicitud.Detalles)
                 {
                     var cantidad = decisions[detalle.Id].CantidadAprobada;
-                    var (applyError, movement) = AplicarDecisionDetalle(detalle, cantidad, bodegueroId);
+                    var (applyError, movement) = AplicarDecisionDetalle(detalle, cantidad, encargadoDeBodegaId);
                     if (applyError is not null)
                         throw new InvalidOperationException(applyError);
 
@@ -154,7 +154,7 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
                 if (!string.IsNullOrWhiteSpace(observaciones))
                     solicitud.Observaciones = observaciones.Trim();
 
-                ActualizarEstadoSolicitud(solicitud, bodegueroId);
+                ActualizarEstadoSolicitud(solicitud, encargadoDeBodegaId);
 
                 var hayEntrega = solicitud.Detalles.Any(d => (d.CantidadAprobada ?? 0) > 0);
                 if (hayEntrega)
@@ -164,7 +164,7 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
                     {
                         Codigo = entregaCodigo,
                         SolicitudMaterialId = solicitud.Id,
-                        BodegueroId = bodegueroId,
+                        EncargadoDeBodegaId = encargadoDeBodegaId,
                         FechaEntrega = DateTime.UtcNow,
                         Observaciones = string.IsNullOrWhiteSpace(observaciones) ? null : observaciones.Trim()
                     }, ct);
@@ -203,13 +203,13 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
     private async Task<string?> EnsureDetalleMappedAsync(
         DetalleSolicitudMaterial detalle,
         ResolveDetalleDto decision,
-        int solicitudBodegaId,
+        int solicitudPlantaInventarioId,
         CancellationToken cancellationToken)
     {
         if (detalle.MaterialId is > 0 && detalle.Material is not null)
         {
-            if (detalle.Material.BodegaId != solicitudBodegaId)
-                return "El material seleccionado pertenece a otra bodega.";
+            if (detalle.Material.PlantaInventarioId != solicitudPlantaInventarioId)
+                return "El material seleccionado pertenece a otra plantaInventario.";
             return null;
         }
 
@@ -218,8 +218,8 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
             var material = await _materialRepository.GetByIdAsync(existingId, cancellationToken);
             if (material is null)
                 return "El material seleccionado para mapeo no existe.";
-            if (material.BodegaId != solicitudBodegaId)
-                return "El material seleccionado pertenece a otra bodega.";
+            if (material.PlantaInventarioId != solicitudPlantaInventarioId)
+                return "El material seleccionado pertenece a otra plantaInventario.";
             detalle.MaterialId = material.Id;
             detalle.Material = material;
             return null;
@@ -239,7 +239,7 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
                 MinStock = 0,
                 Status = MaterialStatus.Bueno,
                 LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
-                BodegaId = solicitudBodegaId
+                PlantaInventarioId = solicitudPlantaInventarioId
             };
             // Seguimiento: SaveChanges aquí queda fuera de ExecuteInTransactionAsync del Resolve.
             // Si la transacción posterior falla, el Material (Stock=0) puede quedar huérfano.

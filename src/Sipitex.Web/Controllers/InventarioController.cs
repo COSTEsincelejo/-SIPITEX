@@ -46,8 +46,8 @@ public class InventarioController : Controller
         return View(await BuildViewModel(cancellationToken));
     }
 
-    // Historial de movimientos de stock (solo Admin / Bodeguero)
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    // Historial de movimientos de stock (solo Admin / EncargadoDeBodega)
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     [HttpGet]
     public async Task<IActionResult> Movimientos(
         DateOnly? desde,
@@ -107,8 +107,8 @@ public class InventarioController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // Ajuste de stock (bodega/admin). Uso TempData porque hago redirect.
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    // Ajuste de stock (plantaInventario/admin). Uso TempData porque hago redirect.
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AdjustStock(AdjustStockForm form, CancellationToken cancellationToken)
@@ -133,7 +133,7 @@ public class InventarioController : Controller
     }
 
     // Cambia estado del material (activo, agotado, etc.)
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Bodeguero}")]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateStatus(int MaterialId, MaterialStatus Status, CancellationToken cancellationToken)

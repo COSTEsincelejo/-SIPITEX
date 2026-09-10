@@ -6,8 +6,8 @@ public class Ficha
     // PK
     public int Id { get; set; }
 
-    // Número de ficha, ej: 2871234 (único en la práctica)
-    public string FichaCode { get; set; } = string.Empty;
+    // Número de grupo, ej: 2871234 (único en la práctica)
+    public string NumeroGrupo { get; set; } = string.Empty;
 
     // Qué proceso hacen (confección, corte, etc.)
     public string ProcessName { get; set; } = string.Empty;

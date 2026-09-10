@@ -113,7 +113,7 @@ public class ActivityLogServiceTests : IDisposable
         var sut = CreateSut();
         await sut.LogAsync(7, ActivityLogActions.CreateOrder, ActivityLogEntities.ProductionOrder, "Camisa", "Cantidad=10");
         await sut.LogAsync(7, ActivityLogActions.UpdateBom, ActivityLogEntities.BomProduct, "5", "Producto=Pantalón");
-        await sut.LogAsync(7, ActivityLogActions.UpdateUser, ActivityLogEntities.User, "12", "BodegaIds=1,2");
+        await sut.LogAsync(7, ActivityLogActions.UpdateUser, ActivityLogEntities.User, "12", "PlantaInventarioIds=1,2");
 
         var orders = await sut.QueryAsync(null, null, ActivityLogActions.CreateOrder, null, 7);
         var order = Assert.Single(orders);
@@ -123,9 +123,9 @@ public class ActivityLogServiceTests : IDisposable
         var bom = await sut.QueryAsync(null, null, null, ActivityLogEntities.BomProduct, null);
         Assert.Single(bom);
 
-        var bodegaChange = await sut.QueryAsync(null, null, ActivityLogActions.UpdateUser, ActivityLogEntities.User, 7);
-        Assert.Single(bodegaChange);
-        Assert.Contains("BodegaIds=1,2", bodegaChange[0].Details);
+        var plantaInventarioChange = await sut.QueryAsync(null, null, ActivityLogActions.UpdateUser, ActivityLogEntities.User, 7);
+        Assert.Single(plantaInventarioChange);
+        Assert.Contains("PlantaInventarioIds=1,2", plantaInventarioChange[0].Details);
 
         Assert.Empty(await sut.QueryAsync(null, null, ActivityLogActions.CreateOrder, null, userId: 99));
     }
@@ -188,12 +188,12 @@ public class AccountActivityLogInstrumentationTests
     private readonly Mock<IPasswordResetService> _passwordReset = new();
     private readonly Mock<IFuncionalidadesReportService> _funcionalidades = new();
     private readonly Mock<IActivityLogService> _activity = new();
-    private readonly Mock<IBodegaService> _bodegas = new();
+    private readonly Mock<IPlantaInventarioService> _plantas = new();
     private readonly Mock<IWebHostEnvironment> _env = new();
 
     private AccountController CreateController(int actorId = 1, string actorName = "Admin")
     {
-        _bodegas
+        _plantas
             .Setup(b => b.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
@@ -209,7 +209,7 @@ public class AccountActivityLogInstrumentationTests
             _passwordReset.Object,
             _funcionalidades.Object,
             _activity.Object,
-            _bodegas.Object,
+            _plantas.Object,
             _env.Object)
         {
             ControllerContext = new ControllerContext
@@ -377,7 +377,7 @@ public class AccountActivityLogInstrumentationTests
     }
 
     [Fact]
-    public async Task EditUser_OnSuccess_LogsBodegaIdsAsignadas()
+    public async Task EditUser_OnSuccess_LogsPlantaInventarioIdsAsignadas()
     {
         _accounts.Setup(s => s.UpdateUserAsync(
                 It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
@@ -400,10 +400,10 @@ public class AccountActivityLogInstrumentationTests
             await controller.EditUser(new UserEditViewModel
             {
                 Id = 12,
-                Nombre = "Pedro Bodega",
+                Nombre = "Pedro Encargado",
                 Email = "bodega@sipitex.test",
-                Rol = UserRoles.Bodeguero,
-                BodegaIds = [1, 2],
+                Rol = UserRoles.EncargadoDeBodega,
+                PlantaInventarioIds = [1, 2],
                 IsActive = true
             }, CancellationToken.None);
         }
@@ -416,7 +416,7 @@ public class AccountActivityLogInstrumentationTests
             ActivityLogActions.UpdateUser,
             ActivityLogEntities.User,
             "12",
-            It.Is<string?>(d => d != null && d.Contains("BodegaIds=1,2", StringComparison.Ordinal)),
+            It.Is<string?>(d => d != null && d.Contains("PlantaInventarioIds=1,2", StringComparison.Ordinal)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }

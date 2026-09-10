@@ -1,6 +1,6 @@
 namespace Sipitex.Domain.Enums;
 
-// Tipos de movimiento del ledger de inventario (bodega)
+// Tipos de movimiento del ledger de inventario (plantaInventario)
 public enum StockMovementType
 {
     Entrada,              // Alta de material / ingreso inicial

@@ -15,7 +15,7 @@ namespace Sipitex.Tests;
 
 /// <summary>
 /// Gap #11 (AUDITORIA_ROLES_FUNCIONES): Instructor no puede ampliar reportes vía query string;
-/// Admin/Bodeguero conservan alcance global; Inventario bloqueado al Instructor.
+/// Admin/EncargadoDeBodega conservan alcance global; Inventario bloqueado al Instructor.
 /// </summary>
 public class ReportesInstructorScopeTests
 {
@@ -157,9 +157,9 @@ public class ReportesInstructorScopeTests
     }
 
     [Fact]
-    public async Task Inventario_Bodeguero_AllowsGlobalExport()
+    public async Task Inventario_EncargadoDeBodega_AllowsGlobalExport()
     {
-        var controller = CreateController(Principal(3, UserRoles.Bodeguero, "Bodega"));
+        var controller = CreateController(Principal(3, UserRoles.EncargadoDeBodega, "PlantaInventario"));
 
         var result = await controller.Inventario(format: "excel", cancellationToken: CancellationToken.None);
 
@@ -187,9 +187,9 @@ public class ReportesInstructorScopeTests
     }
 
     [Fact]
-    public async Task Ordenes_Bodeguero_KeepsGlobalWhenNoFilter()
+    public async Task Ordenes_EncargadoDeBodega_KeepsGlobalWhenNoFilter()
     {
-        var controller = CreateController(Principal(3, UserRoles.Bodeguero, "Bodega"));
+        var controller = CreateController(Principal(3, UserRoles.EncargadoDeBodega, "PlantaInventario"));
 
         await controller.Ordenes(cancellationToken: CancellationToken.None);
 

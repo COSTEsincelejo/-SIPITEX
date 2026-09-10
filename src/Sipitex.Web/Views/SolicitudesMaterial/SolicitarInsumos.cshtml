@@ -1,14 +1,14 @@
 @model SolicitarInsumosViewModel
 @{
-    ViewData["Title"] = "Solicitar insumos a bodega";
-    ViewData["Breadcrumb"] = "SIPITEX / Operación / Solicitar insumos a bodega";
+    ViewData["Title"] = "Solicitar insumos a planta de inventario";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Solicitar insumos a planta de inventario";
     Layout = "_Layout";
     var f = Model.Form;
 }
 
 <div class="page-header">
     <div>
-        <h2>Solicitar insumos a bodega (descripción)</h2>
+        <h2>Solicitar insumos a planta de inventario (descripción)</h2>
         <div class="sub">Pedido por descripción libre — no requiere código exacto del catálogo</div>
     </div>
     <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Mis solicitudes</a>
@@ -23,7 +23,7 @@
     <div class="alert alert-info" style="margin-top:0;">
         <i class="fas fa-circle-info"></i>
         Use esto cuando no sepa el código exacto del material o no esté en el catálogo.
-        No reemplaza los materiales de la orden (BOM) ni la solicitud por ficha SENA.
+        No reemplaza los materiales de la orden (BOM) ni la solicitud por grupo SENA.
     </div>
 
     <form asp-action="SolicitarInsumos" method="post" id="insumos-libres-form">
@@ -32,12 +32,12 @@
         <div class="field" style="margin-top:12px;">
             <label class="field-label">Descripción general (opcional)</label>
             <textarea name="Form.DescripcionLibre" rows="2" maxlength="2000" style="width:100%"
-                      placeholder="Contexto del pedido para bodega">@f.DescripcionLibre</textarea>
+                      placeholder="Contexto del pedido para planta de inventario">@f.DescripcionLibre</textarea>
         </div>
 
         <div class="form-row" style="margin-top:12px;">
             <div class="field" style="flex:1;">
-                <label class="field-label">Ficha SENA (opcional)</label>
+                <label class="field-label">Grupo SENA (opcional)</label>
                 <select name="Form.FichaId" style="width:100%">
                     <option value="">— Sin vincular —</option>
                     @foreach (var item in Model.Fichas)
@@ -71,11 +71,11 @@
                 </select>
             </div>
             <div class="field" style="flex:1;">
-                <label class="field-label">Bodega destino</label>
-                <select name="Form.BodegaId" style="width:100%" required>
-                    @foreach (var item in Model.Bodegas)
+                <label class="field-label">PlantaInventario destino</label>
+                <select name="Form.PlantaInventarioId" style="width:100%" required>
+                    @foreach (var item in Model.PlantasInventario)
                     {
-                        if ((f.BodegaId ?? 1) == item.Id)
+                        if ((f.PlantaInventarioId ?? 1) == item.Id)
                         {
                             <option value="@item.Id" selected>@item.Label</option>
                         }
@@ -133,12 +133,12 @@
 
         <div class="field" style="margin-top:12px;max-width:480px;">
             <label class="field-label">Observaciones (opcional)</label>
-            <input type="text" name="Form.Observaciones" maxlength="500" value="@f.Observaciones" placeholder="Notas para bodega" />
+            <input type="text" name="Form.Observaciones" maxlength="500" value="@f.Observaciones" placeholder="Notas para planta de inventario" />
         </div>
 
         <div class="solicitud-form-actions" style="margin-top:14px;">
             <button type="button" class="small ghost" data-insumo-add><i class="fas fa-plus"></i> Agregar ítem</button>
-            <button type="submit" class="primary"><i class="fas fa-paper-plane"></i> Enviar a bodega</button>
+            <button type="submit" class="primary"><i class="fas fa-paper-plane"></i> Enviar a planta de inventario</button>
             <a class="ghost" asp-action="Index">Cancelar</a>
         </div>
     </form>

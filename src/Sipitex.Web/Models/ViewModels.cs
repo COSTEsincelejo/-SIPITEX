@@ -19,7 +19,7 @@ public class InventarioIndexViewModel
     public bool IsSuccess { get; set; } // true = toast verde, false = rojo
 }
 
-// Historial de movimientos de inventario (Admin / Bodeguero)
+// Historial de movimientos de inventario (Admin / EncargadoDeBodega)
 public class InventarioMovimientosViewModel
 {
     public IReadOnlyList<StockMovementDto> Movimientos { get; set; } = [];
@@ -38,7 +38,7 @@ public class CreateMaterialForm
     public StockEntryOrigin Origen { get; set; } = StockEntryOrigin.Compra;
 }
 
-// Formulario para pedir material a bodega
+// Formulario para pedir material a plantaInventario
 public class CreateRequestForm
 {
     public int ProductionOrderId { get; set; }
@@ -46,7 +46,7 @@ public class CreateRequestForm
     public decimal Quantity { get; set; }
 }
 
-// Ajuste manual de stock (bodeguero/admin); Origen requerido si sube el stock
+// Ajuste manual de stock (encargadoDeBodega/admin); Origen requerido si sube el stock
 public class AdjustStockForm
 {
     public int MaterialId { get; set; }
@@ -82,7 +82,7 @@ public class CreateOrderForm
     public DateOnly Deadline { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 }
 
-// Pantalla MRP: fichas técnicas + BOM + simulación
+// Pantalla MRP: ficha técnica + BOM + simulación
 public class MrpIndexViewModel
 {
     public IReadOnlyList<BomItemDto> Bom { get; set; } = [];
@@ -203,7 +203,7 @@ public class FichasIndexViewModel
     public RegisterProductionForm Register { get; set; } = new();
     public bool IsAdministrator { get; set; } // cambia textos y alcance de datos
     // Filtros de la tabla de fichas (query string del GET)
-    public string? FichaCodeFilter { get; set; }
+    public string? NumeroGrupoFilter { get; set; }
     public string? InstructorFilter { get; set; }
     public string? TurnoFilter { get; set; }
     public string? Message { get; set; }
@@ -213,7 +213,7 @@ public class FichasIndexViewModel
 // Alta de una ficha de aprendices
 public class CreateFichaForm
 {
-    public string FichaCode { get; set; } = string.Empty;
+    public string NumeroGrupo { get; set; } = string.Empty;
     public string ProcessName { get; set; } = string.Empty;
     // IDs de usuarios con rol Instructor (multi-select)
     public List<int> InstructorUserIds { get; set; } = [];
@@ -242,8 +242,8 @@ public class CreateInsumosLibresForm
     public string? DescripcionLibre { get; set; }
     public int? FichaId { get; set; }
     public int? ProductionOrderId { get; set; }
-    // Destino de insumos libres; si no se envía, el servicio usa Bodega 1.
-    public int? BodegaId { get; set; } = 1;
+    // Destino de insumos libres; si no se envía, el servicio usa PlantaInventario 1.
+    public int? PlantaInventarioId { get; set; } = 1;
     public string? Observaciones { get; set; }
     public List<CreateInsumoLibreItemForm> Detalles { get; set; } = [new()];
 }
@@ -259,11 +259,11 @@ public class SolicitarInsumosViewModel
     public CreateInsumosLibresForm Form { get; set; } = new();
     public IReadOnlyList<(int Id, string Label)> Fichas { get; set; } = [];
     public IReadOnlyList<(int Id, string Label)> Ordenes { get; set; } = [];
-    // Catálogo seed AddBodegas (Bodega 1 / Bodega 2); el form pasa Form.BodegaId al DTO.
-    public IReadOnlyList<(int Id, string Label)> Bodegas { get; set; } =
+    // Catálogo seed AddPlantasInventario (PlantaInventario 1 / PlantaInventario 2); el form pasa Form.PlantaInventarioId al DTO.
+    public IReadOnlyList<(int Id, string Label)> PlantasInventario { get; set; } =
     [
-        (1, "Bodega 1"),
-        (2, "Bodega 2")
+        (1, "PlantaInventario 1"),
+        (2, "PlantaInventario 2")
     ];
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
@@ -286,8 +286,8 @@ public class SolicitudMaterialDetailViewModel
     public bool IsSuccess { get; set; }
 }
 
-// Listado Bodeguero: solicitudes de materiales
-public class BodegaSolicitudesIndexViewModel
+// Listado EncargadoDeBodega: solicitudes de materiales
+public class PlantasInventarioSolicitudesIndexViewModel
 {
     public IReadOnlyList<SolicitudMaterialListItemDto> Solicitudes { get; set; } = [];
     public bool SoloPendientes { get; set; } = true;
@@ -295,8 +295,8 @@ public class BodegaSolicitudesIndexViewModel
     public bool IsSuccess { get; set; }
 }
 
-// Detalle / resolución Bodeguero
-public class BodegaSolicitudDetailViewModel
+// Detalle / resolución EncargadoDeBodega
+public class PlantaInventarioSolicitudDetailViewModel
 {
     public SolicitudMaterialResolucionDto Solicitud { get; set; } = null!;
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
@@ -382,21 +382,21 @@ public class EmptyStateModel
     public string? ActionHref { get; set; } // link del botón (opcional)
 }
 
-// Catálogo de bodegas (admin): listado + alta
-public class BodegasIndexViewModel
+// Catálogo de plantasInventario (admin): listado + alta
+public class PlantasInventarioIndexViewModel
 {
-    public IReadOnlyList<Bodega> Bodegas { get; set; } = [];
-    public CreateBodegaForm Form { get; set; } = new();
+    public IReadOnlyList<PlantaInventario> PlantasInventario { get; set; } = [];
+    public CreatePlantaInventarioForm Form { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
 
-public class CreateBodegaForm
+public class CreatePlantaInventarioForm
 {
     public string Nombre { get; set; } = string.Empty;
 }
 
-public class EditBodegaViewModel
+public class EditPlantaInventarioViewModel
 {
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;
@@ -467,32 +467,32 @@ public class AddOrderMaterialForm
     public string? Observations { get; set; }
 }
 
-public class BodegaOrdenesIndexViewModel
+public class PlantasInventarioOrdenesIndexViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
 
-public class BodegaOrdenDetailViewModel
+public class PlantaInventarioOrdenDetailViewModel
 {
     public OrderMaterialsDetailDto Detail { get; set; } = null!;
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
 
-public class BodegaReingresoViewModel
+public class PlantaInventarioReingresoViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
     public IReadOnlyList<OrderStageDto> Stages { get; set; } = [];
     public IReadOnlyList<string> StageNames { get; set; } = [];
-    public BodegaReingresoForm Form { get; set; } = new();
+    public PlantaInventarioReingresoForm Form { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
 
-public class BodegaReingresoForm
+public class PlantaInventarioReingresoForm
 {
     public int OrderId { get; set; }
     public int StageId { get; set; }

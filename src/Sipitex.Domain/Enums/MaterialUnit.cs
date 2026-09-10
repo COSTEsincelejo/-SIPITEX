@@ -1,6 +1,6 @@
 namespace Sipitex.Domain.Enums;
 
-// Unidades de medida del material en bodega
+// Unidades de medida del material en planta de inventario
 public enum MaterialUnit
 {
     Metros,    // telas, elásticos, etc.

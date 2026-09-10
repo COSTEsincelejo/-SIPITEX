@@ -9,7 +9,7 @@
     <div>
         <h2>Mis solicitudes de materiales</h2>
         <div class="sub">@(Model.IsAdministrator
-            ? "Vista global: por ficha SENA e insumos libres"
+            ? "Vista global: por grupo SENA e insumos libres"
             : "Solo las solicitudes que usted ha creado")</div>
     </div>
     <a class="primary" asp-action="SolicitarInsumos"><i class="fas fa-comment-dots"></i> Solicitar insumos</a>
@@ -50,7 +50,7 @@
                     <tr class="clickable-row" onclick="location.href='@Url.Action("Detail", "SolicitudesMaterial", new { id = s.Id })'">
                         <td><strong>@s.Codigo</strong></td>
                         <td><span class="badge @DisplayHelper.BadgeClass(s.Tipo)">@DisplayHelper.StatusText(s.Tipo)</span></td>
-                        <td>@s.FichaCode</td>
+                        <td>@s.NumeroGrupo</td>
                         <td><span class="badge @DisplayHelper.BadgeClass(s.Estado)">@DisplayHelper.StatusText(s.Estado)</span></td>
                         <td>@s.FechaSolicitud.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
                         @if (Model.IsAdministrator)

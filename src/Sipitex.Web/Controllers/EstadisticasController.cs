@@ -20,7 +20,7 @@ public class EstadisticasController : Controller
     {
         var (userId, role, name) = CurrentViewer();
         // Instructor: fuerza alcance self (equivalente a ResolveFilter instructorId=self).
-        // Admin/Bodeguero: sin restricción (GetOrdersAsync no filtra esos roles).
+        // Admin/EncargadoDeBodega: sin restricción (GetOrdersAsync no filtra esos roles).
         return View(new EstadisticasIndexViewModel
         {
             Dashboard = await _statisticsService.GetDashboardAsync(

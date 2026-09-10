@@ -214,7 +214,7 @@ public class SolicitudMaterialApprovalServiceTests
         var result = await CreateSut().ResolveSolicitudAsync(
             20,
             [new ResolveDetalleDto(1, 40), new ResolveDetalleDto(2, 10)],
-            bodegueroId: 9);
+            encargadoDeBodegaId: 9);
 
         Assert.True(result.Success);
         Assert.Equal(SolicitudMaterialEstado.AprobadaTotal, solicitud.Estado);
@@ -222,7 +222,7 @@ public class SolicitudMaterialApprovalServiceTests
         Assert.Equal(40m, solicitud.Detalles.First(d => d.Id == 2).Material.Stock);
         Assert.NotNull(entrega);
         Assert.Equal("ENT-0001", entrega!.Codigo);
-        Assert.Equal(9, entrega.BodegueroId);
+        Assert.Equal(9, entrega.EncargadoDeBodegaId);
         _alertService.Verify(a => a.NotifyUsersAsync(
             AlertType.SolicitudMaterialResuelta,
             It.IsAny<string>(),
@@ -246,7 +246,7 @@ public class SolicitudMaterialApprovalServiceTests
         var result = await CreateSut().ResolveSolicitudAsync(
             20,
             [new ResolveDetalleDto(1, 15), new ResolveDetalleDto(2, 0)],
-            bodegueroId: 9);
+            encargadoDeBodegaId: 9);
 
         Assert.True(result.Success);
         Assert.Equal(SolicitudMaterialEstado.AprobadaParcial, solicitud.Estado);
@@ -270,7 +270,7 @@ public class SolicitudMaterialApprovalServiceTests
         var result = await CreateSut().ResolveSolicitudAsync(
             20,
             [new ResolveDetalleDto(1, 0), new ResolveDetalleDto(2, 0)],
-            bodegueroId: 9);
+            encargadoDeBodegaId: 9);
 
         Assert.True(result.Success);
         Assert.Equal(SolicitudMaterialEstado.Rechazada, solicitud.Estado);
@@ -300,7 +300,7 @@ public class SolicitudMaterialApprovalServiceTests
         var result = await CreateSut().ResolveSolicitudAsync(
             20,
             [new ResolveDetalleDto(1, 25)],
-            bodegueroId: 9);
+            encargadoDeBodegaId: 9);
 
         Assert.False(result.Success);
         Assert.Equal(SolicitudMaterialEstado.Pendiente, solicitud.Estado);
@@ -334,7 +334,7 @@ public class SolicitudMaterialApprovalServiceTests
         var result = await CreateSut().ResolveSolicitudAsync(
             20,
             [new ResolveDetalleDto(1, 40)],
-            bodegueroId: 9);
+            encargadoDeBodegaId: 9);
 
         Assert.False(result.Success);
         _unitOfWork.Verify(
@@ -378,7 +378,7 @@ public class SolicitudMaterialApprovalServiceTests
         var result = await CreateSut().ResolveSolicitudAsync(
             20,
             [new ResolveDetalleDto(1, 2)],
-            bodegueroId: 9);
+            encargadoDeBodegaId: 9);
 
         Assert.False(result.Success);
         Assert.Contains("mapear", result.Message!, StringComparison.OrdinalIgnoreCase);
@@ -431,7 +431,7 @@ public class SolicitudMaterialApprovalServiceTests
         var result = await CreateSut().ResolveSolicitudAsync(
             20,
             [new ResolveDetalleDto(1, 2, MaterialId: 5)],
-            bodegueroId: 9);
+            encargadoDeBodegaId: 9);
 
         Assert.True(result.Success, result.Message);
         Assert.Equal(5, solicitud.Detalles.Single().MaterialId);
@@ -440,9 +440,9 @@ public class SolicitudMaterialApprovalServiceTests
     }
 
     [Fact]
-    public async Task ResolveSolicitudAsync_MapeoMaterialDeOtraBodega_Falla()
+    public async Task ResolveSolicitudAsync_MapeoMaterialDeOtraPlantaInventario_Falla()
     {
-        var materialAjeno = new Material { Id = 8, Name = "Hilo", Stock = 40, BodegaId = 2 };
+        var materialAjeno = new Material { Id = 8, Name = "Hilo", Stock = 40, PlantaInventarioId = 2 };
         var solicitud = new SolicitudMaterial
         {
             Id = 20,
@@ -450,7 +450,7 @@ public class SolicitudMaterialApprovalServiceTests
             Tipo = SolicitudMaterialTipo.InsumosLibres,
             SolicitanteId = 10,
             Estado = SolicitudMaterialEstado.Pendiente,
-            BodegaId = 1,
+            PlantaInventarioId = 1,
             Detalles =
             [
                 new DetalleSolicitudMaterial
@@ -477,10 +477,10 @@ public class SolicitudMaterialApprovalServiceTests
         var result = await CreateSut().ResolveSolicitudAsync(
             20,
             [new ResolveDetalleDto(1, 2, MaterialId: 8)],
-            bodegueroId: 9);
+            encargadoDeBodegaId: 9);
 
         Assert.False(result.Success);
-        Assert.Contains("otra bodega", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("otra plantaInventario", result.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(40m, materialAjeno.Stock);
         _unitOfWork.Verify(
             u => u.ExecuteInTransactionAsync(
@@ -490,7 +490,7 @@ public class SolicitudMaterialApprovalServiceTests
     }
 
     [Fact]
-    public async Task ResolveSolicitudAsync_InsumosLibres_MaterialNuevo_HeredaBodegaDeSolicitud()
+    public async Task ResolveSolicitudAsync_InsumosLibres_MaterialNuevo_HeredaPlantaInventarioDeSolicitud()
     {
         var solicitud = new SolicitudMaterial
         {
@@ -499,7 +499,7 @@ public class SolicitudMaterialApprovalServiceTests
             Tipo = SolicitudMaterialTipo.InsumosLibres,
             SolicitanteId = 10,
             Estado = SolicitudMaterialEstado.Pendiente,
-            BodegaId = 2,
+            PlantaInventarioId = 2,
             Detalles =
             [
                 new DetalleSolicitudMaterial
@@ -526,7 +526,7 @@ public class SolicitudMaterialApprovalServiceTests
             {
                 created = m;
                 m.Id = 77;
-                // Stock arranca en 0; el test solo cubre BodegaId del alta.
+                // Stock arranca en 0; el test solo cubre PlantaInventarioId del alta.
                 m.Stock = 1;
             })
             .Returns(Task.CompletedTask);
@@ -538,11 +538,11 @@ public class SolicitudMaterialApprovalServiceTests
         var result = await CreateSut().ResolveSolicitudAsync(
             20,
             [new ResolveDetalleDto(1, 1, NewMaterialName: "Cinta bies", NewMaterialUnit: MaterialUnit.Metros)],
-            bodegueroId: 9);
+            encargadoDeBodegaId: 9);
 
         Assert.True(result.Success, result.Message);
         Assert.NotNull(created);
-        Assert.Equal(2, created!.BodegaId);
+        Assert.Equal(2, created!.PlantaInventarioId);
         Assert.Equal("Cinta bies", created.Name);
         Assert.Equal(77, solicitud.Detalles.Single().MaterialId);
     }

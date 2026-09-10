@@ -190,7 +190,7 @@ public class ProductionOrderEditCancelTests
         {
             Id = 1,
             Status = OrderStatus.Cancelada,
-            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega
+            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario
         };
         var line = new ProductionOrderMaterialRequirement
         {
@@ -212,7 +212,7 @@ public class ProductionOrderEditCancelTests
 
         var result = await sut.DeliverAsync(
             new DeliverOrderMaterialsDto(1, [new DeliverOrderMaterialItemDto(9, 5)], null),
-            bodegueroId: 3);
+            encargadoDeBodegaId: 3);
 
         Assert.False(result.Success);
         Assert.Equal(50m, material.Stock);
@@ -233,7 +233,7 @@ public class ProductionOrderEditCancelTests
                 Assert.NotNull(attr);
                 Assert.Equal(UserRoles.Administrador, attr!.Roles);
                 Assert.DoesNotContain(UserRoles.Instructor, attr.Roles!, StringComparison.Ordinal);
-                Assert.DoesNotContain(UserRoles.Bodeguero, attr.Roles!, StringComparison.Ordinal);
+                Assert.DoesNotContain(UserRoles.EncargadoDeBodega, attr.Roles!, StringComparison.Ordinal);
             }
         }
     }

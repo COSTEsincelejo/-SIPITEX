@@ -30,7 +30,7 @@ public class AccountController : Controller
     private readonly IPasswordResetService _passwordResetService;
     private readonly IFuncionalidadesReportService _funcionalidadesReportService;
     private readonly IActivityLogService _activityLog;
-    private readonly IBodegaService _bodegaService;
+    private readonly IPlantaInventarioService _plantaService;
     private readonly IWebHostEnvironment _environment;
 
     // Inyecto los servicios que usa todo el controller
@@ -39,14 +39,14 @@ public class AccountController : Controller
         IPasswordResetService passwordResetService,
         IFuncionalidadesReportService funcionalidadesReportService,
         IActivityLogService activityLog,
-        IBodegaService bodegaService,
+        IPlantaInventarioService plantaService,
         IWebHostEnvironment environment)
     {
         _userAccountService = userAccountService;
         _passwordResetService = passwordResetService;
         _funcionalidadesReportService = funcionalidadesReportService;
         _activityLog = activityLog;
-        _bodegaService = bodegaService;
+        _plantaService = plantaService;
         _environment = environment;
     }
 
@@ -82,7 +82,7 @@ public class AccountController : Controller
 
         // Cookie lista con rol, foto y permisos
         await SignInUserAsync(user);
-        // Instructor no tiene Inventario general; Admin/Bodeguero van al stock
+        // Instructor no tiene Inventario general; Admin/EncargadoDeBodega van al stock
         if (string.Equals(user.Rol, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase))
             return RedirectToAction("Index", "Ordenes");
         return RedirectToAction("Index", "Inventario");
@@ -277,7 +277,7 @@ public class AccountController : Controller
         var permisos = model.SelectedPermissions ?? [];
         // El servicio hashea la clave y guarda en BD
         var result = await _userAccountService.CreateUserAsync(
-            model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.BodegaIds, permisos, cancellationToken);
+            model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.PlantaInventarioIds, permisos, cancellationToken);
         // Si falló (correo duplicado, rol inválido, etc.) me quedo en el form
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
@@ -288,7 +288,7 @@ public class AccountController : Controller
                 "CreateUser",
                 "User",
                 entityId: model.Email.Trim().ToLowerInvariant(),
-                details: $"Nombre={model.Nombre.Trim()}; Rol={model.Rol}; BodegaIds={FormatBodegaIds(model.BodegaIds)}",
+                details: $"Nombre={model.Nombre.Trim()}; Rol={model.Rol}; PlantaInventarioIds={FormatPlantaInventarioIds(model.PlantaInventarioIds)}",
                 cancellationToken);
         }
 
@@ -315,7 +315,7 @@ public class AccountController : Controller
             Email = user.Email,
             Rol = user.Rol,
             FichaAsignadaId = user.FichaAsignadaId,
-            BodegaIds = user.GetAssignedBodegaIds().ToArray(),
+            PlantaInventarioIds = user.GetAssignedPlantaInventarioIds().ToArray(),
             // Deserializo los permisos guardados como string
             SelectedPermissions = ExtendedPermissions.Parse(user.PermisosExtendidos).ToList(),
             IsActive = user.IsActive
@@ -335,7 +335,7 @@ public class AccountController : Controller
         var permisos = model.SelectedPermissions ?? [];
         // Update en BD; contraseña es opcional si viene vacía
         var result = await _userAccountService.UpdateUserAsync(
-            model.Id, model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.BodegaIds, permisos, model.IsActive, cancellationToken);
+            model.Id, model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.PlantaInventarioIds, permisos, model.IsActive, cancellationToken);
         // Error de negocio (ej. no bajar rol al admin principal)
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
@@ -346,7 +346,7 @@ public class AccountController : Controller
                 "UpdateUser",
                 "User",
                 entityId: model.Id.ToString(),
-                details: $"Nombre={model.Nombre.Trim()}; Rol={model.Rol}; BodegaIds={FormatBodegaIds(model.BodegaIds)}",
+                details: $"Nombre={model.Nombre.Trim()}; Rol={model.Rol}; PlantaInventarioIds={FormatPlantaInventarioIds(model.PlantaInventarioIds)}",
                 cancellationToken);
         }
 
@@ -450,10 +450,10 @@ public class AccountController : Controller
         if (!string.IsNullOrWhiteSpace(user.PhotoPath))
             claims.Add(new Claim(PhotoClaimType, user.PhotoPath));
 
-        if (string.Equals(user.Rol, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(user.Rol, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase))
         {
-            foreach (var bodegaId in user.GetAssignedBodegaIds())
-                claims.Add(new Claim(BodegaClaimTypes.BodegaId, bodegaId.ToString()));
+            foreach (var plantaInventarioId in user.GetAssignedPlantaInventarioIds())
+                claims.Add(new Claim(PlantaInventarioClaimTypes.PlantaInventarioId, plantaInventarioId.ToString()));
         }
 
         // Cada permiso extra va como claim aparte
@@ -522,14 +522,14 @@ public class AccountController : Controller
             System.IO.File.Delete(physicalPath);
     }
 
-    private static string FormatBodegaIds(IReadOnlyList<int>? ids) =>
+    private static string FormatPlantaInventarioIds(IReadOnlyList<int>? ids) =>
         ids is { Count: > 0 } ? string.Join(",", ids.Where(id => id > 0).Distinct()) : "";
 
-    // Combos de ficha y bodega al crear/editar usuario
+    // Combos de ficha y plantaInventario al crear/editar usuario
     private async Task PopulateUserFormLookupsAsync(CancellationToken cancellationToken)
     {
         ViewBag.Fichas = await GetFichasAsync(cancellationToken);
-        ViewBag.Bodegas = await _bodegaService.GetAllAsync(cancellationToken);
+        ViewBag.PlantasInventario = await _plantaService.GetAllAsync(cancellationToken);
     }
 
     // Para el combo de ficha al crear/editar usuario
@@ -538,6 +538,6 @@ public class AccountController : Controller
         var fichaService = HttpContext.RequestServices.GetService<IFichaService>();
         var fichas = await fichaService!.GetFichasAsync(cancellationToken: cancellationToken);
         // Solo necesito id, código y proceso para el dropdown
-        return fichas.Select(f => new Ficha { Id = f.Id, FichaCode = f.FichaCode, ProcessName = f.ProcessName }).ToList();
+        return fichas.Select(f => new Ficha { Id = f.Id, NumeroGrupo = f.NumeroGrupo, ProcessName = f.ProcessName }).ToList();
     }
 }

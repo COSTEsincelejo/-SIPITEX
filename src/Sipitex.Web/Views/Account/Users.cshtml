@@ -10,7 +10,7 @@
 <div class="page-header">
     <div>
         <h2>Gestión de usuarios</h2>
-        <div class="sub">El administrador crea y gestiona cuentas de Administrador, Instructor y Bodeguero. Preferir desactivar si hay historial.</div>
+        <div class="sub">El administrador crea y gestiona cuentas de Administrador, Instructor y Encargado de bodega. Preferir desactivar si hay historial.</div>
     </div>
     <div class="row-actions">
         <a asp-action="DescargarFuncionalidades" class="btn ghost"><i class="fas fa-file-word"></i> Descargar reporte de funcionalidades</a>
@@ -33,7 +33,7 @@
                     <th>Rol</th>
                     <th>Funciones</th>
                     <th>Ficha</th>
-                    <th>Bodega</th>
+                    <th>PlantaInventario</th>
                     <th>Estado</th>
                     <th></th>
                 </tr>
@@ -59,8 +59,8 @@
                         <td>@u.Email</td>
                         <td>@u.Rol</td>
                         <td class="user-funcion">@(string.IsNullOrWhiteSpace(u.FuncionDescripcion) ? "—" : u.FuncionDescripcion)</td>
-                        <td>@(u.FichaAsignada?.FichaCode ?? "-")</td>
-                        <td>@u.FormatAssignedBodegas()</td>
+                        <td>@(u.FichaAsignada?.NumeroGrupo ?? "-")</td>
+                        <td>@u.FormatAssignedPlantasInventario()</td>
                         <td>
                             <span class="badge @(u.IsActive ? "badge-success" : "badge-danger")">@(u.IsActive ? "Activo" : "Inactivo")</span>
                         </td>

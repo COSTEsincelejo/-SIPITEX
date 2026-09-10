@@ -11,7 +11,7 @@ public static class ApplicationServiceExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddHttpContextAccessor();
-        services.AddScoped<ICurrentBodegaAccessor, CurrentBodegaAccessor>();
+        services.AddScoped<ICurrentPlantaInventarioAccessor, CurrentPlantaInventarioAccessor>();
         // Consumo de materiales en producción
         services.AddScoped<ProductionConsumptionService>();
 
@@ -36,9 +36,9 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IQualityService, QualityService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
 
-        // Cuentas de usuario, bodegas y recuperar contraseña
+        // Cuentas de usuario, plantasInventario y recuperar contraseña
         services.AddScoped<IUserAccountService, UserAccountService>();
-        services.AddScoped<IBodegaService, BodegaService>();
+        services.AddScoped<IPlantaInventarioService, PlantaInventarioService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
 
         // Alertas por correo y evaluación programada

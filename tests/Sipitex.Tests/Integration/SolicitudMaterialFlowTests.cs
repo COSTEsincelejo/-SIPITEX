@@ -38,12 +38,12 @@ public class SolicitudMaterialFlowTests
 
         Assert.StartsWith("SOL-", solicitud.Codigo);
         Assert.Equal(SolicitudMaterialEstado.Pendiente, solicitud.Estado);
-        Assert.Equal(1, solicitud.BodegaId);
+        Assert.Equal(1, solicitud.PlantaInventarioId);
         Assert.Equal(2, solicitud.Detalles.Count);
 
-        // Notificación a Bodeguero: email mock + AlertDelivery persistido
+        // Notificación a EncargadoDeBodega: email mock + AlertDelivery persistido
         fx.EmailMock.Verify(e => e.SendAsync(
-            "bodega.int@test.local",
+            "plantaInventario.int@test.local",
             It.IsAny<string>(),
             It.Is<string>(s => s.Contains(solicitud.Codigo)),
             It.IsAny<string>(),
@@ -53,14 +53,14 @@ public class SolicitudMaterialFlowTests
             .Where(a => a.AlertType == AlertType.SolicitudMaterialNueva)
             .ToListAsync();
         Assert.Single(alertNueva);
-        Assert.Equal(fx.BodegueroId, alertNueva[0].UserId);
+        Assert.Equal(fx.EncargadoDeBodegaId, alertNueva[0].UserId);
 
         var items = solicitud.Detalles
             .Select(d => new ResolveDetalleDto(d.Id, d.CantidadSolicitada))
             .ToList();
 
         var resolve = await fx.ApprovalService.ResolveSolicitudAsync(
-            solicitud.Id, items, fx.BodegueroId);
+            solicitud.Id, items, fx.EncargadoDeBodegaId);
 
         Assert.True(resolve.Success, resolve.Message);
 
@@ -76,7 +76,7 @@ public class SolicitudMaterialFlowTests
         Assert.Equal(SolicitudMaterialEstado.AprobadaTotal, after.Estado);
         Assert.NotNull(after.Entrega);
         Assert.StartsWith("ENT-", after.Entrega!.Codigo);
-        Assert.Equal(fx.BodegueroId, after.Entrega.BodegueroId);
+        Assert.Equal(fx.EncargadoDeBodegaId, after.Entrega.EncargadoDeBodegaId);
 
         Assert.Equal(
             fx.StockAmplioInicial - 40,
@@ -130,7 +130,7 @@ public class SolicitudMaterialFlowTests
                 new ResolveDetalleDto(dAmplio.Id, 40),
                 new ResolveDetalleDto(dJusto.Id, 5) // parcial: stock justo
             ],
-            fx.BodegueroId);
+            fx.EncargadoDeBodegaId);
 
         Assert.True(resolve.Success, resolve.Message);
 
@@ -176,7 +176,7 @@ public class SolicitudMaterialFlowTests
         var resolve = await fx.ApprovalService.ResolveSolicitudAsync(
             solicitud.Id,
             solicitud.Detalles.Select(d => new ResolveDetalleDto(d.Id, 0)).ToList(),
-            fx.BodegueroId);
+            fx.EncargadoDeBodegaId);
 
         Assert.True(resolve.Success, resolve.Message);
 
@@ -219,7 +219,7 @@ public class SolicitudMaterialFlowTests
         var resolve = await fx.ApprovalService.ResolveSolicitudAsync(
             solicitud.Id,
             [new ResolveDetalleDto(detalleId, 10)], // stock solo 5
-            fx.BodegueroId);
+            fx.EncargadoDeBodegaId);
 
         Assert.False(resolve.Success);
 
@@ -255,7 +255,7 @@ public class SolicitudMaterialFlowTests
         var first = await fx.ApprovalService.ResolveSolicitudAsync(
             solicitud.Id,
             [new ResolveDetalleDto(detalleId, 10)],
-            fx.BodegueroId);
+            fx.EncargadoDeBodegaId);
         Assert.True(first.Success, first.Message);
 
         fx.Context.ChangeTracker.Clear();
@@ -269,7 +269,7 @@ public class SolicitudMaterialFlowTests
         var second = await fx.ApprovalService.ResolveSolicitudAsync(
             solicitud.Id,
             [new ResolveDetalleDto(detalleId, 10)],
-            fx.BodegueroId);
+            fx.EncargadoDeBodegaId);
         Assert.False(second.Success);
 
         fx.Context.ChangeTracker.Clear();
@@ -389,27 +389,27 @@ public class SolicitudMaterialFlowTests
         var resolve = await fx.ApprovalService.ResolveSolicitudAsync(
             solicitud.Id,
             [new ResolveDetalleDto(solicitud.Detalles.Single().Id, 4, MaterialId: fx.MaterialAmplioId)],
-            fx.BodegueroId);
+            fx.EncargadoDeBodegaId);
 
         Assert.True(resolve.Success, resolve.Message);
         Assert.Equal(stockAntes - 4, await fx.GetMaterialStockAsync(fx.MaterialAmplioId));
     }
 
     [Fact]
-    public async Task PorFicha_MaterialBodega2_PersisteBodegaId2()
+    public async Task PorFicha_MaterialPlantaInventario2_PersistePlantaInventarioId2()
     {
         await using var fx = await SolicitudMaterialFlowFixture.CreateAsync();
 
         var matB2 = new Material
         {
             Code = "mat-b2",
-            Name = "Tela bodega 2",
+            Name = "Tela plantaInventario 2",
             Unit = MaterialUnit.Metros,
             Stock = 50,
             MinStock = 5,
             Status = MaterialStatus.Bueno,
             LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
-            BodegaId = 2
+            PlantaInventarioId = 2
         };
         fx.Context.Materials.Add(matB2);
         await fx.Context.SaveChangesAsync();
@@ -428,24 +428,24 @@ public class SolicitudMaterialFlowTests
         Assert.True(create.Success, create.Message);
 
         var solicitud = await fx.Context.SolicitudesMaterial.AsNoTracking().SingleAsync();
-        Assert.Equal(2, solicitud.BodegaId);
+        Assert.Equal(2, solicitud.PlantaInventarioId);
     }
 
     [Fact]
-    public async Task PorFicha_MaterialesDeBodegasMixtas_Falla()
+    public async Task PorFicha_MaterialesDePlantasInventarioMixtas_Falla()
     {
         await using var fx = await SolicitudMaterialFlowFixture.CreateAsync();
 
         var matB2 = new Material
         {
             Code = "mat-b2-mix",
-            Name = "Hilo bodega 2",
+            Name = "Hilo plantaInventario 2",
             Unit = MaterialUnit.Unidades,
             Stock = 20,
             MinStock = 1,
             Status = MaterialStatus.Bueno,
             LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
-            BodegaId = 2
+            PlantaInventarioId = 2
         };
         fx.Context.Materials.Add(matB2);
         await fx.Context.SaveChangesAsync();
@@ -465,25 +465,25 @@ public class SolicitudMaterialFlowTests
             "Instructor Test");
 
         Assert.False(create.Success);
-        Assert.Contains("misma bodega", create.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("misma plantaInventario", create.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(0, await fx.Context.SolicitudesMaterial.CountAsync());
     }
 
     [Fact]
-    public async Task GetListForBodegaAsync_NoCruzaSolicitudesDeOtraBodega()
+    public async Task GetListForPlantaInventarioAsync_NoCruzaSolicitudesDeOtraPlantaInventario()
     {
         await using var fx = await SolicitudMaterialFlowFixture.CreateAsync();
 
         var matB2 = new Material
         {
             Code = "mat-b2-list",
-            Name = "Botón bodega 2",
+            Name = "Botón plantaInventario 2",
             Unit = MaterialUnit.Unidades,
             Stock = 30,
             MinStock = 1,
             Status = MaterialStatus.Bueno,
             LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
-            BodegaId = 2
+            PlantaInventarioId = 2
         };
         fx.Context.Materials.Add(matB2);
         await fx.Context.SaveChangesAsync();
@@ -512,12 +512,12 @@ public class SolicitudMaterialFlowTests
             "Instructor Test");
         Assert.True(createB2.Success, createB2.Message);
 
-        var deBodega1 = await fx.SolicitudService.GetListForBodegaAsync([1]);
-        var deBodega2 = await fx.SolicitudService.GetListForBodegaAsync([2]);
+        var dePlantaInventario1 = await fx.SolicitudService.GetListForPlantaInventarioAsync([1]);
+        var dePlantaInventario2 = await fx.SolicitudService.GetListForPlantaInventarioAsync([2]);
 
-        Assert.Single(deBodega1);
-        Assert.Single(deBodega2);
-        Assert.NotEqual(deBodega1[0].Codigo, deBodega2[0].Codigo);
+        Assert.Single(dePlantaInventario1);
+        Assert.Single(dePlantaInventario2);
+        Assert.NotEqual(dePlantaInventario1[0].Codigo, dePlantaInventario2[0].Codigo);
     }
 }
 
