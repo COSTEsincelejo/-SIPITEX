@@ -91,4 +91,21 @@ public class BomRepository : IBomRepository
             .Distinct()
             .OrderBy(n => n)
             .ToListAsync(cancellationToken);
+
+    public async Task<BomProduct?> FindByProductCodigoAsync(string codigo, CancellationToken cancellationToken = default)
+    {
+        var key = codigo.Trim().ToLower();
+        var matches = await _context.BomProducts
+            .Include(p => p.Items)
+                .ThenInclude(i => i.Material)
+            .Where(p =>
+                (p.Referencia != null && p.Referencia.ToLower() == key)
+                || p.ProductName.ToLower() == key)
+            .ToListAsync(cancellationToken);
+
+        return matches
+            .OrderByDescending(p => p.HabilitadoParaOrdenes)
+            .ThenBy(p => p.Id)
+            .FirstOrDefault();
+    }
 }

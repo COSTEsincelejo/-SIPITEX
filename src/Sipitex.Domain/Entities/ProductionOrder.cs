@@ -58,4 +58,6 @@ public class ProductionOrder
 
     // Auditoría de ediciones de campos (gap #2)
     public ICollection<OrderChangeLog> ChangeLogs { get; set; } = [];
+
+    public ICollection<ConsumoMaterial> Consumos { get; set; } = [];
 }

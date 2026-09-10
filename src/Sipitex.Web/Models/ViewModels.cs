@@ -36,6 +36,7 @@ public class CreateMaterialForm
     public decimal Stock { get; set; }
     public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
     public StockEntryOrigin Origen { get; set; } = StockEntryOrigin.Compra;
+    public decimal CostoAdquisicion { get; set; }
 }
 
 // Formulario para pedir material a plantaInventario
@@ -61,6 +62,7 @@ public class EditMaterialForm
     public string Name { get; set; } = string.Empty;
     public MaterialUnit Unit { get; set; }
     public decimal MinStock { get; set; }
+    public decimal CostoAdquisicion { get; set; }
 }
 
 // Pantalla de órdenes de producción
@@ -542,4 +544,30 @@ public class AuditoriaIndexViewModel
     public string? Action { get; set; }
     public string? Entity { get; set; }
     public int? UserId { get; set; }
+}
+
+public class FichaTecnicaMaterialsViewModel
+{
+    public FichaTecnicaMaterialsDto? Ficha { get; set; }
+    public string? Codigo { get; set; }
+    public string? Message { get; set; }
+}
+
+public class ConsumosIndexViewModel
+{
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public IReadOnlyList<ConsumoMaterialDto> Consumos { get; set; } = [];
+    public ConsumoCostoResumenDto? Costo { get; set; }
+    public RegisterConsumoForm Form { get; set; } = new();
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class RegisterConsumoForm
+{
+    public int ProductionOrderId { get; set; }
+    public int MaterialId { get; set; }
+    public decimal Cantidad { get; set; }
+    public DateTime? FechaLocal { get; set; }
 }

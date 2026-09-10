@@ -29,6 +29,9 @@ public class Material
     // Fecha de la última entrada/ajuste de stock (solo día, sin hora)
     public DateOnly LastEntryDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
+    // Costo de adquisición vigente por unidad de medida (para promedio ponderado de consumo).
+    public decimal CostoAdquisicion { get; set; }
+
     // FK obligatoria a la plantaInventario dueña de este material (default 1 = PlantaInventario 1, alineado al backfill)
     public int PlantaInventarioId { get; set; } = 1;
 
@@ -43,4 +46,6 @@ public class Material
 
     // Historial de movimientos de stock de este material
     public ICollection<StockMovement> StockMovements { get; set; } = [];
+
+    public ICollection<ConsumoMaterial> Consumos { get; set; } = [];
 }

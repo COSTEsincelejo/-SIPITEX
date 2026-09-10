@@ -51,6 +51,10 @@
                 <label class="field-label">Unidad</label>
                 <select asp-for="CreateMaterial.Unit" asp-items="Html.GetEnumSelectList<MaterialUnit>()"></select>
             </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Costo adquisición</label>
+                <input asp-for="CreateMaterial.CostoAdquisicion" type="number" step="0.01" min="0" />
+            </div>
             <div class="field" style="min-width:180px;">
                 <label class="field-label">Origen de entrada</label>
                 <select asp-for="CreateMaterial.Origen" required>
@@ -70,7 +74,7 @@
     {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Material</th><th>Unidad</th><th>Stock</th><th>Estado</th><th>Última entrada</th><th>Mínimo</th><th></th></tr></thead>
+                <thead><tr><th>Material</th><th>Unidad</th><th>Stock</th><th>Costo</th><th>Estado</th><th>Última entrada</th><th>Mínimo</th><th></th></tr></thead>
                 <tbody>
                 @foreach (var mat in Model.Materials)
                 {
@@ -78,6 +82,7 @@
                         <td><strong>@mat.Name</strong></td>
                         <td>@mat.UnitDisplay</td>
                         <td>@mat.Stock.ToString("0.0")</td>
+                        <td>@mat.CostoAdquisicion.ToString("0.####")</td>
                         <td>
                             @if (canManageStock)
                             {
@@ -119,15 +124,16 @@
                                         {
                                             if (u == mat.Unit)
                                             {
-                                                <option value="@u" selected>@u</option>
+                                                <option value="@u" selected>@UnitHelper.ToDisplay(u)</option>
                                             }
                                             else
                                             {
-                                                <option value="@u">@u</option>
+                                                <option value="@u">@UnitHelper.ToDisplay(u)</option>
                                             }
                                         }
                                     </select>
                                     <input type="number" name="MinStock" value="@mat.MinStock.ToString("0.##")" step="0.1" min="0" style="width:72px" aria-label="Stock mínimo" />
+                                    <input type="number" name="CostoAdquisicion" value="@mat.CostoAdquisicion.ToString("0.####")" step="0.01" min="0" style="width:88px" aria-label="Costo de adquisición" />
                                     <button type="submit" class="small ghost"><i class="fas fa-floppy-disk"></i> Guardar</button>
                                 </form>
                             }

@@ -66,6 +66,7 @@ public class SipitexDbContext : DbContext
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<OrderChangeLog> OrderChangeLogs => Set<OrderChangeLog>();
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>(); // Auditoría global transversal
+    public DbSet<ConsumoMaterial> ConsumosMaterial => Set<ConsumoMaterial>();
 
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -89,7 +90,8 @@ public class SipitexDbContext : DbContext
             e.Property(m => m.Code).HasMaxLength(40).IsRequired(); // Código interno (mat1, mat2...)
             // Precision 18,2 porque stock puede tener decimales (metros de tela, etc.)
             e.Property(m => m.Stock).HasPrecision(18, 2);
-            e.Property(m => m.MinStock).HasPrecision(18, 2); // Umbral para alerta de stock bajo
+            e.Property(m => m.MinStock).HasPrecision(18, 2);
+            e.Property(m => m.CostoAdquisicion).HasPrecision(18, 4);
             e.HasOne(m => m.PlantaInventario)
                 .WithMany(b => b.Materiales)
                 .HasForeignKey(m => m.PlantaInventarioId)
@@ -623,6 +625,7 @@ public class SipitexDbContext : DbContext
             e.HasKey(m => m.Id);
             e.Property(m => m.Cantidad).HasPrecision(18, 2);
             e.Property(m => m.StockResultante).HasPrecision(18, 2);
+            e.Property(m => m.CostoUnitario).HasPrecision(18, 4);
             e.Property(m => m.TipoMovimiento).HasConversion<string>().HasMaxLength(40);
             e.Property(m => m.Origen).HasConversion<string>().HasMaxLength(40);
             e.Property(m => m.Referencia).HasMaxLength(120);
@@ -671,6 +674,28 @@ public class SipitexDbContext : DbContext
             e.HasIndex(a => a.Timestamp);
             e.HasIndex(a => a.UserId);
             e.HasIndex(a => a.Action);
+        });
+
+        modelBuilder.Entity<ConsumoMaterial>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Cantidad).HasPrecision(18, 2);
+            e.Property(c => c.CostoUnitario).HasPrecision(18, 4);
+            e.HasOne(c => c.ProductionOrder)
+                .WithMany(o => o.Consumos)
+                .HasForeignKey(c => c.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.Material)
+                .WithMany(m => m.Consumos)
+                .HasForeignKey(c => c.MaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.Responsable)
+                .WithMany()
+                .HasForeignKey(c => c.ResponsableUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(c => c.ProductionOrderId);
+            e.HasIndex(c => c.MaterialId);
+            e.HasIndex(c => c.FechaUtc);
         });
     }
 }
