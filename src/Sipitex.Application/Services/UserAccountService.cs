@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
@@ -14,17 +15,20 @@ public class UserAccountService : IUserAccountService
     private readonly IFichaRepository _fichaRepository;
     private readonly IPlantaInventarioRepository _plantaInventarioRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<UserAccountService> _logger;
 
     public UserAccountService(
         IUserRepository userRepository,
         IFichaRepository fichaRepository,
         IPlantaInventarioRepository plantaInventarioRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<UserAccountService> logger)
     {
         _userRepository = userRepository;
         _fichaRepository = fichaRepository;
         _plantaInventarioRepository = plantaInventarioRepository;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     // Login: busca por email y compara hash de contraseña
@@ -37,9 +41,19 @@ public class UserAccountService : IUserAccountService
         // Busco el usuario por correo
         var user = await _userRepository.GetByEmailAsync(email.Trim(), cancellationToken);
         // Usuario inexistente o cuenta desactivada
-        if (user is null || !user.IsActive) return null;
+        if (user is null || !user.IsActive)
+        {
+            _logger.LogWarning("Login fallido para {Email}: usuario inexistente o inactivo", email.Trim());
+            return null;
+        }
         // Verifico contraseña con PBKDF2
-        if (!PasswordHasher.Verify(password, user.PasswordHash)) return null;
+        if (!PasswordHasher.Verify(password, user.PasswordHash))
+        {
+            _logger.LogWarning("Login fallido para {Email}: contraseña inválida", user.Email);
+            return null;
+        }
+
+        _logger.LogInformation("Login exitoso para {Email} (rol {Rol})", user.Email, user.Rol);
         return user;
     }
 

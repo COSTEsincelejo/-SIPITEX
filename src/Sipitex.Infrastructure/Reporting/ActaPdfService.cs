@@ -72,7 +72,7 @@ public class ActaPdfService : IActaPdfService
                         row.RelativeItem().Element(c => Firma(c, "Quien recibe", acta.RecibeNombre, acta.RecibeCargo, acta.RecibeConformidadUtc));
                     });
 
-                    col.Item().PaddingTop(12).Text("Firma manuscrita / gráfica: pendiente de confirmar. Esta versión registra conformidad simple (nombre, cargo y timestamp).")
+                    col.Item().PaddingTop(12).Text("Validez por conformidad simple: nombre, cargo y marca de tiempo UTC de quien entrega y quien recibe.")
                         .FontSize(8).Italic().FontColor(Colors.Grey.Darken1);
                 });
 

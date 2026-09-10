@@ -1,4 +1,5 @@
 @model LoginViewModel
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
 @{
     ViewData["Title"] = "Iniciar sesión";
     Layout = "_LoginLayout"; // sin menú lateral
@@ -28,10 +29,13 @@
     {
         <div class="alert alert-success" style="margin-top:1rem;">@success</div>
     }
-    <details class="auth-demo">
-        <summary>Credenciales de demostración</summary>
-        <div>Admin: <code>admin@sipitex.test</code> / <code>Admin123!</code></div>
-        <div>Instructor: <code>instructor@sipitex.test</code> / <code>Instructor123!</code></div>
-        <div>Encargado de bodega: <code>bodega@sipitex.test</code> / <code>Bodega123!</code></div>
-    </details>
+    @if (HostEnvironment.IsDevelopment())
+    {
+        <details class="auth-demo">
+            <summary>Credenciales de demostración</summary>
+            <div>Admin: <code>admin@sipitex.test</code> / <code>Admin123!</code></div>
+            <div>Instructor: <code>instructor@sipitex.test</code> / <code>Instructor123!</code></div>
+            <div>Encargado de bodega: <code>bodega@sipitex.test</code> / <code>Bodega123!</code></div>
+        </details>
+    }
 </div>

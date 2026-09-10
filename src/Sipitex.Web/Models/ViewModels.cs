@@ -604,6 +604,7 @@ public class CostosIndexViewModel
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public int? OrderId { get; set; }
     public GarmentCostDto? Costo { get; set; }
+    public bool LaborHourRateUnconfigured { get; set; }
 }
 
 public class ActasIndexViewModel

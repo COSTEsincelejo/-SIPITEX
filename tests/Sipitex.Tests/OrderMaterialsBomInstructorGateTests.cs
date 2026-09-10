@@ -32,7 +32,8 @@ public class OrderMaterialsBomInstructorGateTests
         _fichas.Setup(f => f.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object,
             _flowRepo.Object, _flowService.Object, _changeLogs.Object, _fichas.Object, _uow.Object,
-            new ProductionConsumptionService(_boms.Object, _materials.Object));
+            new ProductionConsumptionService(_boms.Object, _materials.Object),
+            NullLogger<ProductionOrderService>.Instance);
     }
 
     [Fact]

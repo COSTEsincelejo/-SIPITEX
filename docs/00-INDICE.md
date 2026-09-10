@@ -24,3 +24,5 @@ Carpeta: [`diagramas/`](diagramas/)
 
 Los diagramas se ven directamente en GitHub, Codespaces, VS Code y al exportar a PDF/Word.  
 Fuentes Mermaid editables: [`diagramas/src/`](diagramas/src/).
+
+El flujo MES (etapas de orden) es aditivo al alta de órdenes documentada en `07-secuencia-crear-orden.png`. No se regeneraron PNG en el cierre de módulos de planta, costeo y actas: la semántica de estados de orden (Pendiente / En proceso / Finalizada / Cancelada) no cambió.

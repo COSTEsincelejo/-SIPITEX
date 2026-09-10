@@ -1,4 +1,6 @@
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore; // Consultas async y MigrateAsync
+using Microsoft.Extensions.Logging;
 using Sipitex.Application.Helpers; // PasswordHasher para los usuarios de prueba
 using Sipitex.Application.Services; // CodigoGeneradorService (PRD-#### en seed)
 using Sipitex.Domain.Entities; // Entidades que inserto en el seed
@@ -10,8 +12,17 @@ namespace Sipitex.Infrastructure.Data;
 // Datos iniciales y migraciones al arrancar la app
 public static class DbInitializer
 {
+    public const string ProductionAdminEmail = "admin@sipitex.local";
+    public const string DemoAdminEmail = "admin@sipitex.test";
+    public const string DemoInstructorEmail = "instructor@sipitex.test";
+    public const string DemoEncargadoEmail = "bodega@sipitex.test";
+
     // Lo llama Program.cs al iniciar — deja la BD lista con datos de demo
-    public static async Task InitializeAsync(SipitexDbContext context)
+    public static async Task InitializeAsync(
+        SipitexDbContext context,
+        bool seedDemoUsers = true,
+        string? adminSeedPassword = null,
+        ILogger? logger = null)
     {
         // Primero reviso si hay una BD vieja sin historial de migraciones
         await MigrationBaseline.EnsureBaselineAsync(context);
@@ -105,9 +116,17 @@ public static class DbInitializer
             await context.SaveChangesAsync(); // Persisto fichas y requisitos
         }
 
-        // Estos siempre corren (idempotentes) por si faltan usuarios o prefs
-        await SeedUsersAsync(context);
-        await EnsureDemoEncargadoPlantaAsync(context);
+        // Usuarios demo solo con Seed:DemoUsers (Development). Producción: un admin si no hay ninguno.
+        if (seedDemoUsers)
+        {
+            await SeedUsersAsync(context);
+            await EnsureDemoEncargadoPlantaAsync(context);
+        }
+        else
+        {
+            await EnsureProductionAdminAsync(context, adminSeedPassword, logger);
+        }
+
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
         await EnsureBomProductsAndSnapshotsAsync(context);
@@ -283,12 +302,12 @@ public static class DbInitializer
             .ToListAsync();
         var emails = existing.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        if (!emails.Contains("admin@sipitex.test"))
+        if (!emails.Contains(DemoAdminEmail))
         {
             context.Users.Add(new User
             {
                 Nombre = "Administrador SIPITEX",
-                Email = "admin@sipitex.test",
+                Email = DemoAdminEmail,
                 PasswordHash = PasswordHasher.Hash("Admin123!"),
                 Rol = UserRoles.Administrador,
                 PermisosExtendidos = string.Empty,
@@ -296,12 +315,12 @@ public static class DbInitializer
             });
         }
 
-        if (!emails.Contains("instructor@sipitex.test"))
+        if (!emails.Contains(DemoInstructorEmail))
         {
             context.Users.Add(new User
             {
                 Nombre = "Laura Gómez",
-                Email = "instructor@sipitex.test",
+                Email = DemoInstructorEmail,
                 PasswordHash = PasswordHasher.Hash("Instructor123!"),
                 Rol = UserRoles.Instructor,
                 PermisosExtendidos = string.Empty,
@@ -309,12 +328,12 @@ public static class DbInitializer
             });
         }
 
-        if (!emails.Contains("bodega@sipitex.test"))
+        if (!emails.Contains(DemoEncargadoEmail))
         {
             context.Users.Add(new User
             {
                 Nombre = "Pedro Encargado",
-                Email = "bodega@sipitex.test",
+                Email = DemoEncargadoEmail,
                 PasswordHash = PasswordHasher.Hash("Bodega123!"),
                 Rol = UserRoles.EncargadoDeBodega,
                 PermisosExtendidos = string.Empty,
@@ -334,12 +353,51 @@ public static class DbInitializer
         var demo = await context.Users
             .Include(u => u.UserPlantasInventario)
             .FirstOrDefaultAsync(u =>
-                u.Email == "bodega@sipitex.test" && u.Rol == UserRoles.EncargadoDeBodega);
+                u.Email == DemoEncargadoEmail && u.Rol == UserRoles.EncargadoDeBodega);
         if (demo is null || demo.UserPlantasInventario.Count > 0)
             return;
 
         demo.UserPlantasInventario.Add(new UserPlantaInventario { UserId = demo.Id, PlantaInventarioId = 1 });
         await context.SaveChangesAsync();
+    }
+
+    // Producción: un único Administrador si tras migrar no hay ninguno.
+    private static async Task EnsureProductionAdminAsync(
+        SipitexDbContext context,
+        string? adminSeedPassword,
+        ILogger? logger)
+    {
+        if (await context.Users.AnyAsync(u => u.Rol == UserRoles.Administrador))
+            return;
+
+        var fromEnv = !string.IsNullOrWhiteSpace(adminSeedPassword)
+            && adminSeedPassword.Length >= PasswordRules.MinLength;
+        var password = fromEnv ? adminSeedPassword!.Trim() : GenerateStartupPassword();
+
+        context.Users.Add(new User
+        {
+            Nombre = "Administrador",
+            Email = ProductionAdminEmail,
+            PasswordHash = PasswordHasher.Hash(password),
+            Rol = UserRoles.Administrador,
+            PermisosExtendidos = string.Empty,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        logger?.LogWarning(
+            "Administrador inicial de producción creado. Correo: {Email}. Contraseña temporal: {Password}. Cámbiela en el perfil tras el primer ingreso.",
+            ProductionAdminEmail,
+            password);
+    }
+
+    private static string GenerateStartupPassword()
+    {
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+        Span<char> buffer = stackalloc char[16];
+        for (var i = 0; i < buffer.Length; i++)
+            buffer[i] = chars[RandomNumberGenerator.GetInt32(chars.Length)];
+        return new string(buffer);
     }
 
     // Une fichas con usuarios instructor por nombre y rellena la tabla M2M FichaInstructors

@@ -14,8 +14,10 @@
 | T08 | Registrar ficha | Ficha + unidades | Avance de orden |
 | T09 | Inspección calidad | Orden + unidades + resultado | Registro en tabla |
 | T10 | KPIs | Estadísticas | Valores coherentes con datos |
-| T11 | Login | Credenciales demo admin | Acceso a Inventario |
+| T11 | Login | Credenciales demo admin (Development) | Acceso a Inventario |
 | T12 | Usuarios | Admin → Usuarios → Crear | Usuario aparece en tabla |
+| T13 | Bloqueo de login | 5 contraseñas incorrectas | Mensaje de bloqueo; la clave correcta tampoco entra |
+| T14 | Seed producción | `ASPNETCORE_ENVIRONMENT=Production` | No existen `*@sipitex.test`; sí el admin bootstrap |
 
 ## 4.2 Pruebas de integración (manual)
 

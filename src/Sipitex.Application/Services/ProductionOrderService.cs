@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
@@ -21,6 +22,7 @@ public class ProductionOrderService : IProductionOrderService
     private readonly IFichaRepository _fichaRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ProductionConsumptionService _consumptionService;
+    private readonly ILogger<ProductionOrderService> _logger;
 
     public ProductionOrderService(
         IProductionOrderRepository orderRepository,
@@ -32,7 +34,8 @@ public class ProductionOrderService : IProductionOrderService
         IOrderChangeLogRepository changeLogs,
         IFichaRepository fichaRepository,
         IUnitOfWork unitOfWork,
-        ProductionConsumptionService consumptionService)
+        ProductionConsumptionService consumptionService,
+        ILogger<ProductionOrderService> logger)
     {
         _orderRepository = orderRepository;
         _bomRepository = bomRepository;
@@ -44,6 +47,7 @@ public class ProductionOrderService : IProductionOrderService
         _fichaRepository = fichaRepository;
         _unitOfWork = unitOfWork;
         _consumptionService = consumptionService;
+        _logger = logger;
     }
 
     // Lista órdenes con % de avance y hint desde snapshot (o BOM vivo si no hay snapshot)
@@ -235,6 +239,11 @@ public class ProductionOrderService : IProductionOrderService
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
+        _logger.LogInformation(
+            "Orden {OrderNumber} creada (producto {Product}, cantidad {Quantity})",
+            orderNumber,
+            product.ProductName,
+            dto.TotalQuantity);
         return ServiceResult.Ok($"Orden {orderNumber} creada (pendiente de aprobación).");
     }
 
@@ -275,6 +284,10 @@ public class ProductionOrderService : IProductionOrderService
         ], cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation(
+            "Orden {OrderNumber} aprobada por usuario {ActorUserId} (Pendiente → EnProceso)",
+            order.OrderNumber,
+            actorUserId);
         return ServiceResult.Ok($"Orden {order.OrderNumber} aprobada. Ya puede iniciar producción y MES.");
     }
 
@@ -404,6 +417,11 @@ public class ProductionOrderService : IProductionOrderService
         ], cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation(
+            "Orden {OrderNumber} cancelada por usuario {ActorUserId} (estado previo {PreviousStatus})",
+            order.OrderNumber,
+            actorUserId,
+            previous);
         return ServiceResult.Ok($"Orden {order.OrderNumber} cancelada. El stock entregado no se revierte automáticamente.");
     }
 

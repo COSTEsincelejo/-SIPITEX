@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Sipitex.Application.Interfaces.Services;
 using Sipitex.Infrastructure;
 using Sipitex.Infrastructure.Data;
 using Sipitex.Infrastructure.Persistence;
 using Sipitex.Web;
 using Sipitex.Web.Authorization;
+using Sipitex.Web.Security;
 
 // Punto de entrada de la web. Acá registro servicios y armo el pipeline HTTP.
 var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +29,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // Políticas de permisos (quién puede hacer qué)
 builder.Services.AddAuthorization(options => options.AddSipitexPolicies());
 
+// Bloqueo de login por intentos fallidos (en memoria del proceso)
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ILoginAttemptGuard, MemoryLoginAttemptGuard>();
+
 // Para saber si la BD responde (útil en despliegue)
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<SipitexDbContext>("database");
@@ -40,7 +46,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SipitexDbContext>();
-    await DbInitializer.InitializeAsync(db);
+    var seedDemoUsers = app.Configuration.GetValue("Seed:DemoUsers", app.Environment.IsDevelopment());
+    var adminSeedPassword = app.Configuration["ADMIN_SEED_PASSWORD"];
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbInitializer");
+    await DbInitializer.InitializeAsync(db, seedDemoUsers, adminSeedPassword, logger);
 }
 
 // En producción no mostramos el stack trace feo al usuario

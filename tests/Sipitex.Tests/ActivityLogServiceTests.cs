@@ -210,7 +210,8 @@ public class AccountActivityLogInstrumentationTests
             _funcionalidades.Object,
             _activity.Object,
             _plantas.Object,
-            _env.Object)
+            _env.Object,
+            Mock.Of<ILoginAttemptGuard>())
         {
             ControllerContext = new ControllerContext
             {

@@ -20,7 +20,8 @@ public class GarmentCostingServiceTests
         _grupos.Object,
         _stock.Object,
         _orders.Object,
-        Options.Create(new CostingOptions { LaborHourRate = laborHourRate }));
+        Options.Create(new CostingOptions { LaborHourRate = laborHourRate }),
+        NullLogger<GarmentCostingService>.Instance);
 
     private void SeedOrderAndGrupo()
     {
@@ -136,5 +137,23 @@ public class GarmentCostingServiceTests
         Assert.Equal(0, result.Total);
         Assert.Equal(12, result.TarifaHora);
         Assert.False(string.IsNullOrWhiteSpace(result.Formula));
+    }
+
+    [Fact]
+    public async Task CalcularAsync_TarifaNoConfigurada_ManoDeObraEnCeroYFlag()
+    {
+        SeedOrderAndGrupo();
+        _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        _stock.Setup(r => r.QueryAsync(null, It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var result = await CreateSut(0).CalcularAsync(10);
+
+        Assert.False(result.TarifaConfigurada);
+        Assert.Equal(0, result.TarifaHora);
+        Assert.Equal(0, result.CostoManoObra);
+        Assert.Equal(2, result.HorasManoObra);
+        Assert.Equal(0, result.Total);
     }
 }

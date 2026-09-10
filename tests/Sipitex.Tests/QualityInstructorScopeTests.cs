@@ -194,7 +194,8 @@ public class QualityInstructorScopeTests
         var sut = new ProductionOrderService(
             orders.Object, boms.Object, snapshots.Object, requirements.Object,
             flowRepo.Object, flowService.Object, changeLogs.Object, fichas.Object, uow.Object,
-            new ProductionConsumptionService(boms.Object, materials.Object));
+            new ProductionConsumptionService(boms.Object, materials.Object),
+            NullLogger<ProductionOrderService>.Instance);
 
         Assert.True(await sut.CanAccessOrderAsync(1, 10, UserRoles.Instructor, "Laura"));
         Assert.False(await sut.CanAccessOrderAsync(2, 10, UserRoles.Instructor, "Laura"));

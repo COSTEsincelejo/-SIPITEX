@@ -649,7 +649,8 @@ public record GarmentCostDto(
     decimal TarifaHora,
     decimal CostoManoObra,
     decimal Total,
-    string Formula);
+    string Formula,
+    bool TarifaConfigurada);
 
 public record GrupoConfeccionDto(
     int Id,

@@ -32,6 +32,7 @@ public class AccountController : Controller
     private readonly IActivityLogService _activityLog;
     private readonly IPlantaInventarioService _plantaService;
     private readonly IWebHostEnvironment _environment;
+    private readonly ILoginAttemptGuard _loginAttemptGuard;
 
     // Inyecto los servicios que usa todo el controller
     public AccountController(
@@ -40,7 +41,8 @@ public class AccountController : Controller
         IFuncionalidadesReportService funcionalidadesReportService,
         IActivityLogService activityLog,
         IPlantaInventarioService plantaService,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        ILoginAttemptGuard loginAttemptGuard)
     {
         _userAccountService = userAccountService;
         _passwordResetService = passwordResetService;
@@ -48,6 +50,7 @@ public class AccountController : Controller
         _activityLog = activityLog;
         _plantaService = plantaService;
         _environment = environment;
+        _loginAttemptGuard = loginAttemptGuard;
     }
 
     // Pantalla de login (GET)
@@ -70,15 +73,27 @@ public class AccountController : Controller
         // Si el form viene mal, vuelvo a la vista con errores
         if (!ModelState.IsValid) return View(model);
 
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        if (_loginAttemptGuard.IsLockedOut(model.Email, clientIp))
+        {
+            ModelState.AddModelError(string.Empty, LoginAttemptMessages.LockedOut);
+            return View(model);
+        }
+
         // Pregunto al servicio si email y clave cuadran
         var user = await _userAccountService.AuthenticateAsync(model.Email, model.Password, cancellationToken);
         // Usuario no existe, inactivo o contraseña mala
         if (user is null)
         {
-            // Error genérico para no decir si falló el email o la clave
-            ModelState.AddModelError(string.Empty, "Credenciales inválidas.");
+            _loginAttemptGuard.RecordFailure(model.Email, clientIp);
+            var message = _loginAttemptGuard.IsLockedOut(model.Email, clientIp)
+                ? LoginAttemptMessages.LockedOut
+                : LoginAttemptMessages.InvalidCredentials;
+            ModelState.AddModelError(string.Empty, message);
             return View(model);
         }
+
+        _loginAttemptGuard.Reset(model.Email, clientIp);
 
         // Cookie lista con rol, foto y permisos
         await SignInUserAsync(user);

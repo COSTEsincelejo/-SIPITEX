@@ -15,6 +15,13 @@
     </div>
 </div>
 
+@if (Model.LaborHourRateUnconfigured)
+{
+    <div class="alert alert-warning">
+        Tarifa de mano de obra sin configurar — costo de mano de obra no incluido
+    </div>
+}
+
 <div class="card">
     <div class="card-title"><i class="fas fa-filter"></i> Consultar por orden</div>
     <form method="get" class="form-row">

@@ -6,4 +6,6 @@ public class CostingOptions
 
     // Tarifa de mano de obra (por hora). Configurable; no se asume un valor de negocio fijo.
     public decimal LaborHourRate { get; set; }
+
+    public bool IsConfigured => LaborHourRate > 0;
 }

@@ -268,13 +268,17 @@ Modelo de la **base de datos**: tablas, claves y relaciones.
 
 ## 5. Apéndices
 
-### 5.1 Credenciales de demostración
+### 5.1 Credenciales de demostración (solo Development)
+
+Estas cuentas se siembran solo con `Seed:DemoUsers=true`. **No** aplican a un despliegue de producción.
 
 | Rol | Correo | Contraseña |
 |-----|--------|------------|
 | Administrador | `admin@sipitex.test` | `Admin123!` |
 | Instructor | `instructor@sipitex.test` | `Instructor123!` |
 | Encargado de bodega | `bodega@sipitex.test` | `Bodega123!` |
+
+En producción, si no existe Administrador, el arranque crea `admin@sipitex.local` (`ADMIN_SEED_PASSWORD` o clave aleatoria en el log).
 
 ### 5.2 Cómo ejecutar el sistema
 
