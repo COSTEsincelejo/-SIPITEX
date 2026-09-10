@@ -28,7 +28,7 @@ public record UpdateMaterialDto(int MaterialId, string Name, MaterialUnit Unit, 
 // Cambiar estado físico del material
 public record UpdateMaterialStatusDto(int MaterialId, MaterialStatus Status);
 
-// Solicitud de material hacia bodega (vista lista)
+// Solicitud de material hacia plantaInventario (vista lista)
 public record MaterialRequestDto(
     int Id,
     string MaterialName,
@@ -109,7 +109,7 @@ public record OrderChangeLogDto(
 // Una línea del listado BOM
 public record BomItemDto(string ProductName, string MaterialName, decimal QuantityPerUnit, string UnitDisplay);
 
-// Fila del listado de fichas técnicas
+// Fila del listado de ficha técnica
 public record BomProductListItemDto(
     int Id,
     string ProductName,
@@ -240,7 +240,7 @@ public record InstructorOptionDto(int Id, string Nombre);
 // Ficha de formación / grupo de producción
 public record FichaDto(
     int Id,
-    string FichaCode,
+    string NumeroGrupo,
     string ProcessName,
     string InstructorName,
     string? AssignedOrderNumber,
@@ -250,7 +250,7 @@ public record FichaDto(
 
 // Datos para crear ficha (instructores = IDs de usuarios con rol Instructor)
 public record CreateFichaDto(
-    string FichaCode,
+    string NumeroGrupo,
     string ProcessName,
     IReadOnlyList<int> InstructorUserIds,
     string Turno,
@@ -260,7 +260,7 @@ public record CreateFichaDto(
 // Sesión diaria registrada por el instructor
 public record ProductionSessionDto(
     int Id,
-    string FichaCode,
+    string NumeroGrupo,
     string OrderNumber,
     int Units,
     string Observations,
@@ -333,7 +333,7 @@ public record RequirementsViewDto(
     IReadOnlyList<FunctionalRequirementDto> Functional,
     IReadOnlyList<NonFunctionalRequirementDto> NonFunctional);
 
-// --- SolicitudMaterial (PorFicha SENA o InsumosLibres; paralelo a MaterialRequest) ---
+// --- SolicitudMaterial (PorGrupo SENA o InsumosLibres; paralelo a MaterialRequest) ---
 
 // Ítem al crear una solicitud (MaterialId obligatorio solo si Tipo=PorFicha)
 public record CreateDetalleSolicitudDto(
@@ -342,9 +342,9 @@ public record CreateDetalleSolicitudDto(
     string? DescripcionItem = null);
 
 // Alta de solicitud: Tipo discrimina validaciones (PorFicha vs InsumosLibres)
-// BodegaId: InsumosLibres lo usa si viene (> 0); si es null, el servicio cae a Bodega 1 (backfill AddBodegas).
-// PorFicha lo ignora y toma el BodegaId de los materiales. Si hay más de una bodega entre los
-// materiales, se rechaza (una solicitud = una bodega), aunque el bodeguero tenga varias asignadas.
+// PlantaInventarioId: InsumosLibres lo usa si viene (> 0); si es null, el servicio cae a PlantaInventario 1 (backfill AddPlantasInventario).
+// PorFicha lo ignora y toma el PlantaInventarioId de los materiales. Si hay más de una plantaInventario entre los
+// materiales, se rechaza (una solicitud = una plantaInventario), aunque el encargadoDeBodega tenga varias asignadas.
 public record CreateSolicitudMaterialDto(
     SolicitudMaterialTipo Tipo,
     int? FichaId,
@@ -352,14 +352,14 @@ public record CreateSolicitudMaterialDto(
     string? DescripcionLibre,
     IReadOnlyList<CreateDetalleSolicitudDto> Detalles,
     string? Observaciones = null,
-    int? BodegaId = null);
+    int? PlantaInventarioId = null);
 
-// Fila del listado "Mis solicitudes" / cola Bodega
+// Fila del listado "Mis solicitudes" / cola PlantaInventario
 public record SolicitudMaterialListItemDto(
     int Id,
     string Codigo,
     SolicitudMaterialTipo Tipo,
-    string FichaCode,
+    string NumeroGrupo,
     SolicitudMaterialEstado Estado,
     DateTime FechaSolicitud,
     string SolicitanteNombre);
@@ -379,7 +379,7 @@ public record SolicitudMaterialDetailDto(
     int Id,
     string Codigo,
     SolicitudMaterialTipo Tipo,
-    string FichaCode,
+    string NumeroGrupo,
     string? DescripcionLibre,
     string SolicitanteNombre,
     SolicitudMaterialEstado Estado,
@@ -388,7 +388,7 @@ public record SolicitudMaterialDetailDto(
     string? Observaciones,
     IReadOnlyList<DetalleSolicitudMaterialDto> Detalles);
 
-// Ítem para resolución en bodega (incluye stock actual)
+// Ítem para resolución en planta de inventario (incluye stock actual)
 public record DetalleResolucionDto(
     int Id,
     string MaterialName,
@@ -399,12 +399,12 @@ public record DetalleResolucionDto(
     decimal? CantidadAprobada,
     DetalleSolicitudEstado EstadoItem);
 
-// Detalle para Bodeguero (resolución)
+// Detalle para EncargadoDeBodega (resolución)
 public record SolicitudMaterialResolucionDto(
     int Id,
     string Codigo,
     SolicitudMaterialTipo Tipo,
-    string FichaCode,
+    string NumeroGrupo,
     string? DescripcionLibre,
     string SolicitanteNombre,
     SolicitudMaterialEstado Estado,
@@ -441,7 +441,7 @@ public record ActivityLogDto(
 
 public record ActivityLogActorDto(int UserId, string UserName);
 
-// --- Materiales de orden (bodega) ---
+// --- Materiales de orden (plantaInventario) ---
 
 public record OrderMaterialLineDto(
     int Id,
@@ -561,7 +561,7 @@ public record ProcessStageUnitsDto(int StageId, int Quantity, string? Observatio
 public record SendToNextStageDto(int FromStageId, int Quantity, string? Observations);
 public record PartialInventoryInDto(int OrderId, int StageId, int Quantity, string? Observations);
 
-// Reingreso desde etapa MES: material de bodega (MaterialId) o producto terminado (MaterialId null)
+// Reingreso desde etapa MES: material de planta de inventario (MaterialId) o producto terminado (MaterialId null)
 public record StageReentryDto(
     int OrderId,
     int StageId,

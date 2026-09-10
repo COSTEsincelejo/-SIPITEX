@@ -82,7 +82,7 @@ public class FichaService : IFichaService
 
         return sessions.Select(s => new ProductionSessionDto(
             s.Id,
-            s.Ficha.FichaCode,
+            s.Ficha.NumeroGrupo,
             s.ProductionOrder.OrderNumber,
             s.Units,
             s.Observations,
@@ -161,7 +161,7 @@ public class FichaService : IFichaService
         CreateFichaDto dto,
         CancellationToken cancellationToken = default)
     {
-        var code = (dto.FichaCode ?? string.Empty).Trim();
+        var code = (dto.NumeroGrupo ?? string.Empty).Trim();
         var process = (dto.ProcessName ?? string.Empty).Trim();
         var turno = (dto.Turno ?? string.Empty).Trim();
         var orderText = string.IsNullOrWhiteSpace(dto.AssignedOrderText)
@@ -174,7 +174,7 @@ public class FichaService : IFichaService
             .ToList();
 
         if (string.IsNullOrWhiteSpace(code))
-            return ServiceResult.Fail("El código de ficha es obligatorio.");
+            return ServiceResult.Fail("El número de grupo es obligatorio.");
         if (string.IsNullOrWhiteSpace(process))
             return ServiceResult.Fail("El proceso es obligatorio.");
         if (instructorIds.Count == 0)
@@ -182,7 +182,7 @@ public class FichaService : IFichaService
         if (string.IsNullOrWhiteSpace(turno))
             return ServiceResult.Fail("El turno es obligatorio.");
         if (code.Length > 30)
-            return ServiceResult.Fail("El código de ficha no puede superar 30 caracteres.");
+            return ServiceResult.Fail("El número de grupo no puede superar 30 caracteres.");
         if (turno.Length > 20)
             return ServiceResult.Fail("El turno no puede superar 20 caracteres.");
         if (orderText is { Length: > 100 })
@@ -215,7 +215,7 @@ public class FichaService : IFichaService
 
         var ficha = new Ficha
         {
-            FichaCode = code,
+            NumeroGrupo = code,
             ProcessName = process,
             Turno = turno,
             ProductionOrderId = orderId,
@@ -277,7 +277,7 @@ public class FichaService : IFichaService
         SyncPrimaryInstructorFields(ficha);
         _fichaRepository.Update(ficha);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok($"{user!.Nombre} asignado a la ficha {ficha.FichaCode}.");
+        return ServiceResult.Ok($"{user!.Nombre} asignado a la ficha {ficha.NumeroGrupo}.");
     }
 
     public async Task<ServiceResult> UpdateInstructorProcesoAsync(
@@ -348,7 +348,7 @@ public class FichaService : IFichaService
 
         return new FichaDto(
             f.Id,
-            f.FichaCode,
+            f.NumeroGrupo,
             f.ProcessName,
             FormatInstructorNames(f),
             f.ProductionOrder?.OrderNumber ?? f.AssignedOrderText,

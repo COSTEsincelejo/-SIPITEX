@@ -15,21 +15,21 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     private readonly IFichaRepository _fichaRepository;
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IMaterialRepository _materialRepository;
-    private readonly IBodegaRepository _bodegaRepository;
+    private readonly IPlantaInventarioRepository _plantaInventarioRepository;
     private readonly IUserRepository _userRepository;
     private readonly ICodigoGeneradorService _codigoGenerador;
     private readonly IAlertService _alertService;
     private readonly IUnitOfWork _unitOfWork;
 
-    // Bodega 1: default de Material/SolicitudMaterial y backfill de AddBodegas.
-    private const int DefaultBodegaId = 1;
+    // PlantaInventario 1: default de Material/SolicitudMaterial y backfill de AddPlantasInventario.
+    private const int DefaultPlantaInventarioId = 1;
 
     public SolicitudMaterialService(
         ISolicitudMaterialRepository solicitudRepository,
         IFichaRepository fichaRepository,
         IProductionOrderRepository orderRepository,
         IMaterialRepository materialRepository,
-        IBodegaRepository bodegaRepository,
+        IPlantaInventarioRepository plantaInventarioRepository,
         IUserRepository userRepository,
         ICodigoGeneradorService codigoGenerador,
         IAlertService alertService,
@@ -39,7 +39,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         _fichaRepository = fichaRepository;
         _orderRepository = orderRepository;
         _materialRepository = materialRepository;
-        _bodegaRepository = bodegaRepository;
+        _plantaInventarioRepository = plantaInventarioRepository;
         _userRepository = userRepository;
         _codigoGenerador = codigoGenerador;
         _alertService = alertService;
@@ -77,7 +77,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         CancellationToken cancellationToken)
     {
         if (dto.FichaId is not int fichaId || fichaId <= 0)
-            return ServiceResult.Fail("La ficha SENA es obligatoria para solicitudes por ficha.");
+            return ServiceResult.Fail("El grupo SENA es obligatoria para solicitudes por ficha.");
 
         var lineas = (dto.Detalles ?? [])
             .Where(d => d.MaterialId is > 0 && d.CantidadSolicitada > 0)
@@ -107,13 +107,13 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             materiales.Add(material);
         }
 
-        var bodegaIds = materiales.Select(m => m.BodegaId).Distinct().ToList();
-        // Una SolicitudMaterial tiene un solo BodegaId. Si los materiales son de bodegas distintas
-        // se rechaza aunque el bodeguero actual tenga todas esas bodegas asignadas.
-        if (bodegaIds.Count > 1)
-            return ServiceResult.Fail("Todos los materiales deben pertenecer a la misma bodega.");
+        var plantaInventarioIds = materiales.Select(m => m.PlantaInventarioId).Distinct().ToList();
+        // Una SolicitudMaterial tiene un solo PlantaInventarioId. Si los materiales son de plantasInventario distintas
+        // se rechaza aunque el encargadoDeBodega actual tenga todas esas plantasInventario asignadas.
+        if (plantaInventarioIds.Count > 1)
+            return ServiceResult.Fail("Todos los materiales deben pertenecer a la misma plantaInventario.");
 
-        var bodegaId = bodegaIds[0];
+        var plantaInventarioId = plantaInventarioIds[0];
 
         int? productionOrderId = null;
         if (dto.ProductionOrderId is int oid && oid > 0)
@@ -138,7 +138,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             Estado = SolicitudMaterialEstado.Pendiente,
             FechaSolicitud = DateTime.UtcNow,
             Observaciones = observaciones,
-            BodegaId = bodegaId,
+            PlantaInventarioId = plantaInventarioId,
             Detalles = lineas.Select(l => new DetalleSolicitudMaterial
             {
                 MaterialId = l.MaterialId,
@@ -152,11 +152,11 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         await _solicitudRepository.AddAsync(solicitud, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        await NotifyBodeguerosDeBodegaAsync(
-            bodegaId,
+        await NotifyEncargadosDePlantaInventarioAsync(
+            plantaInventarioId,
             AlertType.SolicitudMaterialNueva,
             $"SIPITEX · Nueva solicitud {codigo}",
-            $"Se creó la solicitud {codigo} para la ficha {ficha.FichaCode} ({lineas.Count} material(es)).\n\nRevise Solicitudes de materiales en bodega.",
+            $"Se creó la solicitud {codigo} para la ficha {ficha.NumeroGrupo} ({lineas.Count} material(es)).\n\nRevise Solicitudes de materiales en planta de inventario.",
             cancellationToken);
 
         return ServiceResult.Ok($"Solicitud {codigo} creada.");
@@ -184,7 +184,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             return ServiceResult.Fail("Agregue al menos un ítem con descripción y cantidad mayor a cero.");
 
         int? fichaId = null;
-        string? fichaCode = null;
+        string? numeroGrupo = null;
         if (dto.FichaId is int fid && fid > 0)
         {
             var ficha = await _fichaRepository.GetByIdAsync(fid, cancellationToken);
@@ -193,7 +193,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             if (!CanRequestOnFicha(ficha, solicitanteId, actorRole, actorName))
                 return ServiceResult.Fail("No tiene permiso para vincular esta ficha a la solicitud.");
             fichaId = ficha.Id;
-            fichaCode = ficha.FichaCode;
+            numeroGrupo = ficha.NumeroGrupo;
         }
 
         int? productionOrderId = null;
@@ -205,11 +205,11 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             productionOrderId = oid;
         }
 
-        // Sin MaterialId aún: el solicitante puede pasar BodegaId; si no, Bodega 1 (backfill AddBodegas).
-        var bodegaId = dto.BodegaId is > 0 ? dto.BodegaId.Value : DefaultBodegaId;
-        var bodega = await _bodegaRepository.GetByIdAsync(bodegaId, cancellationToken);
-        if (bodega is null)
-            return ServiceResult.Fail("Bodega no válida.");
+        // Sin MaterialId aún: el solicitante puede pasar PlantaInventarioId; si no, PlantaInventario 1 (backfill AddPlantasInventario).
+        var plantaInventarioId = dto.PlantaInventarioId is > 0 ? dto.PlantaInventarioId.Value : DefaultPlantaInventarioId;
+        var plantaInventario = await _plantaInventarioRepository.GetByIdAsync(plantaInventarioId, cancellationToken);
+        if (plantaInventario is null)
+            return ServiceResult.Fail("Planta de inventario no válida.");
 
         var codigo = await _codigoGenerador.GenerarCodigoSolicitudMaterialAsync(cancellationToken);
         var descripcionLibre = NormalizeOptional(dto.DescripcionLibre, maxLen: 2000);
@@ -226,7 +226,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
             Estado = SolicitudMaterialEstado.Pendiente,
             FechaSolicitud = DateTime.UtcNow,
             Observaciones = observaciones,
-            BodegaId = bodegaId,
+            PlantaInventarioId = plantaInventarioId,
             Detalles = lineas.Select(l => new DetalleSolicitudMaterial
             {
                 MaterialId = null,
@@ -240,17 +240,17 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         await _solicitudRepository.AddAsync(solicitud, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var contexto = fichaCode is not null
-            ? $" (ficha {fichaCode})"
+        var contexto = numeroGrupo is not null
+            ? $" (ficha {numeroGrupo})"
             : productionOrderId is not null
                 ? $" (orden #{productionOrderId})"
                 : string.Empty;
 
-        await NotifyBodeguerosDeBodegaAsync(
-            bodegaId,
+        await NotifyEncargadosDePlantaInventarioAsync(
+            plantaInventarioId,
             AlertType.SolicitudMaterialNueva,
             $"SIPITEX · Nueva solicitud {codigo}",
-            $"Se creó la solicitud {codigo} de insumos libres{contexto} ({lineas.Count} ítem(s) por descripción).\n\nRevise Solicitudes de materiales en bodega.",
+            $"Se creó la solicitud {codigo} de insumos libres{contexto} ({lineas.Count} ítem(s) por descripción).\n\nRevise Solicitudes de materiales en planta de inventario.",
             cancellationToken);
 
         return ServiceResult.Ok($"Solicitud {codigo} creada.");
@@ -291,17 +291,17 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         return MapDetail(solicitud);
     }
 
-    public async Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForBodegaAsync(
-        IReadOnlyList<int>? viewerBodegaIds,
+    public async Task<IReadOnlyList<SolicitudMaterialListItemDto>> GetListForPlantaInventarioAsync(
+        IReadOnlyList<int>? viewerPlantaInventarioIds,
         bool soloPendientes = true,
         CancellationToken cancellationToken = default)
     {
-        var allowed = NormalizeViewerBodegaIds(viewerBodegaIds);
+        var allowed = NormalizeViewerPlantaInventarioIds(viewerPlantaInventarioIds);
         if (allowed.Count == 0)
             return [];
 
         var all = await _solicitudRepository.GetAllWithFichaAsync(cancellationToken);
-        IEnumerable<SolicitudMaterial> scoped = all.Where(s => allowed.Contains(s.BodegaId));
+        IEnumerable<SolicitudMaterial> scoped = all.Where(s => allowed.Contains(s.PlantaInventarioId));
         if (soloPendientes)
             scoped = scoped.Where(s => s.Estado == SolicitudMaterialEstado.Pendiente);
 
@@ -310,22 +310,22 @@ public class SolicitudMaterialService : ISolicitudMaterialService
 
     public async Task<SolicitudMaterialResolucionDto?> GetResolucionDetailAsync(
         int id,
-        IReadOnlyList<int>? viewerBodegaIds,
+        IReadOnlyList<int>? viewerPlantaInventarioIds,
         CancellationToken cancellationToken = default)
     {
-        var allowed = NormalizeViewerBodegaIds(viewerBodegaIds);
+        var allowed = NormalizeViewerPlantaInventarioIds(viewerPlantaInventarioIds);
         if (allowed.Count == 0)
             return null;
 
         var solicitud = await _solicitudRepository.GetByIdWithDetallesAsync(id, cancellationToken);
-        if (solicitud is null || !allowed.Contains(solicitud.BodegaId))
+        if (solicitud is null || !allowed.Contains(solicitud.PlantaInventarioId))
             return null;
 
         return new SolicitudMaterialResolucionDto(
             solicitud.Id,
             solicitud.Codigo,
             solicitud.Tipo,
-            solicitud.Ficha?.FichaCode ?? "—",
+            solicitud.Ficha?.NumeroGrupo ?? "—",
             solicitud.DescripcionLibre,
             solicitud.Solicitante?.Nombre ?? "—",
             solicitud.Estado,
@@ -347,14 +347,14 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     }
 
     private static SolicitudMaterialListItemDto MapListItem(SolicitudMaterial s) =>
-        new(s.Id, s.Codigo, s.Tipo, s.Ficha?.FichaCode ?? "—", s.Estado, s.FechaSolicitud, s.Solicitante?.Nombre ?? "—");
+        new(s.Id, s.Codigo, s.Tipo, s.Ficha?.NumeroGrupo ?? "—", s.Estado, s.FechaSolicitud, s.Solicitante?.Nombre ?? "—");
 
     private static SolicitudMaterialDetailDto MapDetail(SolicitudMaterial solicitud) =>
         new(
             solicitud.Id,
             solicitud.Codigo,
             solicitud.Tipo,
-            solicitud.Ficha?.FichaCode ?? "—",
+            solicitud.Ficha?.NumeroGrupo ?? "—",
             solicitud.DescripcionLibre,
             solicitud.Solicitante?.Nombre ?? "—",
             solicitud.Estado,
@@ -407,8 +407,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         return trimmed.Length <= maxLen ? trimmed : trimmed[..maxLen];
     }
 
-    private static HashSet<int> NormalizeViewerBodegaIds(IReadOnlyList<int>? viewerBodegaIds) =>
-        (viewerBodegaIds ?? [])
+    private static HashSet<int> NormalizeViewerPlantaInventarioIds(IReadOnlyList<int>? viewerPlantaInventarioIds) =>
+        (viewerPlantaInventarioIds ?? [])
             .Where(id => id > 0)
             .ToHashSet();
 
@@ -419,8 +419,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         userId is > 0
         && string.Equals(role, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase);
 
-    private async Task NotifyBodeguerosDeBodegaAsync(
-        int bodegaId,
+    private async Task NotifyEncargadosDePlantaInventarioAsync(
+        int plantaInventarioId,
         AlertType type,
         string subject,
         string body,
@@ -428,8 +428,8 @@ public class SolicitudMaterialService : ISolicitudMaterialService
     {
         var ids = (await _userRepository.GetAllAsync(cancellationToken))
             .Where(u => u.IsActive
-                        && string.Equals(u.Rol, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase)
-                        && u.UserBodegas.Any(ub => ub.BodegaId == bodegaId))
+                        && string.Equals(u.Rol, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase)
+                        && u.UserPlantasInventario.Any(ub => ub.PlantaInventarioId == plantaInventarioId))
             .Select(u => u.Id)
             .ToList();
 

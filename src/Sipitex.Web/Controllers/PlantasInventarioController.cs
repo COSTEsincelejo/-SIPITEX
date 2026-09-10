@@ -7,25 +7,25 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
-// Catálogo de bodegas: listar, crear, editar y borrar (solo Administrador)
+// Catálogo de plantasInventario: listar, crear, editar y borrar (solo Administrador)
 [Authorize(Roles = UserRoles.Administrador)]
-public class BodegasController : Controller
+public class PlantasInventarioController : Controller
 {
-    private readonly IBodegaService _bodegas;
+    private readonly IPlantaInventarioService _plantas;
     private readonly IActivityLogService _activityLog;
 
-    public BodegasController(IBodegaService bodegas, IActivityLogService activityLog)
+    public PlantasInventarioController(IPlantaInventarioService plantasInventario, IActivityLogService activityLog)
     {
-        _bodegas = bodegas;
+        _plantas = plantasInventario;
         _activityLog = activityLog;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        return View(new BodegasIndexViewModel
+        return View(new PlantasInventarioIndexViewModel
         {
-            Bodegas = await _bodegas.GetAllAsync(cancellationToken),
+            PlantasInventario = await _plantas.GetAllAsync(cancellationToken),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -34,22 +34,22 @@ public class BodegasController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
-        [Bind(Prefix = "Form")] CreateBodegaForm form,
+        [Bind(Prefix = "Form")] CreatePlantaInventarioForm form,
         CancellationToken cancellationToken)
     {
-        var result = await _bodegas.CreateAsync(form.Nombre, cancellationToken);
+        var result = await _plantas.CreateAsync(form.Nombre, cancellationToken);
         if (result.Success && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId) && actorId > 0)
         {
             await _activityLog.LogAsync(
                 actorId,
-                "CreateBodega",
-                "Bodega",
+                "CreatePlantaInventario",
+                "PlantaInventario",
                 entityId: form.Nombre?.Trim(),
                 details: $"Nombre={form.Nombre?.Trim()}",
                 cancellationToken);
         }
 
-        TempData["Message"] = result.Message ?? (result.Success ? "Bodega creada." : "No se pudo crear la bodega.");
+        TempData["Message"] = result.Message ?? (result.Success ? "Planta de inventario creada." : "No se pudo crear la planta de inventario.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
     }
@@ -57,14 +57,14 @@ public class BodegasController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
     {
-        var bodega = await _bodegas.GetByIdAsync(id, cancellationToken);
-        if (bodega is null)
+        var plantaInventario = await _plantas.GetByIdAsync(id, cancellationToken);
+        if (plantaInventario is null)
             return NotFound();
 
-        return View(new EditBodegaViewModel
+        return View(new EditPlantaInventarioViewModel
         {
-            Id = bodega.Id,
-            Nombre = bodega.Nombre,
+            Id = plantaInventario.Id,
+            Nombre = plantaInventario.Nombre,
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -72,25 +72,25 @@ public class BodegasController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, EditBodegaViewModel model, CancellationToken cancellationToken)
+    public async Task<IActionResult> Edit(int id, EditPlantaInventarioViewModel model, CancellationToken cancellationToken)
     {
-        var result = await _bodegas.UpdateAsync(id, model.Nombre, cancellationToken);
+        var result = await _plantas.UpdateAsync(id, model.Nombre, cancellationToken);
         if (result.Success && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId) && actorId > 0)
         {
             await _activityLog.LogAsync(
                 actorId,
-                "UpdateBodega",
-                "Bodega",
+                "UpdatePlantaInventario",
+                "PlantaInventario",
                 entityId: id.ToString(),
                 details: $"Nombre={model.Nombre?.Trim()}",
                 cancellationToken);
-            TempData["Message"] = result.Message ?? "Bodega actualizada.";
+            TempData["Message"] = result.Message ?? "Planta de inventario actualizada.";
             TempData["IsSuccess"] = true;
             return RedirectToAction(nameof(Index));
         }
 
         model.Id = id;
-        model.Message = result.Message ?? "No se pudo actualizar la bodega.";
+        model.Message = result.Message ?? "No se pudo actualizar la plantaInventario.";
         model.IsSuccess = false;
         return View(model);
     }
@@ -99,19 +99,19 @@ public class BodegasController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var result = await _bodegas.DeleteAsync(id, cancellationToken);
+        var result = await _plantas.DeleteAsync(id, cancellationToken);
         if (result.Success && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId) && actorId > 0)
         {
             await _activityLog.LogAsync(
                 actorId,
-                "DeleteBodega",
-                "Bodega",
+                "DeletePlantaInventario",
+                "PlantaInventario",
                 entityId: id.ToString(),
                 details: result.Message,
                 cancellationToken);
         }
 
-        TempData["Message"] = result.Message ?? (result.Success ? "Bodega eliminada." : "No se pudo eliminar la bodega.");
+        TempData["Message"] = result.Message ?? (result.Success ? "Planta de inventario eliminada." : "No se pudo eliminar la plantaInventario.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
     }

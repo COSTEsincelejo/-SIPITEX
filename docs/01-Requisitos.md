@@ -13,7 +13,7 @@ Gestionar la producción textil del centro: inventario de materias primas, órde
 |-------|-----------------|
 | Administrador | Órdenes, configuración, reportes |
 | Instructor | Solicitud de materiales, registro de producción |
-| Bodeguero | Entradas/salidas, aprobación de solicitudes |
+| Encargado de bodega | Entradas/salidas, aprobación de solicitudes |
 | Control de calidad | Inspecciones y reprocesos |
 
 ## 1.3 Requisitos funcionales (RF01–RF20)
@@ -26,7 +26,7 @@ Gestionar la producción textil del centro: inventario de materias primas, órde
 | RF04 | Inventario | Consultar stock en tiempo real | Alta |
 | RF05 | Inventario | Estado del material | Media |
 | RF06 | Salida | Solicitud de materiales | Alta |
-| RF07 | Salida | Aprobación bodeguero | Alta |
+| RF07 | Salida | Aprobación encargado de bodega | Alta |
 | RF08 | Salida | Trazabilidad por orden | Media |
 | RF09 | Órdenes | Crear órdenes de producción | Alta |
 | RF10 | Órdenes | Estados de orden | Media |

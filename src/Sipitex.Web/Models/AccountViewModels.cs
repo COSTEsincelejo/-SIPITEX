@@ -34,12 +34,12 @@ public class UserEditViewModel
     public string Password { get; set; } = string.Empty;
 
     [Required]
-    public string Rol { get; set; } = "Instructor"; // Instructor o Bodeguero al crear
+    public string Rol { get; set; } = "Instructor"; // Instructor o EncargadoDeBodega al crear
 
     public int? FichaAsignadaId { get; set; } // opcional, solo para instructores
 
-    // Solo aplica si Rol == Bodeguero; el servicio lo ignora (deja vacío) en otros roles
-    public int[] BodegaIds { get; set; } = [];
+    // Solo aplica si Rol == EncargadoDeBodega; el servicio lo ignora (deja vacío) en otros roles
+    public int[] PlantaInventarioIds { get; set; } = [];
 
     // Permisos extra aparte del rol (claves de ExtendedPermissions)
     public List<string> SelectedPermissions { get; set; } = [];

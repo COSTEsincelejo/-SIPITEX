@@ -8,9 +8,9 @@ public static class ActivityLogActions
     public const string ToggleUserStatus = "ToggleUserStatus";
     public const string DeleteUser = "DeleteUser";
 
-    public const string CreateBodega = "CreateBodega";
-    public const string UpdateBodega = "UpdateBodega";
-    public const string DeleteBodega = "DeleteBodega";
+    public const string CreatePlantaInventario = "CreatePlantaInventario";
+    public const string UpdatePlantaInventario = "UpdatePlantaInventario";
+    public const string DeletePlantaInventario = "DeletePlantaInventario";
 
     public const string CreateOrder = "CreateOrder";
     public const string UpdateOrder = "UpdateOrder";
@@ -27,7 +27,7 @@ public static class ActivityLogActions
 public static class ActivityLogEntities
 {
     public const string User = "User";
-    public const string Bodega = "Bodega";
+    public const string PlantaInventario = "PlantaInventario";
     public const string ProductionOrder = "ProductionOrder";
     public const string BomProduct = "BomProduct";
 }

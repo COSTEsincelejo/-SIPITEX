@@ -6,8 +6,8 @@ using Sipitex.Infrastructure.Persistence;
 namespace Sipitex.Infrastructure.Data;
 
 /// <summary>
-/// Seed idempotente de materiales y fichas técnicas CMTC (consumos oficiales).
-/// Materiales nuevos: Stock=0 y MinStock=0 — ajustar después con cantidades reales de bodega.
+/// Seed idempotente de materiales y ficha técnica CMTC (consumos oficiales).
+/// Materiales nuevos: Stock=0 y MinStock=0 — ajustar después con cantidades reales de planta de inventario.
 /// No modifica Camisa/Pantalón ni asigna instructores.
 /// </summary>
 internal static class CmtcBomCatalogSeed
@@ -16,8 +16,8 @@ internal static class CmtcBomCatalogSeed
     private const string MaterialCodePrefix = "cmtc-pendiente-";
 
     private const string BomNotes =
-        "Ficha técnica CMTC (Ficha Técnica Insumos - Producción). " +
-        "Materiales nuevos del catálogo con Stock=0 y MinStock=0 pendientes de ajuste en bodega.";
+        "ficha técnica CMTC (ficha técnica Insumos - Producción). " +
+        "Materiales nuevos del catálogo con Stock=0 y MinStock=0 pendientes de ajuste en planta de inventario.";
 
     // Catálogo de insumos: nombre exacto + unidad. Stock/min siempre 0 al crear.
     private static readonly (string Name, MaterialUnit Unit)[] Materials =
@@ -162,7 +162,7 @@ internal static class CmtcBomCatalogSeed
             nextSeq++;
             var material = new Material
             {
-                // Código con prefijo claro: stock/min en 0 — completar en bodega.
+                // Código con prefijo claro: stock/min en 0 — completar en planta de inventario.
                 Code = $"{MaterialCodePrefix}{nextSeq:D3}",
                 Name = name,
                 Unit = unit,

@@ -7,32 +7,32 @@ namespace Sipitex.Application.Authorization;
 // El admin siempre pasa; instructor puede tener permisos puntuales
 public static class PermissionRules
 {
-    // Admin, bodeguero o instructor con permiso extendido de inventario
+    // Admin, encargadoDeBodega o instructor con permiso extendido de inventario
     public static bool PuedeRegistrarMateriales(ClaimsPrincipal user) =>
         user.IsInRole(UserRoles.Administrador)
-        || user.IsInRole(UserRoles.Bodeguero)
+        || user.IsInRole(UserRoles.EncargadoDeBodega)
         || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.InventarioRegistrar));
 
     // Aprobar solicitudes: mismos roles base + permiso SolicitudesAprobar
     public static bool PuedeAprobarSolicitudes(ClaimsPrincipal user) =>
         user.IsInRole(UserRoles.Administrador)
-        || user.IsInRole(UserRoles.Bodeguero)
+        || user.IsInRole(UserRoles.EncargadoDeBodega)
         || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.SolicitudesAprobar));
 
-    // Simular MRP: admin, bodeguero o instructor con MrpSimular
+    // Simular MRP: admin, encargadoDeBodega o instructor con MrpSimular
     public static bool PuedeSimularMrp(ClaimsPrincipal user) =>
         user.IsInRole(UserRoles.Administrador)
-        || user.IsInRole(UserRoles.Bodeguero)
+        || user.IsInRole(UserRoles.EncargadoDeBodega)
         || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.MrpSimular));
 
-    // Crear/editar fichas técnicas: admin, bodeguero o instructor con Mrp.GestionarFichas (gap #6)
+    // Crear/editar ficha técnica: admin, encargadoDeBodega o instructor con Mrp.GestionarFichas (gap #6)
     // Delete permanece solo Admin en MrpController.
     public static bool PuedeGestionarFichasTecnicas(ClaimsPrincipal user) =>
         user.IsInRole(UserRoles.Administrador)
-        || user.IsInRole(UserRoles.Bodeguero)
+        || user.IsInRole(UserRoles.EncargadoDeBodega)
         || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.MrpGestionarFichas));
 
-    // Crear órdenes: Admin o Instructor con Ordenes.Crear (gap #7). Bodeguero no crea órdenes.
+    // Crear órdenes: Admin o Instructor con Ordenes.Crear (gap #7). EncargadoDeBodega no crea órdenes.
     public static bool PuedeCrearOrdenes(ClaimsPrincipal user) =>
         user.IsInRole(UserRoles.Administrador)
         || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.OrdenesCrear));
@@ -42,10 +42,10 @@ public static class PermissionRules
         user.IsInRole(UserRoles.Administrador)
         || HasPermission(user, ExtendedPermissions.AlertasConfigurar);
 
-    // Inventario general: solo Admin/Bodeguero. Instructor consulta materiales vía MRP/órdenes (manual de roles).
+    // Inventario general: solo Admin/EncargadoDeBodega. Instructor consulta materiales vía MRP/órdenes (manual de roles).
     public static bool PuedeConsultarInventario(ClaimsPrincipal user) =>
         user.IsInRole(UserRoles.Administrador)
-        || user.IsInRole(UserRoles.Bodeguero);
+        || user.IsInRole(UserRoles.EncargadoDeBodega);
 
     // Revisa si el usuario tiene un permiso extendido en sus claims
     public static bool HasPermission(ClaimsPrincipal user, string permission) =>

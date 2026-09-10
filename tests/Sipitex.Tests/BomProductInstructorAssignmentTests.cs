@@ -152,7 +152,7 @@ public class BomProductInstructorAssignmentTests
             Assert.NotNull(attr);
             Assert.Equal(UserRoles.Administrador, attr!.Roles);
             Assert.DoesNotContain(UserRoles.Instructor, attr.Roles!, StringComparison.Ordinal);
-            Assert.DoesNotContain(UserRoles.Bodeguero, attr.Roles!, StringComparison.Ordinal);
+            Assert.DoesNotContain(UserRoles.EncargadoDeBodega, attr.Roles!, StringComparison.Ordinal);
             Assert.NotNull(method.GetCustomAttribute<HttpPostAttribute>());
         }
     }

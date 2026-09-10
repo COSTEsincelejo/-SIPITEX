@@ -261,7 +261,7 @@ public class ReportService : IReportService
         {
             rows.Add([
                 "Producción",
-                $"{s.Ficha.FichaCode} · {s.Ficha.ProcessName}",
+                $"{s.Ficha.NumeroGrupo} · {s.Ficha.ProcessName}",
                 s.Units.ToString(),
                 string.IsNullOrWhiteSpace(s.Ficha.Turno) ? "—" : s.Ficha.Turno,
                 s.SessionDate.ToString("yyyy-MM-dd HH:mm"),

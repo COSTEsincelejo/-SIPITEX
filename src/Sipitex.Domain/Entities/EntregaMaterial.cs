@@ -11,8 +11,8 @@ public class EntregaMaterial
     public int SolicitudMaterialId { get; set; }
     public SolicitudMaterial SolicitudMaterial { get; set; } = null!;
 
-    public int BodegueroId { get; set; }
-    public User Bodeguero { get; set; } = null!;
+    public int EncargadoDeBodegaId { get; set; }
+    public User EncargadoDeBodega { get; set; } = null!;
 
     public DateTime FechaEntrega { get; set; } = DateTime.UtcNow;
 

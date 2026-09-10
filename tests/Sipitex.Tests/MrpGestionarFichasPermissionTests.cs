@@ -15,7 +15,7 @@ using Sipitex.Web.Controllers;
 namespace Sipitex.Tests;
 
 /// <summary>
-/// Gap #6 (AUDITORIA_ROLES_FUNCIONES): Instructor gestiona fichas técnicas solo con Mrp.GestionarFichas.
+/// Gap #6 (AUDITORIA_ROLES_FUNCIONES): Instructor gestiona ficha técnica solo con Mrp.GestionarFichas.
 /// </summary>
 public class MrpGestionarFichasPermissionTests
 {
@@ -47,9 +47,9 @@ public class MrpGestionarFichasPermissionTests
     }
 
     [Fact]
-    public void PuedeGestionarFichasTecnicas_Bodeguero_IsAllowedWithoutClaim()
+    public void PuedeGestionarFichasTecnicas_EncargadoDeBodega_IsAllowedWithoutClaim()
     {
-        var user = CreatePrincipal(UserRoles.Bodeguero);
+        var user = CreatePrincipal(UserRoles.EncargadoDeBodega);
         Assert.True(PermissionRules.PuedeGestionarFichasTecnicas(user));
     }
 

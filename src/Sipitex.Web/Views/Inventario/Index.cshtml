@@ -7,7 +7,7 @@
     Layout = "_Layout";
     // Materiales con stock bajo para el banner de alerta
     var lowStock = Model.Materials.Where(m => m.IsLowStock).Select(m => m.Name).ToList();
-    var canManageStock = User.IsInRole("Administrador") || User.IsInRole("Bodeguero");
+    var canManageStock = User.IsInRole("Administrador") || User.IsInRole("Encargado de bodega");
     // Políticas más finas que el rol (permisos extendidos)
     var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
     var canApproveRequests = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeAprobarSolicitudes)).Succeeded;
@@ -17,7 +17,7 @@
 <div class="page-header">
     <div>
         <h2>Inventario de materias primas</h2>
-        <div class="sub">Controla niveles de stock, mínimos y solicitudes de bodega</div>
+        <div class="sub">Controla niveles de stock, mínimos y solicitudes de planta de inventario</div>
     </div>
     @if (canManageStock)
     {
@@ -81,7 +81,7 @@
                         <td>
                             @if (canManageStock)
                             {
-                                @* Bodeguero puede cambiar estado con un select que hace submit al cambiar *@
+                                @* EncargadoDeBodega puede cambiar estado con un select que hace submit al cambiar *@
                                 <form asp-action="UpdateStatus" method="post" class="row-actions">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="MaterialId" value="@mat.Id" />
@@ -204,7 +204,7 @@
     }
     @if (!Model.Requests.Any())
     {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-inbox", Title = "Sin solicitudes", Text = "Cuando un instructor solicite material, aparecerá aquí para aprobación de bodega.", ActionText = canRequest ? "Cree la primera solicitud con el formulario de arriba." : null }' />
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-inbox", Title = "Sin solicitudes", Text = "Cuando un instructor solicite material, aparecerá aquí para aprobación de planta de inventario.", ActionText = canRequest ? "Cree la primera solicitud con el formulario de arriba." : null }' />
     }
     else
     {
@@ -252,6 +252,6 @@
         </div>
     }
     <div class="alert alert-info" style="margin-top:14px;">
-        <i class="fas fa-circle-info"></i> Admin solicita · Bodeguero aprueba o rechaza. Al aprobar, el stock se descuenta automáticamente.
+        <i class="fas fa-circle-info"></i> Admin solicita · Encargado de bodega aprueba o rechaza. Al aprobar, el stock se descuenta automáticamente.
     </div>
 </div>

@@ -13,22 +13,22 @@ using Sipitex.Web.Models;
 namespace Sipitex.Tests;
 
 /// <summary>
-/// Scoping de BodegaSolicitudesController.Index por las bodegas asignadas al bodeguero autenticado.
+/// Scoping de PlantasInventarioSolicitudesController.Index por las plantasInventario asignadas al encargadoDeBodega autenticado.
 /// </summary>
-public class BodegaSolicitudesScopeTests
+public class PlantaInventarioSolicitudesScopeTests
 {
     private readonly Mock<ISolicitudMaterialService> _solicitudes = new();
     private readonly Mock<ISolicitudMaterialApprovalService> _approval = new();
     private readonly Mock<IInventoryService> _inventory = new();
-    private readonly Mock<ICurrentBodegaAccessor> _bodega = new();
+    private readonly Mock<ICurrentPlantaInventarioAccessor> _plantaInventario = new();
 
-    private BodegaSolicitudesController CreateController(ClaimsPrincipal user)
+    private PlantasInventarioSolicitudesController CreateController(ClaimsPrincipal user)
     {
-        var controller = new BodegaSolicitudesController(
+        var controller = new PlantasInventarioSolicitudesController(
             _solicitudes.Object,
             _approval.Object,
             _inventory.Object,
-            _bodega.Object)
+            _plantaInventario.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -41,7 +41,7 @@ public class BodegaSolicitudesScopeTests
         return controller;
     }
 
-    private static ClaimsPrincipal Principal(int userId, string role = UserRoles.Bodeguero) =>
+    private static ClaimsPrincipal Principal(int userId, string role = UserRoles.EncargadoDeBodega) =>
         new(new ClaimsIdentity(
         [
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
@@ -53,12 +53,12 @@ public class BodegaSolicitudesScopeTests
         new(id, codigo, SolicitudMaterialTipo.PorFicha, "F1", SolicitudMaterialEstado.Pendiente, DateTime.UtcNow, "Laura");
 
     [Fact]
-    public async Task Index_BodegueroBodega1_SoloVeSolicitudesDeBodega1()
+    public async Task Index_EncargadoDeBodegaPlantaInventario1_SoloVeSolicitudesDePlantaInventario1()
     {
         IReadOnlyList<int> ids = [1];
-        _bodega.SetupGet(a => a.BodegaIds).Returns(ids);
+        _plantaInventario.SetupGet(a => a.PlantaInventarioIds).Returns(ids);
         _solicitudes
-            .Setup(s => s.GetListForBodegaAsync(
+            .Setup(s => s.GetListForPlantaInventarioAsync(
                 It.Is<IReadOnlyList<int>>(x => x.Count == 1 && x[0] == 1),
                 true,
                 It.IsAny<CancellationToken>()))
@@ -68,34 +68,34 @@ public class BodegaSolicitudesScopeTests
         var result = await controller.Index(estado: null, CancellationToken.None);
 
         var view = Assert.IsType<ViewResult>(result);
-        var vm = Assert.IsType<BodegaSolicitudesIndexViewModel>(view.Model);
+        var vm = Assert.IsType<PlantasInventarioSolicitudesIndexViewModel>(view.Model);
         Assert.Single(vm.Solicitudes);
         Assert.Equal("SOL-B1", vm.Solicitudes[0].Codigo);
 
         _solicitudes.Verify(
-            s => s.GetListForBodegaAsync(
+            s => s.GetListForPlantaInventarioAsync(
                 It.Is<IReadOnlyList<int>>(x => x.Count == 1 && x[0] == 1),
                 true,
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _solicitudes.Verify(
-            s => s.GetListForBodegaAsync(
+            s => s.GetListForPlantaInventarioAsync(
                 It.Is<IReadOnlyList<int>>(x => x.Contains(2) && x.Count == 1),
                 It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
         _solicitudes.Verify(
-            s => s.GetListForBodegaAsync(null, It.IsAny<bool>(), It.IsAny<CancellationToken>()),
+            s => s.GetListForPlantaInventarioAsync(null, It.IsAny<bool>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task Index_BodegueroConDosBodegas_PasaAmbasAlServicio()
+    public async Task Index_EncargadoDeBodegaConDosPlantasInventario_PasaAmbasAlServicio()
     {
         IReadOnlyList<int> ids = [1, 2];
-        _bodega.SetupGet(a => a.BodegaIds).Returns(ids);
+        _plantaInventario.SetupGet(a => a.PlantaInventarioIds).Returns(ids);
         _solicitudes
-            .Setup(s => s.GetListForBodegaAsync(
+            .Setup(s => s.GetListForPlantaInventarioAsync(
                 It.Is<IReadOnlyList<int>>(x => x.Count == 2 && x.Contains(1) && x.Contains(2)),
                 true,
                 It.IsAny<CancellationToken>()))
@@ -105,26 +105,26 @@ public class BodegaSolicitudesScopeTests
         var result = await controller.Index(estado: null, CancellationToken.None);
 
         var view = Assert.IsType<ViewResult>(result);
-        var vm = Assert.IsType<BodegaSolicitudesIndexViewModel>(view.Model);
+        var vm = Assert.IsType<PlantasInventarioSolicitudesIndexViewModel>(view.Model);
         Assert.Equal(2, vm.Solicitudes.Count);
     }
 
     [Fact]
-    public async Task Index_BodegueroSinBodegaAsignada_BloqueaConMensaje()
+    public async Task Index_EncargadoDeBodegaSinPlantaInventarioAsignada_BloqueaConMensaje()
     {
-        _bodega.SetupGet(a => a.BodegaIds).Returns(Array.Empty<int>());
+        _plantaInventario.SetupGet(a => a.PlantaInventarioIds).Returns(Array.Empty<int>());
 
         var controller = CreateController(Principal(5));
         var result = await controller.Index(estado: null, CancellationToken.None);
 
         var view = Assert.IsType<ViewResult>(result);
-        var vm = Assert.IsType<BodegaSolicitudesIndexViewModel>(view.Model);
+        var vm = Assert.IsType<PlantasInventarioSolicitudesIndexViewModel>(view.Model);
         Assert.Empty(vm.Solicitudes);
         Assert.False(vm.IsSuccess);
-        Assert.Contains("bodega asignada", vm.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("plantaInventario asignada", vm.Message, StringComparison.OrdinalIgnoreCase);
 
         _solicitudes.Verify(
-            s => s.GetListForBodegaAsync(It.IsAny<IReadOnlyList<int>?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
+            s => s.GetListForPlantaInventarioAsync(It.IsAny<IReadOnlyList<int>?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 }

@@ -28,7 +28,7 @@ public static class DisplayHelper
         OrderMaterialsStatus.ListaParaProduccion => "badge-success",
         OrderMaterialsStatus.MaterialesValidados => "badge-info",
         OrderMaterialsStatus.EntregaParcial => "badge-warning",
-        OrderMaterialsStatus.PendienteRevisionBodega => "badge-warning",
+        OrderMaterialsStatus.PendienteRevisionPlantaInventario => "badge-warning",
         _ => "badge-info"
     };
 
@@ -76,7 +76,7 @@ public static class DisplayHelper
     public static string StatusText(SolicitudMaterialTipo tipo) => tipo switch
     {
         SolicitudMaterialTipo.InsumosLibres => "Insumos libres",
-        SolicitudMaterialTipo.PorFicha => "Por ficha SENA",
+        SolicitudMaterialTipo.PorFicha => "Por grupo SENA",
         _ => tipo.ToString()
     };
 
@@ -140,7 +140,7 @@ public static class DisplayHelper
         OrderStatus.Finalizada => "Finalizada",
         OrderStatus.Cancelada => "Cancelada",
         OrderMaterialsStatus.NoAplica => "Sin materiales",
-        OrderMaterialsStatus.PendienteRevisionBodega => "Pendiente revisión bodega",
+        OrderMaterialsStatus.PendienteRevisionPlantaInventario => "Pendiente revisión planta de inventario",
         OrderMaterialsStatus.MaterialesValidados => "Materiales validados",
         OrderMaterialsStatus.EntregaParcial => "Entrega parcial",
         OrderMaterialsStatus.ListaParaProduccion => "Lista para producción",
@@ -177,9 +177,12 @@ public static class DisplayHelper
         "UpdateUser" => "Editar usuario",
         "ToggleUserStatus" => "Activar/desactivar usuario",
         "DeleteUser" => "Eliminar usuario",
-        "CreateBodega" => "Crear bodega",
-        "UpdateBodega" => "Renombrar bodega",
-        "DeleteBodega" => "Eliminar bodega",
+        "CreateBodega" => "Crear planta de inventario",
+        "CreatePlantaInventario" => "Crear planta de inventario",
+        "UpdateBodega" => "Renombrar planta de inventario",
+        "UpdatePlantaInventario" => "Renombrar planta de inventario",
+        "DeleteBodega" => "Eliminar planta de inventario",
+        "DeletePlantaInventario" => "Eliminar planta de inventario",
         "CreateOrder" => "Crear orden",
         "UpdateOrder" => "Editar orden",
         "ApproveOrder" => "Aprobar orden",
@@ -195,7 +198,8 @@ public static class DisplayHelper
     public static string LabelActivityEntity(string? entity) => entity switch
     {
         "User" => "Usuario",
-        "Bodega" => "Bodega",
+        "Bodega" => "Planta de inventario",
+        "PlantaInventario" => "Planta de inventario",
         "ProductionOrder" => "Orden de producción",
         "BomProduct" => "Ficha técnica (BOM)",
         _ => string.IsNullOrWhiteSpace(entity) ? "—" : entity

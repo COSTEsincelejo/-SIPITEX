@@ -25,14 +25,14 @@ public class FichaServiceScopeTests
     {
         _fichas.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
         [
-            new Ficha { Id = 1, FichaCode = "F1", ProcessName = "Trazo", InstructorName = "Laura Gómez", InstructorUserId = 10 },
-            new Ficha { Id = 2, FichaCode = "F2", ProcessName = "Corte", InstructorName = "Carlos Méndez", InstructorUserId = 20 }
+            new Ficha { Id = 1, NumeroGrupo = "F1", ProcessName = "Trazo", InstructorName = "Laura Gómez", InstructorUserId = 10 },
+            new Ficha { Id = 2, NumeroGrupo = "F2", ProcessName = "Corte", InstructorName = "Carlos Méndez", InstructorUserId = 20 }
         ]);
 
         var result = await CreateSut().GetFichasAsync(10, UserRoles.Instructor, "Laura Gómez");
 
         Assert.Single(result);
-        Assert.Equal("F1", result[0].FichaCode);
+        Assert.Equal("F1", result[0].NumeroGrupo);
     }
 
     [Fact]
@@ -40,8 +40,8 @@ public class FichaServiceScopeTests
     {
         _fichas.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
         [
-            new Ficha { Id = 1, FichaCode = "F1", InstructorName = "Laura Gómez", InstructorUserId = 10 },
-            new Ficha { Id = 2, FichaCode = "F2", InstructorName = "Carlos Méndez", InstructorUserId = 20 }
+            new Ficha { Id = 1, NumeroGrupo = "F1", InstructorName = "Laura Gómez", InstructorUserId = 10 },
+            new Ficha { Id = 2, NumeroGrupo = "F2", InstructorName = "Carlos Méndez", InstructorUserId = 20 }
         ]);
 
         var result = await CreateSut().GetFichasAsync(1, UserRoles.Administrador, "Admin");
@@ -60,7 +60,7 @@ public class FichaServiceScopeTests
                 Units = 5,
                 SessionDate = DateTime.Now,
                 RegisteredByUserId = 10,
-                Ficha = new Ficha { FichaCode = "F1", InstructorName = "Laura Gómez", InstructorUserId = 10 },
+                Ficha = new Ficha { NumeroGrupo = "F1", InstructorName = "Laura Gómez", InstructorUserId = 10 },
                 ProductionOrder = new ProductionOrder { OrderNumber = "OP-001" }
             },
             new ProductionSession
@@ -69,7 +69,7 @@ public class FichaServiceScopeTests
                 Units = 8,
                 SessionDate = DateTime.Now,
                 RegisteredByUserId = 20,
-                Ficha = new Ficha { FichaCode = "F2", InstructorName = "Carlos Méndez", InstructorUserId = 20 },
+                Ficha = new Ficha { NumeroGrupo = "F2", InstructorName = "Carlos Méndez", InstructorUserId = 20 },
                 ProductionOrder = new ProductionOrder { OrderNumber = "OP-002" }
             }
         ]);
@@ -77,7 +77,7 @@ public class FichaServiceScopeTests
         var result = await CreateSut().GetRecentSessionsAsync(10, UserRoles.Instructor, "Laura Gómez");
 
         Assert.Single(result);
-        Assert.Equal("F1", result[0].FichaCode);
+        Assert.Equal("F1", result[0].NumeroGrupo);
         Assert.Equal(5, result[0].Units);
     }
 
@@ -85,7 +85,7 @@ public class FichaServiceScopeTests
     public async Task RegisterSessionAsync_Instructor_CannotUseOtherInstructorFicha()
     {
         _fichas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(
-            new Ficha { Id = 2, FichaCode = "F2", InstructorName = "Carlos", InstructorUserId = 20 });
+            new Ficha { Id = 2, NumeroGrupo = "F2", InstructorName = "Carlos", InstructorUserId = 20 });
 
         var result = await CreateSut().RegisterSessionAsync(
             new RegisterProductionDto(1, 2, 5, "test"),

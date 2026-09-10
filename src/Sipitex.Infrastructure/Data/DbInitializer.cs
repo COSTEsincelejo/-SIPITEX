@@ -94,9 +94,9 @@ public static class DbInitializer
 
             // Tres fichas de proceso ligadas a las órdenes
             context.Fichas.AddRange(
-                new Ficha { FichaCode = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", Turno = "Mañana", ProductionOrderId = op1.Id },
-                new Ficha { FichaCode = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", Turno = "Mañana", ProductionOrderId = op1.Id },
-                new Ficha { FichaCode = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", Turno = "Tarde", ProductionOrderId = op2.Id });
+                new Ficha { NumeroGrupo = "FICHA-T1", ProcessName = "Trazo", InstructorName = "Laura Gómez", Turno = "Mañana", ProductionOrderId = op1.Id },
+                new Ficha { NumeroGrupo = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", Turno = "Mañana", ProductionOrderId = op1.Id },
+                new Ficha { NumeroGrupo = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", Turno = "Tarde", ProductionOrderId = op2.Id });
 
             SeedRequirements(context); // RF y RNF del proyecto académico
             await context.SaveChangesAsync(); // Persisto fichas y requisitos
@@ -104,11 +104,11 @@ public static class DbInitializer
 
         // Estos siempre corren (idempotentes) por si faltan usuarios o prefs
         await SeedUsersAsync(context);
-        await EnsureDemoBodegueroBodegaAsync(context);
+        await EnsureDemoEncargadoPlantaAsync(context);
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
         await EnsureBomProductsAndSnapshotsAsync(context);
-        // Fichas técnicas CMTC + materiales faltantes (Stock/MinStock 0); no toca Camisa/Pantalón
+        // ficha técnica CMTC + materiales faltantes (Stock/MinStock 0); no toca Camisa/Pantalón
         await CmtcBomCatalogSeed.EnsureAsync(context);
     }
 
@@ -267,7 +267,7 @@ public static class DbInitializer
         return await command.ExecuteScalarAsync() is not null and not DBNull;
     }
 
-    // Usuarios de prueba para desarrollo (admin, instructor, bodega)
+    // Usuarios de prueba para desarrollo (admin, instructor, plantaInventario)
     private static async Task SeedUsersAsync(SipitexDbContext context)
     {
         if (await context.Users.AnyAsync()) return; // Ya hay usuarios, no duplico
@@ -293,30 +293,30 @@ public static class DbInitializer
             },
             new User
             {
-                Nombre = "Pedro Bodega",
+                Nombre = "Pedro Encargado",
                 Email = "bodega@sipitex.test",
                 PasswordHash = PasswordHasher.Hash("Bodega123!"),
-                Rol = UserRoles.Bodeguero,
+                Rol = UserRoles.EncargadoDeBodega,
                 PermisosExtendidos = string.Empty,
                 IsActive = true,
-                UserBodegas = { new UserBodega { BodegaId = 1 } }
+                UserPlantasInventario = { new UserPlantaInventario { PlantaInventarioId = 1 } }
             });
 
         await context.SaveChangesAsync();
     }
 
-    // Demo legado: bodega@sipitex.test nació sin bodega. Solo ese usuario se asigna a Bodega 1;
-    // otros bodegueros sin bodega siguen bloqueados en la cola hasta que el admin los asigne.
-    private static async Task EnsureDemoBodegueroBodegaAsync(SipitexDbContext context)
+    // Demo legado: bodega@sipitex.test nació sin plantaInventario. Solo ese usuario se asigna a PlantaInventario 1;
+    // otros encargados sin plantaInventario siguen bloqueados en la cola hasta que el admin los asigne.
+    private static async Task EnsureDemoEncargadoPlantaAsync(SipitexDbContext context)
     {
         var demo = await context.Users
-            .Include(u => u.UserBodegas)
+            .Include(u => u.UserPlantasInventario)
             .FirstOrDefaultAsync(u =>
-                u.Email == "bodega@sipitex.test" && u.Rol == UserRoles.Bodeguero);
-        if (demo is null || demo.UserBodegas.Count > 0)
+                u.Email == "bodega@sipitex.test" && u.Rol == UserRoles.EncargadoDeBodega);
+        if (demo is null || demo.UserPlantasInventario.Count > 0)
             return;
 
-        demo.UserBodegas.Add(new UserBodega { UserId = demo.Id, BodegaId = 1 });
+        demo.UserPlantasInventario.Add(new UserPlantaInventario { UserId = demo.Id, PlantaInventarioId = 1 });
         await context.SaveChangesAsync();
     }
 
@@ -426,9 +426,9 @@ public static class DbInitializer
             ("RF02", "Autenticación con credenciales propias por rol.", "Usuarios", ComplianceStatus.Cumple, "Login con cookies de autenticación."),
             ("RF03", "Registrar entradas con fecha, cantidad y unidad.", "Inventario", ComplianceStatus.Cumple, "Fecha de última entrada en material."),
             ("RF04", "Consultar stock disponible en tiempo real.", "Inventario", ComplianceStatus.Cumple, "Actualización reactiva."),
-            ("RF05", "Bodeguero registra estado del material (Bueno/Regular/Deteriorado).", "Inventario", ComplianceStatus.Cumple, "Selector de estado en inventario."),
+            ("RF05", "EncargadoDeBodega registra estado del material (Bueno/Regular/Deteriorado).", "Inventario", ComplianceStatus.Cumple, "Selector de estado en inventario."),
             ("RF06", "Instructor solicita materiales (orden, producto, cantidad).", "Salida", ComplianceStatus.Cumple, "Formulario de solicitud."),
-            ("RF07", "Bodeguero aprueba / rechaza y registra entrega.", "Salida", ComplianceStatus.Cumple, "Aprobación y rechazo implementados."),
+            ("RF07", "EncargadoDeBodega aprueba / rechaza y registra entrega.", "Salida", ComplianceStatus.Cumple, "Aprobación y rechazo implementados."),
             ("RF08", "Salida trazada por orden y producto.", "Salida", ComplianceStatus.Parcial, "Se guarda orderId pero no historial visible."),
             ("RF09", "Admin crea órdenes con producto, cantidad y fecha.", "Órdenes", ComplianceStatus.Cumple, "Formulario completo."),
             ("RF10", "Estados: Pendiente, En Proceso, Finalizada, Cancelada.", "Órdenes", ComplianceStatus.Parcial, "Solo 'En Proceso' y 'Finalizada'."),

@@ -5,11 +5,11 @@ public static class AuthorizationPolicyNames
 {
     // Quién puede dar de alta materiales en inventario
     public const string PuedeRegistrarMateriales = "PuedeRegistrarMateriales";
-    // Quién puede aprobar solicitudes de bodega
+    // Quién puede aprobar solicitudes de planta de inventario
     public const string PuedeAprobarSolicitudes = "PuedeAprobarSolicitudes";
     // Quién puede correr simulación MRP
     public const string PuedeSimularMrp = "PuedeSimularMrp";
-    // Quién puede crear/editar fichas técnicas (BOM)
+    // Quién puede crear/editar ficha técnica (BOM)
     public const string PuedeGestionarFichasTecnicas = "PuedeGestionarFichasTecnicas";
     // Quién puede crear órdenes de producción
     public const string PuedeCrearOrdenes = "PuedeCrearOrdenes";

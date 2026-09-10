@@ -29,11 +29,11 @@ public class FichasController : Controller
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpGet]
     public async Task<IActionResult> Index(
-        string? fichaCode,
+        string? numeroGrupo,
         string? instructor,
         string? turno,
         CancellationToken cancellationToken) =>
-        View(await BuildViewModel(fichaCode, instructor, turno, cancellationToken));
+        View(await BuildViewModel(numeroGrupo, instructor, turno, cancellationToken));
 
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor}")]
     [HttpPost]
@@ -57,7 +57,7 @@ public class FichasController : Controller
         // El servicio valida código único, exclusividad orden/texto y guarda en BD
         var result = await _fichaService.CreateFichaAsync(
             new CreateFichaDto(
-                form.FichaCode,
+                form.NumeroGrupo,
                 form.ProcessName,
                 instructorIds,
                 form.Turno,
@@ -143,7 +143,7 @@ public class FichasController : Controller
     }
 
     private async Task<FichasIndexViewModel> BuildViewModel(
-        string? fichaCode,
+        string? numeroGrupo,
         string? instructor,
         string? turno,
         CancellationToken cancellationToken)
@@ -155,10 +155,10 @@ public class FichasController : Controller
         var fichas = (await _fichaService.GetFichasAsync(userId, role, name, cancellationToken)).AsEnumerable();
         var sessions = (await _fichaService.GetRecentSessionsAsync(userId, role, name, cancellationToken)).AsEnumerable();
 
-        if (!string.IsNullOrWhiteSpace(fichaCode))
+        if (!string.IsNullOrWhiteSpace(numeroGrupo))
         {
-            fichas = fichas.Where(f => f.FichaCode.Contains(fichaCode, StringComparison.OrdinalIgnoreCase));
-            sessions = sessions.Where(s => s.FichaCode.Contains(fichaCode, StringComparison.OrdinalIgnoreCase));
+            fichas = fichas.Where(f => f.NumeroGrupo.Contains(numeroGrupo, StringComparison.OrdinalIgnoreCase));
+            sessions = sessions.Where(s => s.NumeroGrupo.Contains(numeroGrupo, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(instructor))
@@ -196,7 +196,7 @@ public class FichasController : Controller
                 ProductionOrderId = orders.FirstOrDefault()?.Id ?? 0,
                 FichaId = fichaList.FirstOrDefault()?.Id ?? 0
             },
-            FichaCodeFilter = fichaCode,
+            NumeroGrupoFilter = numeroGrupo,
             InstructorFilter = instructor,
             TurnoFilter = turno,
             Message = TempData["Message"] as string,

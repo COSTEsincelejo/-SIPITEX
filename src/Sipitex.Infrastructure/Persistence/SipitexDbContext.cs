@@ -7,30 +7,30 @@ namespace Sipitex.Infrastructure.Persistence;
 // El DbContext de EF Core — acá queda todo el mapeo a SQLite
 public class SipitexDbContext : DbContext
 {
-    private readonly ICurrentBodegaAccessor _bodegaAccessor;
+    private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
 
-    // Tests / tools sin accessor: sin restricción de bodega.
+    // Tests / tools sin accessor: sin restricción de planta de inventario.
     public SipitexDbContext(DbContextOptions<SipitexDbContext> options)
-        : this(options, NullCurrentBodegaAccessor.Instance)
+        : this(options, NullCurrentPlantaInventarioAccessor.Instance)
     {
     }
 
-    public SipitexDbContext(DbContextOptions<SipitexDbContext> options, ICurrentBodegaAccessor bodegaAccessor)
+    public SipitexDbContext(DbContextOptions<SipitexDbContext> options, ICurrentPlantaInventarioAccessor plantaAccessor)
         : base(options)
     {
-        _bodegaAccessor = bodegaAccessor;
+        _plantaAccessor = plantaAccessor;
     }
 
     // EF Core parametriza estas propiedades en el query filter en cada consulta.
-    // RestrictToAssignedBodegas = false (BodegaIds null) → Admin/Instructor/seed, sin filtro.
-    // RestrictToAssignedBodegas = true + CurrentBodegaIds vacío → bodeguero sin asignaciones (0 filas).
-    public bool RestrictToAssignedBodegas => _bodegaAccessor.BodegaIds is not null;
-    public int[] CurrentBodegaIds => _bodegaAccessor.BodegaIds?.ToArray() ?? [];
+    // RestrictToAssignedPlantasInventario = false (PlantaInventarioIds null) → Admin/Instructor/seed, sin filtro.
+    // RestrictToAssignedPlantasInventario = true + CurrentPlantaInventarioIds vacío → encargadoDeBodega sin asignaciones (0 filas).
+    public bool RestrictToAssignedPlantasInventario => _plantaAccessor.PlantaInventarioIds is not null;
+    public int[] CurrentPlantaInventarioIds => _plantaAccessor.PlantaInventarioIds?.ToArray() ?? [];
 
     // Cada DbSet = una tabla en la BD
     public DbSet<Material> Materials => Set<Material>(); // Inventario de telas, hilos, etc.
-    public DbSet<Bodega> Bodegas => Set<Bodega>(); // Bodega 1 / Bodega 2 (catálogo compartido)
-    public DbSet<UserBodega> UserBodegas => Set<UserBodega>(); // M2M bodeguero ↔ bodega
+    public DbSet<PlantaInventario> PlantasInventario => Set<PlantaInventario>(); // PlantaInventario 1 / PlantaInventario 2 (catálogo compartido)
+    public DbSet<UserPlantaInventario> UserPlantasInventario => Set<UserPlantaInventario>(); // M2M encargadoDeBodega ↔ plantaInventario
     public DbSet<BomProduct> BomProducts => Set<BomProduct>(); // Cabecera de ficha técnica (producto)
     public DbSet<BomProductInstructor> BomProductInstructors => Set<BomProductInstructor>(); // M2M ficha técnica ↔ instructor
     public DbSet<BomProductTalla> BomProductTallas => Set<BomProductTalla>(); // Tallas de ficha técnica (Fase A)
@@ -40,7 +40,7 @@ public class SipitexDbContext : DbContext
     public DbSet<BomItem> BomItems => Set<BomItem>(); // Lista de materiales por prenda (BOM)
     public DbSet<ProductionOrder> ProductionOrders => Set<ProductionOrder>(); // Órdenes OP-xxx
     public DbSet<ProductionOrderBomSnapshot> ProductionOrderBomSnapshots => Set<ProductionOrderBomSnapshot>(); // Receta congelada por orden
-    public DbSet<MaterialRequest> MaterialRequests => Set<MaterialRequest>(); // Solicitudes de salida de bodega
+    public DbSet<MaterialRequest> MaterialRequests => Set<MaterialRequest>(); // Solicitudes de salida de planta de inventario
     public DbSet<Ficha> Fichas => Set<Ficha>(); // Fichas de proceso (trazo, corte, confección...)
     public DbSet<FichaInstructor> FichaInstructors => Set<FichaInstructor>(); // M2M ficha ↔ instructor
     public DbSet<QualityRecord> QualityRecords => Set<QualityRecord>(); // Inspecciones de calidad
@@ -70,14 +70,14 @@ public class SipitexDbContext : DbContext
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // --- Bodega (Bodega 1 / Bodega 2; seed fijo de catálogo) ---
-        modelBuilder.Entity<Bodega>(e =>
+        // --- PlantaInventario (PlantaInventario 1 / PlantaInventario 2; seed fijo de catálogo) ---
+        modelBuilder.Entity<PlantaInventario>(e =>
         {
             e.HasKey(b => b.Id);
             e.Property(b => b.Nombre).HasMaxLength(80).IsRequired();
             e.HasData(
-                new Bodega { Id = 1, Nombre = "Bodega 1" },
-                new Bodega { Id = 2, Nombre = "Bodega 2" });
+                new PlantaInventario { Id = 1, Nombre = "Planta de Inventario 1" },
+                new PlantaInventario { Id = 2, Nombre = "Planta de Inventario 2" });
         });
 
         // --- Material ---
@@ -89,13 +89,13 @@ public class SipitexDbContext : DbContext
             // Precision 18,2 porque stock puede tener decimales (metros de tela, etc.)
             e.Property(m => m.Stock).HasPrecision(18, 2);
             e.Property(m => m.MinStock).HasPrecision(18, 2); // Umbral para alerta de stock bajo
-            e.HasOne(m => m.Bodega)
+            e.HasOne(m => m.PlantaInventario)
                 .WithMany(b => b.Materiales)
-                .HasForeignKey(m => m.BodegaId)
+                .HasForeignKey(m => m.PlantaInventarioId)
                 .OnDelete(DeleteBehavior.Restrict);
-            e.HasIndex(m => m.BodegaId);
-            // Bodeguero: IN (bodegas asignadas). Restrict=false = Admin/Instructor/seed (sin filtro).
-            e.HasQueryFilter(m => !RestrictToAssignedBodegas || CurrentBodegaIds.Contains(m.BodegaId));
+            e.HasIndex(m => m.PlantaInventarioId);
+            // EncargadoDeBodega: IN (plantasInventario asignadas). Restrict=false = Admin/Instructor/seed (sin filtro).
+            e.HasQueryFilter(m => !RestrictToAssignedPlantasInventario || CurrentPlantaInventarioIds.Contains(m.PlantaInventarioId));
         });
 
         // Cabecera de ficha técnica (producto)
@@ -284,7 +284,7 @@ public class SipitexDbContext : DbContext
         modelBuilder.Entity<Ficha>(e =>
         {
             e.HasKey(f => f.Id); // PK de la ficha
-            e.Property(f => f.FichaCode).HasMaxLength(30).IsRequired(); // FICHA-T1, FICHA-C2...
+            e.Property(f => f.NumeroGrupo).HasMaxLength(30).IsRequired(); // FICHA-T1, FICHA-C2...
             e.Property(f => f.Turno).HasMaxLength(20).IsRequired(); // Mañana, Tarde...
             e.Property(f => f.AssignedOrderText).HasMaxLength(100); // Orden escrita a mano
             // Cada ficha está ligada a una orden de producción
@@ -359,7 +359,7 @@ public class SipitexDbContext : DbContext
             e.Property(u => u.Nombre).HasMaxLength(120).IsRequired(); // Nombre completo
             e.Property(u => u.Email).HasMaxLength(160).IsRequired(); // Correo de login
             e.Property(u => u.PasswordHash).HasMaxLength(256).IsRequired(); // Hash, nunca la clave en claro
-            e.Property(u => u.Rol).HasMaxLength(40).IsRequired(); // Administrador, Instructor, Bodeguero...
+            e.Property(u => u.Rol).HasMaxLength(40).IsRequired(); // Administrador, Instructor, EncargadoDeBodega...
             e.Property(u => u.PermisosExtendidos).HasMaxLength(500); // Permisos extra si aplica
             e.Property(u => u.PhotoPath).HasMaxLength(260); // Ruta de la foto de perfil
             e.Property(u => u.FuncionDescripcion).HasMaxLength(800); // Descripción del cargo
@@ -371,19 +371,19 @@ public class SipitexDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull); // Si borran la ficha, el usuario sigue
         });
 
-        // --- UserBodega (M2M bodeguero ↔ bodega; reemplaza Users.BodegaId singular) ---
-        modelBuilder.Entity<UserBodega>(e =>
+        // --- UserPlantaInventario (M2M encargadoDeBodega ↔ plantaInventario; reemplaza Users.PlantaInventarioId singular) ---
+        modelBuilder.Entity<UserPlantaInventario>(e =>
         {
-            e.HasKey(x => new { x.UserId, x.BodegaId });
+            e.HasKey(x => new { x.UserId, x.PlantaInventarioId });
             e.HasOne(x => x.User)
-                .WithMany(u => u.UserBodegas)
+                .WithMany(u => u.UserPlantasInventario)
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(x => x.Bodega)
-                .WithMany(b => b.Bodegueros)
-                .HasForeignKey(x => x.BodegaId)
+            e.HasOne(x => x.PlantaInventario)
+                .WithMany(b => b.Encargados)
+                .HasForeignKey(x => x.PlantaInventarioId)
                 .OnDelete(DeleteBehavior.Restrict);
-            e.HasIndex(x => x.BodegaId);
+            e.HasIndex(x => x.PlantaInventarioId);
         });
 
         // Preferencias de alertas por usuario (qué tipo de notificación quiere recibir)
@@ -408,7 +408,7 @@ public class SipitexDbContext : DbContext
         });
 
 
-        // --- SolicitudMaterial (PorFicha SENA o InsumosLibres; paralelo a MaterialRequest) ---
+        // --- SolicitudMaterial (PorGrupo SENA o InsumosLibres; paralelo a MaterialRequest) ---
         modelBuilder.Entity<SolicitudMaterial>(e =>
         {
             e.HasKey(s => s.Id);
@@ -439,12 +439,12 @@ public class SipitexDbContext : DbContext
             e.HasIndex(s => s.SolicitanteId);
             e.HasIndex(s => s.Estado);
             e.HasIndex(s => s.Tipo);
-            e.HasOne(s => s.Bodega)
+            e.HasOne(s => s.PlantaInventario)
                 .WithMany(b => b.Solicitudes)
-                .HasForeignKey(s => s.BodegaId)
+                .HasForeignKey(s => s.PlantaInventarioId)
                 .OnDelete(DeleteBehavior.Restrict);
-            e.HasIndex(s => s.BodegaId);
-            e.HasQueryFilter(s => !RestrictToAssignedBodegas || CurrentBodegaIds.Contains(s.BodegaId));
+            e.HasIndex(s => s.PlantaInventarioId);
+            e.HasQueryFilter(s => !RestrictToAssignedPlantasInventario || CurrentPlantaInventarioIds.Contains(s.PlantaInventarioId));
         });
 
         // --- DetalleSolicitudMaterial ---
@@ -479,9 +479,9 @@ public class SipitexDbContext : DbContext
                 .HasForeignKey<EntregaMaterial>(x => x.SolicitudMaterialId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.SolicitudMaterialId).IsUnique();
-            e.HasOne(x => x.Bodeguero)
+            e.HasOne(x => x.EncargadoDeBodega)
                 .WithMany()
-                .HasForeignKey(x => x.BodegueroId)
+                .HasForeignKey(x => x.EncargadoDeBodegaId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -633,7 +633,7 @@ public class SipitexDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(m => m.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
-            e.HasQueryFilter(s => !RestrictToAssignedBodegas || CurrentBodegaIds.Contains(s.Material.BodegaId));
+            e.HasQueryFilter(s => !RestrictToAssignedPlantasInventario || CurrentPlantaInventarioIds.Contains(s.Material.PlantaInventarioId));
             e.HasIndex(m => m.FechaUtc);
             e.HasIndex(m => m.MaterialId);
             e.HasIndex(m => m.UsuarioId);

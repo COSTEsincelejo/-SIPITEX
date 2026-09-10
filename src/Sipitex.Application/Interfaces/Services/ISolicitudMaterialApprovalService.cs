@@ -18,7 +18,7 @@ public interface ISolicitudMaterialApprovalService
     Task<ServiceResult> ResolveSolicitudAsync(
         int solicitudId,
         IReadOnlyList<ResolveDetalleDto> items,
-        int bodegueroId,
+        int encargadoDeBodegaId,
         string? observaciones = null,
         CancellationToken cancellationToken = default);
 }

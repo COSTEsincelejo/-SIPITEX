@@ -18,9 +18,9 @@ public static class ExtendedPermissions
     public static readonly string[] All =
     [
         InventarioRegistrar,   // puede dar de alta materiales
-        SolicitudesAprobar,    // puede aprobar/rechazar pedidos a bodega
+        SolicitudesAprobar,    // puede aprobar/rechazar pedidos a plantaInventario
         MrpSimular,            // puede correr la simulación MRP
-        MrpGestionarFichas,    // puede crear/editar fichas técnicas (BOM)
+        MrpGestionarFichas,    // puede crear/editar ficha técnica (BOM)
         OrdenesCrear,          // puede crear órdenes de producción
         AlertasConfigurar      // puede disparar evaluación de alertas
     ];
@@ -31,7 +31,7 @@ public static class ExtendedPermissions
         (InventarioRegistrar, "Registrar materiales en inventario"),
         (SolicitudesAprobar, "Aprobar / rechazar solicitudes"),
         (MrpSimular, "Simular MRP"),
-        (MrpGestionarFichas, "Crear / editar fichas técnicas (BOM)"),
+        (MrpGestionarFichas, "Crear / editar ficha técnica (BOM)"),
         (OrdenesCrear, "Crear órdenes de producción"),
         (AlertasConfigurar, "Configurar / evaluar alertas")
     ];

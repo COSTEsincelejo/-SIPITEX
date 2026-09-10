@@ -88,7 +88,7 @@ public class ProductionOrderService : IProductionOrderService
 
             var canOperateProduction = productionIds is null || productionIds.Contains(order.Id);
             var canManageMaterials = materialsIds is null || materialsIds.Contains(order.Id);
-            // Admin/Bodeguero: ambos true (productionIds/materialsIds null). Instructor: flags por conjunto.
+            // Admin/EncargadoDeBodega: ambos true (productionIds/materialsIds null). Instructor: flags por conjunto.
 
             result.Add(new ProductionOrderDto(
                 order.Id,
@@ -122,7 +122,7 @@ public class ProductionOrderService : IProductionOrderService
         CancellationToken cancellationToken = default)
     {
         if (string.Equals(viewerRole, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(viewerRole, UserRoles.Bodeguero, StringComparison.OrdinalIgnoreCase))
+            || string.Equals(viewerRole, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase))
             return true;
 
         if (!IsInstructorViewer(viewerRole, viewerUserId))
@@ -433,15 +433,15 @@ public class ProductionOrderService : IProductionOrderService
         if (order.Status is OrderStatus.Finalizada or OrderStatus.Cancelada)
             return ServiceResult.Fail("Orden finalizada o cancelada.");
 
-        // Gate: si la orden exige materiales de bodega, deben estar entregados por completo
+        // Gate: si la orden exige materiales de planta de inventario, deben estar entregados por completo
         if (!OrderMaterialService.CanRegisterProduction(order))
             return ServiceResult.Fail(
-                "No se puede iniciar producción: hay materiales pendientes de entrega en bodega.");
+                "No se puede iniciar producción: hay materiales pendientes de entrega en planta de inventario.");
 
         var toAdd = Math.Min(units, order.TotalQuantity - order.ProducedQuantity);
         if (toAdd <= 0) return ServiceResult.Fail("La orden ya alcanzó su meta.");
 
-        // Si bodega ya entregó los materiales de la orden, no volver a descontar BOM (evita doble consumo)
+        // Si plantaInventario ya entregó los materiales de la orden, no volver a descontar BOM (evita doble consumo)
         if (!OrderMaterialService.UsesWarehouseIssuedMaterials(order))
         {
             var recipe = await ResolveRecipeForOrderAsync(order, cancellationToken);

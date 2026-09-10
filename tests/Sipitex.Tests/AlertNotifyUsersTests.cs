@@ -32,25 +32,25 @@ public class AlertNotifyUsersTests
     [Fact]
     public async Task NotifyUsersAsync_PorRol_SoloEnviaSiPreferenciaEnabled()
     {
-        var bodegueroOn = new User
+        var encargadoDeBodegaOn = new User
         {
             Id = 1,
-            Nombre = "Bodega On",
+            Nombre = "PlantaInventario On",
             Email = "on@test.com",
-            Rol = UserRoles.Bodeguero,
+            Rol = UserRoles.EncargadoDeBodega,
             IsActive = true
         };
-        var bodegueroOff = new User
+        var encargadoDeBodegaOff = new User
         {
             Id = 2,
-            Nombre = "Bodega Off",
+            Nombre = "PlantaInventario Off",
             Email = "off@test.com",
-            Rol = UserRoles.Bodeguero,
+            Rol = UserRoles.EncargadoDeBodega,
             IsActive = true
         };
 
         _users.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync([bodegueroOn, bodegueroOff]);
+            .ReturnsAsync([encargadoDeBodegaOn, encargadoDeBodegaOff]);
         _alerts.Setup(r => r.EnsureDefaultPreferencesAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
@@ -60,7 +60,7 @@ public class AlertNotifyUsersTests
                 new AlertPreference
                 {
                     UserId = 1,
-                    User = bodegueroOn,
+                    User = encargadoDeBodegaOn,
                     AlertType = AlertType.SolicitudMaterialNueva,
                     Enabled = true
                 }
@@ -74,10 +74,10 @@ public class AlertNotifyUsersTests
             "Asunto",
             "Cuerpo",
             userIds: null,
-            role: UserRoles.Bodeguero);
+            role: UserRoles.EncargadoDeBodega);
 
         Assert.Equal(1, sent);
-        _email.Verify(e => e.SendAsync("on@test.com", "Bodega On", "Asunto", "Cuerpo", It.IsAny<CancellationToken>()), Times.Once);
+        _email.Verify(e => e.SendAsync("on@test.com", "PlantaInventario On", "Asunto", "Cuerpo", It.IsAny<CancellationToken>()), Times.Once);
         _email.Verify(e => e.SendAsync("off@test.com", It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         _alerts.Verify(r => r.AddDeliveryAsync(
             It.Is<AlertDelivery>(d => d.UserId == 1 && d.AlertType == AlertType.SolicitudMaterialNueva && d.Channel == "Outbox"),

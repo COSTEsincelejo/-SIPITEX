@@ -1,7 +1,7 @@
-@model BodegaReingresoViewModel
+@model PlantaInventarioReingresoViewModel
 @{
     ViewData["Title"] = "Reingreso desde etapas";
-    ViewData["Breadcrumb"] = "SIPITEX / Operación / Bodega · Órdenes / Reingreso";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / PlantaInventario · Órdenes / Reingreso";
     Layout = "_Layout";
 }
 
@@ -70,7 +70,7 @@
                 <label style="display:flex;gap:8px;align-items:center;margin-top:6px;">
                     <input type="radio" name="Form.EsProductoTerminado" value="false" checked
                            onchange="document.getElementById('materialField').hidden=false;" />
-                    Material de bodega
+                    Material de planta de inventario
                 </label>
                 <label style="display:flex;gap:8px;align-items:center;margin-top:4px;">
                     <input type="radio" name="Form.EsProductoTerminado" value="true"

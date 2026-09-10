@@ -8,7 +8,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
-// Gestión de fichas técnicas (CRUD de BomProduct + líneas) y asignación a instructores
+// Gestión de ficha técnica (CRUD de BomProduct + líneas) y asignación a instructores
 public class BomCatalogService : IBomCatalogService
 {
     private readonly IBomRepository _bomRepository;

@@ -10,7 +10,7 @@ public class DetalleSolicitudMaterial
     public int SolicitudMaterialId { get; set; }
     public SolicitudMaterial SolicitudMaterial { get; set; } = null!;
 
-    // Null hasta que Bodega mapea (InsumosLibres); obligatorio al crear Tipo=PorFicha
+    // Null hasta que PlantaInventario mapea (InsumosLibres); obligatorio al crear Tipo=PorFicha
     public int? MaterialId { get; set; }
     public Material? Material { get; set; }
 
@@ -19,7 +19,7 @@ public class DetalleSolicitudMaterial
 
     public decimal CantidadSolicitada { get; set; }
 
-    // Null hasta que bodega resuelva el ítem
+    // Null hasta que plantaInventario resuelva el ítem
     public decimal? CantidadAprobada { get; set; }
 
     public DetalleSolicitudEstado EstadoItem { get; set; } = DetalleSolicitudEstado.Pendiente;

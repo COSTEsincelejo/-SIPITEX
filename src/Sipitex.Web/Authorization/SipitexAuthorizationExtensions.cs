@@ -14,7 +14,7 @@ public static class SipitexAuthorizationExtensions
         options.AddPolicy(AuthorizationPolicyNames.PuedeRegistrarMateriales,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeRegistrarMateriales(ctx.User)));
 
-        // Quién puede aprobar o rechazar solicitudes de bodega
+        // Quién puede aprobar o rechazar solicitudes de planta de inventario
         options.AddPolicy(AuthorizationPolicyNames.PuedeAprobarSolicitudes,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeAprobarSolicitudes(ctx.User)));
 
@@ -22,7 +22,7 @@ public static class SipitexAuthorizationExtensions
         options.AddPolicy(AuthorizationPolicyNames.PuedeSimularMrp,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeSimularMrp(ctx.User)));
 
-        // Quién puede crear/editar fichas técnicas (BOM); Delete sigue Admin-only
+        // Quién puede crear/editar ficha técnica (BOM); Delete sigue Admin-only
         options.AddPolicy(AuthorizationPolicyNames.PuedeGestionarFichasTecnicas,
             policy => policy.RequireAssertion(ctx => PermissionRules.PuedeGestionarFichasTecnicas(ctx.User)));
 

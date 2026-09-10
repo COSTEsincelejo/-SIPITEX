@@ -11,7 +11,7 @@
 <div class="page-header">
     <div>
         <h2>MRP / Materiales</h2>
-        <div class="sub">Fichas técnicas (BOM) y simulación de requerimiento neto</div>
+        <div class="sub">ficha técnica (BOM) y simulación de requerimiento neto</div>
     </div>
     @if (puedeGestionar)
     {
@@ -25,10 +25,10 @@
 }
 
 <div class="card">
-    <div class="card-title amber"><i class="fas fa-clipboard-list"></i> Fichas técnicas por producto</div>
+    <div class="card-title amber"><i class="fas fa-clipboard-list"></i> ficha técnica por producto</div>
     @if (!Model.Products.Any())
     {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-diagram-project", Title = "Sin fichas técnicas", Text = "Todavía no hay productos con BOM.", ActionText = puedeGestionar ? "Cree la primera ficha técnica." : null }' />
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-diagram-project", Title = "Sin ficha técnica", Text = "Todavía no hay productos con BOM.", ActionText = puedeGestionar ? "Cree la primera ficha técnica." : null }' />
     }
     else
     {

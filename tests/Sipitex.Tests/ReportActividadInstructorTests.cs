@@ -69,7 +69,7 @@ public class ReportActividadInstructorTests
         var ficha = new Ficha
         {
             Id = 1,
-            FichaCode = "FICHA-T1",
+            NumeroGrupo = "FICHA-T1",
             ProcessName = "Trazo",
             Turno = "Mañana",
             InstructorUserId = 10,

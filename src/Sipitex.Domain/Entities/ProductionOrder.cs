@@ -26,7 +26,7 @@ public class ProductionOrder
     // Estado actual; nace Pendiente hasta aprobación del Administrador
     public OrderStatus Status { get; set; } = OrderStatus.Pendiente;
 
-    // Flujo de materiales de bodega (NoAplica si la orden no asocia insumos)
+    // Flujo de materiales de planta de inventario (NoAplica si la orden no asocia insumos)
     public OrderMaterialsStatus MaterialsStatus { get; set; } = OrderMaterialsStatus.NoAplica;
 
     // Etapa actual del flujo MES (null si aún no hay etapas)
@@ -48,7 +48,7 @@ public class ProductionOrder
     // Receta congelada al crear la orden (independiente del BOM vigente)
     public ICollection<ProductionOrderBomSnapshot> BomSnapshots { get; set; } = [];
 
-    // Materiales opcionales a entregar desde bodega antes de producir
+    // Materiales opcionales a entregar desde planta de inventario antes de producir
     public ICollection<ProductionOrderMaterialRequirement> MaterialRequirements { get; set; } = [];
 
     // Flujo MES: etapas, movimientos e historial

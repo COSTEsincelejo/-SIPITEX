@@ -32,7 +32,7 @@ public class FichaInstructorProcesoTests
     private static Ficha FichaWithInstructors() => new()
     {
         Id = 5,
-        FichaCode = "FICHA-T1",
+        NumeroGrupo = "FICHA-T1",
         ProcessName = "Trazo",
         InstructorUserId = 10,
         Instructors =

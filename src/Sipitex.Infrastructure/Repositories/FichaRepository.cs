@@ -18,7 +18,7 @@ public class FichaRepository : IFichaRepository
             .Include(f => f.ProductionOrder) // Para mostrar OP-xxx en la lista
             .Include(f => f.Instructors)
                 .ThenInclude(i => i.User)
-            .OrderBy(f => f.FichaCode)
+            .OrderBy(f => f.NumeroGrupo)
             .ToListAsync(cancellationToken);
 
     // Busca una ficha por Id (para editar, asignar instructores o registrar)
@@ -30,9 +30,9 @@ public class FichaRepository : IFichaRepository
             .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 
     // Para validar que no se repita el código al crear/editar
-    public Task<bool> ExistsByCodeAsync(string fichaCode, CancellationToken cancellationToken = default) =>
+    public Task<bool> ExistsByCodeAsync(string numeroGrupo, CancellationToken cancellationToken = default) =>
         _context.Fichas.AnyAsync(
-            f => f.FichaCode.ToLower() == fichaCode.ToLower(), // Comparo sin importar mayúsculas
+            f => f.NumeroGrupo.ToLower() == numeroGrupo.ToLower(), // Comparo sin importar mayúsculas
             cancellationToken);
 
     // Inserta una ficha nueva (SaveChanges lo hace el UnitOfWork después)

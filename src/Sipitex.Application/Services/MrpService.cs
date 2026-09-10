@@ -41,9 +41,9 @@ public class MrpService : IMrpService
         // Por cada material de la receta calculo requerido vs disponible
         foreach (var item in recipe)
         {
-            // Stock actual del material en bodega
+            // Stock actual del material en planta de inventario
             var material = await _materialRepository.GetByIdAsync(item.MaterialId, cancellationToken);
-            // Stock actual en bodega (0 si no existe el material)
+            // Stock actual en planta de inventario (0 si no existe el material)
             var available = material?.Stock ?? 0;
             // Cantidad total que se necesita para las unidades pedidas
             var required = item.QuantityPerUnit * quantity;

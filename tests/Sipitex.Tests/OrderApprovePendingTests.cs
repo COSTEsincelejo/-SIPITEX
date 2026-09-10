@@ -160,7 +160,7 @@ public class OrderApprovePendingTests
             Id = 1,
             OrderNumber = "OP-101",
             Status = OrderStatus.Pendiente,
-            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionBodega
+            MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario
         };
         var line = new ProductionOrderMaterialRequirement
         {
@@ -181,7 +181,7 @@ public class OrderApprovePendingTests
 
         var result = await sut.DeliverAsync(
             new DeliverOrderMaterialsDto(1, [new DeliverOrderMaterialItemDto(9, 5)], null),
-            bodegueroId: 3);
+            encargadoDeBodegaId: 3);
 
         Assert.False(result.Success);
         Assert.Contains("pendiente de aprobación", result.Message, StringComparison.OrdinalIgnoreCase);
@@ -212,7 +212,7 @@ public class OrderApprovePendingTests
         var result = await sut.AddMaterialAsync(new AddOrderMaterialDto(1, 5, 2m, null));
 
         Assert.True(result.Success);
-        Assert.Equal(OrderMaterialsStatus.PendienteRevisionBodega, order.MaterialsStatus);
+        Assert.Equal(OrderMaterialsStatus.PendienteRevisionPlantaInventario, order.MaterialsStatus);
     }
 
     [Fact]

@@ -16,8 +16,8 @@ public class UserRepository : IUserRepository
     public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await _context.Users
             .Include(u => u.FichaAsignada) // Ficha principal del instructor
-            .Include(u => u.UserBodegas)
-                .ThenInclude(ub => ub.Bodega)
+            .Include(u => u.UserPlantasInventario)
+                .ThenInclude(ub => ub.PlantaInventario)
             .OrderBy(u => u.Nombre)
             .ToListAsync(cancellationToken);
 
@@ -25,15 +25,15 @@ public class UserRepository : IUserRepository
     public Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _context.Users
             .Include(u => u.FichaAsignada)
-            .Include(u => u.UserBodegas)
-                .ThenInclude(ub => ub.Bodega)
+            .Include(u => u.UserPlantasInventario)
+                .ThenInclude(ub => ub.PlantaInventario)
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
     // Normalizo el email a minúsculas para que el login sea case-insensitive
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default) =>
         _context.Users
             .Include(u => u.FichaAsignada)
-            .Include(u => u.UserBodegas)
+            .Include(u => u.UserPlantasInventario)
             .FirstOrDefaultAsync(u => u.Email == email.Trim().ToLowerInvariant(), cancellationToken);
 
     // excludeUserId sirve al editar: no contar el propio email como duplicado
@@ -81,7 +81,7 @@ public class UserRepository : IUserRepository
             blockers.Add("solicitudes de material (solicitante o resolución)");
         if (await _context.MaterialRequests.AnyAsync(r => r.SolicitanteId == userId, cancellationToken))
             blockers.Add("solicitudes legacy de inventario (MaterialRequest)");
-        if (await _context.EntregasMaterial.AnyAsync(e => e.BodegueroId == userId, cancellationToken))
+        if (await _context.EntregasMaterial.AnyAsync(e => e.EncargadoDeBodegaId == userId, cancellationToken))
             blockers.Add("entregas de material registradas");
         if (await _context.Fichas.AnyAsync(f => f.InstructorUserId == userId, cancellationToken))
             blockers.Add("fichas con instructor principal asignado");

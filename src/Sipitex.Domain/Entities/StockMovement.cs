@@ -2,7 +2,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Domain.Entities;
 
-// Ledger inmutable de movimientos de stock de materiales (bodega)
+// Ledger inmutable de movimientos de stock de materiales (plantaInventario)
 public class StockMovement
 {
     public int Id { get; set; }

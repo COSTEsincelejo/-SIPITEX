@@ -46,11 +46,11 @@ public class BusquedaService : IBusquedaService
 
         var fichas = await _db.Fichas
             .AsNoTracking()
-            .Where(f => f.FichaCode.Contains(q) || f.ProcessName.Contains(q) || f.InstructorName.Contains(q))
-            .OrderBy(f => f.FichaCode)
+            .Where(f => f.NumeroGrupo.Contains(q) || f.ProcessName.Contains(q) || f.InstructorName.Contains(q))
+            .OrderBy(f => f.NumeroGrupo)
             .Take(MaxPerCategory)
             .Select(f => new BusquedaItemDto(
-                f.FichaCode + " · " + f.ProcessName,
+                f.NumeroGrupo + " · " + f.ProcessName,
                 "/Fichas",
                 "Fichas"))
             .ToListAsync(cancellationToken);
@@ -59,11 +59,11 @@ public class BusquedaService : IBusquedaService
             .AsNoTracking()
             .Where(s => s.Codigo.Contains(q)
                         || (s.Observaciones != null && s.Observaciones.Contains(q))
-                        || s.Ficha.FichaCode.Contains(q))
+                        || s.Ficha.NumeroGrupo.Contains(q))
             .OrderByDescending(s => s.FechaSolicitud)
             .Take(MaxPerCategory)
             .Select(s => new BusquedaItemDto(
-                s.Codigo + " · " + s.Ficha.FichaCode,
+                s.Codigo + " · " + s.Ficha.NumeroGrupo,
                 "/SolicitudesMaterial/Detail/" + s.Id,
                 "Solicitudes"))
             .ToListAsync(cancellationToken);

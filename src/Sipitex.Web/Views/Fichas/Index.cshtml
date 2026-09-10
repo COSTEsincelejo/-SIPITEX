@@ -31,8 +31,8 @@
             @Html.AntiForgeryToken()
             <div class="create-ficha-grid">
                 <div class="field">
-                    <label class="field-label">Código de ficha</label>
-                    <input asp-for="CreateFicha.FichaCode" placeholder="Ej. FICHA-T4" required maxlength="30" />
+                    <label class="field-label">Número de grupo</label>
+                    <input asp-for="CreateFicha.NumeroGrupo" placeholder="Ej. FICHA-T4" required maxlength="30" />
                 </div>
                 <div class="field">
                     <label class="field-label">Proceso</label>
@@ -120,7 +120,7 @@
                             && currentUserId is int uidReq
                             && (assignedIds.Contains(uidReq) || ficha.InstructorUserId == uidReq));
                     <tr>
-                        <td><strong>@ficha.FichaCode</strong></td>
+                        <td><strong>@ficha.NumeroGrupo</strong></td>
                         <td>@ficha.ProcessName</td>
                         <td>
                             <div class="instructor-chips">
@@ -188,7 +188,7 @@
                                 <form asp-action="AssignInstructor" method="post" class="assign-instructor-form">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="fichaId" value="@ficha.Id" />
-                                    <select name="instructorUserId" required aria-label="Asignar instructor a @ficha.FichaCode">
+                                    <select name="instructorUserId" required aria-label="Asignar instructor a @ficha.NumeroGrupo">
                                         <option value="">— Asignar instructor —</option>
                                         @foreach (var opt in availableToAssign)
                                         {
@@ -240,7 +240,7 @@
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="CreateSolicitud.FichaId" value="@ficha.Id" />
                                     <div class="solicitud-form-title">
-                                        Solicitar materiales para <strong>@ficha.FichaCode</strong>
+                                        Solicitar materiales para <strong>@ficha.NumeroGrupo</strong>
                                         <div class="hint" style="font-weight:normal;margin-top:4px;">
                                             Materiales del catálogo ligados a su ficha de formación.
                                         </div>
@@ -297,7 +297,7 @@
                                     </template>
                                     <div class="field" style="margin-top:10px;max-width:420px;">
                                         <label class="field-label">Observaciones (opcional)</label>
-                                        <input type="text" name="CreateSolicitud.Observaciones" maxlength="500" placeholder="Notas para bodega" />
+                                        <input type="text" name="CreateSolicitud.Observaciones" maxlength="500" placeholder="Notas para planta de inventario" />
                                     </div>
                                     <div class="solicitud-form-actions">
                                         <button type="button" class="small ghost" data-solicitud-add @(Model.Materials.Count == 0 ? "disabled" : null)>
@@ -331,7 +331,7 @@
                 <select asp-for="Register.FichaId">
                     @foreach (var f in Model.Fichas)
                     {
-                        <option value="@f.Id">@f.FichaCode - @f.ProcessName</option>
+                        <option value="@f.Id">@f.NumeroGrupo - @f.ProcessName</option>
                     }
                 </select>
             </div>
@@ -356,7 +356,7 @@
     <form asp-action="Index" method="get" class="form-row">
         <div class="field" style="flex:1;min-width:160px;">
             <label class="field-label">Ficha</label>
-            <input type="text" name="fichaCode" value="@Model.FichaCodeFilter" placeholder="Código de ficha" style="width:100%" />
+            <input type="text" name="numeroGrupo" value="@Model.NumeroGrupoFilter" placeholder="Número de grupo" style="width:100%" />
         </div>
         <div class="field" style="flex:1;min-width:160px;">
             <label class="field-label">Instructor</label>
@@ -423,7 +423,7 @@
                 {
                     <tr>
                         <td>@s.SessionDate.ToString("yyyy-MM-dd HH:mm")</td>
-                        <td>@s.FichaCode</td>
+                        <td>@s.NumeroGrupo</td>
                         <td>@s.InstructorName</td>
                         <td>@(string.IsNullOrWhiteSpace(s.Turno) ? "—" : s.Turno)</td>
                         <td>@s.OrderNumber</td>
