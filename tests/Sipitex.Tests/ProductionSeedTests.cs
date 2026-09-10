@@ -34,7 +34,7 @@ public class ProductionSeedTests : IDisposable
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var page = await client.GetAsync("/Account/Login");
         page.EnsureSuccessStatusCode();
-        var html = await page.Content.ReadAsStringAsync();
+        var html = System.Net.WebUtility.HtmlDecode(await page.Content.ReadAsStringAsync());
 
         Assert.DoesNotContain("Credenciales de demostración", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Admin123!", html, StringComparison.Ordinal);

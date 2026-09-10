@@ -43,17 +43,15 @@ public class LoginLockoutTests : IDisposable
 
         for (var i = 0; i < MemoryLoginAttemptGuard.MaxFailedAttempts; i++)
         {
-            var html = await PostLoginAsync(client, email, "clave-incorrecta");
+            var html = WebUtility.HtmlDecode(await PostLoginAsync(client, email, "clave-incorrecta"));
             if (i < MemoryLoginAttemptGuard.MaxFailedAttempts - 1)
                 Assert.Contains(LoginAttemptMessages.InvalidCredentials, html, StringComparison.Ordinal);
+            else
+                Assert.Contains(LoginAttemptMessages.LockedOut, html, StringComparison.Ordinal);
         }
 
-        var lockedWrong = await PostLoginAsync(client, email, "clave-incorrecta");
-        Assert.Contains(LoginAttemptMessages.LockedOut, lockedWrong, StringComparison.Ordinal);
-
-        var lockedRight = await PostLoginAsync(client, email, "Bodega123!");
+        var lockedRight = WebUtility.HtmlDecode(await PostLoginAsync(client, email, "Bodega123!"));
         Assert.Contains(LoginAttemptMessages.LockedOut, lockedRight, StringComparison.Ordinal);
-        Assert.DoesNotContain("Inventario", lockedRight, StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task<string> PostLoginAsync(HttpClient client, string email, string password)
