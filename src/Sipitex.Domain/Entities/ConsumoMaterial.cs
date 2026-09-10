@@ -8,8 +8,8 @@ public class ConsumoMaterial
     public int ProductionOrderId { get; set; }
     public ProductionOrder ProductionOrder { get; set; } = null!;
 
-    // TODO PR grupos de confección: FK opcional hasta que exista GrupoConfeccion.
     public int? GrupoConfeccionId { get; set; }
+    public GrupoConfeccion? GrupoConfeccion { get; set; }
 
     public int MaterialId { get; set; }
     public Material Material { get; set; } = null!;

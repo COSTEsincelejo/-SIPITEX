@@ -87,7 +87,8 @@ public record ProductionOrderDto(
     // Viewer: preparar materiales (BomProductInstructor ∪ etapa MES). Default true p/ Admin listados sin viewer.
     bool CanManageMaterials = true,
     // Viewer: producción/MES (CanAccessOrderAsync). Default true.
-    bool CanOperateProduction = true);
+    bool CanOperateProduction = true,
+    EstadoProducto EstadoProducto = EstadoProducto.MateriaPrima);
 
 // Alta de orden nueva
 public record CreateProductionOrderDto(
@@ -165,7 +166,8 @@ public record UpsertBomProductDto(
     string? Digitacion = null,
     IReadOnlyList<BomProductTallaDto>? Tallas = null,
     IReadOnlyList<BomProductPiezaDto>? Piezas = null,
-    IReadOnlyList<BomProductMedidaDto>? Medidas = null);
+    IReadOnlyList<BomProductMedidaDto>? Medidas = null,
+    string? Codigo = null);
 
 // Talla de ficha técnica (Fase A)
 public record BomProductTallaDto(int? Id, string Nombre, int Orden);
@@ -239,7 +241,8 @@ public record FichaTecnicaMaterialsDto(
     string ProductName,
     string? Referencia,
     bool HabilitadoParaOrdenes,
-    IReadOnlyList<FichaTecnicaMaterialDto> Materials);
+    IReadOnlyList<FichaTecnicaMaterialDto> Materials,
+    string? Codigo = null);
 
 public record ConsumoCostoLineaDto(decimal Cantidad, decimal CostoUnitario);
 
@@ -340,7 +343,8 @@ public record QualityRecordDto(
     QualityResult Result,
     DateOnly Date,
     string? MotivoReproceso,
-    string? Responsable);
+    string? Responsable,
+    CalidadClasificacion Clasificacion = CalidadClasificacion.Bueno);
 
 // Crear inspección nueva
 public record CreateQualityRecordDto(
@@ -349,7 +353,8 @@ public record CreateQualityRecordDto(
     QualityResult Result,
     string? MotivoReproceso = null,
     string? Responsable = null,
-    DateOnly Date = default);
+    DateOnly Date = default,
+    CalidadClasificacion Clasificacion = CalidadClasificacion.Bueno);
 
 // --- Dashboard ---
 
@@ -635,3 +640,27 @@ public record PartialWithdrawalDto(
     string? Observations,
     int? AuthorizedByUserId);
 public record UpsertStagePermissionDto(int UserId, string StageName, bool Allowed);
+
+public record GrupoConfeccionDto(
+    int Id,
+    int ProductionOrderId,
+    string OrderNumber,
+    int InstructorUserId,
+    string InstructorNombre,
+    DateOnly FechaRealizacion,
+    TimeOnly HoraInicio,
+    TimeOnly? HoraFin,
+    int CantidadPrendas);
+
+public record CreateGrupoConfeccionDto(
+    int ProductionOrderId,
+    int InstructorUserId,
+    DateOnly FechaRealizacion,
+    TimeOnly HoraInicio,
+    TimeOnly? HoraFin = null,
+    int CantidadPrendas = 0);
+
+public record GrupoConsumoCruzadoDto(
+    GrupoConfeccionDto Grupo,
+    string OrderNumber,
+    IReadOnlyList<ConsumoMaterialDto> Consumos);

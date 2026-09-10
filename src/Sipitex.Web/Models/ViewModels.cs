@@ -348,6 +348,7 @@ public class CreateQualityForm
     public int Units { get; set; }
     public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
     public QualityResult Result { get; set; } = QualityResult.Aprobada;
+    public CalidadClasificacion Clasificacion { get; set; } = CalidadClasificacion.Bueno;
     public string? MotivoReproceso { get; set; } // solo si es reproceso
     public string? Responsable { get; set; }
 }
@@ -570,4 +571,25 @@ public class RegisterConsumoForm
     public int MaterialId { get; set; }
     public decimal Cantidad { get; set; }
     public DateTime? FechaLocal { get; set; }
+}
+
+public class GruposConfeccionIndexViewModel
+{
+    public IReadOnlyList<GrupoConfeccionDto> Grupos { get; set; } = [];
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<InstructorOptionDto> Instructors { get; set; } = [];
+    public CreateGrupoConfeccionForm Form { get; set; } = new();
+    public GrupoConsumoCruzadoDto? Cruzado { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class CreateGrupoConfeccionForm
+{
+    public int ProductionOrderId { get; set; }
+    public int InstructorUserId { get; set; }
+    public DateOnly FechaRealizacion { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+    public TimeOnly HoraInicio { get; set; } = new(8, 0);
+    public TimeOnly? HoraFin { get; set; }
+    public int CantidadPrendas { get; set; }
 }

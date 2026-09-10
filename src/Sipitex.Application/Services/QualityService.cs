@@ -13,17 +13,20 @@ public class QualityService : IQualityService
     private readonly IQualityRepository _qualityRepository;
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IProductionOrderService _orderService;
+    private readonly IProductLifecycleService _lifecycle;
     private readonly IUnitOfWork _unitOfWork;
 
     public QualityService(
         IQualityRepository qualityRepository,
         IProductionOrderRepository orderRepository,
         IProductionOrderService orderService,
+        IProductLifecycleService lifecycle,
         IUnitOfWork unitOfWork)
     {
         _qualityRepository = qualityRepository;
         _orderRepository = orderRepository;
         _orderService = orderService;
+        _lifecycle = lifecycle;
         _unitOfWork = unitOfWork;
     }
 
@@ -54,7 +57,8 @@ public class QualityService : IQualityService
                 r.Result,
                 r.InspectionDate,
                 r.MotivoReproceso,
-                r.Responsable))
+                r.Responsable,
+                r.Clasificacion))
             .ToList();
     }
 
@@ -95,13 +99,26 @@ public class QualityService : IQualityService
             ProductionOrderId = dto.ProductionOrderId,
             UnitsInspected = dto.Units,
             Result = dto.Result,
-            // Solo guardo motivo/responsable si aplica reproceso
+            Clasificacion = dto.Clasificacion,
             MotivoReproceso = dto.Result == QualityResult.Reproceso ? dto.MotivoReproceso?.Trim() : null,
-            Responsable = dto.Result == QualityResult.Reproceso ? dto.Responsable?.Trim() : null,
+            Responsable = dto.Result == QualityResult.Reproceso ? dto.Responsable?.Trim() : dto.Responsable?.Trim(),
             InspectionDate = inspectionDate
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (dto.Clasificacion == CalidadClasificacion.Malo
+            && order.EstadoProducto == EstadoProducto.Calidad
+            && viewerUserId is > 0)
+        {
+            await _lifecycle.TransitionAsync(
+                order.Id,
+                EstadoProducto.Confeccion,
+                viewerUserId.Value,
+                justificacion: "Clasificación Malo",
+                cancellationToken);
+        }
+
         return ServiceResult.Ok("Inspección registrada.");
     }
 }

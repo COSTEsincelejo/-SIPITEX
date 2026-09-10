@@ -32,6 +32,9 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IBomCatalogService, BomCatalogService>();
         services.AddScoped<IMaterialConsumptionCostService, MaterialConsumptionCostService>();
         services.AddScoped<IMaterialConsumptionService, MaterialConsumptionService>();
+        services.AddScoped<IProductStateMachine, ProductStateMachine>();
+        services.AddScoped<IProductLifecycleService, ProductLifecycleService>();
+        services.AddScoped<IGrupoConfeccionService, GrupoConfeccionService>();
         services.AddScoped<IFichaService, FichaService>();
         services.AddScoped<IFichaService, FichaService>();
 

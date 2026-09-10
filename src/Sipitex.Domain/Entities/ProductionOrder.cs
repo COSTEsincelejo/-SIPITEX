@@ -26,6 +26,9 @@ public class ProductionOrder
     // Estado actual; nace Pendiente hasta aprobación del Administrador
     public OrderStatus Status { get; set; } = OrderStatus.Pendiente;
 
+    // Máquina de estados del producto en proceso (3.3)
+    public EstadoProducto EstadoProducto { get; set; } = EstadoProducto.MateriaPrima;
+
     // Flujo de materiales de planta de inventario (NoAplica si la orden no asocia insumos)
     public OrderMaterialsStatus MaterialsStatus { get; set; } = OrderMaterialsStatus.NoAplica;
 
@@ -60,4 +63,6 @@ public class ProductionOrder
     public ICollection<OrderChangeLog> ChangeLogs { get; set; } = [];
 
     public ICollection<ConsumoMaterial> Consumos { get; set; } = [];
+
+    public ICollection<GrupoConfeccion> GruposConfeccion { get; set; } = [];
 }
