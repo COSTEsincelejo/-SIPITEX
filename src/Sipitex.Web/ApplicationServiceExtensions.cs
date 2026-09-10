@@ -12,6 +12,7 @@ public static class ApplicationServiceExtensions
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentPlantaInventarioAccessor, CurrentPlantaInventarioAccessor>();
+        services.AddScoped<IAuditActorAccessor, HttpAuditActorAccessor>();
         // Consumo de materiales en producción
         services.AddScoped<ProductionConsumptionService>();
 
@@ -35,6 +36,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IProductStateMachine, ProductStateMachine>();
         services.AddScoped<IProductLifecycleService, ProductLifecycleService>();
         services.AddScoped<IGrupoConfeccionService, GrupoConfeccionService>();
+        services.AddScoped<IGarmentCostingService, GarmentCostingService>();
         services.AddScoped<IFichaService, FichaService>();
         services.AddScoped<IFichaService, FichaService>();
 

@@ -1,0 +1,68 @@
+@model CostosIndexViewModel
+@{
+    ViewData["Title"] = "Costeo de prendas";
+    ViewData["Breadcrumb"] = "SIPITEX / Análisis / Costeo";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Costeo de prendas</h2>
+        <div class="sub">
+            Materiales = cantidad consumida × costo histórico de la última entrada con precio (a la fecha del consumo).
+            Mano de obra = horas del grupo de confección × tarifa configurable <code>Costing:LaborHourRate</code>.
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-filter"></i> Consultar por orden</div>
+    <form method="get" class="form-row">
+        <div class="field">
+            <label class="field-label">Orden</label>
+            <select name="orderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.OrderId))"></select>
+        </div>
+        <div class="field" style="align-self:flex-end;">
+            <button type="submit" class="small">Calcular</button>
+        </div>
+    </form>
+</div>
+
+@if (Model.Costo is null)
+{
+    <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-coins", Title = "Sin órdenes", Text = "No hay órdenes de producción para costear." }' />
+}
+else
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-coins"></i> @Model.Costo.OrderNumber</div>
+        <p class="text-muted">@Model.Costo.Formula</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Concepto</th>
+                        <th>Detalle</th>
+                        <th class="text-end">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Materiales</td>
+                        <td>Consumo real × costo de adquisición histórico</td>
+                        <td class="text-end">@Model.Costo.CostoMateriales.ToString("0.####")</td>
+                    </tr>
+                    <tr>
+                        <td>Mano de obra</td>
+                        <td>@Model.Costo.HorasManoObra.ToString("0.##") h × @Model.Costo.TarifaHora.ToString("0.####") / h</td>
+                        <td class="text-end">@Model.Costo.CostoManoObra.ToString("0.####")</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><strong>Total estimado</strong></td>
+                        <td class="text-end"><strong>@Model.Costo.Total.ToString("0.####")</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
