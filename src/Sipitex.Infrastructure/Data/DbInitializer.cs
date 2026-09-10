@@ -278,19 +278,27 @@ public static class DbInitializer
     // Usuarios de prueba para desarrollo (admin, instructor, plantaInventario)
     private static async Task SeedUsersAsync(SipitexDbContext context)
     {
-        if (await context.Users.AnyAsync()) return; // Ya hay usuarios, no duplico
+        var existing = await context.Users
+            .Select(u => u.Email)
+            .ToListAsync();
+        var emails = existing.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        context.Users.AddRange(
-            new User
+        if (!emails.Contains("admin@sipitex.test"))
+        {
+            context.Users.Add(new User
             {
                 Nombre = "Administrador SIPITEX",
                 Email = "admin@sipitex.test",
-                PasswordHash = PasswordHasher.Hash("Admin123!"), // Clave de demo hasheada
+                PasswordHash = PasswordHasher.Hash("Admin123!"),
                 Rol = UserRoles.Administrador,
                 PermisosExtendidos = string.Empty,
                 IsActive = true
-            },
-            new User
+            });
+        }
+
+        if (!emails.Contains("instructor@sipitex.test"))
+        {
+            context.Users.Add(new User
             {
                 Nombre = "Laura Gómez",
                 Email = "instructor@sipitex.test",
@@ -298,8 +306,12 @@ public static class DbInitializer
                 Rol = UserRoles.Instructor,
                 PermisosExtendidos = string.Empty,
                 IsActive = true
-            },
-            new User
+            });
+        }
+
+        if (!emails.Contains("bodega@sipitex.test"))
+        {
+            context.Users.Add(new User
             {
                 Nombre = "Pedro Encargado",
                 Email = "bodega@sipitex.test",
@@ -309,8 +321,10 @@ public static class DbInitializer
                 IsActive = true,
                 UserPlantasInventario = { new UserPlantaInventario { PlantaInventarioId = 1 } }
             });
+        }
 
-        await context.SaveChangesAsync();
+        if (context.ChangeTracker.HasChanges())
+            await context.SaveChangesAsync();
     }
 
     // Demo legado: bodega@sipitex.test nació sin plantaInventario. Solo ese usuario se asigna a PlantaInventario 1;
