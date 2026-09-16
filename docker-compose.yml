@@ -1,13 +1,31 @@
 services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sipitex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sipitex}
+      POSTGRES_DB: ${POSTGRES_DB:-sipitex}
+    ports:
+      - "5432:5432"
+    volumes:
+      - sipitex-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sipitex} -d ${POSTGRES_DB:-sipitex}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   sipitex:
     build: .
     ports:
       - "8080:8080"
-    volumes:
-      - sipitex-data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Data Source=/app/data/sipitex.db"
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB:-sipitex};Username=${POSTGRES_USER:-sipitex};Password=${POSTGRES_PASSWORD:-sipitex}"
       Email__Enabled: "true"
       Email__User: "${EMAIL_SMTP_USER}"
       Email__Password: "${EMAIL_SMTP_PASSWORD}"
@@ -16,8 +34,8 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 25s
+      start_period: 40s
     restart: unless-stopped
 
 volumes:
-  sipitex-data:
+  sipitex-pgdata:

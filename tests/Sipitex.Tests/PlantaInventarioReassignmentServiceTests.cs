@@ -83,7 +83,7 @@ public class PlantaInventarioReassignmentHistoryTests
                 .Options;
             await using (var context = new SipitexDbContext(options))
             {
-                await context.Database.MigrateAsync();
+                await context.Database.EnsureCreatedAsync();
                 var origen = new PlantaInventario { Nombre = "Anexo reasignar", Activo = true };
                 context.PlantasInventario.Add(origen);
                 await context.SaveChangesAsync();

@@ -28,10 +28,8 @@ public static class DbInitializer
     {
         // Primero reviso si hay una BD vieja sin historial de migraciones
         await MigrationBaseline.EnsureBaselineAsync(context);
-        // BD que ya tenían columnas vía EnsureColumnAsync (antes de migraciones EF):
-        // evita "duplicate column name" al aplicar AddFichaTurno.
+        // Parche SQLite legado: columnas de AddFichaTurno aplicadas a mano.
         await EnsureAddFichaTurnoCompatibleAsync(context);
-        // Aplico las migraciones pendientes de EF Core
         await context.Database.MigrateAsync();
 
         // Solo meto datos de demo si la tabla está vacía
@@ -207,19 +205,20 @@ public static class DbInitializer
     // pero EF no sabe que esa migración ya corrió → la marco a mano para no duplicar ALTER TABLE
     private static async Task EnsureAddFichaTurnoCompatibleAsync(SipitexDbContext context)
     {
-        const string migrationId = "20260728231835_AddFichaTurno"; // Id exacto de la migración EF
-
-        // Si no existen estas tablas, todavía no aplica el parche
-        if (!await TableExistsAsync(context, "ProductionSessions")
-            || !await TableExistsAsync(context, "Fichas"))
+        // Postgres arranca con InitialCreate completo; el parche solo aplica a SQLite legado.
+        if (!SchemaIntrospection.IsSqlite(context))
             return;
 
-        // Sin historial de migraciones no puedo marcar nada
-        if (!await TableExistsAsync(context, "__EFMigrationsHistory"))
+        const string migrationId = "20260728231835_AddFichaTurno";
+
+        if (!await SchemaIntrospection.TableExistsAsync(context, "ProductionSessions")
+            || !await SchemaIntrospection.TableExistsAsync(context, "Fichas"))
             return;
 
-        // Ya está registrada → no hago nada
-        if (await MigrationRowExistsAsync(context, migrationId))
+        if (!await SchemaIntrospection.TableExistsAsync(context, "__EFMigrationsHistory"))
+            return;
+
+        if (await SchemaIntrospection.MigrationRowExistsAsync(context, migrationId))
             return;
 
         // Agrego columnas solo si no existen (evita duplicate column)
@@ -249,53 +248,9 @@ public static class DbInitializer
     // Ejecuta el ALTER solo si la columna no está todavía
     private static async Task EnsureColumnAsync(SipitexDbContext context, string table, string column, string alterSql)
     {
-        if (await ColumnExistsAsync(context, table, column))
-            return; // Ya existe, salgo
-        await context.Database.ExecuteSqlRawAsync(alterSql); // Creo la columna
-    }
-
-    // Consulto sqlite_master para ver si la tabla existe
-    private static async Task<bool> TableExistsAsync(SipitexDbContext context, string table)
-    {
-        var connection = context.Database.GetDbConnection(); // Conexión ADO.NET subyacente
-        await context.Database.OpenConnectionAsync(); // La abro si estaba cerrada
-        await using var command = connection.CreateCommand(); // Comando SQL crudo
-        command.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name=$n LIMIT 1;";
-        var p = command.CreateParameter(); // Parámetro para evitar inyección
-        p.ParameterName = "$n";
-        p.Value = table; // Nombre de la tabla a buscar
-        command.Parameters.Add(p);
-        return await command.ExecuteScalarAsync() is not null and not DBNull; // Si devuelve algo, existe
-    }
-
-    // Revisa columnas de una tabla con PRAGMA table_info
-    private static async Task<bool> ColumnExistsAsync(SipitexDbContext context, string table, string column)
-    {
-        var connection = context.Database.GetDbConnection();
-        await context.Database.OpenConnectionAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = $"PRAGMA table_info(\"{table}\")"; // Lista columnas de la tabla
-        await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync()) // Recorro cada columna
-        {
-            if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
-                return true; // Encontré la que buscaba
-        }
-        return false; // No estaba
-    }
-
-    // Mira si ya hay una fila en __EFMigrationsHistory para ese migrationId
-    private static async Task<bool> MigrationRowExistsAsync(SipitexDbContext context, string migrationId)
-    {
-        var connection = context.Database.GetDbConnection();
-        await context.Database.OpenConnectionAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = """SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = $id LIMIT 1;""";
-        var p = command.CreateParameter();
-        p.ParameterName = "$id";
-        p.Value = migrationId;
-        command.Parameters.Add(p);
-        return await command.ExecuteScalarAsync() is not null and not DBNull;
+        if (await SchemaIntrospection.ColumnExistsAsync(context, table, column))
+            return;
+        await context.Database.ExecuteSqlRawAsync(alterSql);
     }
 
     // Usuarios de prueba para desarrollo (admin, instructor, plantaInventario)
@@ -568,7 +523,7 @@ public static class DbInitializer
             ("RNF05", "Interfaz responsiva e intuitiva", ComplianceStatus.Cumple, "Layout adaptable."),
             ("RNF06", "Código modular y documentado", ComplianceStatus.Parcial, "Arquitectura por capas."),
             ("RNF07", "Despliegue con Docker Compose", ComplianceStatus.Cumple, "Dockerfile + docker-compose.yml."),
-            ("RNF08", "Integridad transaccional", ComplianceStatus.Parcial, "SQLite con EF Core.")
+            ("RNF08", "Integridad transaccional", ComplianceStatus.Parcial, "PostgreSQL con EF Core.")
         };
 
         foreach (var (code, desc, status, obs) in rnf)

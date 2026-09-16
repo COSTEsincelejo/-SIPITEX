@@ -17,7 +17,7 @@ flowchart TB
     subgraph infrastructure [Capa de Infraestructura]
         EF[EF Core DbContext]
         Repo[Repositorios]
-        DB[(SQLite sipitex.db)]
+        DB[(PostgreSQL)]
     end
     Web --> Services
     Web --> Repo

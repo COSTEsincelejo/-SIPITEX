@@ -21,10 +21,10 @@ public class BusquedaService : IBusquedaService
         if (q.Length < 1)
             return [];
 
-        // SQLite: Contains se traduce a LIKE '%q%'
+        var needle = q.ToLower();
         var materials = await _db.Materials
             .AsNoTracking()
-            .Where(m => m.Name.Contains(q) || m.Code.Contains(q))
+            .Where(m => m.Name.ToLower().Contains(needle) || m.Code.ToLower().Contains(needle))
             .OrderBy(m => m.Name)
             .Take(MaxPerCategory)
             .Select(m => new BusquedaItemDto(
@@ -35,7 +35,7 @@ public class BusquedaService : IBusquedaService
 
         var orders = await _db.ProductionOrders
             .AsNoTracking()
-            .Where(o => o.OrderNumber.Contains(q) || o.ProductName.Contains(q))
+            .Where(o => o.OrderNumber.ToLower().Contains(needle) || o.ProductName.ToLower().Contains(needle))
             .OrderByDescending(o => o.Id)
             .Take(MaxPerCategory)
             .Select(o => new BusquedaItemDto(
@@ -46,7 +46,9 @@ public class BusquedaService : IBusquedaService
 
         var fichas = await _db.Fichas
             .AsNoTracking()
-            .Where(f => f.NumeroGrupo.Contains(q) || f.ProcessName.Contains(q) || f.InstructorName.Contains(q))
+            .Where(f => f.NumeroGrupo.ToLower().Contains(needle)
+                        || f.ProcessName.ToLower().Contains(needle)
+                        || f.InstructorName.ToLower().Contains(needle))
             .OrderBy(f => f.NumeroGrupo)
             .Take(MaxPerCategory)
             .Select(f => new BusquedaItemDto(
@@ -57,9 +59,9 @@ public class BusquedaService : IBusquedaService
 
         var solicitudes = await _db.SolicitudesMaterial
             .AsNoTracking()
-            .Where(s => s.Codigo.Contains(q)
-                        || (s.Observaciones != null && s.Observaciones.Contains(q))
-                        || s.Ficha.NumeroGrupo.Contains(q))
+            .Where(s => s.Codigo.ToLower().Contains(needle)
+                        || (s.Observaciones != null && s.Observaciones.ToLower().Contains(needle))
+                        || s.Ficha.NumeroGrupo.ToLower().Contains(needle))
             .OrderByDescending(s => s.FechaSolicitud)
             .Take(MaxPerCategory)
             .Select(s => new BusquedaItemDto(
@@ -70,7 +72,7 @@ public class BusquedaService : IBusquedaService
 
         var prendas = await _db.PrendasTrazables
             .AsNoTracking()
-            .Where(p => p.Codigo.Contains(q) || p.ProductName.Contains(q))
+            .Where(p => p.Codigo.ToLower().Contains(needle) || p.ProductName.ToLower().Contains(needle))
             .OrderByDescending(p => p.Id)
             .Take(MaxPerCategory)
             .Select(p => new BusquedaItemDto(

@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore; // EF Core para hablar con SQLite
+using Microsoft.EntityFrameworkCore; // EF Core (PostgreSQL en runtime; SQLite en tests)
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities; // Las entidades del dominio que mapeo a tablas
+using Sipitex.Domain.Enums;
 
 namespace Sipitex.Infrastructure.Persistence;
 
-// El DbContext de EF Core — acá queda todo el mapeo a SQLite
+// El DbContext de EF Core — mapeo a PostgreSQL (y SQLite en pruebas unitarias)
 public class SipitexDbContext : DbContext
 {
     private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
@@ -428,7 +429,8 @@ public class SipitexDbContext : DbContext
             e.HasIndex(s => s.Codigo).IsUnique();
             e.Property(s => s.Observaciones).HasMaxLength(500);
             e.Property(s => s.Estado).HasConversion<string>().HasMaxLength(30);
-            e.Property(s => s.Tipo).HasConversion<string>().HasMaxLength(30);
+            e.Property(s => s.Tipo).HasConversion<string>().HasMaxLength(30)
+                .HasDefaultValue(SolicitudMaterialTipo.PorFicha);
             e.Property(s => s.DescripcionLibre).HasMaxLength(2000);
             e.HasOne(s => s.Ficha)
                 .WithMany()

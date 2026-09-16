@@ -21,15 +21,18 @@ public static class DependencyInjection
     // Método de extensión que llama Program.cs para cablear todo
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Leo la cadena de conexión del appsettings, si no hay uso el default
+        PostgresDefaults.EnableCompatibilitySwitches();
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Data Source=sipitex.db";
+            ?? PostgresDefaults.LocalConnectionString;
 
-        // EF Core con SQLite — el archivo sipitex.db queda en la raíz del proyecto
         services.TryAddScoped<IAuditActorAccessor, NullAuditActorAccessor>();
         services.AddScoped<AuditSaveChangesInterceptor>();
         services.AddDbContext<SipitexDbContext>((sp, options) =>
-            options.UseSqlite(connectionString)
+            options.UseNpgsql(connectionString, npgsql =>
+                {
+                    npgsql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                    npgsql.CommandTimeout(60);
+                })
                 .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 
         // Opciones de correo desde la sección "Email" del appsettings

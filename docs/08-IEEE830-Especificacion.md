@@ -8,7 +8,7 @@
 | **Versión del documento** | 2.1 |
 | **Fecha** | 2026-07-28 |
 | **Estado** | Alineado con la implementación actual |
-| **Tecnologías** | ASP.NET Core MVC · EF Core · SQLite · Docker |
+| **Tecnologías** | ASP.NET Core MVC · EF Core · PostgreSQL · Docker |
 | **Autores** | Equipo SIPITEX |
 
 > Este documento sigue la estructura de la norma **IEEE Std 830-1998** (*Recommended Practice for Software Requirements Specifications*).  
@@ -99,7 +99,7 @@ SIPITEX es una aplicación web **monolítica por capas** (arquitectura limpia si
 1. **Presentación** — pantallas y controladores (`Sipitex.Web`).  
 2. **Aplicación** — reglas de negocio y DTOs.  
 3. **Dominio** — entidades (Material, Orden, Ficha, etc.).  
-4. **Infraestructura** — base de datos SQLite con EF Core.
+4. **Infraestructura** — base de datos PostgreSQL con EF Core.
 
 ### 2.2 Funciones principales (resumen)
 
@@ -122,7 +122,7 @@ SIPITEX es una aplicación web **monolítica por capas** (arquitectura limpia si
 
 ### 2.4 Restricciones
 
-- Base de datos **SQLite** (`sipitex.db`) para desarrollo e intranet.  
+- Base de datos **PostgreSQL 16** para desarrollo, intranet y Render.  
 - Autenticación por **cookies** (sesión web), no JWT en la versión actual.  
 - Navegadores modernos; interfaz responsiva.  
 - Despliegue opcional con **Docker Compose**.
@@ -173,7 +173,7 @@ SIPITEX es una aplicación web **monolítica por capas** (arquitectura limpia si
 | RNF05 | Interfaz responsiva (móvil y escritorio) |
 | RNF06 | Código modular por capas y documentado |
 | RNF07 | Despliegue reproducible con Docker Compose |
-| RNF08 | Integridad de datos con EF Core / SQLite |
+| RNF08 | Integridad de datos con EF Core / PostgreSQL |
 
 ### 3.3 Interfaces externas
 

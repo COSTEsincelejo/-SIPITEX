@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Sipitex.Infrastructure.Persistence;
 
 #nullable disable
@@ -11,44 +12,244 @@ using Sipitex.Infrastructure.Persistence;
 namespace Sipitex.Infrastructure.Migrations
 {
     [DbContext(typeof(SipitexDbContext))]
-    [Migration("20260812184624_AddMaterialRequestSolicitante")]
-    partial class AddMaterialRequestSolicitante
+    [Migration("20260916151016_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimiento", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CreadoPorUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EntregaCargo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime?>("EntregaConformidadUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<byte[]>("EntregaFirmaPng")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("EntregaNombre")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("EstadoProductoDestino")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("EstadoProductoOrigen")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("FechaUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int?>("ProductionOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RecibeCargo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime?>("RecibeConformidadUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<byte[]>("RecibeFirmaPng")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("RecibeNombre")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreadoPorUserId");
+
+                    b.HasIndex("FechaUtc");
+
+                    b.HasIndex("Numero")
+                        .IsUnique();
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.ToTable("ActasMovimiento", (string)null);
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimientoDetalle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ActaMovimientoId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Cantidad")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<int?>("ConsumoMaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(240)
+                        .HasColumnType("character varying(240)");
+
+                    b.Property<string>("ItemTipo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int?>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ProductionOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("StockMovementId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Unidad")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActaMovimientoId");
+
+                    b.HasIndex("ConsumoMaterialId");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.HasIndex("StockMovementId");
+
+                    b.ToTable("ActasMovimientoDetalle", (string)null);
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActivityLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Entity")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Action");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ActivityLogs");
+                });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.AlertDelivery", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("AlertType")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<string>("Channel")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<DateTime>("SentAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -61,16 +262,18 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("AlertType")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("Enabled")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -80,29 +283,50 @@ namespace Sipitex.Infrastructure.Migrations
                     b.ToTable("AlertPreferences");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.AppSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("AppSettings", (string)null);
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.BomItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BomProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("MaterialId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<decimal>("QuantityPerUnit")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("Unit")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -117,74 +341,84 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("AnioMuestrario")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("DescripcionPrenda")
                         .HasMaxLength(4000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<string>("Digitacion")
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("Disenador")
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<bool>("EsBancoDeMuestras")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("EsDisenoNuevo")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("EsReplica")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<DateOnly?>("FechaElaboracion")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("date");
 
                     b.Property<DateOnly?>("FechaSolicitud")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("date");
 
                     b.Property<bool>("HabilitadoParaOrdenes")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsReference")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Linea")
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Patronista")
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<string>("Referencia")
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("TallaInicial")
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("TipoEmpaque")
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
 
                     b.HasIndex("ProductName")
                         .IsUnique();
@@ -195,13 +429,13 @@ namespace Sipitex.Infrastructure.Migrations
             modelBuilder.Entity("Sipitex.Domain.Entities.BomProductInstructor", b =>
                 {
                     b.Property<int>("BomProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("AssignedAtUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("BomProductId", "UserId");
 
@@ -214,36 +448,38 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BomProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Codigo")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("ComoMedir")
                         .HasMaxLength(2000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("Orden")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Tolerancia")
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.HasKey("Id");
 
@@ -258,17 +494,19 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BomProductMedidaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("BomProductTallaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal?>("Valor")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
 
@@ -284,26 +522,28 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BomProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Cantidad")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<int>("Orden")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Tela")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.HasKey("Id");
 
@@ -318,18 +558,20 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BomProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<int>("Orden")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -340,30 +582,82 @@ namespace Sipitex.Infrastructure.Migrations
                     b.ToTable("BomProductTallas");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.ConsumoMaterial", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Cantidad")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("CostoUnitario")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<DateTime>("FechaUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int?>("GrupoConfeccionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProductionOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResponsableUserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FechaUtc");
+
+                    b.HasIndex("GrupoConfeccionId");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.HasIndex("ResponsableUserId");
+
+                    b.ToTable("ConsumosMaterial");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.DetalleSolicitudMaterial", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<decimal?>("CantidadAprobada")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<decimal>("CantidadSolicitada")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("DescripcionItem")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("EstadoItem")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(30)");
 
-                    b.Property<int>("MaterialId")
-                        .HasColumnType("INTEGER");
+                    b.Property<int?>("MaterialId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("SolicitudMaterialId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -378,32 +672,34 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
-                    b.Property<int>("BodegueroId")
-                        .HasColumnType("INTEGER");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Codigo")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("EncargadoDeBodegaId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("FechaEntrega")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Observaciones")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("SolicitudMaterialId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BodegueroId");
-
                     b.HasIndex("Codigo")
                         .IsUnique();
+
+                    b.HasIndex("EncargadoDeBodegaId");
 
                     b.HasIndex("SolicitudMaterialId")
                         .IsUnique();
@@ -415,35 +711,37 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AssignedOrderText")
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FichaCode")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("InstructorName")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int?>("InstructorUserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NumeroGrupo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("ProcessName")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int?>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Turno")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
 
@@ -457,17 +755,17 @@ namespace Sipitex.Infrastructure.Migrations
             modelBuilder.Entity("Sipitex.Domain.Entities.FichaInstructor", b =>
                 {
                     b.Property<int>("FichaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("AssignedAtUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Proceso")
                         .HasMaxLength(60)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(60)");
 
                     b.HasKey("FichaId", "UserId");
 
@@ -480,32 +778,34 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ActorUserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("AtUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Observations")
                         .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<int?>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int?>("StageId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -522,16 +822,18 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<decimal>("Stock")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
 
@@ -545,27 +847,29 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Module")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Observation")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -575,19 +879,58 @@ namespace Sipitex.Infrastructure.Migrations
                     b.ToTable("FunctionalRequirements");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.GrupoConfeccion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CantidadPrendas")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("FechaRealizacion")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly?>("HoraFin")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<TimeOnly>("HoraInicio")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<int>("InstructorUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProductionOrderId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FechaRealizacion");
+
+                    b.HasIndex("InstructorUserId");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.ToTable("GruposConfeccion");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.InstructorStagePermission", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("StageName")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -601,36 +944,47 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<decimal>("CostoAdquisicion")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
 
                     b.Property<DateOnly>("LastEntryDate")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("date");
 
                     b.Property<decimal>("MinStock")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("PlantaInventarioId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Stock")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("Unit")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PlantaInventarioId");
 
                     b.ToTable("Materials");
                 });
@@ -639,26 +993,28 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("MaterialId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int?>("SolicitanteId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -675,23 +1031,25 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Observation")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -705,29 +1063,31 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Campo")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<DateTime>("FechaUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("UsuarioId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ValorAnterior")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("ValorNuevo")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.HasKey("Id");
 
@@ -744,24 +1104,26 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(128)");
 
                     b.Property<DateTime?>("UsedAtUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -772,25 +1134,118 @@ namespace Sipitex.Infrastructure.Migrations
                     b.ToTable("PasswordResetTokens");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.PlantaInventario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PlantasInventario");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Activo = true,
+                            Nombre = "Planta de Inventario 1"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Activo = true,
+                            Nombre = "Planta de Inventario 2"
+                        });
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.PrendaTrazable", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int>("CreadoPorUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreadoUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("ProductionOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Talla")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.HasIndex("CreadoPorUserId");
+
+                    b.HasIndex("CreadoUtc");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.ToTable("PrendasTrazables", (string)null);
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.ProductFlowStageTemplate", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("IsOptional")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<int>("ProductFlowTemplateId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -803,20 +1258,22 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.HasKey("Id");
 
@@ -829,41 +1286,48 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ClientName")
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<int?>("CurrentStageId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateOnly>("Deadline")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("date");
+
+                    b.Property<string>("EstadoProducto")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("MaterialsStatus")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("OrderNumber")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<int>("ProducedQuantity")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("TotalQuantity")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -879,30 +1343,32 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("MaterialCode")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<int>("MaterialId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("MaterialName")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<int>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("QuantityPerUnit")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("Unit")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -917,40 +1383,42 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("ActorUserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ActorUserName")
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<DateTime>("AtUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("EventType")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Quantity")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("StageId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("StageName")
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.HasKey("Id");
 
@@ -963,28 +1431,30 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("MaterialId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Observations")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("QuantityDelivered")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<decimal>("QuantityRequired")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("Unit")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1002,51 +1472,53 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("CompletedAtUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("InstructorUserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsOptional")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<string>("Observations")
                         .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("QuantityProcessed")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("QuantityReceived")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("QuantitySent")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("QuantityWithdrawn")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("StartedAtUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("Id");
 
@@ -1061,41 +1533,43 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ActorUserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("AtUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("AuthorizedByUserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("FromStageId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Motive")
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("MovementType")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Observations")
                         .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ToStageId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1116,27 +1590,29 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("FichaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Observations")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("RegisteredByUserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("SessionDate")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("Units")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1153,27 +1629,34 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Clasificacion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateOnly>("InspectionDate")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("date");
 
                     b.Property<string>("MotivoReproceso")
                         .HasMaxLength(300)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<int>("ProductionOrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Responsable")
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<int>("Result")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("UnitsInspected")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1186,36 +1669,55 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Codigo")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("DescripcionLibre")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<DateTime?>("FechaResolucion")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("FechaSolicitud")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
-                    b.Property<int>("FichaId")
-                        .HasColumnType("INTEGER");
+                    b.Property<int?>("FichaId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Observaciones")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("PlantaInventarioId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ProductionOrderId")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ResueltoPorId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SolicitanteId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("PorFicha");
 
                     b.HasKey("Id");
 
@@ -1226,9 +1728,15 @@ namespace Sipitex.Infrastructure.Migrations
 
                     b.HasIndex("FichaId");
 
+                    b.HasIndex("PlantaInventarioId");
+
+                    b.HasIndex("ProductionOrderId");
+
                     b.HasIndex("ResueltoPorId");
 
                     b.HasIndex("SolicitanteId");
+
+                    b.HasIndex("Tipo");
 
                     b.ToTable("SolicitudesMaterial");
                 });
@@ -1237,37 +1745,43 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Cantidad")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("CostoUnitario")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
 
                     b.Property<DateTime>("FechaUtc")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("MaterialId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Origen")
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("Referencia")
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<decimal>("StockResultante")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("TipoMovimiento")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<int>("UsuarioId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1284,46 +1798,48 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(160)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(160)");
 
                     b.Property<int?>("FichaAsignadaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("FuncionDescripcion")
                         .HasMaxLength(800)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(800)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("PermisosExtendidos")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("PhotoPath")
                         .HasMaxLength(260)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(260)");
 
                     b.Property<string>("Rol")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(40)");
 
                     b.HasKey("Id");
 
@@ -1333,6 +1849,78 @@ namespace Sipitex.Infrastructure.Migrations
                     b.HasIndex("FichaAsignadaId");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.UserPlantaInventario", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PlantaInventarioId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("UserId", "PlantaInventarioId");
+
+                    b.HasIndex("PlantaInventarioId");
+
+                    b.ToTable("UserPlantasInventario");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimiento", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.User", "CreadoPor")
+                        .WithMany()
+                        .HasForeignKey("CreadoPorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany()
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreadoPor");
+
+                    b.Navigation("ProductionOrder");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimientoDetalle", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.ActaMovimiento", "ActaMovimiento")
+                        .WithMany("Detalles")
+                        .HasForeignKey("ActaMovimientoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ConsumoMaterial", "ConsumoMaterial")
+                        .WithMany()
+                        .HasForeignKey("ConsumoMaterialId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Sipitex.Domain.Entities.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany()
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Sipitex.Domain.Entities.StockMovement", "StockMovement")
+                        .WithMany()
+                        .HasForeignKey("StockMovementId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ActaMovimiento");
+
+                    b.Navigation("ConsumoMaterial");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("ProductionOrder");
+
+                    b.Navigation("StockMovement");
                 });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.AlertDelivery", b =>
@@ -1447,13 +2035,46 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("BomProduct");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.ConsumoMaterial", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.GrupoConfeccion", "GrupoConfeccion")
+                        .WithMany("Consumos")
+                        .HasForeignKey("GrupoConfeccionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Sipitex.Domain.Entities.Material", "Material")
+                        .WithMany("Consumos")
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany("Consumos")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.User", "Responsable")
+                        .WithMany()
+                        .HasForeignKey("ResponsableUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GrupoConfeccion");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("ProductionOrder");
+
+                    b.Navigation("Responsable");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.DetalleSolicitudMaterial", b =>
                 {
                     b.HasOne("Sipitex.Domain.Entities.Material", "Material")
                         .WithMany()
                         .HasForeignKey("MaterialId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Sipitex.Domain.Entities.SolicitudMaterial", "SolicitudMaterial")
                         .WithMany("Detalles")
@@ -1468,9 +2089,9 @@ namespace Sipitex.Infrastructure.Migrations
 
             modelBuilder.Entity("Sipitex.Domain.Entities.EntregaMaterial", b =>
                 {
-                    b.HasOne("Sipitex.Domain.Entities.User", "Bodeguero")
+                    b.HasOne("Sipitex.Domain.Entities.User", "EncargadoDeBodega")
                         .WithMany()
-                        .HasForeignKey("BodegueroId")
+                        .HasForeignKey("EncargadoDeBodegaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1480,7 +2101,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Bodeguero");
+                    b.Navigation("EncargadoDeBodega");
 
                     b.Navigation("SolicitudMaterial");
                 });
@@ -1538,6 +2159,25 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("ProductionOrder");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.GrupoConfeccion", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.User", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany("GruposConfeccion")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
+
+                    b.Navigation("ProductionOrder");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.InstructorStagePermission", b =>
                 {
                     b.HasOne("Sipitex.Domain.Entities.User", "User")
@@ -1547,6 +2187,17 @@ namespace Sipitex.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.Material", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.PlantaInventario", "PlantaInventario")
+                        .WithMany("Materiales")
+                        .HasForeignKey("PlantaInventarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PlantaInventario");
                 });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.MaterialRequest", b =>
@@ -1603,6 +2254,25 @@ namespace Sipitex.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.PrendaTrazable", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.User", "CreadoPor")
+                        .WithMany()
+                        .HasForeignKey("CreadoPorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany("PrendasTrazables")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreadoPor");
+
+                    b.Navigation("ProductionOrder");
                 });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.ProductFlowStageTemplate", b =>
@@ -1775,8 +2445,18 @@ namespace Sipitex.Infrastructure.Migrations
                     b.HasOne("Sipitex.Domain.Entities.Ficha", "Ficha")
                         .WithMany()
                         .HasForeignKey("FichaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Sipitex.Domain.Entities.PlantaInventario", "PlantaInventario")
+                        .WithMany("Solicitudes")
+                        .HasForeignKey("PlantaInventarioId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany()
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Sipitex.Domain.Entities.User", "ResueltoPor")
                         .WithMany()
@@ -1790,6 +2470,10 @@ namespace Sipitex.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Ficha");
+
+                    b.Navigation("PlantaInventario");
+
+                    b.Navigation("ProductionOrder");
 
                     b.Navigation("ResueltoPor");
 
@@ -1825,6 +2509,30 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("FichaAsignada");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.UserPlantaInventario", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.PlantaInventario", "PlantaInventario")
+                        .WithMany("Encargados")
+                        .HasForeignKey("PlantaInventarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.User", "User")
+                        .WithMany("UserPlantasInventario")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PlantaInventario");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimiento", b =>
+                {
+                    b.Navigation("Detalles");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.BomProduct", b =>
                 {
                     b.Navigation("Instructors");
@@ -1853,13 +2561,29 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("Instructors");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.GrupoConfeccion", b =>
+                {
+                    b.Navigation("Consumos");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.Material", b =>
                 {
                     b.Navigation("BomItems");
 
+                    b.Navigation("Consumos");
+
                     b.Navigation("Requests");
 
                     b.Navigation("StockMovements");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.PlantaInventario", b =>
+                {
+                    b.Navigation("Encargados");
+
+                    b.Navigation("Materiales");
+
+                    b.Navigation("Solicitudes");
                 });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.ProductFlowTemplate", b =>
@@ -1873,13 +2597,19 @@ namespace Sipitex.Infrastructure.Migrations
 
                     b.Navigation("ChangeLogs");
 
+                    b.Navigation("Consumos");
+
                     b.Navigation("Fichas");
+
+                    b.Navigation("GruposConfeccion");
 
                     b.Navigation("HistoryEntries");
 
                     b.Navigation("MaterialRequests");
 
                     b.Navigation("MaterialRequirements");
+
+                    b.Navigation("PrendasTrazables");
 
                     b.Navigation("QualityRecords");
 
@@ -1893,6 +2623,11 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("Detalles");
 
                     b.Navigation("Entrega");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.User", b =>
+                {
+                    b.Navigation("UserPlantasInventario");
                 });
 #pragma warning restore 612, 618
         }

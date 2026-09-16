@@ -15,19 +15,17 @@ Copiar carpeta `publish` al servidor IIS o ejecutar:
 
 ## 5.2 Configuración
 
-`appsettings.json`:
+`appsettings.json` / `appsettings.Development.json`:
 
 ```json
 "ConnectionStrings": {
-  "DefaultConnection": "Data Source=sipitex.db"
+  "DefaultConnection": "Host=localhost;Port=5432;Database=sipitex;Username=sipitex;Password=sipitex"
 }
 ```
 
-Para producción, usar ruta absoluta a la BD en el servidor.
+El motor es **PostgreSQL 16** (Npgsql + EF Core). La cadena de conexión se lee de `ConnectionStrings:DefaultConnection`. En producción use variables de entorno (`ConnectionStrings__DefaultConnection`) y no deje credenciales en el repositorio.
 
-`Seed:DemoUsers` debe quedar en `false`. Defina `ADMIN_SEED_PASSWORD` para el administrador inicial (`admin@sipitex.local`) si la base está vacía. Los usuarios `*@sipitex.test` no se crean en este entorno.
-
-El motor sigue siendo **SQLite** (volumen Docker / archivo `sipitex.db`). No se retoma PostgreSQL en este cierre.
+`Seed:DemoUsers` debe quedar en `false` salvo demos. Defina `ADMIN_SEED_PASSWORD` para el administrador inicial (`admin@sipitex.local`) si la base está vacía. Los usuarios `*@sipitex.test` no se crean en este entorno.
 
 `Costing:LaborHourRate` tiene valor de referencia **6500** (COP/hora). El Administrador puede cambiarlo en `/Costos`; el valor queda en `AppSettings`.
 
@@ -35,15 +33,20 @@ El motor sigue siendo **SQLite** (volumen Docker / archivo `sipitex.db`). No se 
 
 1. Instalar [ASP.NET Core Hosting Bundle](https://dotnet.microsoft.com/download/dotnet/10.0)  
 2. Crear sitio apuntando a `publish`  
-3. Pool: **Sin código administrado**
+3. Pool: **Sin código administrado**  
+4. PostgreSQL accesible desde el servidor (local, Docker o administrado)
 
 ## 5.4 Mantenimiento
 
 | Tarea | Frecuencia |
 |-------|------------|
-| Respaldo `sipitex.db` | Diario |
+| Respaldo PostgreSQL (`pg_dump`) | Diario |
 | Revisión logs | Semanal |
 | Actualización paquetes NuGet | Mensual |
+
+```bash
+pg_dump -Fc -d sipitex -f sipitex.dump
+```
 
 ## 5.5 Docker Compose (RNF07)
 
@@ -54,13 +57,13 @@ cp .env.example .env
 docker compose up --build
 ```
 
-La aplicación queda en `http://localhost:8080` con SQLite persistente en el volumen `sipitex-data`.  
+Levanta **postgres:16** (`db`) y la app. Persistencia en el volumen `sipitex-pgdata`.  
+La aplicación queda en `http://localhost:8080`.  
 Health check: `http://localhost:8080/health` (sin autenticación).
-
-Variables SMTP en Compose (desde el archivo `.env` del host; **no** subir `.env` al repo):
 
 | Variable de entorno | Config ASP.NET |
 |---------------------|----------------|
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Cadena `ConnectionStrings__DefaultConnection` |
 | `EMAIL_SMTP_USER` | `Email__User` → `Email:User` |
 | `EMAIL_SMTP_PASSWORD` | `Email__Password` → `Email:Password` |
 
@@ -90,9 +93,9 @@ Para activar el envío real, defina `EMAIL_SMTP_USER` y `EMAIL_SMTP_PASSWORD` (C
 
 ## 5.7 Base de datos y migraciones EF Core
 
-El esquema se aplica con **migraciones EF Core** (`MigrateAsync` al arrancar), no con `EnsureCreated`.
+El esquema se aplica con **migraciones EF Core** (`MigrateAsync` al arrancar), no con `EnsureCreated`. El proveedor es **PostgreSQL** (`UseNpgsql`).
 
-Antes de `MigrateAsync`, `MigrationBaseline.EnsureBaselineAsync` detecta BD legacy (tiene tablas de negocio pero no `__EFMigrationsHistory`) y marca `InitialCreate` como ya aplicada **sin borrar datos**.
+Antes de `MigrateAsync`, `MigrationBaseline.EnsureBaselineAsync` detecta BD legacy (tiene tablas de negocio pero no `__EFMigrationsHistory`) y marca `InitialCreate` como ya aplicada **sin borrar datos**. El flujo es el mismo en PostgreSQL; las consultas de catálogo usan `information_schema` (no `sqlite_master`).
 
 ```bash
 # Crear una nueva migración (desarrollo)
@@ -101,17 +104,19 @@ dotnet ef migrations add NombreCambio \
   --startup-project src/Sipitex.Web
 ```
 
-- **Instalación limpia** (sin `sipitex.db`): `MigrateAsync` crea el esquema completo y el seed de demo.
+- **Instalación limpia** (Postgres vacío): `MigrateAsync` crea el esquema completo y el seed de demo.
 - **BD legacy completa** (EnsureCreated / SQL manual, sin historial): se aplica baseline automático y luego `MigrateAsync` no vuelve a crear tablas.
 - **BD legacy incompleta** (faltan columnas/tablas del modelo actual): el baseline **no** se aplica y el arranque falla con mensaje explícito (para no ocultar el desfase).
+
+Las migraciones SQLite anteriores se reemplazaron por un `InitialCreate` limpio para PostgreSQL. No hay ruta automática de conversión de un archivo `sipitex.db` existente: exporte datos si hace falta y arranque contra Postgres vacío.
 
 ### Antes de desplegar en CMTC / producción
 
 ```bash
-cp sipitex.db sipitex.db.bak
+pg_dump -Fc -d sipitex -f sipitex.dump
 ```
 
-Haga el backup **manualmente** antes del primer arranque con esta versión. El código de arranque no lo automatiza.
+Haga el backup **manualmente** antes del primer arranque con una versión nueva. El código de arranque no lo automatiza.
 
 ## 5.8 Roadmap post-MVP
 
@@ -120,4 +125,36 @@ Haga el backup **manualmente** antes del primer arranque con esta versión. El c
 
 ## 5.9 Entregable de fase
 
-Sistema operativo en intranet + manual de operación.
+Sistema operativo en intranet o Render + PostgreSQL + manual de operación.
+
+## 5.10 Despliegue en Render (app + Postgres)
+
+Este agente **no crea** el servicio en la consola de Render. Hay que vincular el repositorio en [Render](https://render.com) (Blueprint `render.yaml` o alta manual).
+
+### Alta manual
+
+1. **PostgreSQL** — New → PostgreSQL, plan Starter (o el disponible), versión 16. Anote la **Internal Database URL**.
+2. **Web Service** — New → Web Service, repo de SIPITEX, runtime **Docker**, `Dockerfile` en la raíz. Health check: `/health`.
+3. Variables de entorno del Web Service (sin pegar contraseñas en documentación ni en git):
+
+| Variable | Valor |
+|----------|--------|
+| `ConnectionStrings__DefaultConnection` | Cadena interna de la BD Render (`postgresql://…` o formato Npgsql). Añada `SSL Mode=Require` si usa la URL externa. |
+| `ASPNETCORE_ENVIRONMENT` | `Production` |
+| `Seed__DemoUsers` | `true` solo en demo; `false` en operación real |
+| `ADMIN_SEED_PASSWORD` | Contraseña del admin bootstrap (si no hay administradores) |
+| `Email__Enabled` | `false` hasta tener SMTP; `true` en producción con usuario SMTP |
+| `Email__Host` / `Email__From` / `Email__User` / `Email__Password` | Solo si hay SMTP |
+| `Costing__LaborHourRate` | `6500` (referencia; el admin puede cambiarla en `/Costos`) |
+
+4. El primer arranque ejecuta `MigrateAsync` y crea el esquema en la BD administrada.
+5. Compruebe `https://<servicio>.onrender.com/health` → `200` y cuerpo `Healthy`.
+6. La pantalla de login es `https://<servicio>.onrender.com/Account/Login`. Con `Seed__DemoUsers=true` valen los usuarios demo; si no, el admin de `ADMIN_SEED_PASSWORD`.
+
+Los datos **persisten** en Postgres administrado entre reinicios del Web Service (a diferencia del SQLite efímero en disco del contenedor).
+
+La URL pública la asigna Render al crear el servicio (`https://<nombre>.onrender.com`). No se publica aquí una URL concreta porque depende de la cuenta y del nombre del servicio.
+
+### Blueprint
+
+`render.yaml` en la raíz describe el Web Service + Postgres. En el dashboard: New → Blueprint → seleccionar el repo.
