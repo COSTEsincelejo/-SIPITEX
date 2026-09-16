@@ -74,6 +74,12 @@ public class SipitexDbContext : DbContext
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<PrendaTrazable> PrendasTrazables => Set<PrendaTrazable>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<DateTime>().HaveColumnType("timestamp with time zone");
+        configurationBuilder.Properties<DateTime?>().HaveColumnType("timestamp with time zone");
+    }
+
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

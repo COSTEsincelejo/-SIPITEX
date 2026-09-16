@@ -23,7 +23,7 @@ public class SolicitudMaterialTipoMigrationTests
         Assert.True(path is not null, $"No se encontró InitialCreate en {migrationsDir}");
 
         var source = File.ReadAllText(path);
-        Assert.Contains("name: \"Tipo\"", source, StringComparison.Ordinal);
+        Assert.Contains("Tipo = table.Column<string>", source, StringComparison.Ordinal);
         Assert.Contains("defaultValue: \"PorFicha\"", source, StringComparison.Ordinal);
         Assert.DoesNotContain("defaultValue: \"\"", source, StringComparison.Ordinal);
     }

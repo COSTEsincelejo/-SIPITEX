@@ -9,7 +9,6 @@ public class MigrationBaselineTests
 {
     private static SipitexDbContext CreateContext(string connectionString)
     {
-        PostgresDefaults.EnableCompatibilitySwitches();
         var options = new DbContextOptionsBuilder<SipitexDbContext>()
             .UseNpgsql(connectionString)
             .Options;

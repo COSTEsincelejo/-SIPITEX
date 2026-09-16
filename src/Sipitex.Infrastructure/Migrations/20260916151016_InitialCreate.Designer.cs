@@ -42,7 +42,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("character varying(80)");
 
                     b.Property<DateTime?>("EntregaConformidadUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<byte[]>("EntregaFirmaPng")
                         .HasColumnType("bytea");
@@ -61,7 +61,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("character varying(40)");
 
                     b.Property<DateTime>("FechaUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Numero")
                         .IsRequired()
@@ -86,7 +86,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("character varying(80)");
 
                     b.Property<DateTime?>("RecibeConformidadUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<byte[]>("RecibeFirmaPng")
                         .HasColumnType("bytea");
@@ -198,7 +198,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("character varying(80)");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
@@ -241,7 +241,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("character varying(40)");
 
                     b.Property<DateTime>("SentAt")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Subject")
                         .IsRequired()
@@ -290,7 +290,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("character varying(80)");
 
                     b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Value")
                         .IsRequired()
@@ -435,7 +435,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("AssignedAtUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("BomProductId", "UserId");
 
@@ -599,7 +599,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("numeric(18,4)");
 
                     b.Property<DateTime>("FechaUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("GrupoConfeccionId")
                         .HasColumnType("integer");
@@ -685,7 +685,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("FechaEntrega")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Observaciones")
                         .HasMaxLength(500)
@@ -761,7 +761,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("AssignedAtUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Proceso")
                         .HasMaxLength(60)
@@ -786,7 +786,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("AtUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Observations")
                         .HasMaxLength(1000)
@@ -998,7 +998,7 @@ namespace Sipitex.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("MaterialId")
                         .HasColumnType("integer");
@@ -1073,7 +1073,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("character varying(80)");
 
                     b.Property<DateTime>("FechaUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("ProductionOrderId")
                         .HasColumnType("integer");
@@ -1109,10 +1109,10 @@ namespace Sipitex.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
@@ -1120,7 +1120,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("character varying(128)");
 
                     b.Property<DateTime?>("UsedAtUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
@@ -1188,7 +1188,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreadoUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Estado")
                         .IsRequired()
@@ -1395,7 +1395,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("character varying(120)");
 
                     b.Property<DateTime>("AtUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("EventType")
                         .IsRequired()
@@ -1477,7 +1477,7 @@ namespace Sipitex.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("CompletedAtUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("InstructorUserId")
                         .HasColumnType("integer");
@@ -1513,7 +1513,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("StartedAtUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1541,7 +1541,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("AtUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("AuthorizedByUserId")
                         .HasColumnType("integer");
@@ -1609,7 +1609,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("SessionDate")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Units")
                         .HasColumnType("integer");
@@ -1688,10 +1688,10 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("character varying(30)");
 
                     b.Property<DateTime?>("FechaResolucion")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("FechaSolicitud")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("FichaId")
                         .HasColumnType("integer");
@@ -1758,7 +1758,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasColumnType("numeric(18,4)");
 
                     b.Property<DateTime>("FechaUtc")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("MaterialId")
                         .HasColumnType("integer");

@@ -122,7 +122,7 @@ public class FichaService : IFichaService
             ProductionOrderId = dto.ProductionOrderId,
             Units = dto.Units,
             Observations = dto.Observations?.Trim() ?? string.Empty,
-            SessionDate = DateTime.Now,
+            SessionDate = DateTime.UtcNow,
             RegisteredByUserId = registeredByUserId
         }, cancellationToken);
 

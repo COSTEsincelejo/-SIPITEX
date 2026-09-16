@@ -7,7 +7,6 @@ public sealed class SipitexDbContextFactory : IDesignTimeDbContextFactory<Sipite
 {
     public SipitexDbContext CreateDbContext(string[] args)
     {
-        PostgresDefaults.EnableCompatibilitySwitches();
         var options = new DbContextOptionsBuilder<SipitexDbContext>()
             .UseNpgsql(PostgresDefaults.LocalConnectionString)
             .Options;

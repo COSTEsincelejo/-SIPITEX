@@ -32,7 +32,6 @@ public class SipitexWebAppFactory : WebApplicationFactory<Program>, IDisposable
 
     private string EnsureDatabase()
     {
-        PostgresDefaults.EnableCompatibilitySwitches();
         return _databaseName ??= PostgresTestSupport.CreateDatabase();
     }
 

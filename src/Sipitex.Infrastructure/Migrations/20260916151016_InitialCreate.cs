@@ -25,7 +25,7 @@ namespace Sipitex.Infrastructure.Migrations
                     Action = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
                     Entity = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
                     EntityId = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
-                    Timestamp = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Details = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true)
                 },
                 constraints: table =>
@@ -39,7 +39,7 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     Key = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
                     Value = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    UpdatedUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
+                    UpdatedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -336,18 +336,18 @@ namespace Sipitex.Infrastructure.Migrations
                     Numero = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Tipo = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Origen = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    FechaUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    FechaUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Observaciones = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     ProductionOrderId = table.Column<int>(type: "integer", nullable: true),
                     EstadoProductoOrigen = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
                     EstadoProductoDestino = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
                     EntregaNombre = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
                     EntregaCargo = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
-                    EntregaConformidadUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    EntregaConformidadUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     EntregaFirmaPng = table.Column<byte[]>(type: "bytea", nullable: true),
                     RecibeNombre = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
                     RecibeCargo = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
-                    RecibeConformidadUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    RecibeConformidadUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     RecibeFirmaPng = table.Column<byte[]>(type: "bytea", nullable: true),
                     CreadoPorUserId = table.Column<int>(type: "integer", nullable: false)
                 },
@@ -399,7 +399,7 @@ namespace Sipitex.Infrastructure.Migrations
                     AlertType = table.Column<int>(type: "integer", nullable: false),
                     Subject = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Body = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
-                    SentAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    SentAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Channel = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false)
                 },
                 constraints: table =>
@@ -428,7 +428,7 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     BomProductId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
-                    AssignedAtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
+                    AssignedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -451,7 +451,7 @@ namespace Sipitex.Infrastructure.Migrations
                     GrupoConfeccionId = table.Column<int>(type: "integer", nullable: true),
                     MaterialId = table.Column<int>(type: "integer", nullable: false),
                     Cantidad = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    FechaUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    FechaUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ResponsableUserId = table.Column<int>(type: "integer", nullable: false),
                     CostoUnitario = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: false)
                 },
@@ -499,7 +499,7 @@ namespace Sipitex.Infrastructure.Migrations
                     Codigo = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     SolicitudMaterialId = table.Column<int>(type: "integer", nullable: false),
                     EncargadoDeBodegaId = table.Column<int>(type: "integer", nullable: false),
-                    FechaEntrega = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    FechaEntrega = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Observaciones = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
@@ -513,7 +513,7 @@ namespace Sipitex.Infrastructure.Migrations
                 {
                     FichaId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
-                    AssignedAtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    AssignedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Proceso = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: true)
                 },
                 constraints: table =>
@@ -595,9 +595,9 @@ namespace Sipitex.Infrastructure.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     TokenHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    ExpiresAtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    UsedAtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
-                    CreatedAtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
+                    ExpiresAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UsedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -617,7 +617,7 @@ namespace Sipitex.Infrastructure.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     MaterialId = table.Column<int>(type: "integer", nullable: false),
-                    FechaUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    FechaUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UsuarioId = table.Column<int>(type: "integer", nullable: false),
                     TipoMovimiento = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
                     Origen = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
@@ -677,7 +677,7 @@ namespace Sipitex.Infrastructure.Migrations
                     Quantity = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     ProductionOrderId = table.Column<int>(type: "integer", nullable: true),
                     StageId = table.Column<int>(type: "integer", nullable: true),
-                    AtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    AtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ActorUserId = table.Column<int>(type: "integer", nullable: false),
                     Observations = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true)
                 },
@@ -727,7 +727,7 @@ namespace Sipitex.Infrastructure.Migrations
                     ProductionOrderId = table.Column<int>(type: "integer", nullable: false),
                     SolicitanteId = table.Column<int>(type: "integer", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -754,7 +754,7 @@ namespace Sipitex.Infrastructure.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ProductionOrderId = table.Column<int>(type: "integer", nullable: false),
                     UsuarioId = table.Column<int>(type: "integer", nullable: false),
-                    FechaUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    FechaUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Campo = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
                     ValorAnterior = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     ValorNuevo = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
@@ -781,7 +781,7 @@ namespace Sipitex.Infrastructure.Migrations
                     ProductName = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
                     Talla = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
                     Estado = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
-                    CreadoUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    CreadoUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreadoPorUserId = table.Column<int>(type: "integer", nullable: false),
                     Observaciones = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
                 },
@@ -827,7 +827,7 @@ namespace Sipitex.Infrastructure.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ProductionOrderId = table.Column<int>(type: "integer", nullable: false),
-                    AtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    AtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     EventType = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
                     Message = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     ActorUserId = table.Column<int>(type: "integer", nullable: true),
@@ -899,8 +899,8 @@ namespace Sipitex.Infrastructure.Migrations
                     IsOptional = table.Column<bool>(type: "boolean", nullable: false),
                     Status = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     InstructorUserId = table.Column<int>(type: "integer", nullable: true),
-                    StartedAtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
-                    CompletedAtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    StartedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CompletedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     Observations = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     QuantityReceived = table.Column<int>(type: "integer", nullable: false),
                     QuantityProcessed = table.Column<int>(type: "integer", nullable: false),
@@ -934,7 +934,7 @@ namespace Sipitex.Infrastructure.Migrations
                     ProductionOrderId = table.Column<int>(type: "integer", nullable: false),
                     Units = table.Column<int>(type: "integer", nullable: false),
                     Observations = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    SessionDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    SessionDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     RegisteredByUserId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
@@ -998,8 +998,8 @@ namespace Sipitex.Infrastructure.Migrations
                     DescripcionLibre = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
                     SolicitanteId = table.Column<int>(type: "integer", nullable: false),
                     Estado = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    FechaSolicitud = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    FechaResolucion = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    FechaSolicitud = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaResolucion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ResueltoPorId = table.Column<int>(type: "integer", nullable: true),
                     Observaciones = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     PlantaInventarioId = table.Column<int>(type: "integer", nullable: false)
@@ -1050,7 +1050,7 @@ namespace Sipitex.Infrastructure.Migrations
                     ToStageId = table.Column<int>(type: "integer", nullable: true),
                     MovementType = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     Quantity = table.Column<int>(type: "integer", nullable: false),
-                    AtUtc = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    AtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ActorUserId = table.Column<int>(type: "integer", nullable: false),
                     AuthorizedByUserId = table.Column<int>(type: "integer", nullable: true),
                     Motive = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
