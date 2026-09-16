@@ -367,6 +367,7 @@ public class AlertasIndexViewModel
     public IReadOnlyList<AlertPreferenceDto> Preferences { get; set; } = [];
     public IReadOnlyList<AlertDeliveryDto> Deliveries { get; set; } = [];
     public bool SmtpConfigured { get; set; } // cambia el mensaje informativo
+    public string SmtpHost { get; set; } = string.Empty;
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -605,6 +606,10 @@ public class CostosIndexViewModel
     public int? OrderId { get; set; }
     public GarmentCostDto? Costo { get; set; }
     public bool LaborHourRateUnconfigured { get; set; }
+    public decimal LaborHourRate { get; set; }
+    public bool CanEditRate { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
 }
 
 public class ActasIndexViewModel
@@ -638,4 +643,16 @@ public class CreateActaForm
     public EstadoProducto EstadoDestino { get; set; } = EstadoProducto.Corte;
     public int[] StockMovementIds { get; set; } = [];
     public int[] ConsumoIds { get; set; } = [];
+    public string? EntregaFirmaDataUrl { get; set; }
+    public string? RecibeFirmaDataUrl { get; set; }
+}
+
+public class TrazabilidadIndexViewModel
+{
+    public string? Query { get; set; }
+    public int? OrderId { get; set; }
+    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
+    public IReadOnlyList<PrendaTrazableListDto> Prendas { get; set; } = [];
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
 }

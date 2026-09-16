@@ -59,7 +59,8 @@ public class ModuleAccessTests
                      "/PlantasInventarioOrdenes",
                      "/PlantasInventarioOrdenes/Reingreso",
                      "/Inventario/Movimientos",
-                     "/Actas"
+                     "/Actas",
+                     "/Trazabilidad"
                  })
         {
             var response = await client.GetAsync(path);
@@ -84,6 +85,9 @@ public class ModuleAccessTests
 
         var actas = await client.GetAsync("/Actas");
         Assert.Equal(HttpStatusCode.OK, actas.StatusCode);
+
+        var trazabilidad = await client.GetAsync("/Trazabilidad");
+        Assert.Equal(HttpStatusCode.OK, trazabilidad.StatusCode);
     }
 
     private async Task<HttpClient> LoginAsync(string email, string password)

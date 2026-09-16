@@ -10,7 +10,7 @@ public record ReportFileDto(byte[] Content, string ContentType, string FileName)
 public record AlertPreferenceDto(AlertType AlertType, string Title, string Description, bool Enabled, IReadOnlyList<string> SuggestedRoles);
 
 // Un envío de alerta ya hecho (historial)
-public record AlertDeliveryDto(AlertType AlertType, string Subject, DateTime SentAt, string Channel);
+public record AlertDeliveryDto(AlertType AlertType, string Subject, DateTime SentAt, string Channel, string Recipient = "");
 
 // Resumen después de correr la evaluación de alertas
 public record AlertEvaluationResultDto(int AlertsFound, int EmailsSent, IReadOnlyList<string> Details);

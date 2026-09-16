@@ -88,6 +88,7 @@
             @if (User.IsInRole("Administrador") || User.IsInRole("Instructor") || User.IsInRole("Encargado de bodega"))
             {
                 <a class="@NavClass("Actas")" asp-controller="Actas" asp-action="Index"><i class="fas fa-file-signature"></i> Actas de ingreso/egreso</a>
+                <a class="@NavClass("Trazabilidad")" asp-controller="Trazabilidad" asp-action="Index"><i class="fas fa-barcode"></i> Trazabilidad</a>
             }
         </nav>
         <nav class="nav-group">

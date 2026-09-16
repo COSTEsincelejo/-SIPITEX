@@ -63,13 +63,21 @@
             <p><strong>@Model.EntregaNombre</strong></p>
             <p class="hint">@(string.IsNullOrWhiteSpace(Model.EntregaCargo) ? "Cargo no indicado" : Model.EntregaCargo)</p>
             <p>@(Model.EntregaConformidadUtc is DateTime te ? $"Conforme · {te:yyyy-MM-dd HH:mm} UTC" : "Pendiente de conformidad")</p>
+            @if (Model.EntregaFirmaPng is { Length: > 0 })
+            {
+                <img class="signature-preview" alt="Firma de @Model.EntregaNombre" src="data:image/png;base64,@Convert.ToBase64String(Model.EntregaFirmaPng)" />
+            }
         </div>
         <div class="field">
             <div class="card-title">Quien recibe</div>
             <p><strong>@Model.RecibeNombre</strong></p>
             <p class="hint">@(string.IsNullOrWhiteSpace(Model.RecibeCargo) ? "Cargo no indicado" : Model.RecibeCargo)</p>
             <p>@(Model.RecibeConformidadUtc is DateTime tr ? $"Conforme · {tr:yyyy-MM-dd HH:mm} UTC" : "Pendiente de conformidad")</p>
+            @if (Model.RecibeFirmaPng is { Length: > 0 })
+            {
+                <img class="signature-preview" alt="Firma de @Model.RecibeNombre" src="data:image/png;base64,@Convert.ToBase64String(Model.RecibeFirmaPng)" />
+            }
         </div>
     </div>
-    <p class="hint">Validez por conformidad simple: nombre, cargo y marca de tiempo UTC de quien entrega y quien recibe.</p>
+    <p class="hint">Validez: nombre, cargo, marca de tiempo UTC y firma gráfica de quien entrega y quien recibe.</p>
 </div>

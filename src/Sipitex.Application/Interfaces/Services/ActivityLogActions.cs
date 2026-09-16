@@ -25,6 +25,8 @@ public static class ActivityLogActions
     public const string RemoveBomInstructor = "RemoveBomInstructor";
     public const string RegisterConsumoMaterial = "RegisterConsumoMaterial";
     public const string ChangeProductState = "ChangeProductState";
+    public const string UpdateLaborHourRate = "UpdateLaborHourRate";
+    public const string GenerateProductCodes = "GenerateProductCodes";
 
     // Acciones genéricas del interceptor EF Core (SaveChanges)
     public const string Create = "Create";
@@ -43,4 +45,6 @@ public static class ActivityLogEntities
     public const string GrupoConfeccion = "GrupoConfeccion";
     public const string QualityRecord = "QualityRecord";
     public const string ActaMovimiento = "ActaMovimiento";
+    public const string PrendaTrazable = "PrendaTrazable";
+    public const string AppSetting = "AppSetting";
 }

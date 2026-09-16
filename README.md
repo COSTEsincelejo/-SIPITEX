@@ -76,7 +76,8 @@ Abrir `http://localhost:8080`. La base de datos persiste en el volumen `sipitex-
 | Grupos de confección | `/GruposConfeccion` | Horas y prendas por grupo |
 | Consumos | `/Consumos` | Consumo real de materiales por orden |
 | Costeo | `/Costos` | Costo estimado de prenda (materiales + mano de obra) |
-| Actas | `/Actas` | Actas de ingreso/egreso con conformidad simple |
+| Actas | `/Actas` | Actas de ingreso/egreso con firma gráfica |
+| Trazabilidad | `/Trazabilidad` | Código único de prenda y línea de tiempo |
 | Calidad | `/Calidad` | Inspecciones de calidad |
 | Auditoría | `/Auditoria` | Activity log (Administrador) |
 | Estadísticas | `/Estadisticas` | KPIs y gráficos |
@@ -86,8 +87,9 @@ Abrir `http://localhost:8080`. La base de datos persiste en el volumen `sipitex-
 
 ## Políticas de negocio documentadas
 
-- **Actas:** la validez formal es **conformidad simple** (nombre, cargo y timestamp UTC de quien entrega y quien recibe). No se exige firma manuscrita ni gráfica.
-- **Costeo:** `Costing:LaborHourRate` permanece en `0` hasta que CMTC confirme la tarifa real. `/Costos` muestra un aviso y no presenta la mano de obra en $0 como costo válido.
+- **Actas:** conformidad con nombre, cargo, timestamp UTC y **firma gráfica** dibujada en pantalla (incluida en el PDF).
+- **Costeo:** tarifa de hora de mano de obra con valor de referencia `Costing:LaborHourRate` (6500 COP/h). El Administrador puede ajustarla en `/Costos` sin redesplegar.
+- **Alertas:** `Email:Enabled=true`. El envío SMTP real exige `Email:User` (variable `EMAIL_SMTP_USER`); si no hay usuario, los correos se guardan en `email-outbox/`.
 - **Login:** 5 intentos fallidos (correo + IP) bloquean 15 minutos. El mensaje no indica si el correo existe.
 
 ## Metodología cascada

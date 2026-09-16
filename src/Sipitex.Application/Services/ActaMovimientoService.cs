@@ -64,6 +64,15 @@ public class ActaMovimientoService : IActaMovimientoService
         if (entrega.Length == 0 || recibe.Length == 0)
             return ServiceResult<ActaMovimientoDto>.Fail("Nombre de quien entrega y de quien recibe son obligatorios.");
 
+        if (dto.EntregaConforme && !SignatureImage.IsPng(dto.EntregaFirmaPng))
+            return ServiceResult<ActaMovimientoDto>.Fail("Quien entrega debe dibujar su firma gráfica para marcar conformidad.");
+        if (dto.RecibeConforme && !SignatureImage.IsPng(dto.RecibeFirmaPng))
+            return ServiceResult<ActaMovimientoDto>.Fail("Quien recibe debe dibujar su firma gráfica para marcar conformidad.");
+        if (dto.EntregaFirmaPng is not null && !SignatureImage.IsPng(dto.EntregaFirmaPng))
+            return ServiceResult<ActaMovimientoDto>.Fail("La firma de quien entrega no es un PNG válido.");
+        if (dto.RecibeFirmaPng is not null && !SignatureImage.IsPng(dto.RecibeFirmaPng))
+            return ServiceResult<ActaMovimientoDto>.Fail("La firma de quien recibe no es un PNG válido.");
+
         var creador = await _users.GetByIdAsync(dto.CreadoPorUserId, cancellationToken);
         if (creador is null)
             return ServiceResult<ActaMovimientoDto>.Fail("Usuario responsable no encontrado.");
@@ -95,9 +104,11 @@ public class ActaMovimientoService : IActaMovimientoService
             EntregaNombre = Trunc(entrega, 120),
             EntregaCargo = Trunc((dto.EntregaCargo ?? string.Empty).Trim(), 80),
             EntregaConformidadUtc = dto.EntregaConforme ? now : null,
+            EntregaFirmaPng = SignatureImage.IsPng(dto.EntregaFirmaPng) ? dto.EntregaFirmaPng : null,
             RecibeNombre = Trunc(recibe, 120),
             RecibeCargo = Trunc((dto.RecibeCargo ?? string.Empty).Trim(), 80),
             RecibeConformidadUtc = dto.RecibeConforme ? now : null,
+            RecibeFirmaPng = SignatureImage.IsPng(dto.RecibeFirmaPng) ? dto.RecibeFirmaPng : null,
             CreadoPorUserId = creador.Id,
             Detalles = detalles
         };
@@ -263,9 +274,11 @@ public class ActaMovimientoService : IActaMovimientoService
         a.EntregaNombre,
         a.EntregaCargo,
         a.EntregaConformidadUtc,
+        a.EntregaFirmaPng,
         a.RecibeNombre,
         a.RecibeCargo,
         a.RecibeConformidadUtc,
+        a.RecibeFirmaPng,
         a.CreadoPorUserId,
         a.CreadoPor?.Nombre ?? $"#{a.CreadoPorUserId}",
         a.Detalles.Select(d => new ActaDetalleDto(

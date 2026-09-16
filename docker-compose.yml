@@ -8,6 +8,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Data Source=/app/data/sipitex.db"
+      Email__Enabled: "true"
       Email__User: "${EMAIL_SMTP_USER}"
       Email__Password: "${EMAIL_SMTP_PASSWORD}"
     healthcheck:

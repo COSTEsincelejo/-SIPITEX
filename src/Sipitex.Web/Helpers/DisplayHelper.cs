@@ -236,6 +236,23 @@ public static class DisplayHelper
         "GrupoConfeccion" => "Grupo de confección",
         "QualityRecord" => "Registro de calidad",
         "ActaMovimiento" => "Acta de movimiento",
+        "PrendaTrazable" => "Prenda trazable",
+        "AppSetting" => "Configuración",
         _ => string.IsNullOrWhiteSpace(entity) ? "—" : entity
+    };
+
+    public static string BadgeClass(StockNivel nivel) => nivel switch
+    {
+        StockNivel.Ok => "badge-success",
+        StockNivel.Bajo => "badge-warning",
+        _ => "badge-danger"
+    };
+
+    public static string StatusText(StockNivel nivel) => nivel switch
+    {
+        StockNivel.Ok => "OK",
+        StockNivel.Bajo => "Bajo",
+        StockNivel.Critico => "Crítico",
+        _ => nivel.ToString()
     };
 }

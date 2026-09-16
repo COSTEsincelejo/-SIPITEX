@@ -1,8 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Sipitex.Application;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
@@ -13,17 +11,17 @@ namespace Sipitex.Web.Controllers;
 public class CostosController : Controller
 {
     private readonly IGarmentCostingService _costing;
+    private readonly ICostingSettingsService _costingSettings;
     private readonly IProductionOrderService _orders;
-    private readonly CostingOptions _costingOptions;
 
     public CostosController(
         IGarmentCostingService costing,
-        IProductionOrderService orders,
-        IOptions<CostingOptions> costingOptions)
+        ICostingSettingsService costingSettings,
+        IProductionOrderService orders)
     {
         _costing = costing;
+        _costingSettings = costingSettings;
         _orders = orders;
-        _costingOptions = costingOptions.Value;
     }
 
     [HttpGet]
@@ -36,6 +34,7 @@ public class CostosController : Controller
         var selected = orderId is int id && orders.Any(o => o.Id == id)
             ? id
             : orders.FirstOrDefault()?.Id;
+        var tarifa = await _costingSettings.GetLaborHourRateAsync(cancellationToken);
         var costo = selected is int oid
             ? await _costing.CalcularAsync(oid, cancellationToken)
             : null;
@@ -44,8 +43,30 @@ public class CostosController : Controller
             Orders = orders,
             OrderId = selected,
             Costo = costo,
-            LaborHourRateUnconfigured = !_costingOptions.IsConfigured
+            LaborHourRate = tarifa,
+            LaborHourRateUnconfigured = tarifa <= 0,
+            CanEditRate = User.IsInRole(UserRoles.Administrador),
+            Message = TempData["Message"] as string,
+            IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = UserRoles.Administrador)]
+    public async Task<IActionResult> Tarifa(decimal laborHourRate, int? orderId, CancellationToken cancellationToken)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId) || userId <= 0)
+        {
+            TempData["Message"] = "No se pudo identificar al usuario.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Index), new { orderId });
+        }
+
+        var result = await _costingSettings.UpdateLaborHourRateAsync(laborHourRate, userId, cancellationToken);
+        TempData["Message"] = result.Message;
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index), new { orderId });
     }
 
     private (int? UserId, string? Role, string? Name) CurrentViewer()

@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
@@ -44,18 +45,37 @@ public class StatisticsService : IStatisticsService
             quality = qualityAll.Where(q => orderIds.Contains(q.ProductionOrderId));
 
         var totalProduced = orders.Sum(o => o.ProducedQuantity);
+        var totalTarget = orders.Sum(o => o.TotalQuantity);
         var approved = quality.Where(q => q.Result == QualityResult.Aprobada).Sum(q => q.UnitsInspected);
+        var reproceso = quality.Where(q => q.Result == QualityResult.Reproceso).Sum(q => q.UnitsInspected);
+        var rejected = quality.Where(q => q.Result == QualityResult.Rechazada).Sum(q => q.UnitsInspected);
         var inspected = quality.Sum(q => q.UnitsInspected);
         var qualityRate = inspected > 0 ? Math.Round(approved * 100m / inspected, 1) : 0;
         var activeOrders = orders.Count(o => o.Status == OrderStatus.EnProceso);
         var pendingApproval = orders.Count(o => o.Status == OrderStatus.Pendiente);
-        var lowStock = materials.Count(m => m.Stock < m.MinStock);
+        var niveles = materials.Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock)).ToList();
+        var lowStock = niveles.Count(n => n == StockNivel.Bajo);
+        var criticalStock = niveles.Count(n => n == StockNivel.Critico);
+        var okStock = niveles.Count(n => n == StockNivel.Ok);
+        var efficiency = totalTarget > 0 ? Math.Round(totalProduced * 100m / totalTarget, 1) : 0;
 
         var chart = orders
             .Select(o => new ChartBarDto(o.OrderNumber, o.ProducedQuantity, o.TotalQuantity))
             .ToList();
 
-        return new DashboardKpiDto(totalProduced, qualityRate, activeOrders, pendingApproval, lowStock, chart);
+        return new DashboardKpiDto(
+            totalProduced,
+            qualityRate,
+            activeOrders,
+            pendingApproval,
+            lowStock,
+            chart,
+            criticalStock,
+            okStock,
+            reproceso,
+            approved,
+            rejected,
+            efficiency);
     }
 
     private static bool IsInstructorViewer(string? viewerRole, int? viewerUserId) =>

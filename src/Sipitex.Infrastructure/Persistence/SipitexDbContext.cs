@@ -70,6 +70,8 @@ public class SipitexDbContext : DbContext
     public DbSet<GrupoConfeccion> GruposConfeccion => Set<GrupoConfeccion>();
     public DbSet<ActaMovimiento> ActasMovimiento => Set<ActaMovimiento>();
     public DbSet<ActaMovimientoDetalle> ActasMovimientoDetalle => Set<ActaMovimientoDetalle>();
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+    public DbSet<PrendaTrazable> PrendasTrazables => Set<PrendaTrazable>();
 
     // Acá configuro EF Core para cada entidad (claves, longitudes, relaciones...)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -739,8 +741,10 @@ public class SipitexDbContext : DbContext
             e.Property(a => a.Observaciones).HasMaxLength(1000);
             e.Property(a => a.EntregaNombre).HasMaxLength(120).IsRequired();
             e.Property(a => a.EntregaCargo).HasMaxLength(80);
+            e.Property(a => a.EntregaFirmaPng);
             e.Property(a => a.RecibeNombre).HasMaxLength(120).IsRequired();
             e.Property(a => a.RecibeCargo).HasMaxLength(80);
+            e.Property(a => a.RecibeFirmaPng);
             e.HasOne(a => a.ProductionOrder)
                 .WithMany()
                 .HasForeignKey(a => a.ProductionOrderId)
@@ -780,6 +784,36 @@ public class SipitexDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(d => d.ProductionOrderId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AppSetting>(e =>
+        {
+            e.ToTable("AppSettings");
+            e.HasKey(s => s.Key);
+            e.Property(s => s.Key).HasMaxLength(80);
+            e.Property(s => s.Value).HasMaxLength(200).IsRequired();
+        });
+
+        modelBuilder.Entity<PrendaTrazable>(e =>
+        {
+            e.ToTable("PrendasTrazables");
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Codigo).HasMaxLength(40).IsRequired();
+            e.HasIndex(p => p.Codigo).IsUnique();
+            e.Property(p => p.ProductName).HasMaxLength(80).IsRequired();
+            e.Property(p => p.Talla).HasMaxLength(40);
+            e.Property(p => p.Estado).HasConversion<string>().HasMaxLength(40);
+            e.Property(p => p.Observaciones).HasMaxLength(500);
+            e.HasOne(p => p.ProductionOrder)
+                .WithMany(o => o.PrendasTrazables)
+                .HasForeignKey(p => p.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.CreadoPor)
+                .WithMany()
+                .HasForeignKey(p => p.CreadoPorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(p => p.ProductionOrderId);
+            e.HasIndex(p => p.CreadoUtc);
         });
     }
 }

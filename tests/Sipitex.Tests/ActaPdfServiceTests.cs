@@ -23,9 +23,11 @@ public class ActaPdfServiceTests
             "Laura Gómez",
             "Instructor",
             new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+            TestPng.Bytes,
             "Pedro Encargado",
             "Encargado de bodega",
             new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+            TestPng.Bytes,
             7,
             "Ana",
             [

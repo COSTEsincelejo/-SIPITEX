@@ -90,7 +90,9 @@ public class ActaMovimientoServiceTests
             ActaTipo.Egreso, ActaOrigen.Consumo,
             "Laura", "Instructor", true,
             "Pedro", "Encargado de bodega", true,
-            7, ProductionOrderId: 4));
+            7, ProductionOrderId: 4,
+            EntregaFirmaPng: TestPng.Bytes,
+            RecibeFirmaPng: TestPng.Bytes));
 
         Assert.True(result.Success, result.Message);
         Assert.NotNull(result.Value);
@@ -135,7 +137,9 @@ public class ActaMovimientoServiceTests
             ActaTipo.Ingreso, ActaOrigen.Stock,
             "Pedro", "Encargado de bodega", true,
             "Laura", "Instructor", true,
-            7, StockMovementIds: [9]));
+            7, StockMovementIds: [9],
+            EntregaFirmaPng: TestPng.Bytes,
+            RecibeFirmaPng: TestPng.Bytes));
 
         Assert.True(result.Success, result.Message);
         Assert.Equal(ActaTipo.Ingreso, result.Value!.Tipo);
@@ -177,6 +181,21 @@ public class ActaMovimientoServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_ConformeSinFirma_Falla()
+    {
+        SeedActorAndCapture();
+
+        var result = await CreateSut().CreateAsync(new CreateActaDto(
+            ActaTipo.Ingreso, ActaOrigen.Manual,
+            "Pedro", "Encargado", true,
+            "Laura", "Instructor", true,
+            7, Observaciones: "Sin firma"));
+
+        Assert.False(result.Success);
+        Assert.Contains("firma gráfica", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task CreateAsync_OrigenManual_CreaDetallePorDefecto()
     {
         SeedActorAndCapture();
@@ -196,7 +215,9 @@ public class ActaMovimientoServiceTests
             ActaTipo.Ingreso, ActaOrigen.Manual,
             "Pedro", "Encargado de bodega", true,
             "Laura", "Instructor", true,
-            7, Observaciones: "Ingreso tela planta 1"));
+            7, Observaciones: "Ingreso tela planta 1",
+            EntregaFirmaPng: TestPng.Bytes,
+            RecibeFirmaPng: TestPng.Bytes));
 
         Assert.True(result.Success, result.Message);
         var line = Assert.Single(result.Value!.Detalles);

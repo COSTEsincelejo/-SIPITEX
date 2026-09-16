@@ -365,7 +365,13 @@ public record DashboardKpiDto(
     int ActiveOrders,
     int PendingApprovalOrders,
     int LowStockCount,
-    IReadOnlyList<ChartBarDto> ChartData);
+    IReadOnlyList<ChartBarDto> ChartData,
+    int CriticalStockCount = 0,
+    int OkStockCount = 0,
+    int ReprocesoCount = 0,
+    int QualityApprovedUnits = 0,
+    int QualityRejectedUnits = 0,
+    decimal EfficiencyPercent = 0);
 
 // Una barra del gráfico de órdenes
 public record ChartBarDto(string Label, int Produced, int Target);
@@ -701,9 +707,11 @@ public record ActaMovimientoDto(
     string EntregaNombre,
     string EntregaCargo,
     DateTime? EntregaConformidadUtc,
+    byte[]? EntregaFirmaPng,
     string RecibeNombre,
     string RecibeCargo,
     DateTime? RecibeConformidadUtc,
+    byte[]? RecibeFirmaPng,
     int CreadoPorUserId,
     string CreadoPorNombre,
     IReadOnlyList<ActaDetalleDto> Detalles);
@@ -723,7 +731,39 @@ public record CreateActaDto(
     EstadoProducto? EstadoOrigen = null,
     EstadoProducto? EstadoDestino = null,
     IReadOnlyList<int>? StockMovementIds = null,
-    IReadOnlyList<int>? ConsumoIds = null);
+    IReadOnlyList<int>? ConsumoIds = null,
+    byte[]? EntregaFirmaPng = null,
+    byte[]? RecibeFirmaPng = null);
+
+public record PrendaTrazableListDto(
+    int Id,
+    string Codigo,
+    int ProductionOrderId,
+    string OrderNumber,
+    string ProductName,
+    string? Talla,
+    EstadoProducto Estado,
+    DateTime CreadoUtc);
+
+public record PrendaTrazableEventDto(DateTime AtUtc, string Titulo, string Detalle);
+
+public record PrendaTrazableDetailDto(
+    int Id,
+    string Codigo,
+    int ProductionOrderId,
+    string OrderNumber,
+    string ProductName,
+    string? Talla,
+    EstadoProducto Estado,
+    DateTime CreadoUtc,
+    string CreadoPorNombre,
+    string? Observaciones,
+    string? Cliente,
+    OrderStatus OrderStatus,
+    int ProducedQuantity,
+    int TotalQuantity,
+    IReadOnlyList<string> MaterialesBom,
+    IReadOnlyList<PrendaTrazableEventDto> Eventos);
 
 public record ServiceResult<T>(bool Success, string? Message, T? Value)
 {
