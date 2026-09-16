@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
@@ -15,7 +14,7 @@ public class GarmentCostingService : IGarmentCostingService
     private readonly IGrupoConfeccionRepository _grupos;
     private readonly IStockMovementRepository _stockMovements;
     private readonly IProductionOrderRepository _orders;
-    private readonly CostingOptions _options;
+    private readonly ICostingSettingsService _costingSettings;
     private readonly ILogger<GarmentCostingService> _logger;
 
     public GarmentCostingService(
@@ -23,14 +22,14 @@ public class GarmentCostingService : IGarmentCostingService
         IGrupoConfeccionRepository grupos,
         IStockMovementRepository stockMovements,
         IProductionOrderRepository orders,
-        IOptions<CostingOptions> options,
+        ICostingSettingsService costingSettings,
         ILogger<GarmentCostingService> logger)
     {
         _consumos = consumos;
         _grupos = grupos;
         _stockMovements = stockMovements;
         _orders = orders;
-        _options = options.Value;
+        _costingSettings = costingSettings;
         _logger = logger;
     }
 
@@ -38,9 +37,12 @@ public class GarmentCostingService : IGarmentCostingService
         int productionOrderId,
         CancellationToken cancellationToken = default)
     {
+        var tarifa = await _costingSettings.GetLaborHourRateAsync(cancellationToken);
+        var tarifaOk = tarifa > 0;
+
         var order = await _orders.GetByIdAsync(productionOrderId, cancellationToken);
         if (order is null)
-            return new GarmentCostDto(productionOrderId, string.Empty, 0, 0, _options.LaborHourRate, 0, 0, Formula(), _options.IsConfigured);
+            return new GarmentCostDto(productionOrderId, string.Empty, 0, 0, tarifa, 0, 0, Formula(), tarifaOk);
 
         var consumos = await _consumos.GetByOrderIdAsync(productionOrderId, cancellationToken);
         decimal materiales = 0;
@@ -52,7 +54,7 @@ public class GarmentCostingService : IGarmentCostingService
 
         var grupos = await _grupos.GetByOrderIdAsync(productionOrderId, cancellationToken);
         var horas = grupos.Sum(Horas);
-        var manoObra = decimal.Round(horas * _options.LaborHourRate, 4, MidpointRounding.AwayFromZero);
+        var manoObra = decimal.Round(horas * tarifa, 4, MidpointRounding.AwayFromZero);
         var total = decimal.Round(materiales + manoObra, 4, MidpointRounding.AwayFromZero);
 
         var dto = new GarmentCostDto(
@@ -60,13 +62,13 @@ public class GarmentCostingService : IGarmentCostingService
             order.OrderNumber,
             decimal.Round(materiales, 4, MidpointRounding.AwayFromZero),
             decimal.Round(horas, 4, MidpointRounding.AwayFromZero),
-            _options.LaborHourRate,
+            tarifa,
             manoObra,
             total,
             Formula(),
-            _options.IsConfigured);
+            tarifaOk);
 
-        if (!_options.IsConfigured)
+        if (!tarifaOk)
         {
             _logger.LogWarning(
                 "Costeo de orden {OrderId}: tarifa de mano de obra no configurada; costo de mano de obra no incluido",

@@ -1,0 +1,14 @@
+<div class="analysis-hub">
+    <a class="analysis-hub-link @(string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Estadisticas", StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+       asp-controller="Estadisticas" asp-action="Index">
+        <i class="fas fa-chart-line"></i> Estadísticas
+    </a>
+    <a class="analysis-hub-link @(string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Reportes", StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+       asp-controller="Reportes" asp-action="Index">
+        <i class="fas fa-file-export"></i> Reportes
+    </a>
+    <a class="analysis-hub-link @(string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Alertas", StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+       asp-controller="Alertas" asp-action="Index">
+        <i class="fas fa-bell"></i> Alertas
+    </a>
+</div>

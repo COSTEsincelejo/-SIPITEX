@@ -29,7 +29,7 @@ Para producción, usar ruta absoluta a la BD en el servidor.
 
 El motor sigue siendo **SQLite** (volumen Docker / archivo `sipitex.db`). No se retoma PostgreSQL en este cierre.
 
-`Costing:LaborHourRate` permanece en `0` hasta confirmar la tarifa real de CMTC; `/Costos` muestra aviso de mano de obra no incluida.
+`Costing:LaborHourRate` tiene valor de referencia **6500** (COP/hora). El Administrador puede cambiarlo en `/Costos`; el valor queda en `AppSettings`.
 
 ## 5.3 IIS (opcional)
 
@@ -67,8 +67,9 @@ Variables SMTP en Compose (desde el archivo `.env` del host; **no** subir `.env`
 ## 5.6 Reportes y alertas
 
 - **Reportes** (`/Reportes`): PDF (QuestPDF) y Excel (ClosedXML) de Inventario, Órdenes, Calidad y Dashboard.
-- **Alertas** (`/Alertas`): cada actor activa/desactiva notificaciones (stock bajo, solicitudes pendientes, órdenes por vencer/atrasadas, reprocesos).
-- Sin SMTP (`Email:Enabled=false`) los correos se guardan en `email-outbox/`.
+- **Alertas** (`/Alertas`): cada actor activa/desactiva notificaciones (stock bajo, solicitudes pendientes, órdenes por vencer/atrasadas, reprocesos). Botón de correo de prueba.
+- Sin usuario SMTP (`Email:User` vacío) los correos se guardan en `email-outbox/` aunque `Email:Enabled=true`.
+- **Trazabilidad** (`/Trazabilidad`): códigos únicos de prenda y QR.
 
 ### Credenciales SMTP — no guardarlas en appsettings
 
@@ -85,7 +86,7 @@ dotnet user-secrets set "Email:User" "tu-usuario@smtp" --project src/Sipitex.Web
 dotnet user-secrets set "Email:Password" "xxxx" --project src/Sipitex.Web
 ```
 
-Para activar el envío real, además configure `Email:Enabled=true` (por user-secrets, env o Compose) y el resto de host/puerto/`From` según su proveedor.
+Para activar el envío real, defina `EMAIL_SMTP_USER` y `EMAIL_SMTP_PASSWORD` (Compose o user-secrets). `Email:Enabled` queda en `true`; sin usuario SMTP el canal sigue siendo Outbox.
 
 ## 5.7 Base de datos y migraciones EF Core
 

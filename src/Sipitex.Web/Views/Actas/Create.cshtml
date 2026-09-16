@@ -114,6 +114,12 @@
                 <label><input asp-for="Form.EntregaConforme" /> Conforme</label>
             </div>
         </div>
+        <div class="signature-pad" data-signature-pad>
+            <label class="field-label">Firma de quien entrega</label>
+            <canvas width="320" height="120" aria-label="Firme aquí (quien entrega)"></canvas>
+            <input type="hidden" asp-for="Form.EntregaFirmaDataUrl" />
+            <button type="button" class="ghost small" data-signature-clear>Limpiar firma</button>
+        </div>
         <div class="form-row">
             <div class="field">
                 <label class="field-label">Quien recibe</label>
@@ -127,6 +133,12 @@
                 <label><input asp-for="Form.RecibeConforme" /> Conforme</label>
             </div>
         </div>
+        <div class="signature-pad" data-signature-pad>
+            <label class="field-label">Firma de quien recibe</label>
+            <canvas width="320" height="120" aria-label="Firme aquí (quien recibe)"></canvas>
+            <input type="hidden" asp-for="Form.RecibeFirmaDataUrl" />
+            <button type="button" class="ghost small" data-signature-clear>Limpiar firma</button>
+        </div>
         <div class="field">
             <label class="field-label">Observaciones</label>
             <textarea asp-for="Form.Observaciones" rows="2"></textarea>
@@ -134,3 +146,7 @@
         <button type="submit" class="primary">Registrar acta</button>
     </form>
 </div>
+
+@section Scripts {
+    <script src="~/js/signature-pad.js" asp-append-version="true"></script>
+}

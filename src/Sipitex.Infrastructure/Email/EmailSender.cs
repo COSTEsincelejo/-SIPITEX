@@ -36,11 +36,13 @@ public class EmailSender : IEmailSender
         _logger = logger;
     }
 
-    // Reviso si hay servidor SMTP configurado o toca simular
+    // Reviso si hay servidor SMTP listo: host, remitente y usuario.
+    // Enabled queda como interruptor; sin usuario SMTP se usa outbox (desarrollo / demo).
     public bool IsSmtpConfigured =>
         _options.Enabled &&
         !string.IsNullOrWhiteSpace(_options.Host) &&
-        !string.IsNullOrWhiteSpace(_options.From);
+        !string.IsNullOrWhiteSpace(_options.From) &&
+        !string.IsNullOrWhiteSpace(_options.User);
 
     // Manda el correo por SMTP o lo guarda en archivo
     public async Task SendAsync(string toEmail, string toName, string subject, string body, CancellationToken cancellationToken = default)

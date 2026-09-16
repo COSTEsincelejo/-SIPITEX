@@ -67,12 +67,12 @@ public class ActaPdfService : IActaPdfService
 
                     col.Item().PaddingTop(24).Row(row =>
                     {
-                        row.RelativeItem().Element(c => Firma(c, "Quien entrega", acta.EntregaNombre, acta.EntregaCargo, acta.EntregaConformidadUtc));
+                        row.RelativeItem().Element(c => Firma(c, "Quien entrega", acta.EntregaNombre, acta.EntregaCargo, acta.EntregaConformidadUtc, acta.EntregaFirmaPng));
                         row.ConstantItem(24);
-                        row.RelativeItem().Element(c => Firma(c, "Quien recibe", acta.RecibeNombre, acta.RecibeCargo, acta.RecibeConformidadUtc));
+                        row.RelativeItem().Element(c => Firma(c, "Quien recibe", acta.RecibeNombre, acta.RecibeCargo, acta.RecibeConformidadUtc, acta.RecibeFirmaPng));
                     });
 
-                    col.Item().PaddingTop(12).Text("Validez por conformidad simple: nombre, cargo y marca de tiempo UTC de quien entrega y quien recibe.")
+                    col.Item().PaddingTop(12).Text("Validez: nombre, cargo, marca de tiempo UTC y firma gráfica de quien entrega y quien recibe.")
                         .FontSize(8).Italic().FontColor(Colors.Grey.Darken1);
                 });
 
@@ -83,13 +83,15 @@ public class ActaPdfService : IActaPdfService
         return new ReportFileDto(pdf, "application/pdf", $"SIPITEX_{acta.Numero}_{acta.FechaUtc:yyyyMMdd_HHmm}.pdf");
     }
 
-    private static void Firma(IContainer container, string titulo, string nombre, string cargo, DateTime? conformeUtc)
+    private static void Firma(IContainer container, string titulo, string nombre, string cargo, DateTime? conformeUtc, byte[]? firmaPng)
     {
         container.Border(1).BorderColor(Colors.Grey.Lighten1).Padding(10).Column(col =>
         {
             col.Item().Text(titulo).SemiBold().FontSize(10);
             col.Item().Text(nombre).FontSize(11);
             col.Item().Text(string.IsNullOrWhiteSpace(cargo) ? "Cargo no indicado" : cargo).FontSize(9).FontColor(Colors.Grey.Darken1);
+            if (firmaPng is { Length: > 0 })
+                col.Item().PaddingTop(6).Height(48).Image(firmaPng).FitArea();
             col.Item().PaddingTop(8).Text(conformeUtc is DateTime ts
                 ? $"Conforme · {ts:yyyy-MM-dd HH:mm} UTC"
                 : "Pendiente de conformidad").FontSize(9);

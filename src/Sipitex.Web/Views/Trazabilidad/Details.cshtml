@@ -1,0 +1,96 @@
+@model PrendaTrazableDetailDto
+@{
+    ViewData["Title"] = Model.Codigo;
+    ViewData["Breadcrumb"] = $"SIPITEX / Operación / Trazabilidad / {Model.Codigo}";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>@Model.Codigo</h2>
+        <div class="sub">@Model.ProductName · orden @Model.OrderNumber</div>
+    </div>
+    <div class="row-actions">
+        <button type="button" class="ghost" onclick="window.print()"><i class="fas fa-print"></i> Imprimir etiqueta</button>
+        <a class="ghost" asp-action="Index">Volver</a>
+    </div>
+</div>
+
+<div class="grid-2col">
+    <div class="card">
+        <div class="card-title"><i class="fas fa-qrcode"></i> Código único</div>
+        <p class="trace-code">@Model.Codigo</p>
+        <canvas id="traceQr" width="180" height="180" aria-label="Código QR de @Model.Codigo"></canvas>
+        <p class="hint">Escanee el QR o busque el código en Trazabilidad.</p>
+    </div>
+    <div class="card">
+        <div class="card-title teal"><i class="fas fa-info-circle"></i> Ficha de la prenda</div>
+        <div class="solicitud-detail-meta">
+            <div><span class="field-label">Orden</span><br /><a asp-controller="Ordenes" asp-action="Detail" asp-route-id="@Model.ProductionOrderId">@Model.OrderNumber</a></div>
+            <div><span class="field-label">Producto</span><br />@Model.ProductName</div>
+            <div><span class="field-label">Talla</span><br />@(Model.Talla ?? "—")</div>
+            <div><span class="field-label">Estado</span><br />@DisplayHelper.StatusText(Model.Estado)</div>
+            <div><span class="field-label">Pedido</span><br />@Model.ProducedQuantity / @Model.TotalQuantity</div>
+            <div><span class="field-label">Alta</span><br />@Model.CreadoUtc.ToString("yyyy-MM-dd HH:mm") UTC</div>
+            <div><span class="field-label">Registró</span><br />@Model.CreadoPorNombre</div>
+            <div><span class="field-label">Cliente</span><br />@(string.IsNullOrWhiteSpace(Model.Cliente) ? "—" : Model.Cliente)</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-layer-group"></i> Materiales (BOM / consumo)</div>
+    @if (Model.MaterialesBom.Count == 0)
+    {
+        <p class="hint">Sin materiales asociados en la receta ni en consumos.</p>
+    }
+    else
+    {
+        <ul class="trace-materials">
+            @foreach (var m in Model.MaterialesBom)
+            {
+                <li>@m</li>
+            }
+        </ul>
+    }
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-timeline"></i> Línea de tiempo</div>
+    @if (Model.Eventos.Count == 0)
+    {
+        <p class="hint">Sin eventos registrados además del alta del código.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Fecha</th><th>Evento</th><th>Detalle</th></tr></thead>
+                <tbody>
+                @foreach (var e in Model.Eventos)
+                {
+                    <tr>
+                        <td>@e.AtUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@e.Titulo</td>
+                        <td>@e.Detalle</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+    <script>
+        const canvas = document.getElementById('traceQr');
+        if (canvas && window.QRCode) {
+            QRCode.toCanvas(canvas, @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Codigo)), {
+                width: 180,
+                margin: 1,
+                color: { dark: '#1F3864', light: '#DCE6F1' }
+            });
+        }
+    </script>
+}

@@ -25,10 +25,12 @@ public class ActaMovimiento
     public string EntregaNombre { get; set; } = string.Empty;
     public string EntregaCargo { get; set; } = string.Empty;
     public DateTime? EntregaConformidadUtc { get; set; }
+    public byte[]? EntregaFirmaPng { get; set; }
 
     public string RecibeNombre { get; set; } = string.Empty;
     public string RecibeCargo { get; set; } = string.Empty;
     public DateTime? RecibeConformidadUtc { get; set; }
+    public byte[]? RecibeFirmaPng { get; set; }
 
     public int CreadoPorUserId { get; set; }
     public User CreadoPor { get; set; } = null!;

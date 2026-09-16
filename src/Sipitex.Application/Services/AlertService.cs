@@ -85,12 +85,46 @@ public class AlertService : IAlertService
     }
 
     // Historial de correos/alertas enviados (para mostrar en la vista)
-    public async Task<IReadOnlyList<AlertDeliveryDto>> GetRecentDeliveriesAsync(int take = 30, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<AlertDeliveryDto>> GetRecentDeliveriesAsync(
+        int take = 30,
+        int? userId = null,
+        CancellationToken cancellationToken = default)
     {
-        // Traigo los últimos N envíos desde el repo
         var items = await _alertRepository.GetRecentDeliveriesAsync(take, cancellationToken);
-        // Los mapeo a DTO para la capa web
-        return items.Select(i => new AlertDeliveryDto(i.AlertType, i.Subject, i.SentAt, i.Channel)).ToList();
+        if (userId is int uid)
+            items = items.Where(i => i.UserId == uid).ToList();
+        return items.Select(i => new AlertDeliveryDto(
+            i.AlertType,
+            i.Subject,
+            i.SentAt,
+            i.Channel,
+            i.User?.Nombre ?? i.User?.Email ?? $"#{i.UserId}")).ToList();
+    }
+
+    public async Task<ServiceResult> SendTestAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user is null || !user.IsActive)
+            return ServiceResult.Fail("Usuario no encontrado o inactivo.");
+
+        var channel = _emailSender.IsSmtpConfigured ? "SMTP" : "Outbox";
+        var subject = "SIPITEX · Correo de prueba";
+        var body = _emailSender.IsSmtpConfigured
+            ? "Las alertas por correo están habilitadas. Este mensaje confirma el canal SMTP."
+            : "SMTP aún no tiene usuario configurado. Este mensaje se guardó en email-outbox/ como prueba del canal Outbox.";
+
+        await _emailSender.SendAsync(user.Email, user.Nombre, subject, body, cancellationToken);
+        await _alertRepository.AddDeliveryAsync(new AlertDelivery
+        {
+            UserId = user.Id,
+            AlertType = AlertType.StockBajo,
+            Subject = subject,
+            Body = body,
+            SentAt = DateTime.Now,
+            Channel = channel
+        }, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok($"Correo de prueba enviado por {channel} a {user.Email}.");
     }
 
     // Disparo inmediato a userIds y/o rol, respetando preferencias

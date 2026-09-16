@@ -291,10 +291,12 @@
       { texto: 'Materiales de órdenes', url: '/PlantasInventarioOrdenes', keywords: 'materiales órdenes entrega planta inventario', icon: 'fa-clipboard-check' },
       { texto: 'Reingreso desde etapas', url: '/PlantasInventarioOrdenes/Reingreso', keywords: 'reingreso etapas trazo corte confección', icon: 'fa-rotate-left' },
       { texto: 'Movimientos de stock', url: '/Inventario/Movimientos', keywords: 'movimientos stock historial entrada salida', icon: 'fa-clock-rotate-left' },
-      { texto: 'Actas de ingreso/egreso', url: '/Actas', keywords: 'actas ingreso egreso conformidad pdf', icon: 'fa-file-signature' },
+      { texto: 'Actas de ingreso/egreso', url: '/Actas', keywords: 'actas ingreso egreso conformidad firma pdf', icon: 'fa-file-signature' },
+      { texto: 'Trazabilidad', url: '/Trazabilidad', keywords: 'trazabilidad código único prenda qr sip', icon: 'fa-barcode' },
       { texto: 'Control de calidad', url: '/Calidad', keywords: 'calidad inspección reproceso bueno regular malo', icon: 'fa-clipboard-check' },
       { texto: 'Grupos de confección', url: '/GruposConfeccion', keywords: 'grupo confección instructor prendas', icon: 'fa-people-group' },
       { texto: 'Consumo de materiales', url: '/Consumos', keywords: 'consumo materiales ficha costo promedio', icon: 'fa-scissors' },
+      { texto: 'Costeo de prendas', url: '/Costos', keywords: 'costeo costo tarifa mano de obra', icon: 'fa-coins' },
       { texto: 'Estadísticas', url: '/Estadisticas', keywords: 'estadísticas kpi dashboard gráficos', icon: 'fa-chart-line' },
       { texto: 'Reportes', url: '/Reportes', keywords: 'reportes pdf excel exportar', icon: 'fa-file-export' },
       { texto: 'Alertas', url: '/Alertas', keywords: 'alertas notificaciones correo', icon: 'fa-bell' },
@@ -308,7 +310,8 @@
       'Materiales': 'fa-boxes-stacked',
       'Órdenes': 'fa-clipboard-list',
       'Fichas': 'fa-people-group',
-      'Solicitudes': 'fa-truck-ramp-box'
+      'Solicitudes': 'fa-truck-ramp-box',
+      'Trazabilidad': 'fa-barcode'
     };
 
     let debounceTimer = null;

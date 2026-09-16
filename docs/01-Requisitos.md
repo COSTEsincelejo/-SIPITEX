@@ -72,7 +72,8 @@ Además del alcance original RF01–RF20, el código incluye:
 | Grupos de confección | `GruposConfeccionController` | Horas y prendas para costeo de mano de obra |
 | Consumos | `ConsumosController` | Consumo real (no solo teórico BOM) |
 | Costeo | `CostosController` | Costo de prenda (material histórico + tarifa) |
-| Actas | `ActasController` | Ingreso/egreso con conformidad simple |
+| Actas | `ActasController` | Ingreso/egreso con firma gráfica |
+| Trazabilidad | `TrazabilidadController` | Código único de prenda |
 | Auditoría | `AuditoriaController` | Trazabilidad de acciones críticas |
 | Solicitudes de ficha | `SolicitudesMaterialController` | Pedidos multi-ítem desde ficha o insumos libres |
 | Búsqueda | `BusquedaController` | API JSON del buscador |

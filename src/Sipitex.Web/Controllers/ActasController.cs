@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
@@ -98,7 +99,9 @@ public class ActasController : Controller
             form.EstadoOrigen,
             form.EstadoDestino,
             form.StockMovementIds,
-            form.ConsumoIds), cancellationToken);
+            form.ConsumoIds,
+            SignatureImage.FromDataUrl(form.EntregaFirmaDataUrl),
+            SignatureImage.FromDataUrl(form.RecibeFirmaDataUrl)), cancellationToken);
 
         TempData["Message"] = result.Message;
         TempData["IsSuccess"] = result.Success;

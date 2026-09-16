@@ -1,0 +1,105 @@
+@model TrazabilidadIndexViewModel
+@{
+    ViewData["Title"] = "Trazabilidad de prendas";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Trazabilidad";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Trazabilidad de prendas</h2>
+        <div class="sub">Cada prenda recibe un código único (SIP-orden-consecutivo) ligado a la orden, materiales y calidad.</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-barcode"></i> Consultar código</div>
+    <form method="get" class="form-row">
+        <div class="field">
+            <label class="field-label" for="q">Código, prenda u orden</label>
+            <input id="q" name="q" value="@Model.Query" placeholder="SIP-OP-001-0001" />
+        </div>
+        <div class="field">
+            <label class="field-label" for="orderId">Orden</label>
+            <select id="orderId" name="orderId">
+                <option value="">Todas</option>
+                @foreach (var o in Model.Orders)
+                {
+                    if (Model.OrderId == o.Id)
+                    {
+                        <option value="@o.Id" selected>@o.OrderNumber · @o.ProductName</option>
+                    }
+                    else
+                    {
+                        <option value="@o.Id">@o.OrderNumber · @o.ProductName</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="field" style="align-self:flex-end;">
+            <button type="submit" class="small"><i class="fas fa-magnifying-glass"></i> Buscar</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-title amber"><i class="fas fa-plus"></i> Generar códigos</div>
+    <p class="hint">Se crean hasta la meta (o unidades producidas) de la orden, sin duplicar los ya existentes. Máximo 200 por lote.</p>
+    <form asp-action="Generar" method="post" class="form-row">
+        @Html.AntiForgeryToken()
+        <div class="field">
+            <label class="field-label">Orden</label>
+            <select name="orderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.OrderId))" required></select>
+        </div>
+        <div class="field">
+            <label class="field-label">Cantidad</label>
+            <input name="cantidad" type="number" min="1" max="200" value="1" required />
+        </div>
+        <div class="field" style="align-self:flex-end;">
+            <button type="submit" class="primary small">Generar</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-title teal"><i class="fas fa-shirt"></i> Prendas</div>
+    @if (Model.Prendas.Count == 0)
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-barcode", Title = "Sin códigos", Text = "Genere códigos para una orden o busque un código único de prenda." }' />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Orden</th>
+                        <th>Prenda</th>
+                        <th>Estado</th>
+                        <th>Alta</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var p in Model.Prendas)
+                {
+                    <tr>
+                        <td><a asp-action="Details" asp-route-id="@p.Id"><strong>@p.Codigo</strong></a></td>
+                        <td>@p.OrderNumber</td>
+                        <td>@p.ProductName</td>
+                        <td>@DisplayHelper.StatusText(p.Estado)</td>
+                        <td>@p.CreadoUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td><a class="small" asp-action="Details" asp-route-id="@p.Id">Ver</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -34,6 +34,9 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Property<DateTime?>("EntregaConformidadUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<byte[]>("EntregaFirmaPng")
+                        .HasColumnType("BLOB");
+
                     b.Property<string>("EntregaNombre")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -74,6 +77,9 @@ namespace Sipitex.Infrastructure.Migrations
 
                     b.Property<DateTime?>("RecibeConformidadUtc")
                         .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("RecibeFirmaPng")
+                        .HasColumnType("BLOB");
 
                     b.Property<string>("RecibeNombre")
                         .IsRequired()
@@ -257,6 +263,25 @@ namespace Sipitex.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("AlertPreferences");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.AppSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("AppSettings", (string)null);
                 });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.BomItem", b =>
@@ -1084,6 +1109,58 @@ namespace Sipitex.Infrastructure.Migrations
                             Activo = true,
                             Nombre = "Planta de Inventario 2"
                         });
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.PrendaTrazable", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CreadoPorUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreadoUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProductionOrderId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Talla")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.HasIndex("CreadoPorUserId");
+
+                    b.HasIndex("CreadoUtc");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.ToTable("PrendasTrazables", (string)null);
                 });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.ProductFlowStageTemplate", b =>
@@ -2089,6 +2166,25 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.PrendaTrazable", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.User", "CreadoPor")
+                        .WithMany()
+                        .HasForeignKey("CreadoPorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany("PrendasTrazables")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreadoPor");
+
+                    b.Navigation("ProductionOrder");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.ProductFlowStageTemplate", b =>
                 {
                     b.HasOne("Sipitex.Domain.Entities.ProductFlowTemplate", "Template")
@@ -2422,6 +2518,8 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("MaterialRequests");
 
                     b.Navigation("MaterialRequirements");
+
+                    b.Navigation("PrendasTrazables");
 
                     b.Navigation("QualityRecords");
 

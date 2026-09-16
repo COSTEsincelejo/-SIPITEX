@@ -65,4 +65,6 @@ public class ProductionOrder
     public ICollection<ConsumoMaterial> Consumos { get; set; } = [];
 
     public ICollection<GrupoConfeccion> GruposConfeccion { get; set; } = [];
+
+    public ICollection<PrendaTrazable> PrendasTrazables { get; set; } = [];
 }

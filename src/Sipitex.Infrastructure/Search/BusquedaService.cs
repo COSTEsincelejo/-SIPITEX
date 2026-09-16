@@ -68,10 +68,22 @@ public class BusquedaService : IBusquedaService
                 "Solicitudes"))
             .ToListAsync(cancellationToken);
 
+        var prendas = await _db.PrendasTrazables
+            .AsNoTracking()
+            .Where(p => p.Codigo.Contains(q) || p.ProductName.Contains(q))
+            .OrderByDescending(p => p.Id)
+            .Take(MaxPerCategory)
+            .Select(p => new BusquedaItemDto(
+                p.Codigo + " · " + p.ProductName,
+                "/Trazabilidad/Details/" + p.Id,
+                "Trazabilidad"))
+            .ToListAsync(cancellationToken);
+
         return materials
             .Concat(orders)
             .Concat(fichas)
             .Concat(solicitudes)
+            .Concat(prendas)
             .ToList();
     }
 }

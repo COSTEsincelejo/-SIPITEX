@@ -7,101 +7,130 @@
     var puedeConfigurarAlertas = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeConfigurarAlertas)).Succeeded;
 }
 
+<div class="analysis-page">
 <div class="page-header">
     <div>
         <h2>Alertas por correo</h2>
-        <div class="sub">Cada actor elige qué notificaciones desea recibir según su rol</div>
+        <div class="sub">Active las notificaciones de su rol. El envío SMTP se habilita con usuario y contraseña del servidor de correo.</div>
+    </div>
+    <div class="row-actions">
+        <a class="ghost small" asp-controller="Estadisticas" asp-action="Index"><i class="fas fa-chart-line"></i> Estadísticas</a>
+        <a class="ghost small" asp-controller="Reportes" asp-action="Index"><i class="fas fa-file-export"></i> Reportes</a>
     </div>
 </div>
+
+<partial name="_AnalysisHub" />
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
-@* Banner según si hay SMTP real o modo demo *@
 <div class="alert @(Model.SmtpConfigured ? "alert-success" : "alert-info")">
     <i class="fas fa-envelope"></i>
-    @if (Model.SmtpConfigured)
-    {
-        <text>SMTP activo: los correos se enviarán al servidor configurado en <code>Email</code>.</text>
-    }
-    else
-    {
-        <text>Modo demo: sin SMTP. Los correos se guardan en la carpeta <code>email-outbox/</code>.</text>
-    }
+    <div>
+        @if (Model.SmtpConfigured)
+        {
+            <strong>SMTP activo</strong>
+            <span> — los correos salen por @Model.SmtpHost.</span>
+        }
+        else
+        {
+            <strong>Canal Outbox (demo)</strong>
+            <span> — configure <code>EMAIL_SMTP_USER</code> y <code>EMAIL_SMTP_PASSWORD</code> (o user-secrets) para habilitar el envío real. Mientras tanto los mensajes se guardan en <code>email-outbox/</code>.</span>
+        }
+        <form asp-action="Probar" method="post" class="inline-form" style="margin-top:8px;">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="small ghost"><i class="fas fa-paper-plane"></i> Enviar correo de prueba</button>
+        </form>
+    </div>
 </div>
 
 <div class="card">
     <div class="card-title"><i class="fas fa-bell"></i> Mis preferencias de alerta</div>
     <form asp-action="SavePreferences" method="post">
         @Html.AntiForgeryToken()
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Activar</th>
-                        <th>Alerta</th>
-                        <th>Descripción</th>
-                        <th>Roles sugeridos</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var pref in Model.Preferences)
-                {
-                    <tr>
-                        <td>
-                            <input type="checkbox"
-                                   name="EnabledTypes"
-                                   value="@pref.AlertType"
-                                   @(pref.Enabled ? "checked" : null) />
-                        </td>
-                        <td><strong>@pref.Title</strong></td>
-                        <td>@pref.Description</td>
-                        <td>@string.Join(", ", pref.SuggestedRoles)</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
-        <div style="margin-top:14px;">
-            <button type="submit" class="primary"><i class="fas fa-save"></i> Guardar preferencias</button>
-        </div>
+        @if (!Model.Preferences.Any())
+        {
+            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-bell-slash", Title = "Sin preferencias", Text = "No hay tipos de alerta disponibles para su cuenta." }' />
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Activar</th>
+                            <th>Alerta</th>
+                            <th>Descripción</th>
+                            <th>Roles sugeridos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var pref in Model.Preferences)
+                    {
+                        <tr>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox"
+                                           name="EnabledTypes"
+                                           value="@pref.AlertType"
+                                           @(pref.Enabled ? "checked" : null) />
+                                    <span class="switch-ui"></span>
+                                </label>
+                            </td>
+                            <td><strong>@pref.Title</strong></td>
+                            <td>@pref.Description</td>
+                            <td>@string.Join(", ", pref.SuggestedRoles)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top:14px;">
+                <button type="submit" class="primary"><i class="fas fa-save"></i> Guardar preferencias</button>
+            </div>
+        }
     </form>
 </div>
 
-@* Evaluación manual solo para quien tenga la política *@
 @if (puedeConfigurarAlertas)
 {
     <div class="card">
-        <div class="card-title amber"><i class="fas fa-paper-plane"></i> Evaluar y enviar ahora</div>
-        <p class="sub" style="margin-bottom:12px;">Revisa stock bajo, solicitudes pendientes, órdenes por vencer/atrasadas y reprocesos, y notifica a quienes las tengan activas.</p>
+        <div class="card-title amber"><i class="fas fa-bolt"></i> Evaluar y enviar ahora</div>
+        <p class="hint">Revisa stock bajo/crítico, solicitudes pendientes, órdenes por vencer o atrasadas y reprocesos. El job automático también corre cada 6 horas.</p>
         <form asp-action="Evaluar" method="post">
             @Html.AntiForgeryToken()
-            <button type="submit" class="primary"><i class="fas fa-bolt"></i> Evaluar alertas</button>
+            <button type="submit" class="primary"><i class="fas fa-paper-plane"></i> Evaluar alertas</button>
         </form>
     </div>
 }
 
-@if (Model.Deliveries.Any())
-{
-    <div class="card">
-        <div class="card-title teal"><i class="fas fa-inbox"></i> Envíos recientes</div>
+<div class="card">
+    <div class="card-title teal"><i class="fas fa-inbox"></i> Envíos recientes</div>
+    @if (!Model.Deliveries.Any())
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-inbox", Title = "Sin envíos", Text = "Cuando se disparen alertas o envíe una prueba, el historial aparecerá aquí." }' />
+    }
+    else
+    {
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Fecha</th><th>Tipo</th><th>Asunto</th><th>Canal</th></tr></thead>
+                <thead><tr><th>Fecha</th><th>Destinatario</th><th>Tipo</th><th>Asunto</th><th>Canal</th></tr></thead>
                 <tbody>
                 @foreach (var d in Model.Deliveries)
                 {
                     <tr>
                         <td>@d.SentAt.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@(string.IsNullOrWhiteSpace(d.Recipient) ? "—" : d.Recipient)</td>
                         <td>@d.AlertType</td>
                         <td>@d.Subject</td>
-                        <td>@d.Channel</td>
+                        <td><span class="badge @(d.Channel == "SMTP" ? "badge-success" : "badge-info")">@d.Channel</span></td>
                     </tr>
                 }
                 </tbody>
             </table>
         </div>
-    </div>
-}
+    }
+</div>
+</div>

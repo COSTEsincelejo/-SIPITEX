@@ -3,73 +3,127 @@
     ViewData["Title"] = "Estadísticas";
     ViewData["Breadcrumb"] = "SIPITEX / Análisis / Estadísticas";
     Layout = "_Layout";
-    var d = Model.Dashboard; // atajo para no escribir Model.Dashboard todo el rato
+    var d = Model.Dashboard;
+    var hasChart = d.ChartData.Count > 0;
 }
 
+<div class="analysis-page">
 <div class="page-header">
     <div>
         <h2>Estadísticas y KPIs</h2>
-        <div class="sub">Visión general de producción, calidad e inventario</div>
+        <div class="sub">Producción, calidad e inventario del taller CMTC, alineados con reportes y alertas.</div>
+    </div>
+    <div class="row-actions">
+        <a class="ghost small" asp-controller="Reportes" asp-action="Index"><i class="fas fa-file-export"></i> Ir a reportes</a>
+        <a class="ghost small" asp-controller="Alertas" asp-action="Index"><i class="fas fa-bell"></i> Ir a alertas</a>
     </div>
 </div>
+
+<partial name="_AnalysisHub" />
 
 <div class="kpi-grid">
     <div class="kpi-card">
         <div class="kpi-label">Prendas producidas</div>
         <div class="kpi-value">@d.TotalProduced</div>
-        <div class="kpi-trend">Total acumulado</div>
+        <div class="kpi-trend">Eficiencia @d.EfficiencyPercent% vs meta</div>
     </div>
     <div class="kpi-card teal">
         <div class="kpi-label">Tasa de calidad</div>
         <div class="kpi-value">@d.QualityRate%</div>
-        <div class="kpi-trend">Inspecciones aprobadas</div>
+        <div class="kpi-trend">@d.QualityApprovedUnits uds aprobadas</div>
     </div>
     <div class="kpi-card amber">
         <div class="kpi-label">Órdenes activas</div>
         <div class="kpi-value">@d.ActiveOrders</div>
-        <div class="kpi-trend">En proceso</div>
+        <div class="kpi-trend">@d.PendingApprovalOrders pendiente(s) de aprobación</div>
     </div>
     <div class="kpi-card">
-        <div class="kpi-label">Pendientes de aprobación</div>
-        <div class="kpi-value">@d.PendingApprovalOrders</div>
-        <div class="kpi-trend">Esperan Administrador</div>
+        <div class="kpi-label">Stock OK</div>
+        <div class="kpi-value">@d.OkStockCount</div>
+        <div class="kpi-trend">En o sobre el mínimo</div>
+    </div>
+    <div class="kpi-card amber">
+        <div class="kpi-label">Stock bajo</div>
+        <div class="kpi-value">@d.LowStockCount</div>
+        <div class="kpi-trend">Por debajo del mínimo, con existencias</div>
     </div>
     <div class="kpi-card red">
-        <div class="kpi-label">Materiales bajo mínimo</div>
-        <div class="kpi-value">@d.LowStockCount</div>
-        <div class="kpi-trend">Requieren reposición</div>
+        <div class="kpi-label">Stock crítico</div>
+        <div class="kpi-value">@d.CriticalStockCount</div>
+        <div class="kpi-trend">Sin existencias</div>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-title"><i class="fas fa-chart-column"></i> Consumo vs eficiencia</div>
-    <canvas id="productionChart" width="400" height="200" style="max-width:100%;height:auto;"></canvas>
+<div class="grid-2col">
+    <div class="card">
+        <div class="card-title"><i class="fas fa-chart-column"></i> Producido vs meta</div>
+        @if (!hasChart)
+        {
+            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-chart-column", Title = "Sin órdenes para graficar", Text = "Cuando existan órdenes en su alcance, aquí verá producido contra meta.", ActionText = "Ver órdenes", ActionHref = Url.Action("Index", "Ordenes") }' />
+        }
+        else
+        {
+            <canvas id="productionChart" width="400" height="200" style="max-width:100%;height:auto;"></canvas>
+        }
+    </div>
+    <div class="card">
+        <div class="card-title teal"><i class="fas fa-clipboard-check"></i> Calidad inspeccionada</div>
+        @if (d.QualityApprovedUnits + d.ReprocesoCount + d.QualityRejectedUnits == 0)
+        {
+            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-clipboard-check", Title = "Sin inspecciones", Text = "Todavía no hay unidades inspeccionadas en el alcance actual." }' />
+        }
+        else
+        {
+            <canvas id="qualityChart" width="400" height="200" style="max-width:100%;height:auto;"></canvas>
+            <p class="hint" style="margin-top:12px;">Reprocesos: <strong>@d.ReprocesoCount</strong> uds · Rechazadas: <strong>@d.QualityRejectedUnits</strong> uds</p>
+        }
+    </div>
+</div>
 </div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        @* Pasamos los datos del servidor a JS para armar el gráfico *@
         const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.ChartData.Select(c => c.Label)));
         const produced = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.ChartData.Select(c => c.Produced)));
         const target = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.ChartData.Select(c => c.Target)));
-        new Chart(document.getElementById('productionChart'), {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [
-                    { label: 'Producido', data: produced, backgroundColor: '#0B6FE0', borderRadius: 4 },
-                    { label: 'Meta', data: target, backgroundColor: '#D8DEE7', borderRadius: 4 }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { labels: { font: { family: 'Inter' } } } },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { grid: { color: '#F0F2F5' } }
+        const prodCanvas = document.getElementById('productionChart');
+        if (prodCanvas) {
+            new Chart(prodCanvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Producido', data: produced, backgroundColor: '#1F3864', borderRadius: 4 },
+                        { label: 'Meta', data: target, backgroundColor: '#DCE6F1', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { font: { family: 'Plus Jakarta Sans' } } } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: '#DCE6F1' } }
+                    }
                 }
-            }
-        });
+            });
+        }
+        const qCanvas = document.getElementById('qualityChart');
+        if (qCanvas) {
+            new Chart(qCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Aprobada', 'Reproceso', 'Rechazada'],
+                    datasets: [{
+                        data: [@d.QualityApprovedUnits, @d.ReprocesoCount, @d.QualityRejectedUnits],
+                        backgroundColor: ['#1F3864', '#C8770A', '#C0392B']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans' } } } }
+                }
+            });
+        }
     </script>
 }

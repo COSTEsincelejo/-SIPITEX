@@ -1,7 +1,7 @@
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using Sipitex.Application;
 using Sipitex.Application.Interfaces.Repositories;
+using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
@@ -14,14 +14,20 @@ public class GarmentCostingServiceTests
     private readonly Mock<IGrupoConfeccionRepository> _grupos = new();
     private readonly Mock<IStockMovementRepository> _stock = new();
     private readonly Mock<IProductionOrderRepository> _orders = new();
+    private readonly Mock<ICostingSettingsService> _rates = new();
 
-    private GarmentCostingService CreateSut(decimal laborHourRate) => new(
-        _consumos.Object,
-        _grupos.Object,
-        _stock.Object,
-        _orders.Object,
-        Options.Create(new CostingOptions { LaborHourRate = laborHourRate }),
-        NullLogger<GarmentCostingService>.Instance);
+    private GarmentCostingService CreateSut(decimal laborHourRate)
+    {
+        _rates.Setup(s => s.GetLaborHourRateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(laborHourRate);
+        return new(
+            _consumos.Object,
+            _grupos.Object,
+            _stock.Object,
+            _orders.Object,
+            _rates.Object,
+            NullLogger<GarmentCostingService>.Instance);
+    }
 
     private void SeedOrderAndGrupo()
     {

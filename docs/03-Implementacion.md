@@ -18,7 +18,8 @@ Cada controlador de `src/Sipitex.Web/Controllers` y su función:
 | Grupos de confección | `/GruposConfeccion` | `GruposConfeccionController` | `GrupoConfeccionService` | Registro de horas y prendas por grupo |
 | Consumos | `/Consumos` | `ConsumosController` | `MaterialConsumptionService` | Consumo real de materiales por orden |
 | Costeo | `/Costos` | `CostosController` | `GarmentCostingService` | Costo estimado (histórico de compra + tarifa) |
-| Actas | `/Actas` | `ActasController` | `ActaMovimientoService` | Actas de ingreso/egreso y PDF |
+| Actas | `/Actas` | `ActasController` | `ActaMovimientoService` | Actas de ingreso/egreso, firma gráfica y PDF |
+| Trazabilidad | `/Trazabilidad` | `TrazabilidadController` | `TrazabilidadService` | Código único de prenda y línea de tiempo |
 | Calidad | `/Calidad` | `CalidadController` | `QualityService` | Inspecciones y reproceso |
 | Auditoría | `/Auditoria` | `AuditoriaController` | `ActivityLogService` | Consulta de activity log (Administrador) |
 | Estadísticas | `/Estadisticas` | `EstadisticasController` | `StatisticsService` | KPIs y gráficos |
@@ -36,9 +37,10 @@ El flujo MES (Trazo → Corte → Confección → Control de Calidad → Termina
 3. **Solicitudes:** estado Pendiente → Aprobada descuenta inventario.  
 4. **Órdenes:** nacen en Pendiente; el Administrador aprueba a EnProceso; al alcanzar `ProducedQuantity >= TotalQuantity` → Finalizada.  
 5. **MRP:** calcula requerimiento neto = BOM × cantidad − stock disponible.  
-6. **Costeo:** materiales al costo histórico de la última entrada con precio; mano de obra = horas de grupo × `Costing:LaborHourRate` (aviso en UI si la tarifa es 0).  
-7. **Actas:** conformidad simple (nombre, cargo, timestamp UTC); política definitiva sin firma gráfica.  
-8. **Login:** 5 fallos (correo + IP) → bloqueo 15 minutos.
+6. **Costeo:** materiales al costo histórico de la última entrada con precio; mano de obra = horas de grupo × tarifa (`Costing:LaborHourRate` o valor guardado por el Administrador en `/Costos`).  
+7. **Actas:** conformidad con nombre, cargo, timestamp UTC y firma gráfica (PNG) de quien entrega y quien recibe.  
+8. **Trazabilidad:** códigos únicos `SIP-{orden}-{consecutivo}` por prenda, consultables en `/Trazabilidad`.  
+9. **Login:** 5 fallos (correo + IP) → bloqueo 15 minutos.
 
 ## 3.3 Seed de datos
 

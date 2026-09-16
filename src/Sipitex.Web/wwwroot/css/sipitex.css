@@ -317,3 +317,37 @@ tr.clickable-row:hover td{background:#F3F8FF;}
   .field-row{grid-template-columns:1fr;}
   .profile-photo-block{align-items:flex-start;}
 }
+
+/* Análisis: Estadísticas / Reportes / Alertas (paleta #1F3864 / #DCE6F1) */
+.analysis-page{--analysis-navy:#1F3864;--analysis-ice:#DCE6F1;}
+.analysis-hub{
+  display:flex;flex-wrap:wrap;gap:8px;margin:-6px 0 18px;padding:6px;background:var(--analysis-ice,#DCE6F1);
+  border:1px solid #C9D6E8;border-radius:12px;
+}
+.analysis-hub-link{
+  display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:9px;text-decoration:none;
+  font-size:13px;font-weight:700;color:#1F3864;background:transparent;
+}
+.analysis-hub-link:hover{background:#fff;color:#1F3864;}
+.analysis-hub-link.is-active{background:#1F3864;color:#fff;}
+.analysis-hub-link.is-active:hover{color:#fff;}
+.signature-pad{margin:0 0 16px;padding:12px;border:1px dashed var(--border);border-radius:10px;background:#F7F9FC;max-width:420px;}
+.signature-pad canvas{
+  display:block;width:100%;max-width:380px;height:120px;background:#fff;border:1px solid var(--border);border-radius:8px;touch-action:none;cursor:crosshair;
+}
+.signature-pad .field-label{margin-bottom:8px;}
+.signature-preview{display:block;max-width:220px;height:auto;margin-top:8px;border:1px solid var(--border);border-radius:8px;background:#fff;}
+.trace-code{font-family:var(--font-mono);font-size:22px;font-weight:800;color:#1F3864;letter-spacing:0.4px;margin-bottom:12px;}
+.trace-materials{margin:0;padding-left:18px;color:var(--text);}
+.trace-materials li{margin:4px 0;}
+.switch{position:relative;display:inline-flex;align-items:center;cursor:pointer;}
+.switch input{position:absolute;opacity:0;width:0;height:0;}
+.switch-ui{width:38px;height:22px;border-radius:999px;background:#D7DEE8;display:inline-block;position:relative;transition:background .15s;}
+.switch-ui::after{
+  content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:transform .15s;
+}
+.switch input:checked + .switch-ui{background:#1F3864;}
+.switch input:checked + .switch-ui::after{transform:translateX(16px);}
+.inline-form{display:inline;}
+.text-end{text-align:right;}
+
