@@ -16,15 +16,18 @@ namespace Sipitex.Web.Controllers;
 public class AlertasController : Controller
 {
     private readonly IAlertService _alertService;
+    private readonly IStatisticsService _statisticsService;
     private readonly IEmailSender _emailSender;
     private readonly EmailOptions _emailOptions;
 
     public AlertasController(
         IAlertService alertService,
+        IStatisticsService statisticsService,
         IEmailSender emailSender,
         IOptions<EmailOptions> emailOptions)
     {
         _alertService = alertService;
+        _statisticsService = statisticsService;
         _emailSender = emailSender;
         _emailOptions = emailOptions.Value;
     }
@@ -34,10 +37,21 @@ public class AlertasController : Controller
     {
         var userId = GetUserId();
         var isAdmin = User.IsInRole(UserRoles.Administrador);
+        int? viewerUserId = null;
+        if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) && id > 0)
+            viewerUserId = id;
+        var dashboard = await _statisticsService.GetDashboardAsync(
+            viewerUserId,
+            User.FindFirstValue(ClaimTypes.Role),
+            User.FindFirstValue(ClaimTypes.Name),
+            cancellationToken);
         return View(new AlertasIndexViewModel
         {
             Preferences = await _alertService.GetPreferencesForUserAsync(userId, cancellationToken),
             Deliveries = await _alertService.GetRecentDeliveriesAsync(20, isAdmin ? null : userId, cancellationToken),
+            OkStockCount = dashboard.OkStockCount,
+            LowStockCount = dashboard.LowStockCount,
+            CriticalStockCount = dashboard.CriticalStockCount,
             SmtpConfigured = _emailSender.IsSmtpConfigured,
             SmtpHost = _emailOptions.Host,
             Message = TempData["Message"] as string,

@@ -255,4 +255,14 @@ public static class DisplayHelper
         StockNivel.Critico => "Crítico",
         _ => nivel.ToString()
     };
+
+    public static string BadgeClass(AlertType type) => type switch
+    {
+        AlertType.StockBajo => BadgeClass(StockNivel.Bajo),
+        AlertType.OrdenPorVencer => "badge-warning",
+        AlertType.OrdenAtrasada => "badge-danger",
+        AlertType.ReprocesoCalidad => "badge-warning",
+        AlertType.SolicitudPendiente => "badge-info",
+        _ => "badge-info"
+    };
 }
