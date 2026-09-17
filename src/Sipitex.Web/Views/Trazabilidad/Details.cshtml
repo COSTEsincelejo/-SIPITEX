@@ -27,11 +27,13 @@
         <div class="card-title teal"><i class="fas fa-info-circle"></i> Ficha de la prenda</div>
         <div class="solicitud-detail-meta">
             <div><span class="field-label">Orden</span><br /><a asp-controller="Ordenes" asp-action="Detail" asp-route-id="@Model.ProductionOrderId">@Model.OrderNumber</a></div>
-            <div><span class="field-label">Producto</span><br />@Model.ProductName</div>
+            <div><span class="field-label">Ficha técnica</span><br />@Model.ProductName</div>
             <div><span class="field-label">Talla</span><br />@(Model.Talla ?? "—")</div>
             <div><span class="field-label">Estado</span><br />@DisplayHelper.StatusText(Model.Estado)</div>
             <div><span class="field-label">Pedido</span><br />@Model.ProducedQuantity / @Model.TotalQuantity</div>
-            <div><span class="field-label">Alta</span><br />@Model.CreadoUtc.ToString("yyyy-MM-dd HH:mm") UTC</div>
+            <div><span class="field-label">Fecha de producción</span><br />@Model.CreadoUtc.ToString("yyyy-MM-dd HH:mm") UTC</div>
+            <div><span class="field-label">Costo materiales / prenda</span><br />@Model.CostoMaterialesPorUnidad.ToString("0.####")</div>
+            <div><span class="field-label">Costo final orden</span><br />@Model.CostoFinalOrden.ToString("0.####")</div>
             <div><span class="field-label">Registró</span><br />@Model.CreadoPorNombre</div>
             <div><span class="field-label">Cliente</span><br />@(string.IsNullOrWhiteSpace(Model.Cliente) ? "—" : Model.Cliente)</div>
         </div>
@@ -52,6 +54,43 @@
                 <li>@m</li>
             }
         </ul>
+    }
+</div>
+
+<div class="card">
+    <div class="card-title teal"><i class="fas fa-coins"></i> Insumos consumidos (costo congelado)</div>
+    @if (Model.InsumosConsumidos.Count == 0)
+    {
+        <p class="hint">Aún no hay consumos registrados para esta orden. El costo se congela al registrar el consumo.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Insumo</th>
+                        <th>Cantidad</th>
+                        <th>Costo unitario al momento</th>
+                        <th>Costo línea</th>
+                        <th>Bodega de origen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var i in Model.InsumosConsumidos)
+                {
+                    <tr>
+                        <td>@i.MaterialName</td>
+                        <td>@i.Cantidad.ToString("0.####") @i.Unidad</td>
+                        <td>@i.CostoUnitarioAlMomento.ToString("0.####")</td>
+                        <td>@i.CostoLinea.ToString("0.####")</td>
+                        <td>@i.BodegaOrigen</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <p class="hint">Costo por prenda @Model.CostoMaterialesPorUnidad.ToString("0.####") · orden (volumen @Model.TotalQuantity) @Model.CostoFinalOrden.ToString("0.####"). Una compra posterior no cambia estos valores.</p>
     }
 </div>
 

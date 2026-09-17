@@ -78,6 +78,9 @@ public class CodigoGeneradorServiceTests
     [InlineData("SOL-", "SOL-0009", "SOL-0010")]
     [InlineData("SOL-", "SOL-0099", "SOL-0100")]
     [InlineData("ENT-", "ENT-0001", "ENT-0002")]
+    [InlineData("SIPITEX-202609-4-", null, "SIPITEX-202609-4-0001")]
+    [InlineData("SIPITEX-202609-4-", "SIPITEX-202609-4-0001", "SIPITEX-202609-4-0002")]
+    [InlineData("SIPITEX-202609-9-", null, "SIPITEX-202609-9-0001")]
     public void SiguienteCodigo_AvanzaConsecutivo(string prefijo, string? ultimo, string esperado)
     {
         Assert.Equal(esperado, CodigoGeneradorService.SiguienteCodigo(prefijo, ultimo));
