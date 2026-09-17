@@ -44,9 +44,6 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Property<byte[]>("EntregaFirmaPng")
                         .HasColumnType("bytea");
 
-                    b.Property<byte[]>("EntregaFirmaPng")
-                        .HasColumnType("BLOB");
-
                     b.Property<string>("EntregaNombre")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -90,9 +87,6 @@ namespace Sipitex.Infrastructure.Migrations
 
                     b.Property<byte[]>("RecibeFirmaPng")
                         .HasColumnType("bytea");
-
-                    b.Property<byte[]>("RecibeFirmaPng")
-                        .HasColumnType("BLOB");
 
                     b.Property<string>("RecibeNombre")
                         .IsRequired()
