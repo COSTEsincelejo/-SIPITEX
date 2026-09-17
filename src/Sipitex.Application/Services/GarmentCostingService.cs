@@ -5,8 +5,10 @@ using Sipitex.Application.Interfaces.Services;
 
 namespace Sipitex.Application.Services;
 
-// Costo de prenda = Σ (cantidad consumida × CostoUnitarioAlMomento)
-// + (horas de GrupoConfeccion × tarifa configurable). El snapshot no se recalcula.
+// Costo de prenda = solo materiales congelados al consumo.
+// Por unidad = Σ (cantidad × CostoUnitarioAlMomento) / volumen de la orden.
+// Por orden   = costo por unidad × volumen.
+// Mano de obra y overhead quedan fuera del total.
 public class GarmentCostingService : IGarmentCostingService
 {
     private readonly IConsumoMaterialRepository _consumos;
@@ -38,47 +40,50 @@ public class GarmentCostingService : IGarmentCostingService
 
         var order = await _orders.GetByIdAsync(productionOrderId, cancellationToken);
         if (order is null)
-            return new GarmentCostDto(productionOrderId, string.Empty, 0, 0, tarifa, 0, 0, Formula(), tarifaOk);
+            return Empty(productionOrderId, tarifa, tarifaOk);
 
         var consumos = await _consumos.GetByOrderIdAsync(productionOrderId, cancellationToken);
-        decimal materiales = 0;
+        decimal materialesOrden = 0;
         foreach (var consumo in consumos)
-            materiales += consumo.Cantidad * consumo.CostoUnitarioAlMomento;
+            materialesOrden += consumo.Cantidad * consumo.CostoUnitarioAlMomento;
+        materialesOrden = decimal.Round(materialesOrden, 4, MidpointRounding.AwayFromZero);
+
+        var volumen = Math.Max(0, order.TotalQuantity);
+        var costoPorUnidad = volumen > 0
+            ? decimal.Round(materialesOrden / volumen, 4, MidpointRounding.AwayFromZero)
+            : 0m;
+        var costoFinal = decimal.Round(costoPorUnidad * volumen, 4, MidpointRounding.AwayFromZero);
+        if (volumen == 0)
+            costoFinal = materialesOrden;
 
         var grupos = await _grupos.GetByOrderIdAsync(productionOrderId, cancellationToken);
         var horas = grupos.Sum(Horas);
-        var manoObra = decimal.Round(horas * tarifa, 4, MidpointRounding.AwayFromZero);
-        var total = decimal.Round(materiales + manoObra, 4, MidpointRounding.AwayFromZero);
 
         var dto = new GarmentCostDto(
             order.Id,
             order.OrderNumber,
-            decimal.Round(materiales, 4, MidpointRounding.AwayFromZero),
+            volumen,
+            costoPorUnidad,
+            costoFinal,
             decimal.Round(horas, 4, MidpointRounding.AwayFromZero),
             tarifa,
-            manoObra,
-            total,
+            0,
+            costoFinal,
             Formula(),
             tarifaOk);
 
-        if (!tarifaOk)
-        {
-            _logger.LogWarning(
-                "Costeo de orden {OrderId}: tarifa de mano de obra no configurada; costo de mano de obra no incluido",
-                productionOrderId);
-        }
-        else
-        {
-            _logger.LogInformation(
-                "Costeo de orden {OrderId} ({OrderNumber}): materiales={Materiales}, horas={Horas}, tarifa={Tarifa}, total={Total}",
-                order.Id, order.OrderNumber, dto.CostoMateriales, dto.HorasManoObra, dto.TarifaHora, dto.Total);
-        }
+        _logger.LogInformation(
+            "Costeo de orden {OrderId} ({OrderNumber}): volumen={Volumen}, materiales/ud={Unitario}, total={Total} (mano de obra excluida)",
+            order.Id, order.OrderNumber, dto.Volumen, dto.CostoMaterialesPorUnidad, dto.Total);
 
         return dto;
     }
 
     public static string Formula() =>
-        "costo materiales (Σ cantidad consumida × costo unitario al momento) + (horas de grupo de confección × Costing:LaborHourRate)";
+        "costo materiales por unidad (Σ cantidad consumida × costo unitario al momento / volumen) × volumen de la orden. Mano de obra no incluida.";
+
+    private static GarmentCostDto Empty(int productionOrderId, decimal tarifa, bool tarifaOk) =>
+        new(productionOrderId, string.Empty, 0, 0, 0, 0, tarifa, 0, 0, Formula(), tarifaOk);
 
     private static decimal Horas(Domain.Entities.GrupoConfeccion g)
     {

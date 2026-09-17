@@ -26,10 +26,10 @@ public class GarmentCostingServiceTests
             NullLogger<GarmentCostingService>.Instance);
     }
 
-    private void SeedOrderAndGrupo()
+    private void SeedOrder(int volumen = 10)
     {
         _orders.Setup(r => r.GetByIdAsync(10, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ProductionOrder { Id = 10, OrderNumber = "OP-10" });
+            .ReturnsAsync(new ProductionOrder { Id = 10, OrderNumber = "OP-10", TotalQuantity = volumen });
         _grupos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
@@ -47,7 +47,7 @@ public class GarmentCostingServiceTests
     [Fact]
     public async Task CalcularAsync_UsaSnapshotDeConsumo_NoElCostoActualDelInsumo()
     {
-        SeedOrderAndGrupo();
+        SeedOrder(10);
         var uso = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc);
 
         _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
@@ -66,20 +66,22 @@ public class GarmentCostingServiceTests
 
         var result = await CreateSut(5).CalcularAsync(10);
 
+        Assert.Equal(10, result.Volumen);
+        Assert.Equal(4, result.CostoMaterialesPorUnidad);
         Assert.Equal(40, result.CostoMateriales);
+        Assert.Equal(40, result.Total);
+        Assert.Equal(0, result.CostoManoObra);
         Assert.Equal(2, result.HorasManoObra);
-        Assert.Equal(5, result.TarifaHora);
-        Assert.Equal(10, result.CostoManoObra);
-        Assert.Equal(50, result.Total);
         Assert.Contains("costo unitario al momento", result.Formula, StringComparison.Ordinal);
-        Assert.Contains("Costing:LaborHourRate", result.Formula, StringComparison.Ordinal);
+        Assert.Contains("no incluida", result.Formula, StringComparison.OrdinalIgnoreCase);
         Assert.NotEqual(100, result.CostoMateriales);
+        Assert.NotEqual(50, result.Total);
     }
 
     [Fact]
     public async Task CalcularAsync_PrendaProducidaAntes_NoCambiaSiSubeElPromedioDespues()
     {
-        SeedOrderAndGrupo();
+        SeedOrder(10);
 
         _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
@@ -96,15 +98,16 @@ public class GarmentCostingServiceTests
 
         var result = await CreateSut(5).CalcularAsync(10);
 
+        Assert.Equal(5, result.CostoMaterialesPorUnidad);
         Assert.Equal(50, result.CostoMateriales);
-        Assert.Equal(10, result.CostoManoObra);
-        Assert.Equal(60, result.Total);
+        Assert.Equal(50, result.Total);
+        Assert.Equal(0, result.CostoManoObra);
     }
 
     [Fact]
     public async Task CalcularAsync_PrendaNueva_UsaSnapshotPosteriorAlCambioDePrecio()
     {
-        SeedOrderAndGrupo();
+        SeedOrder(10);
 
         _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
@@ -120,8 +123,61 @@ public class GarmentCostingServiceTests
 
         var result = await CreateSut(5).CalcularAsync(10);
 
+        Assert.Equal(8, result.CostoMaterialesPorUnidad);
         Assert.Equal(80, result.CostoMateriales);
-        Assert.Equal(90, result.Total);
+        Assert.Equal(80, result.Total);
+    }
+
+    [Fact]
+    public async Task CalcularAsync_DuplicarVolumenConElMismoCostoUnitario_DuplicaElCostoFinal()
+    {
+        _grupos.Setup(r => r.GetByOrderIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-1", TotalQuantity = 10 });
+        _consumos.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ConsumoMaterial { ProductionOrderId = 1, MaterialId = 3, Cantidad = 20, CostoUnitarioAlMomento = 5 }
+            ]);
+
+        _orders.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 2, OrderNumber = "OP-2", TotalQuantity = 20 });
+        _consumos.Setup(r => r.GetByOrderIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ConsumoMaterial { ProductionOrderId = 2, MaterialId = 3, Cantidad = 40, CostoUnitarioAlMomento = 5 }
+            ]);
+
+        var chica = await CreateSut(0).CalcularAsync(1);
+        var grande = await CreateSut(0).CalcularAsync(2);
+
+        Assert.Equal(10, chica.CostoMaterialesPorUnidad);
+        Assert.Equal(10, grande.CostoMaterialesPorUnidad);
+        Assert.Equal(100, chica.Total);
+        Assert.Equal(200, grande.Total);
+        Assert.Equal(chica.Total * 2, grande.Total);
+    }
+
+    [Fact]
+    public async Task CalcularAsync_ManoDeObraQuedaFueraDelTotal()
+    {
+        SeedOrder(8);
+        _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ConsumoMaterial { ProductionOrderId = 10, MaterialId = 1, Cantidad = 8, CostoUnitarioAlMomento = 3 }
+            ]);
+
+        var result = await CreateSut(100).CalcularAsync(10);
+
+        Assert.Equal(3, result.CostoMaterialesPorUnidad);
+        Assert.Equal(24, result.Total);
+        Assert.Equal(0, result.CostoManoObra);
+        Assert.Equal(2, result.HorasManoObra);
+        Assert.Equal(100, result.TarifaHora);
+        Assert.NotEqual(24 + 200, result.Total);
     }
 
     [Fact]
@@ -134,14 +190,15 @@ public class GarmentCostingServiceTests
 
         Assert.Equal(99, result.ProductionOrderId);
         Assert.Equal(0, result.Total);
+        Assert.Equal(0, result.Volumen);
         Assert.Equal(12, result.TarifaHora);
         Assert.False(string.IsNullOrWhiteSpace(result.Formula));
     }
 
     [Fact]
-    public async Task CalcularAsync_TarifaNoConfigurada_ManoDeObraEnCeroYFlag()
+    public async Task CalcularAsync_TarifaNoConfigurada_ManoDeObraSigueExcluida()
     {
-        SeedOrderAndGrupo();
+        SeedOrder(10);
         _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 

@@ -9,8 +9,8 @@
     <div>
         <h2>Costeo de prendas</h2>
         <div class="sub">
-            Materiales = Σ (cantidad consumida × costo unitario congelado al momento del consumo).
-            Mano de obra = horas del grupo de confección × tarifa de hora configurada.
+            El costo final es solo materiales: (Σ cantidad consumida × costo unitario congelado al consumo) / volumen × volumen de la orden.
+            Mano de obra y overhead no entran en el total.
         </div>
     </div>
 </div>
@@ -20,24 +20,11 @@
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
-@if (Model.LaborHourRateUnconfigured)
-{
-    <div class="alert alert-warning">
-        Tarifa de mano de obra sin configurar — el costo de mano de obra no se incluye hasta que el Administrador la defina.
-    </div>
-}
-else
-{
-    <div class="alert alert-info">
-        Tarifa vigente: <strong>@Model.LaborHourRate.ToString("0.####") / h</strong>
-    </div>
-}
-
 @if (Model.CanEditRate)
 {
     <div class="card">
-        <div class="card-title"><i class="fas fa-sliders"></i> Tarifa de hora (Administrador)</div>
-        <p class="hint">Valor de referencia CMTC en COP por hora de grupo de confección. Puede ajustarlo sin redesplegar.</p>
+        <div class="card-title"><i class="fas fa-sliders"></i> Tarifa de hora (referencia, no entra al costeo)</div>
+        <p class="hint">Valor de referencia CMTC en COP por hora de grupo de confección. No se suma al costo final de la prenda.</p>
         <form asp-action="Tarifa" method="post" class="form-row">
             @Html.AntiForgeryToken()
             <input type="hidden" name="orderId" value="@Model.OrderId" />
@@ -85,18 +72,24 @@ else
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Materiales</td>
-                        <td>Consumo real × costo unitario al momento (promedio ponderado congelado)</td>
-                        <td class="text-end">@Model.Costo.CostoMateriales.ToString("0.####")</td>
+                        <td>Volumen de la orden</td>
+                        <td>Cantidad de prendas pedidas</td>
+                        <td class="text-end">@Model.Costo.Volumen</td>
+                    </tr>
+                    <tr>
+                        <td>Costo materiales (por unidad)</td>
+                        <td>Σ (cantidad consumida × costo unitario al momento) / volumen</td>
+                        <td class="text-end">@Model.Costo.CostoMaterialesPorUnidad.ToString("0.####")</td>
+                    </tr>
+                    <tr>
+                        <td>Costo final (orden)</td>
+                        <td>Costo por unidad × volumen</td>
+                        <td class="text-end"><strong>@Model.Costo.Total.ToString("0.####")</strong></td>
                     </tr>
                     <tr>
                         <td>Mano de obra</td>
-                        <td>@Model.Costo.HorasManoObra.ToString("0.##") h × @Model.Costo.TarifaHora.ToString("0.####") / h</td>
-                        <td class="text-end">@Model.Costo.CostoManoObra.ToString("0.####")</td>
-                    </tr>
-                    <tr>
-                        <td colspan="2"><strong>Total estimado</strong></td>
-                        <td class="text-end"><strong>@Model.Costo.Total.ToString("0.####")</strong></td>
+                        <td>@Model.Costo.HorasManoObra.ToString("0.##") h × @Model.Costo.TarifaHora.ToString("0.####") / h — excluida del costo final</td>
+                        <td class="text-end">0</td>
                     </tr>
                 </tbody>
             </table>
