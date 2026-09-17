@@ -62,7 +62,7 @@ public class GrupoConfeccionServiceTests
                     MaterialId = 3,
                     Material = new Material { Id = 3, Code = "mat3", Name = "Hilo", Unit = MaterialUnit.Metros },
                     Cantidad = 5,
-                    CostoUnitario = 2,
+                    CostoUnitarioAlMomento = 2,
                     ResponsableUserId = 9,
                     Responsable = new User { Id = 9, Nombre = "Laura" }
                 }

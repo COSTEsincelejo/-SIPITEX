@@ -121,8 +121,8 @@ public class GrupoConfeccionService : IGrupoConfeccionService
                 c.FechaUtc,
                 c.ResponsableUserId,
                 c.Responsable?.Nombre ?? $"#{c.ResponsableUserId}",
-                c.CostoUnitario,
-                c.Cantidad * c.CostoUnitario)).ToList());
+                c.CostoUnitarioAlMomento,
+                c.Cantidad * c.CostoUnitarioAlMomento)).ToList());
     }
 
     private static GrupoConfeccionDto Map(GrupoConfeccion g) => new(

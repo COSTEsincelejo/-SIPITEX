@@ -21,6 +21,6 @@ public class ConsumoMaterial
     public int ResponsableUserId { get; set; }
     public User Responsable { get; set; } = null!;
 
-    // Costo unitario de adquisición al momento del consumo (promedio ponderado / costo vigente).
-    public decimal CostoUnitario { get; set; }
+    // Snapshot del costo promedio ponderado del insumo al registrar el consumo. No se recalcula después.
+    public decimal CostoUnitarioAlMomento { get; set; }
 }

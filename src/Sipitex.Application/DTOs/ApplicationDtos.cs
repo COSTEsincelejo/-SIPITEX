@@ -17,7 +17,8 @@ public record MaterialDto(
     DateOnly LastEntryDate,
     decimal CostoAdquisicion = 0,
     int PlantaInventarioId = 0,
-    string PlantaInventarioNombre = "");
+    string PlantaInventarioNombre = "",
+    decimal CostoPromedioPonderado = 0);
 
 // Datos para crear material nuevo (origen tipifica la Entrada del ledger)
 public record CreateMaterialDto(
@@ -28,7 +29,11 @@ public record CreateMaterialDto(
     decimal CostoAdquisicion = 0);
 
 // Ajuste manual de stock; Origen obligatorio cuando NewStock > stock actual
-public record AdjustStockDto(int MaterialId, decimal NewStock, StockEntryOrigin? Origen = null);
+public record AdjustStockDto(
+    int MaterialId,
+    decimal NewStock,
+    StockEntryOrigin? Origen = null,
+    decimal? PrecioUnitario = null);
 
 // Edición de metadatos del material (nombre, unidad, mínimo) — no toca stock
 public record UpdateMaterialDto(
@@ -64,7 +69,8 @@ public record StockMovementDto(
     string MaterialName,
     decimal Cantidad,
     decimal StockResultante,
-    string? Referencia);
+    string? Referencia,
+    decimal? CostoUnitario = null);
 
 // --- Producción ---
 

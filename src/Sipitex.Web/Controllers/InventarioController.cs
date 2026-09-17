@@ -122,7 +122,7 @@ public class InventarioController : Controller
 
         // El servicio busca el material y pone el stock nuevo
         var result = await _inventoryService.AdjustStockAsync(
-            new AdjustStockDto(form.MaterialId, form.NewStock, form.Origen), actorId, cancellationToken);
+            new AdjustStockDto(form.MaterialId, form.NewStock, form.Origen, form.PrecioUnitario), actorId, cancellationToken);
 
         // Guardo mensaje para después del redirect
         TempData["Message"] = result.Message ?? (result.Success ? "Stock actualizado." : "Error al ajustar stock.");

@@ -36,6 +36,7 @@ public class StockMovementService : IStockMovementService
             m.Material?.Name ?? $"#{m.MaterialId}",
             m.Cantidad,
             m.StockResultante,
-            m.Referencia)).ToList();
+            m.Referencia,
+            m.CostoUnitario)).ToList();
     }
 }

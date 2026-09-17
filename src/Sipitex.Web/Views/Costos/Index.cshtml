@@ -9,7 +9,7 @@
     <div>
         <h2>Costeo de prendas</h2>
         <div class="sub">
-            Materiales = cantidad consumida × costo histórico de la última entrada con precio.
+            Materiales = Σ (cantidad consumida × costo unitario congelado al momento del consumo).
             Mano de obra = horas del grupo de confección × tarifa de hora configurada.
         </div>
     </div>
@@ -86,7 +86,7 @@ else
                 <tbody>
                     <tr>
                         <td>Materiales</td>
-                        <td>Consumo real × costo de adquisición histórico</td>
+                        <td>Consumo real × costo unitario al momento (promedio ponderado congelado)</td>
                         <td class="text-end">@Model.Costo.CostoMateriales.ToString("0.####")</td>
                     </tr>
                     <tr>

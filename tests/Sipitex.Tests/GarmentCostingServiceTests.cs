@@ -4,7 +4,6 @@ using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
-using Sipitex.Domain.Enums;
 
 namespace Sipitex.Tests;
 
@@ -12,7 +11,6 @@ public class GarmentCostingServiceTests
 {
     private readonly Mock<IConsumoMaterialRepository> _consumos = new();
     private readonly Mock<IGrupoConfeccionRepository> _grupos = new();
-    private readonly Mock<IStockMovementRepository> _stock = new();
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<ICostingSettingsService> _rates = new();
 
@@ -23,7 +21,6 @@ public class GarmentCostingServiceTests
         return new(
             _consumos.Object,
             _grupos.Object,
-            _stock.Object,
             _orders.Object,
             _rates.Object,
             NullLogger<GarmentCostingService>.Instance);
@@ -48,10 +45,9 @@ public class GarmentCostingServiceTests
     }
 
     [Fact]
-    public async Task CalcularAsync_SinCambioDePrecio_UsaCostoDeEntrada()
+    public async Task CalcularAsync_UsaSnapshotDeConsumo_NoElCostoActualDelInsumo()
     {
         SeedOrderAndGrupo();
-        var compra = new DateTime(2026, 3, 1, 12, 0, 0, DateTimeKind.Utc);
         var uso = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc);
 
         _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
@@ -63,19 +59,8 @@ public class GarmentCostingServiceTests
                     MaterialId = 3,
                     Cantidad = 4,
                     FechaUtc = uso,
-                    CostoUnitario = 10
-                }
-            ]);
-        _stock.Setup(r => r.QueryAsync(null, uso, 3, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-            [
-                new StockMovement
-                {
-                    MaterialId = 3,
-                    FechaUtc = compra,
-                    TipoMovimiento = StockMovementType.Entrada,
-                    CostoUnitario = 10,
-                    Cantidad = 50
+                    CostoUnitarioAlMomento = 10,
+                    Material = new Material { Id = 3, CostoPromedioPonderado = 25, CostoAdquisicion = 25 }
                 }
             ]);
 
@@ -86,18 +71,16 @@ public class GarmentCostingServiceTests
         Assert.Equal(5, result.TarifaHora);
         Assert.Equal(10, result.CostoManoObra);
         Assert.Equal(50, result.Total);
+        Assert.Contains("costo unitario al momento", result.Formula, StringComparison.Ordinal);
         Assert.Contains("Costing:LaborHourRate", result.Formula, StringComparison.Ordinal);
+        Assert.NotEqual(100, result.CostoMateriales);
     }
 
     [Fact]
-    public async Task CalcularAsync_ConCambioDePrecioEntreCompraYUso_UsaCostoHistoricoDeEntrada()
+    public async Task CalcularAsync_PrendaProducidaAntes_NoCambiaSiSubeElPromedioDespues()
     {
         SeedOrderAndGrupo();
-        var compra = new DateTime(2026, 3, 1, 12, 0, 0, DateTimeKind.Utc);
-        var uso = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc);
 
-        // El catálogo / snapshot del consumo ya refleja el precio nuevo (25),
-        // pero la única entrada previa al uso sigue costando 10.
         _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
@@ -106,29 +89,39 @@ public class GarmentCostingServiceTests
                     ProductionOrderId = 10,
                     MaterialId = 3,
                     Cantidad = 4,
-                    FechaUtc = uso,
-                    CostoUnitario = 25
-                }
-            ]);
-        _stock.Setup(r => r.QueryAsync(null, uso, 3, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-            [
-                new StockMovement
-                {
-                    MaterialId = 3,
-                    FechaUtc = compra,
-                    TipoMovimiento = StockMovementType.Entrada,
-                    CostoUnitario = 10,
-                    Cantidad = 50
+                    CostoUnitarioAlMomento = 12.5m,
+                    Material = new Material { Id = 3, CostoPromedioPonderado = 30 }
                 }
             ]);
 
         var result = await CreateSut(5).CalcularAsync(10);
 
-        Assert.Equal(40, result.CostoMateriales);
+        Assert.Equal(50, result.CostoMateriales);
         Assert.Equal(10, result.CostoManoObra);
-        Assert.Equal(50, result.Total);
-        Assert.NotEqual(100, result.CostoMateriales);
+        Assert.Equal(60, result.Total);
+    }
+
+    [Fact]
+    public async Task CalcularAsync_PrendaNueva_UsaSnapshotPosteriorAlCambioDePrecio()
+    {
+        SeedOrderAndGrupo();
+
+        _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ConsumoMaterial
+                {
+                    ProductionOrderId = 10,
+                    MaterialId = 3,
+                    Cantidad = 4,
+                    CostoUnitarioAlMomento = 20
+                }
+            ]);
+
+        var result = await CreateSut(5).CalcularAsync(10);
+
+        Assert.Equal(80, result.CostoMateriales);
+        Assert.Equal(90, result.Total);
     }
 
     [Fact]
@@ -150,8 +143,6 @@ public class GarmentCostingServiceTests
     {
         SeedOrderAndGrupo();
         _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
-        _stock.Setup(r => r.QueryAsync(null, It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         var result = await CreateSut(0).CalcularAsync(10);

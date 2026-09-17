@@ -53,6 +53,7 @@ public class AdjustStockForm
     public int MaterialId { get; set; }
     public decimal NewStock { get; set; }
     public StockEntryOrigin? Origen { get; set; }
+    public decimal? PrecioUnitario { get; set; }
 }
 
 // Edición de metadatos de material (solo Administrador)

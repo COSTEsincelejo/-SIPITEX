@@ -2,17 +2,15 @@ using Microsoft.Extensions.Logging;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
-using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
-// Costo estimado de prenda = materiales (costo histórico a la fecha de adquisición)
-// + (horas de GrupoConfeccion × tarifa configurable).
+// Costo de prenda = Σ (cantidad consumida × CostoUnitarioAlMomento)
+// + (horas de GrupoConfeccion × tarifa configurable). El snapshot no se recalcula.
 public class GarmentCostingService : IGarmentCostingService
 {
     private readonly IConsumoMaterialRepository _consumos;
     private readonly IGrupoConfeccionRepository _grupos;
-    private readonly IStockMovementRepository _stockMovements;
     private readonly IProductionOrderRepository _orders;
     private readonly ICostingSettingsService _costingSettings;
     private readonly ILogger<GarmentCostingService> _logger;
@@ -20,14 +18,12 @@ public class GarmentCostingService : IGarmentCostingService
     public GarmentCostingService(
         IConsumoMaterialRepository consumos,
         IGrupoConfeccionRepository grupos,
-        IStockMovementRepository stockMovements,
         IProductionOrderRepository orders,
         ICostingSettingsService costingSettings,
         ILogger<GarmentCostingService> logger)
     {
         _consumos = consumos;
         _grupos = grupos;
-        _stockMovements = stockMovements;
         _orders = orders;
         _costingSettings = costingSettings;
         _logger = logger;
@@ -47,10 +43,7 @@ public class GarmentCostingService : IGarmentCostingService
         var consumos = await _consumos.GetByOrderIdAsync(productionOrderId, cancellationToken);
         decimal materiales = 0;
         foreach (var consumo in consumos)
-        {
-            var unitario = await ResolveHistoricalUnitCostAsync(consumo.MaterialId, consumo.FechaUtc, consumo.CostoUnitario, cancellationToken);
-            materiales += consumo.Cantidad * unitario;
-        }
+            materiales += consumo.Cantidad * consumo.CostoUnitarioAlMomento;
 
         var grupos = await _grupos.GetByOrderIdAsync(productionOrderId, cancellationToken);
         var horas = grupos.Sum(Horas);
@@ -85,23 +78,7 @@ public class GarmentCostingService : IGarmentCostingService
     }
 
     public static string Formula() =>
-        "costo materiales (cantidad × costo de adquisición a la fecha de compra) + (horas de grupo de confección × Costing:LaborHourRate)";
-
-    private async Task<decimal> ResolveHistoricalUnitCostAsync(
-        int materialId,
-        DateTime fechaUsoUtc,
-        decimal snapshotConsumo,
-        CancellationToken cancellationToken)
-    {
-        var movimientos = await _stockMovements.QueryAsync(null, fechaUsoUtc, materialId, cancellationToken);
-        var adquisicion = movimientos
-            .Where(m => m.TipoMovimiento == StockMovementType.Entrada && m.CostoUnitario is > 0)
-            .OrderByDescending(m => m.FechaUtc)
-            .FirstOrDefault();
-        if (adquisicion?.CostoUnitario is decimal costo)
-            return costo;
-        return snapshotConsumo;
-    }
+        "costo materiales (Σ cantidad consumida × costo unitario al momento) + (horas de grupo de confección × Costing:LaborHourRate)";
 
     private static decimal Horas(Domain.Entities.GrupoConfeccion g)
     {

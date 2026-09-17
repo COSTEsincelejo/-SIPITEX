@@ -175,4 +175,65 @@ public class InventoryEditAndEntryOriginTests
         Assert.Null(captured!.Origen);
         Assert.Equal(6m, captured.Cantidad);
     }
+
+    [Fact]
+    public async Task AdjustStockAsync_CompraSinPrecioUnitario_Falla()
+    {
+        var material = new Material { Id = 4, Name = "Hilo", Stock = 10m, CostoPromedioPonderado = 8m };
+        _materials.Setup(r => r.GetByIdAsync(4, It.IsAny<CancellationToken>())).ReturnsAsync(material);
+
+        var result = await CreateSut().AdjustStockAsync(
+            new AdjustStockDto(4, 18m, StockEntryOrigin.Compra),
+            actorUserId: 3);
+
+        Assert.False(result.Success);
+        Assert.Contains("precio unitario", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(10m, material.Stock);
+        Assert.Equal(8m, material.CostoPromedioPonderado);
+    }
+
+    [Fact]
+    public async Task AdjustStockAsync_DosCompras_RecalculaCostoPromedioPonderadoConStockPrevio()
+    {
+        Material? created = null;
+        _materials
+            .Setup(r => r.AddAsync(It.IsAny<Material>(), It.IsAny<CancellationToken>()))
+            .Callback<Material, CancellationToken>((m, _) =>
+            {
+                m.Id = 4;
+                created = m;
+            })
+            .Returns(Task.CompletedTask);
+        _materials
+            .Setup(r => r.GetByIdAsync(4, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => created!);
+        _stockMovements
+            .Setup(r => r.AddAsync(It.IsAny<StockMovement>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var alta = await CreateSut().AddMaterialAsync(
+            new CreateMaterialDto("Hilo", 10m, MaterialUnit.Metros, StockEntryOrigin.Compra, 10m),
+            actorUserId: 3);
+        Assert.True(alta.Success, alta.Message);
+        Assert.NotNull(created);
+        Assert.Equal(10m, created!.CostoPromedioPonderado);
+        Assert.Equal(10m, created.Stock);
+
+        var segunda = await CreateSut().AdjustStockAsync(
+            new AdjustStockDto(4, 20m, StockEntryOrigin.Compra, 30m),
+            actorUserId: 3);
+
+        Assert.True(segunda.Success, segunda.Message);
+        Assert.Equal(20m, created.Stock);
+        Assert.Equal(20m, created.CostoPromedioPonderado);
+        Assert.Equal(30m, created.CostoAdquisicion);
+        _stockMovements.Verify(r => r.AddAsync(
+            It.Is<StockMovement>(m =>
+                m.TipoMovimiento == StockMovementType.Ajuste
+                && m.Origen == StockEntryOrigin.Compra
+                && m.CostoUnitario == 30m
+                && m.Cantidad == 10m),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

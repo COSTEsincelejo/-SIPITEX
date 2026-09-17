@@ -29,6 +29,6 @@ public class StockMovement
     // Referencia opcional: "MaterialRequest:10", "Orden:5", "SolicitudMaterial:3"
     public string? Referencia { get; set; }
 
-    // Costo unitario de la entrada (null en salidas / ajustes a la baja).
+    // Precio unitario de la entrada. Obligatorio en ingresos de origen Compra; también se copia en salidas de consumo.
     public decimal? CostoUnitario { get; set; }
 }
