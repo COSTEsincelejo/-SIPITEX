@@ -658,6 +658,8 @@ public record UpsertStagePermissionDto(int UserId, string StageName, bool Allowe
 public record GarmentCostDto(
     int ProductionOrderId,
     string OrderNumber,
+    int Volumen,
+    decimal CostoMaterialesPorUnidad,
     decimal CostoMateriales,
     decimal HorasManoObra,
     decimal TarifaHora,
