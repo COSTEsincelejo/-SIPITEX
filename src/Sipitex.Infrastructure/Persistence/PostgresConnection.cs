@@ -1,4 +1,3 @@
-using System.Net;
 using Microsoft.Extensions.Configuration;
 
 namespace Sipitex.Infrastructure.Persistence;
