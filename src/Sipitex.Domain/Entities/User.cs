@@ -57,6 +57,9 @@ public class User
 
     // false = no puede entrar aunque tenga contraseña correcta
     public bool IsActive { get; set; } = true;
+
+    // true = el correo ya se confirmó con un código. Cuentas de seed/admin nacen confirmadas.
+    public bool EmailConfirmed { get; set; } = true;
 }
 
 // Constantes de roles para no escribir strings sueltos por todo el proyecto

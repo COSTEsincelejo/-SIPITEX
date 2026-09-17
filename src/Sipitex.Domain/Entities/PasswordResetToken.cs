@@ -1,26 +1,24 @@
 namespace Sipitex.Domain.Entities;
 
-// Token de "olvidé mi contraseña". En BD solo guardo el hash, nunca el token crudo.
+// Código de un solo uso enviado por correo (verificación o reset). En BD solo el hash.
 public class PasswordResetToken
 {
-    // PK
     public int Id { get; set; }
 
-    // Usuario que pidió el reset
     public int UserId { get; set; }
 
-    // Navegación al usuario
     public User User { get; set; } = null!;
 
-    // SHA-256 del token que va en el link del correo
+    // SHA-256 del código de 6 dígitos (nunca el valor en claro)
     public string TokenHash { get; set; } = string.Empty;
 
-    // Después de esta fecha el link ya no sirve
+    public string Purpose { get; set; } = AuthCodePurposes.PasswordReset;
+
     public DateTime ExpiresAtUtc { get; set; }
 
-    // null = todavía no se usó; si tiene fecha, ya se gastó
     public DateTime? UsedAtUtc { get; set; }
 
-    // Cuándo se creó (sirve también para el rate limit)
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public int FailedAttempts { get; set; }
 }

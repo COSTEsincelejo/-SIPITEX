@@ -1,0 +1,34 @@
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "Crear cuenta";
+    Layout = "_LoginLayout";
+}
+
+<div class="card auth-card">
+    <div class="card-title"><i class="fas fa-user-plus"></i> Crear cuenta</div>
+    <p class="auth-hint">Le enviaremos un código de 6 dígitos para confirmar que el correo es real. Hasta entonces no podrá iniciar sesión.</p>
+    <form asp-action="Register" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="field">
+            <label class="field-label" asp-for="Nombre">Nombre</label>
+            <input asp-for="Nombre" autocomplete="name" required />
+        </div>
+        <div class="field">
+            <label class="field-label" asp-for="Email">Correo</label>
+            <input asp-for="Email" type="email" autocomplete="username" required />
+        </div>
+        <div class="field">
+            <label class="field-label" asp-for="Password">Contraseña</label>
+            <input asp-for="Password" type="password" autocomplete="new-password" required />
+        </div>
+        <div class="field">
+            <label class="field-label" asp-for="ConfirmPassword">Confirmar contraseña</label>
+            <input asp-for="ConfirmPassword" type="password" autocomplete="new-password" required />
+        </div>
+        <button type="submit" class="primary auth-submit"><i class="fas fa-envelope"></i> Enviar código</button>
+    </form>
+    <p class="auth-hint" style="margin-top:1rem;">
+        <a asp-action="Login">Ya tengo cuenta</a>
+    </p>
+</div>

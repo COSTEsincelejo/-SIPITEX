@@ -32,6 +32,7 @@ builder.Services.AddAuthorization(options => options.AddSipitexPolicies());
 // Bloqueo de login por intentos fallidos (en memoria del proceso)
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ILoginAttemptGuard, MemoryLoginAttemptGuard>();
+builder.Services.AddSingleton<IAuthCodeRequestGuard, MemoryAuthCodeRequestGuard>();
 
 // Para saber si la BD responde (útil en despliegue)
 builder.Services.AddHealthChecks()
