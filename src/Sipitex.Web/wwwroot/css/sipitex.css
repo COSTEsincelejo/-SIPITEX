@@ -331,9 +331,9 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 .analysis-hub-link:hover{background:#fff;color:#1F3864;}
 .analysis-hub-link.is-active{background:#1F3864;color:#fff;}
 .analysis-hub-link.is-active:hover{color:#fff;}
-.signature-pad{margin:0 0 16px;padding:12px;border:1px dashed var(--border);border-radius:10px;background:#F7F9FC;max-width:420px;}
+.signature-pad{margin:0 0 16px;padding:12px;border:1px dashed var(--border);border-radius:10px;background:#F7F9FC;max-width:100%;}
 .signature-pad canvas{
-  display:block;width:100%;max-width:380px;height:120px;background:#fff;border:1px solid var(--border);border-radius:8px;touch-action:none;cursor:crosshair;
+  display:block;width:100%;max-width:100%;height:140px;background:#fff;border:1px solid var(--border);border-radius:8px;touch-action:none;cursor:crosshair;
 }
 .signature-pad .field-label{margin-bottom:8px;}
 .signature-preview{display:block;max-width:220px;height:auto;margin-top:8px;border:1px solid var(--border);border-radius:8px;background:#fff;}

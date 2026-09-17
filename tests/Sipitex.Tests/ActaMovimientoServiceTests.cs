@@ -103,6 +103,8 @@ public class ActaMovimientoServiceTests
         Assert.Equal(5, line.Cantidad);
         Assert.NotNull(result.Value.EntregaConformidadUtc);
         Assert.NotNull(result.Value.RecibeConformidadUtc);
+        Assert.Equal(TestPng.Bytes, result.Value.EntregaFirmaPng);
+        Assert.Equal(TestPng.Bytes, result.Value.RecibeFirmaPng);
     }
 
     [Fact]
@@ -261,5 +263,29 @@ public class ActaMovimientoServiceTests
         var dePlanta2 = await CreateSut().GetAllAsync(new ActaViewerFilter(
             UserRoles.EncargadoDeBodega, 8, [2], []));
         Assert.Equal("ACT-0002", Assert.Single(dePlanta2).Numero);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_DevuelveFirmasPngGuardadas()
+    {
+        _actas.Setup(r => r.GetByIdAsync(3, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ActaMovimiento
+            {
+                Id = 3,
+                Numero = "ACT-0003",
+                EntregaNombre = "Pedro",
+                RecibeNombre = "Laura",
+                EntregaFirmaPng = TestPng.Bytes,
+                RecibeFirmaPng = TestPng.Bytes,
+                CreadoPorUserId = 7,
+                CreadoPor = new User { Id = 7, Nombre = "Ana" },
+                Detalles = []
+            });
+
+        var dto = await CreateSut().GetByIdAsync(3);
+
+        Assert.NotNull(dto);
+        Assert.Equal(TestPng.Bytes, dto!.EntregaFirmaPng);
+        Assert.Equal(TestPng.Bytes, dto.RecibeFirmaPng);
     }
 }

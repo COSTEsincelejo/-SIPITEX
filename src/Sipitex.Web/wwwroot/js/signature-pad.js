@@ -46,12 +46,18 @@
       if (dirty) hidden.value = canvas.toDataURL('image/png');
     }
 
-    canvas.addEventListener('mousedown', start);
-    canvas.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', end);
-    canvas.addEventListener('touchstart', start, { passive: false });
-    canvas.addEventListener('touchmove', move, { passive: false });
-    canvas.addEventListener('touchend', end);
+    if (window.PointerEvent) {
+      canvas.addEventListener('pointerdown', start);
+      canvas.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', end);
+    } else {
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', end);
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', move, { passive: false });
+      canvas.addEventListener('touchend', end);
+    }
 
     clearBtn?.addEventListener('click', (ev) => {
       ev.preventDefault();
