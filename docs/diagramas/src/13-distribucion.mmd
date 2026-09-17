@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f1fb', 'primaryTextColor': '#1a2b3c', 'primaryBorderColor': '#2c5282', 'lineColor': '#2c5282', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+flowchart TB
+  subgraph clientes ["Clientes — Intranet CMTC"]
+    PC1["PC Administrador<br/>Navegador web"]
+    PC2["PC Bodega<br/>Navegador web"]
+    PC3["PC Instructor<br/>Navegador web"]
+  end
+
+  subgraph red ["Red local SENA CMTC"]
+    SW["Switch / LAN"]
+  end
+
+  subgraph servidor ["Servidor de aplicaciones"]
+    direction TB
+    IIS["ASP.NET Core / Kestrel<br/>o contenedor Docker"]
+    APP["Sipitex.Web<br/>MVC + Cookie Auth"]
+    APP2["Sipitex.Application<br/>Servicios de negocio"]
+    APP3["Sipitex.Infrastructure<br/>EF Core"]
+    DB[("SQLite<br/>sipitex.db")]
+    IIS --> APP
+    APP --> APP2
+    APP2 --> APP3
+    APP3 --> DB
+  end
+
+  subgraph opcional ["Opcional"]
+    SMTP["Servidor SMTP<br/>Alertas por correo"]
+  end
+
+  PC1 --> SW
+  PC2 --> SW
+  PC3 --> SW
+  SW -->|HTTP :8080 / HTTPS| IIS
+  APP -.->|MailKit| SMTP
