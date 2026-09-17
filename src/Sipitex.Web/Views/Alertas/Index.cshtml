@@ -21,6 +21,24 @@
 
 <partial name="_AnalysisHub" />
 
+<div class="kpi-grid">
+    <div class="kpi-card teal">
+        <div class="kpi-label">Stock OK</div>
+        <div class="kpi-value">@Model.OkStockCount</div>
+        <div class="kpi-trend"><span class="badge @DisplayHelper.BadgeClass(StockNivel.Ok)">@DisplayHelper.StatusText(StockNivel.Ok)</span></div>
+    </div>
+    <div class="kpi-card amber">
+        <div class="kpi-label">Stock bajo</div>
+        <div class="kpi-value">@Model.LowStockCount</div>
+        <div class="kpi-trend"><span class="badge @DisplayHelper.BadgeClass(StockNivel.Bajo)">@DisplayHelper.StatusText(StockNivel.Bajo)</span></div>
+    </div>
+    <div class="kpi-card red">
+        <div class="kpi-label">Stock crítico</div>
+        <div class="kpi-value">@Model.CriticalStockCount</div>
+        <div class="kpi-trend"><span class="badge @DisplayHelper.BadgeClass(StockNivel.Critico)">@DisplayHelper.StatusText(StockNivel.Critico)</span></div>
+    </div>
+</div>
+
 @if (!string.IsNullOrEmpty(Model.Message))
 {
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
@@ -79,7 +97,13 @@
                                     <span class="switch-ui"></span>
                                 </label>
                             </td>
-                            <td><strong>@pref.Title</strong></td>
+                            <td>
+                                <strong>@pref.Title</strong>
+                                @if (pref.AlertType == AlertType.StockBajo)
+                                {
+                                    <span class="badge @DisplayHelper.BadgeClass(StockNivel.Bajo)">@DisplayHelper.StatusText(StockNivel.Bajo)</span>
+                                }
+                            </td>
                             <td>@pref.Description</td>
                             <td>@string.Join(", ", pref.SuggestedRoles)</td>
                         </tr>
@@ -123,7 +147,7 @@
                     <tr>
                         <td>@d.SentAt.ToString("yyyy-MM-dd HH:mm")</td>
                         <td>@(string.IsNullOrWhiteSpace(d.Recipient) ? "—" : d.Recipient)</td>
-                        <td>@d.AlertType</td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(d.AlertType)">@d.AlertType</span></td>
                         <td>@d.Subject</td>
                         <td><span class="badge @(d.Channel == "SMTP" ? "badge-success" : "badge-info")">@d.Channel</span></td>
                     </tr>

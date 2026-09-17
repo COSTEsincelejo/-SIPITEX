@@ -319,7 +319,37 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 }
 
 /* Análisis: Estadísticas / Reportes / Alertas (paleta #1F3864 / #DCE6F1) */
-.analysis-page{--analysis-navy:#1F3864;--analysis-ice:#DCE6F1;}
+.analysis-page{
+  --analysis-navy:#1F3864;
+  --analysis-ice:#DCE6F1;
+  --navy:#1F3864;
+  --navy-2:#1F3864;
+  --accent:#1F3864;
+  --accent-soft:#DCE6F1;
+}
+.analysis-page .page-header h2{color:#1F3864;}
+.analysis-page .card{border-color:#C9D6E8;}
+.analysis-page thead th{background:#DCE6F1;color:#1F3864;}
+.analysis-page tbody tr:hover{background:#EEF3F8;}
+.analysis-page .kpi-card{border-color:#C9D6E8;}
+.analysis-page .kpi-card::before{background:#1F3864;}
+.analysis-page .kpi-card.teal::before{background:var(--teal);}
+.analysis-page .kpi-card.amber::before{background:var(--amber);}
+.analysis-page .kpi-card.red::before{background:var(--red);}
+.analysis-page .filter-summary{
+  background:#DCE6F1;color:#1F3864;border:1px solid #C9D6E8;
+}
+.analysis-page .module-link{border-color:#C9D6E8;}
+.analysis-page .module-link:hover{border-color:#1F3864;}
+.analysis-page .module-link i{background:#DCE6F1;color:#1F3864;}
+.analysis-page button.primary,.analysis-page .btn.primary{
+  background:#1F3864;border-color:#1F3864;box-shadow:0 6px 14px rgba(31,56,100,0.22);
+}
+.analysis-page button.primary:hover,.analysis-page .btn.primary:hover{background:#162948;color:#fff;}
+.analysis-page .empty-state .empty-icon{background:#DCE6F1;color:#1F3864;}
+.analysis-page .alert-info{background:#DCE6F1;color:#1F3864;border-color:#C9D6E8;}
+.analysis-page .kpi-trend .badge{margin-right:0;}
+.analysis-page .kpi-trend{display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
 .analysis-hub{
   display:flex;flex-wrap:wrap;gap:8px;margin:-6px 0 18px;padding:6px;background:var(--analysis-ice,#DCE6F1);
   border:1px solid #C9D6E8;border-radius:12px;
@@ -331,6 +361,10 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 .analysis-hub-link:hover{background:#fff;color:#1F3864;}
 .analysis-hub-link.is-active{background:#1F3864;color:#fff;}
 .analysis-hub-link.is-active:hover{color:#fff;}
+@media (max-width:640px){
+  .analysis-page .kpi-grid{grid-template-columns:1fr 1fr;}
+  .analysis-page .report-actions{flex-wrap:wrap;}
+}
 .signature-pad{margin:0 0 16px;padding:12px;border:1px dashed var(--border);border-radius:10px;background:#F7F9FC;max-width:420px;}
 .signature-pad canvas{
   display:block;width:100%;max-width:380px;height:120px;background:#fff;border:1px solid var(--border);border-radius:8px;touch-action:none;cursor:crosshair;

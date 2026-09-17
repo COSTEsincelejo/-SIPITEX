@@ -367,6 +367,9 @@ public class AlertasIndexViewModel
 {
     public IReadOnlyList<AlertPreferenceDto> Preferences { get; set; } = [];
     public IReadOnlyList<AlertDeliveryDto> Deliveries { get; set; } = [];
+    public int OkStockCount { get; set; }
+    public int LowStockCount { get; set; }
+    public int CriticalStockCount { get; set; }
     public bool SmtpConfigured { get; set; } // cambia el mensaje informativo
     public string SmtpHost { get; set; } = string.Empty;
     public string? Message { get; set; }

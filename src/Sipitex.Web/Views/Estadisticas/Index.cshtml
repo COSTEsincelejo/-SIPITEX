@@ -37,20 +37,20 @@
         <div class="kpi-value">@d.ActiveOrders</div>
         <div class="kpi-trend">@d.PendingApprovalOrders pendiente(s) de aprobación</div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card teal">
         <div class="kpi-label">Stock OK</div>
         <div class="kpi-value">@d.OkStockCount</div>
-        <div class="kpi-trend">En o sobre el mínimo</div>
+        <div class="kpi-trend"><span class="badge @DisplayHelper.BadgeClass(StockNivel.Ok)">@DisplayHelper.StatusText(StockNivel.Ok)</span></div>
     </div>
     <div class="kpi-card amber">
         <div class="kpi-label">Stock bajo</div>
         <div class="kpi-value">@d.LowStockCount</div>
-        <div class="kpi-trend">Por debajo del mínimo, con existencias</div>
+        <div class="kpi-trend"><span class="badge @DisplayHelper.BadgeClass(StockNivel.Bajo)">@DisplayHelper.StatusText(StockNivel.Bajo)</span></div>
     </div>
     <div class="kpi-card red">
         <div class="kpi-label">Stock crítico</div>
         <div class="kpi-value">@d.CriticalStockCount</div>
-        <div class="kpi-trend">Sin existencias</div>
+        <div class="kpi-trend"><span class="badge @DisplayHelper.BadgeClass(StockNivel.Critico)">@DisplayHelper.StatusText(StockNivel.Critico)</span></div>
     </div>
 </div>
 
