@@ -425,6 +425,23 @@ public class DeletePlantaInventarioViewModel
     public string? Message { get; set; }
 }
 
+public class ConsultarPlantasInventarioViewModel
+{
+    public int? PlantaInventarioId { get; set; }
+    public IReadOnlyList<PlantaInventario> Plantas { get; set; } = [];
+    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public IReadOnlyList<PlantaInventarioResumenItem> Resumen { get; set; } = [];
+}
+
+public class PlantaInventarioResumenItem
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public int Materiales { get; set; }
+    public int Bajo { get; set; }
+    public int Critico { get; set; }
+}
+
 // Pantalla de reportes con filtros opcionales
 public class ReportesIndexViewModel
 {

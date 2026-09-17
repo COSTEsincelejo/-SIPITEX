@@ -204,25 +204,37 @@ public class PlantaInventarioServiceTests
     }
 
     [Fact]
-    public void PlantasInventarioController_SoloAdministrador_NoEncargadoDeBodegaNiInstructor()
+    public void PlantasInventarioController_CrudSoloAdministrador_ConsultarIncluyeInstructorYEncargado()
     {
         var classAttr = typeof(PlantasInventarioController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(classAttr);
-        Assert.Equal(UserRoles.Administrador, classAttr!.Roles);
-        Assert.DoesNotContain(UserRoles.EncargadoDeBodega, classAttr.Roles!, StringComparison.Ordinal);
-        Assert.DoesNotContain(UserRoles.Instructor, classAttr.Roles!, StringComparison.Ordinal);
+        Assert.True(string.IsNullOrEmpty(classAttr!.Roles));
 
         foreach (var method in typeof(PlantasInventarioController)
                      .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-                     .Where(m => m.Name is nameof(PlantasInventarioController.Edit) or nameof(PlantasInventarioController.Delete)))
+                     .Where(m => m.Name is nameof(PlantasInventarioController.Index)
+                         or nameof(PlantasInventarioController.Create)
+                         or nameof(PlantasInventarioController.Edit)
+                         or nameof(PlantasInventarioController.Delete)))
         {
-            var methodAttr = method.GetCustomAttribute<AuthorizeAttribute>();
-            if (methodAttr?.Roles is string roles)
-            {
-                Assert.DoesNotContain(UserRoles.EncargadoDeBodega, roles, StringComparison.Ordinal);
-                Assert.DoesNotContain(UserRoles.Instructor, roles, StringComparison.Ordinal);
-            }
+            var methodAttr = method.GetCustomAttributes<AuthorizeAttribute>()
+                .FirstOrDefault(a => !string.IsNullOrEmpty(a.Roles));
+            Assert.NotNull(methodAttr);
+            Assert.Equal(UserRoles.Administrador, methodAttr!.Roles);
+            Assert.DoesNotContain(UserRoles.EncargadoDeBodega, methodAttr.Roles!, StringComparison.Ordinal);
+            Assert.DoesNotContain(UserRoles.Instructor, methodAttr.Roles!, StringComparison.Ordinal);
         }
+
+        var consultar = typeof(PlantasInventarioController)
+            .GetMethod(nameof(PlantasInventarioController.Consultar));
+        Assert.NotNull(consultar);
+        var consultarRoles = consultar!.GetCustomAttributes<AuthorizeAttribute>()
+            .Select(a => a.Roles)
+            .FirstOrDefault(r => !string.IsNullOrEmpty(r));
+        Assert.NotNull(consultarRoles);
+        Assert.Contains(UserRoles.Administrador, consultarRoles, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.Instructor, consultarRoles, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.EncargadoDeBodega, consultarRoles, StringComparison.Ordinal);
     }
 
     [Fact]
