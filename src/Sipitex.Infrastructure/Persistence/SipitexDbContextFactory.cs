@@ -7,8 +7,13 @@ public sealed class SipitexDbContextFactory : IDesignTimeDbContextFactory<Sipite
 {
     public SipitexDbContext CreateDbContext(string[] args)
     {
+        var fromEnv = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+            ?? Environment.GetEnvironmentVariable("DATABASE_URL");
+        var connection = string.IsNullOrWhiteSpace(fromEnv)
+            ? PostgresDefaults.LocalConnectionString
+            : PostgresConnection.Normalize(fromEnv);
         var options = new DbContextOptionsBuilder<SipitexDbContext>()
-            .UseNpgsql(PostgresDefaults.LocalConnectionString)
+            .UseNpgsql(connection)
             .Options;
         return new SipitexDbContext(options);
     }

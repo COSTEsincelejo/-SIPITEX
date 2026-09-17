@@ -108,9 +108,39 @@ dotnet ef migrations add NombreCambio \
 - **BD legacy completa** (EnsureCreated / SQL manual, sin historial): se aplica baseline automático y luego `MigrateAsync` no vuelve a crear tablas.
 - **BD legacy incompleta** (faltan columnas/tablas del modelo actual): el baseline **no** se aplica y el arranque falla con mensaje explícito (para no ocultar el desfase).
 
-Las migraciones SQLite anteriores se reemplazaron por un `InitialCreate` limpio para PostgreSQL. No hay ruta automática de conversión de un archivo `sipitex.db` existente: exporte datos si hace falta y arranque contra Postgres vacío.
+Las migraciones SQLite anteriores se reemplazaron por un `InitialCreate` limpio para PostgreSQL.
 
-### Antes de desplegar en CMTC / producción
+### Datos existentes en SQLite (`sipitex.db`)
+
+No hay conversión automática al arrancar. Opciones:
+
+1. **Sin datos de producción** (recomendado si el SQLite de Render ya se perdía en cada deploy): arrancar contra Postgres vacío. `MigrateAsync` crea el esquema y el seed (`Seed:DemoUsers`).
+2. **Hay fichas/insumos/usuarios reales en un `.db` local:** exportar antes de apagar SQLite.
+
+```bash
+# Inventario del archivo SQLite (si todavía existe)
+sqlite3 sipitex.db ".tables"
+sqlite3 sipitex.db ".dump" > sipitex-sqlite.sql
+
+# Carga a Postgres con pgloader (mapea tipos; revisar decimales/booleanos)
+#   apt/brew install pgloader
+pgloader sipitex.db postgresql://sipitex:sipitex@localhost:5432/sipitex
+```
+
+Después de pgloader, en Postgres vacío de historial EF:
+
+```sql
+-- Solo si las tablas ya existen y coinciden con InitialCreate
+INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+VALUES ('20260917022019_InitialCreate', '10.0.0')
+ON CONFLICT DO NOTHING;
+```
+
+Luego arrancar la app para que `MigrateAsync` aplique migraciones posteriores (p. ej. costo promedio ponderado). Validar conteos (`Users`, `Materials`, `BomProducts`, `ProductionOrders`) antes de borrar el `.db`.
+
+Si pgloader no está disponible, recrear el catálogo con el seed de `DbInitializer` y cargar insumos/fichas a mano desde la UI.
+
+Haga el backup **manualmente** antes del primer arranque con una versión nueva. El código de arranque no lo automatiza.
 
 ```bash
 pg_dump -Fc -d sipitex -f sipitex.dump
@@ -152,6 +182,8 @@ Este agente **no crea** el servicio en la consola de Render. Hay que vincular el
 6. La pantalla de login es `https://<servicio>.onrender.com/Account/Login`. Con `Seed__DemoUsers=true` valen los usuarios demo; si no, el admin de `ADMIN_SEED_PASSWORD`.
 
 Los datos **persisten** en Postgres administrado entre reinicios del Web Service (a diferencia del SQLite efímero en disco del contenedor).
+
+Render a veces entrega `DATABASE_URL` en forma `postgres://usuario:clave@host:5432/db`. El arranque acepta esa URI (o `ConnectionStrings__DefaultConnection`) y la normaliza a formato Npgsql, con `SSL Mode=Require` cuando el host es `*.render.com`.
 
 La URL pública la asigna Render al crear el servicio (`https://<nombre>.onrender.com`). No se publica aquí una URL concreta porque depende de la cuenta y del nombre del servicio.
 
