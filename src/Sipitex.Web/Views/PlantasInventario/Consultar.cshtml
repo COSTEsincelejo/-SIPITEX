@@ -1,16 +1,17 @@
 @model ConsultarPlantasInventarioViewModel
 @{
-    ViewData["Title"] = "Consultar plantas de inventario";
-    ViewData["Breadcrumb"] = "SIPITEX / Operación / Consultar plantas de inventario";
+    ViewData["Title"] = "Inventario por bodega";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Inventario por bodega";
     Layout = "_Layout";
     var canManageCatalog = User.IsInRole("Administrador");
     var selected = Model.Plantas.FirstOrDefault(p => p.Id == Model.PlantaInventarioId);
+    var nivelActual = Model.Nivel ?? "";
 }
 
 <div class="page-header">
     <div>
-        <h2>Consultar plantas de inventario</h2>
-        <div class="sub">Vea el stock de cada planta por separado, o el resumen de todas las plantas a su alcance.</div>
+        <h2>Inventario por bodega</h2>
+        <div class="sub">Consulte los insumos y el stock de cada planta de inventario a su alcance.</div>
     </div>
     @if (canManageCatalog)
     {
@@ -44,7 +45,7 @@
             <button type="submit" class="primary"><i class="fas fa-filter"></i> Ver</button>
         </div>
     </form>
-    <div class="row-actions" style="flex-wrap:wrap;gap:8px;margin-top:12px;">
+    <div class="row-actions" style="flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:flex-start;">
         <a class="@(Model.PlantaInventarioId is null ? "small primary" : "small ghost")" asp-action="Consultar">Todas</a>
         @foreach (var p in Model.Plantas)
         {
@@ -69,7 +70,7 @@
                     <thead>
                         <tr>
                             <th>Planta</th>
-                            <th>Materiales</th>
+                            <th>Insumos</th>
                             <th>Bajo</th>
                             <th>Crítico</th>
                             <th></th>
@@ -116,42 +117,100 @@
 }
 else
 {
-    <div class="card">
+    <div class="card" id="inventarioBodegaCard">
         <div class="card-title"><i class="fas fa-boxes-stacked"></i> Inventario@(selected is null ? "" : $" · {selected.Nombre}")</div>
-        @if (!Model.Materials.Any())
+        @if (Model.TotalSinFiltro == 0)
         {
-            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin materiales", Text = "Esta planta no tiene materiales en su alcance, o no hay inventario registrado.", ActionText = null }' />
+            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin insumos", Text = "Esta bodega no tiene insumos registrados.", ActionText = null }' />
         }
         else
         {
+            <form asp-action="Consultar" method="get" class="form-row" id="inventarioFiltrosForm">
+                <input type="hidden" name="plantaInventarioId" value="@Model.PlantaInventarioId" />
+                <div class="field" style="min-width:220px;flex:1;">
+                    <label class="field-label" for="inventarioQ">Buscar insumo</label>
+                    <input id="inventarioQ" name="q" type="search" value="@Model.Q" placeholder="Nombre del insumo" autocomplete="off" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                    <span class="field-label">Nivel de stock</span>
+                    <div class="row-actions" style="justify-content:flex-start;gap:6px;">
+                        <button type="submit" name="nivel" value="" class="small @(string.IsNullOrEmpty(nivelActual) ? "primary" : "ghost")" data-nivel="">Todos</button>
+                        <button type="submit" name="nivel" value="@nameof(StockNivel.Bajo)" class="small @(string.Equals(nivelActual, nameof(StockNivel.Bajo), StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@nameof(StockNivel.Bajo)">Bajo</button>
+                        <button type="submit" name="nivel" value="@nameof(StockNivel.Critico)" class="small @(string.Equals(nivelActual, nameof(StockNivel.Critico), StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@nameof(StockNivel.Critico)">Crítico</button>
+                        <button type="submit" name="nivel" value="@InventarioConsultaFilter.Faltantes" class="small @(string.Equals(nivelActual, InventarioConsultaFilter.Faltantes, StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@InventarioConsultaFilter.Faltantes">Bajo y crítico</button>
+                    </div>
+                </div>
+            </form>
             <div class="table-wrap">
-                <table>
+                <table id="inventarioBodegaTable">
                     <thead>
                         <tr>
-                            <th>Material</th>
-                            <th>Unidad</th>
-                            <th>Stock</th>
-                            <th>Mínimo</th>
-                            <th>Estado</th>
-                            <th>Última entrada</th>
+                            <th>Insumo</th>
+                            <th>Cantidad disponible</th>
+                            <th>Unidad de medida</th>
+                            <th>Nivel de stock</th>
+                            <th>Costo promedio ponderado</th>
                         </tr>
                     </thead>
                     <tbody>
                     @foreach (var mat in Model.Materials)
                     {
                         var nivel = StockNivelHelper.Classify(mat.Stock, mat.MinStock);
-                        <tr>
+                        <tr data-name="@mat.Name" data-nivel="@nivel">
                             <td><strong>@mat.Name</strong></td>
-                            <td>@mat.UnitDisplay</td>
                             <td>@mat.Stock.ToString("0.0")</td>
-                            <td>@mat.MinStock.ToString("0.##")</td>
+                            <td>@mat.UnitDisplay</td>
                             <td><span class="badge @DisplayHelper.BadgeClass(nivel)">@DisplayHelper.StatusText(nivel)</span></td>
-                            <td>@mat.LastEntryDate.ToString("yyyy-MM-dd")</td>
+                            <td>@mat.CostoPromedioPonderado.ToString("0.####")</td>
                         </tr>
                     }
                     </tbody>
                 </table>
             </div>
+            <div id="inventarioFiltroVacio" class="empty-state" hidden>
+                <div class="empty-icon"><i class="fas fa-filter"></i></div>
+                <h3>Sin coincidencias</h3>
+                <p>Ningún insumo coincide con el nombre o el nivel de stock seleccionados.</p>
+            </div>
         }
     </div>
+}
+
+@if (Model.PlantaInventarioId is not null && Model.TotalSinFiltro > 0)
+{
+    <script>
+        (function () {
+            const input = document.getElementById('inventarioQ');
+            const table = document.getElementById('inventarioBodegaTable');
+            const empty = document.getElementById('inventarioFiltroVacio');
+            if (!input || !table) return;
+
+            const nivelFiltro = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(nivelActual));
+
+            function matchesNivel(actual) {
+                if (!nivelFiltro) return true;
+                if (nivelFiltro.toLowerCase() === 'faltantes') return actual === 'Bajo' || actual === 'Critico';
+                return actual.toLowerCase() === nivelFiltro.toLowerCase();
+            }
+
+            function apply() {
+                const term = (input.value || '').trim().toLowerCase();
+                const rows = table.tBodies[0]?.rows || [];
+                let visible = 0;
+                for (const row of rows) {
+                    const name = (row.getAttribute('data-name') || '').toLowerCase();
+                    const rowNivel = row.getAttribute('data-nivel') || '';
+                    const show = name.includes(term) && matchesNivel(rowNivel);
+                    row.hidden = !show;
+                    if (show) visible++;
+                }
+                const wrap = table.closest('.table-wrap');
+                if (wrap) wrap.hidden = visible === 0;
+                if (empty) empty.hidden = visible !== 0;
+            }
+
+            input.addEventListener('input', apply);
+            apply();
+        })();
+    </script>
 }

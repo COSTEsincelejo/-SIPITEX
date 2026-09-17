@@ -67,6 +67,27 @@ public class ModuleAccessTests
             var response = await client.GetAsync(path);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
+
+        var planta1 = await client.GetAsync("/PlantasInventario/Consultar?plantaInventarioId=1");
+        Assert.Equal(HttpStatusCode.OK, planta1.StatusCode);
+        var planta1Html = await planta1.Content.ReadAsStringAsync();
+        Assert.Contains("Inventario por bodega", planta1Html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Tela Jersey", planta1Html, StringComparison.Ordinal);
+        Assert.Contains("Costo promedio ponderado", planta1Html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Nivel de stock", planta1Html, StringComparison.OrdinalIgnoreCase);
+
+        var planta2 = await client.GetAsync("/PlantasInventario/Consultar?plantaInventarioId=2");
+        Assert.Equal(HttpStatusCode.OK, planta2.StatusCode);
+        var planta2Html = await planta2.Content.ReadAsStringAsync();
+        Assert.Contains("Sin insumos", planta2Html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Esta bodega no tiene insumos registrados", planta2Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Tela Jersey", planta2Html, StringComparison.Ordinal);
+
+        var criticos = await client.GetAsync("/PlantasInventario/Consultar?plantaInventarioId=1&nivel=Critico");
+        Assert.Equal(HttpStatusCode.OK, criticos.StatusCode);
+        var criticosHtml = await criticos.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("Tela Jersey", criticosHtml, StringComparison.Ordinal);
+        Assert.Contains("Crítico", criticosHtml, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -93,7 +114,7 @@ public class ModuleAccessTests
         var consultar = await client.GetAsync("/PlantasInventario/Consultar");
         Assert.Equal(HttpStatusCode.OK, consultar.StatusCode);
         var consultarHtml = await consultar.Content.ReadAsStringAsync();
-        Assert.Contains("Consultar plantas de inventario", consultarHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Inventario por bodega", consultarHtml, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Nueva planta de inventario", consultarHtml, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(">Editar<", consultarHtml, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(">Eliminar<", consultarHtml, StringComparison.OrdinalIgnoreCase);
@@ -111,14 +132,20 @@ public class ModuleAccessTests
         var consultar = await client.GetAsync("/PlantasInventario/Consultar");
         Assert.Equal(HttpStatusCode.OK, consultar.StatusCode);
         var html = await consultar.Content.ReadAsStringAsync();
-        Assert.Contains("Consultar plantas de inventario", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Inventario por bodega", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Planta de Inventario 2", html, StringComparison.Ordinal);
 
         var ajena = await client.GetAsync("/PlantasInventario/Consultar?plantaInventarioId=2");
         Assert.Equal(HttpStatusCode.OK, ajena.StatusCode);
         var ajenaHtml = await ajena.Content.ReadAsStringAsync();
         Assert.DoesNotContain("Planta de Inventario 2", ajenaHtml, StringComparison.Ordinal);
-        Assert.Contains("Sin materiales", ajenaHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Planta de Inventario 1", ajenaHtml, StringComparison.Ordinal);
+
+        var propia = await client.GetAsync("/PlantasInventario/Consultar?plantaInventarioId=1");
+        Assert.Equal(HttpStatusCode.OK, propia.StatusCode);
+        var propiaHtml = await propia.Content.ReadAsStringAsync();
+        Assert.Contains("Tela Jersey", propiaHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Planta de Inventario 2", propiaHtml, StringComparison.Ordinal);
     }
 
     private async Task<HttpClient> LoginAsync(string email, string password)

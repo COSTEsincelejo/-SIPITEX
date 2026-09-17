@@ -62,7 +62,7 @@
             @if (User.IsInRole("Administrador") || User.IsInRole("Instructor") || User.IsInRole("Encargado de bodega"))
             {
                 <a class="@(controller.Equals("PlantasInventario", StringComparison.OrdinalIgnoreCase) && action.Equals("Consultar", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
-                   asp-controller="PlantasInventario" asp-action="Consultar"><i class="fas fa-clipboard-list"></i> Consultar plantas de inventario</a>
+                   asp-controller="PlantasInventario" asp-action="Consultar"><i class="fas fa-clipboard-list"></i> Inventario por bodega</a>
             }
             @* Cola de solicitudes y materiales de órdenes: Admin (todo), Encargado (su planta), Instructor (sus grupos/órdenes). *@
             @if (User.IsInRole("Administrador") || User.IsInRole("Instructor") || User.IsInRole("Encargado de bodega"))

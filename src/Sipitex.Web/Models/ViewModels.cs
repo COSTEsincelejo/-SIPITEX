@@ -432,6 +432,9 @@ public class ConsultarPlantasInventarioViewModel
     public IReadOnlyList<PlantaInventario> Plantas { get; set; } = [];
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
     public IReadOnlyList<PlantaInventarioResumenItem> Resumen { get; set; } = [];
+    public string? Q { get; set; }
+    public string? Nivel { get; set; }
+    public int TotalSinFiltro { get; set; }
 }
 
 public class PlantaInventarioResumenItem

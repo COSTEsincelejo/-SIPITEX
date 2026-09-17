@@ -48,10 +48,18 @@ public class PlantasInventarioController : Controller
 
     [HttpGet]
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor},{UserRoles.EncargadoDeBodega}")]
-    public async Task<IActionResult> Consultar(int? plantaInventarioId, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Consultar(
+        int? plantaInventarioId,
+        string? q = null,
+        string? nivel = null,
+        CancellationToken cancellationToken = default)
     {
         var plantas = VisiblePlantas(await _plantas.GetAllAsync(cancellationToken));
+        if (plantaInventarioId is int requested && plantas.All(p => p.Id != requested))
+            plantaInventarioId = null;
+
         var materials = await _inventory.GetMaterialsByPlantaAsync(plantaInventarioId, cancellationToken);
+        var totalSinFiltro = materials.Count;
 
         IReadOnlyList<PlantaInventarioResumenItem> resumen = [];
         if (plantaInventarioId is null)
@@ -70,12 +78,17 @@ public class PlantasInventarioController : Controller
             }).ToList();
         }
 
+        materials = InventarioConsultaFilter.Apply(materials, q, nivel);
+
         return View(new ConsultarPlantasInventarioViewModel
         {
             PlantaInventarioId = plantaInventarioId,
             Plantas = plantas,
             Materials = materials,
-            Resumen = resumen
+            Resumen = resumen,
+            Q = q,
+            Nivel = nivel,
+            TotalSinFiltro = totalSinFiltro
         });
     }
 
