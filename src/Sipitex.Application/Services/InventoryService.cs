@@ -18,6 +18,7 @@ public class InventoryService : IInventoryService
     private readonly IStockMovementRepository _stockMovements;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
+    private readonly IInsumoCostoService _insumoCosto;
 
     public InventoryService(
         IMaterialRepository materialRepository,
@@ -26,7 +27,8 @@ public class InventoryService : IInventoryService
         IBomRepository bomRepository,
         IStockMovementRepository stockMovements,
         IUnitOfWork unitOfWork,
-        ICurrentPlantaInventarioAccessor? plantaInventarioAccessor = null)
+        ICurrentPlantaInventarioAccessor? plantaInventarioAccessor = null,
+        IInsumoCostoService? insumoCosto = null)
     {
         _materialRepository = materialRepository;
         _requestRepository = requestRepository;
@@ -35,6 +37,7 @@ public class InventoryService : IInventoryService
         _stockMovements = stockMovements;
         _unitOfWork = unitOfWork;
         _plantaAccessor = plantaInventarioAccessor ?? NullCurrentPlantaInventarioAccessor.Instance;
+        _insumoCosto = insumoCosto ?? new InsumoCostoService();
     }
 
     // Traigo todos los materiales ya mapeados a DTO para la vista
@@ -83,19 +86,31 @@ public class InventoryService : IInventoryService
         if (actorUserId <= 0)
             return ServiceResult.Fail("Usuario responsable no válido.");
 
-        // Armo la entidad con valores iniciales
+        if (dto.CostoAdquisicion < 0)
+            return ServiceResult.Fail("El precio unitario de compra no puede ser negativo.");
+
+        var precio = Math.Max(0, dto.CostoAdquisicion);
+
+        // Armo la entidad con valores iniciales. Stock se asigna después de RegistrarCompra
+        // para que el promedio ponderado use el stock previo (cero en el alta).
         var material = new Material
         {
             // Código único con ticks para no repetir
             Code = $"mat{DateTime.UtcNow.Ticks}",
             Name = dto.Name.Trim(),
             Unit = dto.Unit,
-            Stock = dto.Stock,
+            Stock = 0,
             MinStock = 10, // por ahora fijo, después podría ser configurable
             Status = MaterialStatus.Bueno,
             LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
-            CostoAdquisicion = Math.Max(0, dto.CostoAdquisicion)
+            CostoAdquisicion = precio,
+            CostoPromedioPonderado = precio
         };
+
+        if (dto.Origen == StockEntryOrigin.Compra)
+            _insumoCosto.RegistrarCompra(material, dto.Stock, precio);
+
+        material.Stock = dto.Stock;
 
         // INSERT en el contexto de EF
         await _materialRepository.AddAsync(material, cancellationToken);
@@ -111,7 +126,7 @@ public class InventoryService : IInventoryService
             Cantidad = material.Stock,
             StockResultante = material.Stock,
             Referencia = $"Material:{material.Id}",
-            CostoUnitario = material.CostoAdquisicion
+            CostoUnitario = dto.Origen == StockEntryOrigin.Compra ? precio : (precio > 0 ? precio : null)
         }, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok("Material agregado.");
@@ -133,9 +148,23 @@ public class InventoryService : IInventoryService
         var previous = material.Stock;
         var newStock = Math.Max(0, dto.NewStock);
         var isIncrease = newStock > previous;
+        var delta = newStock - previous;
+        var isCompra = isIncrease && dto.Origen == StockEntryOrigin.Compra;
 
         if (isIncrease && (dto.Origen is null || !Enum.IsDefined(dto.Origen.Value)))
             return ServiceResult.Fail("Indique el origen de la entrada (compra, devolución u otra fuente autorizada).");
+
+        if (isCompra)
+        {
+            if (dto.PrecioUnitario is null)
+                return ServiceResult.Fail("El precio unitario de compra es obligatorio.");
+            if (dto.PrecioUnitario.Value < 0)
+                return ServiceResult.Fail("El precio unitario de compra no puede ser negativo.");
+        }
+
+        // Recalcular el promedio con el stock previo a la entrada, luego sumar la compra.
+        if (isCompra)
+            _insumoCosto.RegistrarCompra(material, delta, dto.PrecioUnitario!.Value);
 
         // Math.Max evita stock negativo
         material.Stock = newStock;
@@ -144,7 +173,6 @@ public class InventoryService : IInventoryService
         // Marco la entidad como modificada
         _materialRepository.Update(material);
 
-        var delta = material.Stock - previous;
         await _stockMovements.AddAsync(new StockMovement
         {
             MaterialId = material.Id,
@@ -154,7 +182,8 @@ public class InventoryService : IInventoryService
             Origen = isIncrease ? dto.Origen : null,
             Cantidad = Math.Abs(delta),
             StockResultante = material.Stock,
-            Referencia = $"Ajuste:{material.Id}"
+            Referencia = $"Ajuste:{material.Id}",
+            CostoUnitario = isCompra ? dto.PrecioUnitario : null
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -341,7 +370,8 @@ public class InventoryService : IInventoryService
         m.LastEntryDate,
         m.CostoAdquisicion,
         m.PlantaInventarioId,
-        m.PlantaInventario?.Nombre ?? string.Empty);
+        m.PlantaInventario?.Nombre ?? string.Empty,
+        m.CostoPromedioPonderado);
 
     private static bool IsAdmin(string? role) =>
         string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);

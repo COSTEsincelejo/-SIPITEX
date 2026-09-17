@@ -2,7 +2,7 @@ using Sipitex.Application.DTOs;
 
 namespace Sipitex.Application.Interfaces.Services;
 
-// Promedio ponderado de costo de materiales consumidos (cantidad × costo de adquisición).
+// Promedio ponderado de costo de materiales consumidos (cantidad × costo unitario al momento).
 public interface IMaterialConsumptionCostService
 {
     decimal CalcularPromedioPonderado(IReadOnlyList<ConsumoCostoLineaDto> lineas);

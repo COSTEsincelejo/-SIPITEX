@@ -15,22 +15,28 @@ public class UnitOfWork : IUnitOfWork
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
         _context.SaveChangesAsync(cancellationToken);
 
-    // Transacción explícita para operaciones atómicas (p. ej. aprobar ítem + descontar stock)
-    public async Task ExecuteInTransactionAsync(
+    // Transacción explícita para operaciones atómicas (p. ej. aprobar ítem + descontar stock).
+    // Debe ir dentro de CreateExecutionStrategy porque Npgsql RetryOnFailure no admite
+    // transacciones iniciadas por el usuario fuera de la estrategia.
+    public Task ExecuteInTransactionAsync(
         Func<CancellationToken, Task> action,
         CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        try
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return strategy.ExecuteAsync(async () =>
         {
-            await action(cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                await action(cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
     }
 }

@@ -69,7 +69,7 @@ public class MaterialConsumptionService : IMaterialConsumptionService
             return ServiceResult.Fail(
                 $"Stock insuficiente de «{material.Name}»: hay {material.Stock}, se requieren {dto.Cantidad}.");
 
-        var costo = material.CostoAdquisicion;
+        var costo = material.CostoPromedioPonderado;
         var fecha = dto.FechaUtc ?? DateTime.UtcNow;
 
         await _unitOfWork.ExecuteInTransactionAsync(async ct =>
@@ -85,7 +85,7 @@ public class MaterialConsumptionService : IMaterialConsumptionService
                 Cantidad = dto.Cantidad,
                 FechaUtc = fecha,
                 ResponsableUserId = responsable.Id,
-                CostoUnitario = costo
+                CostoUnitarioAlMomento = costo
             };
             await _consumos.AddAsync(consumo, ct);
 
@@ -111,7 +111,7 @@ public class MaterialConsumptionService : IMaterialConsumptionService
         CancellationToken cancellationToken = default)
     {
         var rows = await _consumos.GetByOrderIdAsync(productionOrderId, cancellationToken);
-        var lineas = rows.Select(r => new ConsumoCostoLineaDto(r.Cantidad, r.CostoUnitario)).ToList();
+        var lineas = rows.Select(r => new ConsumoCostoLineaDto(r.Cantidad, r.CostoUnitarioAlMomento)).ToList();
         var promedio = _costService.CalcularPromedioPonderado(lineas);
         var totalCantidad = lineas.Sum(l => l.Cantidad);
         var totalCosto = lineas.Sum(l => l.Cantidad * l.CostoUnitario);
@@ -131,6 +131,6 @@ public class MaterialConsumptionService : IMaterialConsumptionService
         c.FechaUtc,
         c.ResponsableUserId,
         c.Responsable?.Nombre ?? $"#{c.ResponsableUserId}",
-        c.CostoUnitario,
-        c.Cantidad * c.CostoUnitario);
+        c.CostoUnitarioAlMomento,
+        c.Cantidad * c.CostoUnitarioAlMomento);
 }

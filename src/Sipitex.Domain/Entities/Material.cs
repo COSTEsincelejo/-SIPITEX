@@ -29,8 +29,11 @@ public class Material
     // Fecha de la última entrada/ajuste de stock (solo día, sin hora)
     public DateOnly LastEntryDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
-    // Costo de adquisición vigente por unidad de medida (para promedio ponderado de consumo).
+    // Último precio unitario de compra (catálogo). No se usa para costear prendas ya producidas.
     public decimal CostoAdquisicion { get; set; }
+
+    // Costo promedio ponderado vigente. Se recalcula al registrar una compra con el stock previo a la entrada.
+    public decimal CostoPromedioPonderado { get; set; }
 
     // FK obligatoria a la plantaInventario dueña de este material (default 1 = PlantaInventario 1, alineado al backfill)
     public int PlantaInventarioId { get; set; } = 1;

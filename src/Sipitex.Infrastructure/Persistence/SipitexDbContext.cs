@@ -104,6 +104,7 @@ public class SipitexDbContext : DbContext
             e.Property(m => m.Stock).HasPrecision(18, 2);
             e.Property(m => m.MinStock).HasPrecision(18, 2);
             e.Property(m => m.CostoAdquisicion).HasPrecision(18, 4);
+            e.Property(m => m.CostoPromedioPonderado).HasPrecision(18, 4);
             e.HasOne(m => m.PlantaInventario)
                 .WithMany(b => b.Materiales)
                 .HasForeignKey(m => m.PlantaInventarioId)
@@ -697,7 +698,7 @@ public class SipitexDbContext : DbContext
         {
             e.HasKey(c => c.Id);
             e.Property(c => c.Cantidad).HasPrecision(18, 2);
-            e.Property(c => c.CostoUnitario).HasPrecision(18, 4);
+            e.Property(c => c.CostoUnitarioAlMomento).HasPrecision(18, 4);
             e.HasOne(c => c.ProductionOrder)
                 .WithMany(o => o.Consumos)
                 .HasForeignKey(c => c.ProductionOrderId)

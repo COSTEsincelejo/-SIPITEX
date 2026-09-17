@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using Sipitex.Infrastructure.Data;
 using Sipitex.Infrastructure.Persistence;
@@ -13,6 +15,12 @@ public class MigrationBaselineTests
             .UseNpgsql(connectionString)
             .Options;
         return new SipitexDbContext(options);
+    }
+
+    private static int CountRegisteredMigrations()
+    {
+        using var context = CreateContext("Host=localhost;Database=unused;Username=u;Password=p");
+        return context.Database.GetMigrations().Count();
     }
 
     private static async Task<int> CountMigrationRowsAsync(string connectionString)
@@ -58,7 +66,7 @@ public class MigrationBaselineTests
             Assert.True(await TableExistsAsync(connectionString, "ProductionSessions"));
             Assert.True(await TableExistsAsync(connectionString, "Users"));
             Assert.True(await TableExistsAsync(connectionString, "__EFMigrationsHistory"));
-            Assert.Equal(1, await CountMigrationRowsAsync(connectionString));
+            Assert.Equal(CountRegisteredMigrations(), await CountMigrationRowsAsync(connectionString));
             Assert.True(await TableExistsAsync(connectionString, "PlantasInventario"));
             Assert.True(await TableExistsAsync(connectionString, "UserPlantasInventario"));
             Assert.True(await TableExistsAsync(connectionString, "FichaInstructors"));
@@ -101,8 +109,8 @@ public class MigrationBaselineTests
             string initialId;
             await using (var context = CreateContext(connectionString))
             {
-                await context.Database.MigrateAsync();
                 initialId = MigrationBaseline.InitialCreateMigrationId(context);
+                await context.Database.GetService<IMigrator>().MigrateAsync(initialId);
             }
 
             await using (var conn = new NpgsqlConnection(connectionString))
@@ -123,14 +131,20 @@ public class MigrationBaselineTests
             }
 
             Assert.True(await TableExistsAsync(connectionString, "__EFMigrationsHistory"));
-            Assert.Equal(1, await CountMigrationRowsAsync(connectionString));
+            Assert.Equal(CountRegisteredMigrations(), await CountMigrationRowsAsync(connectionString));
             Assert.True(await TableExistsAsync(connectionString, "PrendasTrazables"));
 
             await using (var conn = new NpgsqlConnection(connectionString))
             {
                 await conn.OpenAsync();
                 await using var cmd = conn.CreateCommand();
-                cmd.CommandText = """SELECT "MigrationId" FROM "__EFMigrationsHistory";""";
+                cmd.CommandText =
+                    """
+                    SELECT "MigrationId"
+                    FROM "__EFMigrationsHistory"
+                    ORDER BY "MigrationId"
+                    LIMIT 1;
+                    """;
                 var id = (string?)await cmd.ExecuteScalarAsync();
                 Assert.Equal(initialId, id);
                 Assert.Contains("InitialCreate", id, StringComparison.Ordinal);
@@ -155,7 +169,7 @@ public class MigrationBaselineTests
             }
 
             var before = await CountMigrationRowsAsync(connectionString);
-            Assert.Equal(1, before);
+            Assert.Equal(CountRegisteredMigrations(), before);
 
             await using (var context = CreateContext(connectionString))
             {

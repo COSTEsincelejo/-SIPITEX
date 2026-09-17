@@ -51,7 +51,15 @@ public class MaterialConsumptionServiceTests
     [Fact]
     public async Task RegisterAsync_DescuentaStockYSnapshotDeCosto()
     {
-        var material = new Material { Id = 2, Name = "Tela", Stock = 20, CostoAdquisicion = 12.5m, Unit = MaterialUnit.Metros };
+        var material = new Material
+        {
+            Id = 2,
+            Name = "Tela",
+            Stock = 20,
+            CostoAdquisicion = 12.5m,
+            CostoPromedioPonderado = 12.5m,
+            Unit = MaterialUnit.Metros
+        };
         _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-9" });
         _materials.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(material);
@@ -68,7 +76,7 @@ public class MaterialConsumptionServiceTests
         Assert.True(result.Success, result.Message);
         Assert.Equal(16, material.Stock);
         Assert.NotNull(saved);
-        Assert.Equal(12.5m, saved!.CostoUnitario);
+        Assert.Equal(12.5m, saved!.CostoUnitarioAlMomento);
         Assert.Equal(4, saved.Cantidad);
         _stock.Verify(r => r.AddAsync(It.Is<StockMovement>(m =>
             m.TipoMovimiento == StockMovementType.Salida && m.Cantidad == 4 && m.CostoUnitario == 12.5m),
@@ -81,8 +89,8 @@ public class MaterialConsumptionServiceTests
         _consumos.Setup(r => r.GetByOrderIdAsync(4, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
-                new ConsumoMaterial { Cantidad = 2, CostoUnitario = 10 },
-                new ConsumoMaterial { Cantidad = 6, CostoUnitario = 20 }
+                new ConsumoMaterial { Cantidad = 2, CostoUnitarioAlMomento = 10 },
+                new ConsumoMaterial { Cantidad = 6, CostoUnitarioAlMomento = 20 }
             ]);
 
         var resumen = await CreateSut().GetCostoPromedioByOrderAsync(4);
@@ -90,5 +98,37 @@ public class MaterialConsumptionServiceTests
         Assert.Equal(8, resumen.CantidadTotal);
         Assert.Equal(17.5m, resumen.CostoPromedioPonderado);
         Assert.Equal(140, resumen.CostoTotal);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_SnapshotNoSigueAlPromedioPosterior()
+    {
+        var material = new Material
+        {
+            Id = 2,
+            Name = "Tela",
+            Stock = 20,
+            CostoPromedioPonderado = 15m,
+            CostoAdquisicion = 15m
+        };
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-1" });
+        _materials.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(material);
+        _users.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = 7, Nombre = "Ana" });
+
+        ConsumoMaterial? saved = null;
+        _consumos.Setup(r => r.AddAsync(It.IsAny<ConsumoMaterial>(), It.IsAny<CancellationToken>()))
+            .Callback<ConsumoMaterial, CancellationToken>((c, _) => saved = c)
+            .Returns(Task.CompletedTask);
+
+        var result = await CreateSut().RegisterAsync(new RegisterConsumoMaterialDto(1, 2, 3, 7));
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(15m, saved!.CostoUnitarioAlMomento);
+
+        material.CostoPromedioPonderado = 40m;
+        material.CostoAdquisicion = 40m;
+
+        Assert.Equal(15m, saved.CostoUnitarioAlMomento);
     }
 }
