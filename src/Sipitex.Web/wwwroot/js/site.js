@@ -302,6 +302,7 @@
       { texto: 'Alertas', url: '/Alertas', keywords: 'alertas notificaciones correo', icon: 'fa-bell' },
       { texto: 'Usuarios', url: '/Account/Users', keywords: 'usuarios administración cuentas', icon: 'fa-users-gear' },
       { texto: 'Plantas de inventario', url: '/PlantasInventario', keywords: 'plantas inventario administración almacén encargado bodega bodega', icon: 'fa-warehouse' },
+      { texto: 'Inventario por bodega', url: '/PlantasInventario/Consultar', keywords: 'inventario bodega planta stock insumos faltantes', icon: 'fa-clipboard-list' },
       { texto: 'Mi perfil', url: '/Account/Profile', keywords: 'perfil cuenta foto contraseña', icon: 'fa-user' }
     ];
 
