@@ -2,31 +2,40 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
-// Catálogo de plantasInventario: listar, crear, editar y borrar (solo Administrador)
-[Authorize(Roles = UserRoles.Administrador)]
+// Catálogo de plantasInventario (CRUD: solo Administrador) y consulta de inventario por planta.
+[Authorize]
 public class PlantasInventarioController : Controller
 {
     private readonly IPlantaInventarioService _plantas;
     private readonly IPlantaInventarioReassignmentService _reassignment;
     private readonly IActivityLogService _activityLog;
+    private readonly IInventoryService _inventory;
+    private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
 
     public PlantasInventarioController(
         IPlantaInventarioService plantasInventario,
         IPlantaInventarioReassignmentService reassignment,
-        IActivityLogService activityLog)
+        IActivityLogService activityLog,
+        IInventoryService inventory,
+        ICurrentPlantaInventarioAccessor plantaAccessor)
     {
         _plantas = plantasInventario;
         _reassignment = reassignment;
         _activityLog = activityLog;
+        _inventory = inventory;
+        _plantaAccessor = plantaAccessor;
     }
 
     [HttpGet]
+    [Authorize(Roles = UserRoles.Administrador)]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         return View(new PlantasInventarioIndexViewModel
@@ -37,8 +46,42 @@ public class PlantasInventarioController : Controller
         });
     }
 
+    [HttpGet]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor},{UserRoles.EncargadoDeBodega}")]
+    public async Task<IActionResult> Consultar(int? plantaInventarioId, CancellationToken cancellationToken = default)
+    {
+        var plantas = VisiblePlantas(await _plantas.GetAllAsync(cancellationToken));
+        var materials = await _inventory.GetMaterialsByPlantaAsync(plantaInventarioId, cancellationToken);
+
+        IReadOnlyList<PlantaInventarioResumenItem> resumen = [];
+        if (plantaInventarioId is null)
+        {
+            resumen = plantas.Select(p =>
+            {
+                var mats = materials.Where(m => m.PlantaInventarioId == p.Id).ToList();
+                return new PlantaInventarioResumenItem
+                {
+                    Id = p.Id,
+                    Nombre = p.Nombre,
+                    Materiales = mats.Count,
+                    Bajo = mats.Count(m => StockNivelHelper.Classify(m.Stock, m.MinStock) == StockNivel.Bajo),
+                    Critico = mats.Count(m => StockNivelHelper.Classify(m.Stock, m.MinStock) == StockNivel.Critico)
+                };
+            }).ToList();
+        }
+
+        return View(new ConsultarPlantasInventarioViewModel
+        {
+            PlantaInventarioId = plantaInventarioId,
+            Plantas = plantas,
+            Materials = materials,
+            Resumen = resumen
+        });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = UserRoles.Administrador)]
     public async Task<IActionResult> Create(
         [Bind(Prefix = "Form")] CreatePlantaInventarioForm form,
         CancellationToken cancellationToken)
@@ -61,6 +104,7 @@ public class PlantasInventarioController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = UserRoles.Administrador)]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
     {
         var plantaInventario = await _plantas.GetByIdAsync(id, cancellationToken);
@@ -78,6 +122,7 @@ public class PlantasInventarioController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = UserRoles.Administrador)]
     public async Task<IActionResult> Edit(int id, EditPlantaInventarioViewModel model, CancellationToken cancellationToken)
     {
         var result = await _plantas.UpdateAsync(id, model.Nombre, cancellationToken);
@@ -102,6 +147,7 @@ public class PlantasInventarioController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = UserRoles.Administrador)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var planta = await _plantas.GetByIdAsync(id, cancellationToken);
@@ -130,6 +176,7 @@ public class PlantasInventarioController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = UserRoles.Administrador)]
     public async Task<IActionResult> Delete(int id, int? destinoId, CancellationToken cancellationToken)
     {
         var deps = await _plantas.GetDependenciasAsync(id, cancellationToken);
@@ -167,5 +214,14 @@ public class PlantasInventarioController : Controller
         TempData["Message"] = result.Message ?? (result.Success ? "Planta de inventario actualizada." : "No se pudo eliminar la planta de inventario.");
         TempData["IsSuccess"] = result.Success;
         return result.Success ? RedirectToAction(nameof(Index)) : RedirectToAction(nameof(Delete), new { id });
+    }
+
+    private IReadOnlyList<PlantaInventario> VisiblePlantas(IReadOnlyList<PlantaInventario> plantas)
+    {
+        var allowed = _plantaAccessor.PlantaInventarioIds;
+        if (allowed is null)
+            return plantas;
+
+        return plantas.Where(p => allowed.Contains(p.Id)).ToList();
     }
 }

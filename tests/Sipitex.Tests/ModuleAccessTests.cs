@@ -60,7 +60,8 @@ public class ModuleAccessTests
                      "/PlantasInventarioOrdenes/Reingreso",
                      "/Inventario/Movimientos",
                      "/Actas",
-                     "/Trazabilidad"
+                     "/Trazabilidad",
+                     "/PlantasInventario/Consultar"
                  })
         {
             var response = await client.GetAsync(path);
@@ -88,6 +89,36 @@ public class ModuleAccessTests
 
         var trazabilidad = await client.GetAsync("/Trazabilidad");
         Assert.Equal(HttpStatusCode.OK, trazabilidad.StatusCode);
+
+        var consultar = await client.GetAsync("/PlantasInventario/Consultar");
+        Assert.Equal(HttpStatusCode.OK, consultar.StatusCode);
+        var consultarHtml = await consultar.Content.ReadAsStringAsync();
+        Assert.Contains("Consultar plantas de inventario", consultarHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Nueva planta de inventario", consultarHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(">Editar<", consultarHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(">Eliminar<", consultarHtml, StringComparison.OrdinalIgnoreCase);
+
+        var catalogo = await client.GetAsync("/PlantasInventario");
+        Assert.Equal(HttpStatusCode.Redirect, catalogo.StatusCode);
+        Assert.Contains("/Account/AccessDenied", catalogo.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Encargado_ConsultaPlantaAjena_NoVeEsaPlantaNiSuInventario()
+    {
+        var client = await LoginAsync("bodega@sipitex.test", "Bodega123!");
+
+        var consultar = await client.GetAsync("/PlantasInventario/Consultar");
+        Assert.Equal(HttpStatusCode.OK, consultar.StatusCode);
+        var html = await consultar.Content.ReadAsStringAsync();
+        Assert.Contains("Consultar plantas de inventario", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Planta de Inventario 2", html, StringComparison.Ordinal);
+
+        var ajena = await client.GetAsync("/PlantasInventario/Consultar?plantaInventarioId=2");
+        Assert.Equal(HttpStatusCode.OK, ajena.StatusCode);
+        var ajenaHtml = await ajena.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("Planta de Inventario 2", ajenaHtml, StringComparison.Ordinal);
+        Assert.Contains("Sin materiales", ajenaHtml, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<HttpClient> LoginAsync(string email, string password)

@@ -6,6 +6,9 @@ namespace Sipitex.Application.Interfaces.Services;
 public interface IInventoryService
 {
     Task<IReadOnlyList<MaterialDto>> GetMaterialsAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MaterialDto>> GetMaterialsByPlantaAsync(
+        int? plantaInventarioId,
+        CancellationToken cancellationToken = default);
     Task<ServiceResult> AddMaterialAsync(CreateMaterialDto dto, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> AdjustStockAsync(AdjustStockDto dto, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateMaterialAsync(UpdateMaterialDto dto, CancellationToken cancellationToken = default);

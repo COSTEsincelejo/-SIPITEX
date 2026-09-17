@@ -15,7 +15,9 @@ public record MaterialDto(
     decimal MinStock,
     bool IsLowStock,
     DateOnly LastEntryDate,
-    decimal CostoAdquisicion = 0);
+    decimal CostoAdquisicion = 0,
+    int PlantaInventarioId = 0,
+    string PlantaInventarioNombre = "");
 
 // Datos para crear material nuevo (origen tipifica la Entrada del ledger)
 public record CreateMaterialDto(

@@ -1,0 +1,157 @@
+@model ConsultarPlantasInventarioViewModel
+@{
+    ViewData["Title"] = "Consultar plantas de inventario";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Consultar plantas de inventario";
+    Layout = "_Layout";
+    var canManageCatalog = User.IsInRole("Administrador");
+    var selected = Model.Plantas.FirstOrDefault(p => p.Id == Model.PlantaInventarioId);
+}
+
+<div class="page-header">
+    <div>
+        <h2>Consultar plantas de inventario</h2>
+        <div class="sub">Vea el stock de cada planta por separado, o el resumen de todas las plantas a su alcance.</div>
+    </div>
+    @if (canManageCatalog)
+    {
+        <div>
+            <a class="ghost" asp-action="Index"><i class="fas fa-pen-to-square"></i> Administrar catálogo</a>
+        </div>
+    }
+</div>
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-warehouse"></i> Planta de inventario</div>
+    <form asp-action="Consultar" method="get" class="form-row">
+        <div class="field" style="min-width:240px;flex:1;">
+            <label class="field-label" for="plantaInventarioId">Seleccione una planta</label>
+            <select id="plantaInventarioId" name="plantaInventarioId" onchange="this.form.submit()">
+                <option value="">Todas las plantas</option>
+                @foreach (var p in Model.Plantas)
+                {
+                    if (Model.PlantaInventarioId == p.Id)
+                    {
+                        <option value="@p.Id" selected>@p.Nombre</option>
+                    }
+                    else
+                    {
+                        <option value="@p.Id">@p.Nombre</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="field" style="align-self:flex-end;">
+            <button type="submit" class="primary"><i class="fas fa-filter"></i> Ver</button>
+        </div>
+    </form>
+    <div class="row-actions" style="flex-wrap:wrap;gap:8px;margin-top:12px;">
+        <a class="@(Model.PlantaInventarioId is null ? "small primary" : "small ghost")" asp-action="Consultar">Todas</a>
+        @foreach (var p in Model.Plantas)
+        {
+            <a class="@(Model.PlantaInventarioId == p.Id ? "small primary" : "small ghost")"
+               asp-action="Consultar" asp-route-plantaInventarioId="@p.Id">@p.Nombre</a>
+        }
+    </div>
+</div>
+
+@if (Model.PlantaInventarioId is null)
+{
+    <div class="card">
+        <div class="card-title teal"><i class="fas fa-layer-group"></i> Resumen por planta</div>
+        @if (!Model.Resumen.Any())
+        {
+            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-warehouse", Title = "Sin plantas de inventario", Text = "No hay plantas de inventario en su alcance.", ActionText = null }' />
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Planta</th>
+                            <th>Materiales</th>
+                            <th>Bajo</th>
+                            <th>Crítico</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var r in Model.Resumen)
+                    {
+                        <tr>
+                            <td><strong>@r.Nombre</strong></td>
+                            <td>@r.Materiales</td>
+                            <td>
+                                @if (r.Bajo > 0)
+                                {
+                                    <span class="badge badge-warning">@r.Bajo</span>
+                                }
+                                else
+                                {
+                                    <span>0</span>
+                                }
+                            </td>
+                            <td>
+                                @if (r.Critico > 0)
+                                {
+                                    <span class="badge badge-danger">@r.Critico</span>
+                                }
+                                else
+                                {
+                                    <span>0</span>
+                                }
+                            </td>
+                            <td>
+                                <a class="small ghost" asp-action="Consultar" asp-route-plantaInventarioId="@r.Id">
+                                    <i class="fas fa-boxes-stacked"></i> Ver inventario
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-boxes-stacked"></i> Inventario@(selected is null ? "" : $" · {selected.Nombre}")</div>
+        @if (!Model.Materials.Any())
+        {
+            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin materiales", Text = "Esta planta no tiene materiales en su alcance, o no hay inventario registrado.", ActionText = null }' />
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Unidad</th>
+                            <th>Stock</th>
+                            <th>Mínimo</th>
+                            <th>Estado</th>
+                            <th>Última entrada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var mat in Model.Materials)
+                    {
+                        var nivel = StockNivelHelper.Classify(mat.Stock, mat.MinStock);
+                        <tr>
+                            <td><strong>@mat.Name</strong></td>
+                            <td>@mat.UnitDisplay</td>
+                            <td>@mat.Stock.ToString("0.0")</td>
+                            <td>@mat.MinStock.ToString("0.##")</td>
+                            <td><span class="badge @DisplayHelper.BadgeClass(nivel)">@DisplayHelper.StatusText(nivel)</span></td>
+                            <td>@mat.LastEntryDate.ToString("yyyy-MM-dd")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}

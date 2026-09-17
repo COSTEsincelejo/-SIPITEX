@@ -17,6 +17,7 @@ public class InventoryService : IInventoryService
     private readonly IBomRepository _bomRepository;
     private readonly IStockMovementRepository _stockMovements;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
 
     public InventoryService(
         IMaterialRepository materialRepository,
@@ -24,7 +25,8 @@ public class InventoryService : IInventoryService
         IProductionOrderRepository orderRepository,
         IBomRepository bomRepository,
         IStockMovementRepository stockMovements,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICurrentPlantaInventarioAccessor? plantaInventarioAccessor = null)
     {
         _materialRepository = materialRepository;
         _requestRepository = requestRepository;
@@ -32,6 +34,7 @@ public class InventoryService : IInventoryService
         _bomRepository = bomRepository;
         _stockMovements = stockMovements;
         _unitOfWork = unitOfWork;
+        _plantaAccessor = plantaInventarioAccessor ?? NullCurrentPlantaInventarioAccessor.Instance;
     }
 
     // Traigo todos los materiales ya mapeados a DTO para la vista
@@ -40,6 +43,27 @@ public class InventoryService : IInventoryService
         // Query a la tabla Materials
         var materials = await _materialRepository.GetAllAsync(cancellationToken);
         // Paso cada entidad al DTO con unidad legible y flag de stock bajo
+        return materials.Select(MapMaterial).ToList();
+    }
+
+    public async Task<IReadOnlyList<MaterialDto>> GetMaterialsByPlantaAsync(
+        int? plantaInventarioId,
+        CancellationToken cancellationToken = default)
+    {
+        var materials = await _materialRepository.GetAllAsync(cancellationToken);
+        var allowed = _plantaAccessor.PlantaInventarioIds;
+
+        if (allowed is not null)
+        {
+            if (plantaInventarioId is int requested && !allowed.Contains(requested))
+                return [];
+
+            materials = materials.Where(m => allowed.Contains(m.PlantaInventarioId)).ToList();
+        }
+
+        if (plantaInventarioId is int id)
+            materials = materials.Where(m => m.PlantaInventarioId == id).ToList();
+
         return materials.Select(MapMaterial).ToList();
     }
 
@@ -315,7 +339,9 @@ public class InventoryService : IInventoryService
         m.MinStock,
         m.Stock < m.MinStock,
         m.LastEntryDate,
-        m.CostoAdquisicion);
+        m.CostoAdquisicion,
+        m.PlantaInventarioId,
+        m.PlantaInventario?.Nombre ?? string.Empty);
 
     private static bool IsAdmin(string? role) =>
         string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);

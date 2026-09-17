@@ -10,6 +10,9 @@
         <h2>Plantas de inventario</h2>
         <div class="sub">Cree, renombre o desactive plantas de inventario. Planta de Inventario 1 no se puede eliminar (es la planta por defecto). Si hay stock, hay que reasignarlo a otra planta antes de desactivar.</div>
     </div>
+    <div>
+        <a class="ghost" asp-action="Consultar"><i class="fas fa-clipboard-list"></i> Consultar inventario por planta</a>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
