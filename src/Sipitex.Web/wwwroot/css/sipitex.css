@@ -348,7 +348,8 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 .analysis-page button.primary:hover,.analysis-page .btn.primary:hover{background:#162948;color:#fff;}
 .analysis-page .empty-state .empty-icon{background:#DCE6F1;color:#1F3864;}
 .analysis-page .alert-info{background:#DCE6F1;color:#1F3864;border-color:#C9D6E8;}
-.analysis-page .kpi-trend .badge{margin-right:6px;}
+.analysis-page .kpi-trend .badge{margin-right:0;}
+.analysis-page .kpi-trend{display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
 .analysis-hub{
   display:flex;flex-wrap:wrap;gap:8px;margin:-6px 0 18px;padding:6px;background:var(--analysis-ice,#DCE6F1);
   border:1px solid #C9D6E8;border-radius:12px;
