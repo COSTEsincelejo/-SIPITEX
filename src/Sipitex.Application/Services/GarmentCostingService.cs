@@ -52,9 +52,7 @@ public class GarmentCostingService : IGarmentCostingService
         var costoPorUnidad = volumen > 0
             ? decimal.Round(materialesOrden / volumen, 4, MidpointRounding.AwayFromZero)
             : 0m;
-        var costoFinal = decimal.Round(costoPorUnidad * volumen, 4, MidpointRounding.AwayFromZero);
-        if (volumen == 0)
-            costoFinal = materialesOrden;
+        var costoFinal = materialesOrden;
 
         var grupos = await _grupos.GetByOrderIdAsync(productionOrderId, cancellationToken);
         var horas = grupos.Sum(Horas);
