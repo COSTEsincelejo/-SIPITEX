@@ -89,15 +89,49 @@ public class ForgotPasswordViewModel
     public string Email { get; set; } = string.Empty;
 }
 
-// Paso 2: el usuario llega con token en el link del correo
+public class RegisterViewModel
+{
+    [Required(ErrorMessage = "El nombre es obligatorio")]
+    [StringLength(120)]
+    public string Nombre { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "El correo es obligatorio")]
+    [EmailAddress(ErrorMessage = "Correo no válido")]
+    [StringLength(160)]
+    public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "La contraseña es obligatoria")]
+    [DataType(DataType.Password)]
+    [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres.")]
+    public string Password { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Confirme la contraseña")]
+    [DataType(DataType.Password)]
+    [Compare(nameof(Password), ErrorMessage = "Las contraseñas no coinciden.")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+public class VerifyEmailViewModel
+{
+    [Required(ErrorMessage = "El correo es obligatorio")]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "El código es obligatorio")]
+    [StringLength(6, MinimumLength = 6, ErrorMessage = "El código tiene 6 dígitos.")]
+    public string Code { get; set; } = string.Empty;
+}
+
+// Paso 2: código de 6 dígitos + nueva contraseña
 public class ResetPasswordViewModel
 {
     [Required]
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
-    public string Token { get; set; } = string.Empty; // viene oculto en el form
+    [Required(ErrorMessage = "El código es obligatorio")]
+    [StringLength(6, MinimumLength = 6, ErrorMessage = "El código tiene 6 dígitos.")]
+    public string Code { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria")]
     [DataType(DataType.Password)]

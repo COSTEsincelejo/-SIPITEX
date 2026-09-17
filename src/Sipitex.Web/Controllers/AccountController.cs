@@ -28,16 +28,17 @@ public class AccountController : Controller
 
     private readonly IUserAccountService _userAccountService;
     private readonly IPasswordResetService _passwordResetService;
+    private readonly IEmailVerificationService _emailVerification;
     private readonly IFuncionalidadesReportService _funcionalidadesReportService;
     private readonly IActivityLogService _activityLog;
     private readonly IPlantaInventarioService _plantaService;
     private readonly IWebHostEnvironment _environment;
     private readonly ILoginAttemptGuard _loginAttemptGuard;
 
-    // Inyecto los servicios que usa todo el controller
     public AccountController(
         IUserAccountService userAccountService,
         IPasswordResetService passwordResetService,
+        IEmailVerificationService emailVerification,
         IFuncionalidadesReportService funcionalidadesReportService,
         IActivityLogService activityLog,
         IPlantaInventarioService plantaService,
@@ -46,6 +47,7 @@ public class AccountController : Controller
     {
         _userAccountService = userAccountService;
         _passwordResetService = passwordResetService;
+        _emailVerification = emailVerification;
         _funcionalidadesReportService = funcionalidadesReportService;
         _activityLog = activityLog;
         _plantaService = plantaService;
@@ -82,9 +84,14 @@ public class AccountController : Controller
 
         // Pregunto al servicio si email y clave cuadran
         var user = await _userAccountService.AuthenticateAsync(model.Email, model.Password, cancellationToken);
-        // Usuario no existe, inactivo o contraseña mala
         if (user is null)
         {
+            if (await _userAccountService.RequiresEmailVerificationAsync(model.Email, model.Password, cancellationToken))
+            {
+                TempData["SuccessMessage"] = AuthCodeMessages.EmailNotVerified;
+                return RedirectToAction(nameof(VerifyEmail), new { email = model.Email });
+            }
+
             _loginAttemptGuard.RecordFailure(model.Email, clientIp);
             var message = _loginAttemptGuard.IsLockedOut(model.Email, clientIp)
                 ? LoginAttemptMessages.LockedOut
@@ -103,12 +110,83 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Inventario");
     }
 
-    // Formulario "olvidé mi contraseña"
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult Register() => View(new RegisterViewModel());
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Register(RegisterViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return View(model);
+        if (!string.Equals(model.Password, model.ConfirmPassword, StringComparison.Ordinal))
+        {
+            ModelState.AddModelError(string.Empty, "Las contraseñas no coinciden.");
+            return View(model);
+        }
+
+        var result = await _emailVerification.RegisterAsync(
+            model.Nombre,
+            model.Email,
+            model.Password,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            cancellationToken);
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, result.Message ?? "No se pudo crear la cuenta.");
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = result.Message;
+        return RedirectToAction(nameof(VerifyEmail), new { email = model.Email.Trim().ToLowerInvariant() });
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult VerifyEmail(string? email)
+    {
+        ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;
+        return View(new VerifyEmailViewModel { Email = email ?? string.Empty });
+    }
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> VerifyEmail(VerifyEmailViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        var result = await _emailVerification.VerifyAsync(model.Email, model.Code, cancellationToken);
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, result.Message ?? AuthCodeMessages.InvalidOrExpired);
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = result.Message ?? AuthCodeMessages.EmailVerified;
+        return RedirectToAction(nameof(Login));
+    }
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendVerification(string email, CancellationToken cancellationToken)
+    {
+        var result = await _emailVerification.ResendAsync(
+            email,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            cancellationToken);
+        TempData["SuccessMessage"] = result.Message ?? AuthCodeMessages.GenericResetSent;
+        if (!result.Success)
+            TempData["SuccessMessage"] = result.Message;
+        return RedirectToAction(nameof(VerifyEmail), new { email });
+    }
+
     [AllowAnonymous]
     [HttpGet]
     public IActionResult ForgotPassword() => View(new ForgotPasswordViewModel());
 
-    // Manda el correo con el link de reset
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -116,31 +194,30 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(model);
 
-        // El servicio arma el link del correo con esta URL base
-        var publicBaseUrl = $"{Request.Scheme}://{Request.Host}";
-        await _passwordResetService.RequestResetAsync(model.Email, publicBaseUrl, cancellationToken);
-        return RedirectToAction(nameof(ForgotPasswordConfirmation));
+        await _passwordResetService.RequestResetAsync(
+            model.Email,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            cancellationToken);
+        TempData["SuccessMessage"] = AuthCodeMessages.GenericResetSent;
+        return RedirectToAction(nameof(ResetPassword), new { email = model.Email.Trim().ToLowerInvariant() });
     }
 
-    // Vista de "revisa tu correo"
     [AllowAnonymous]
     [HttpGet]
-    public IActionResult ForgotPasswordConfirmation() => View();
+    public IActionResult ForgotPasswordConfirmation() => RedirectToAction(nameof(ForgotPassword));
 
-    // Abre el form de nueva contraseña con token y email de la URL
     [AllowAnonymous]
     [HttpGet]
-    public IActionResult ResetPassword(string? token, string? email)
+    public IActionResult ResetPassword(string? email, string? token)
     {
-        // Token y email vienen en la URL del correo
+        ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;
         return View(new ResetPasswordViewModel
         {
-            Token = token ?? string.Empty,
-            Email = email ?? string.Empty
+            Email = email ?? string.Empty,
+            Code = token ?? string.Empty
         });
     }
 
-    // Guarda la contraseña nueva si el token sigue válido
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -148,7 +225,6 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(model);
 
-        // Validación extra porque ConfirmPassword a veces no alcanza con DataAnnotations
         if (!string.Equals(model.NewPassword, model.ConfirmPassword, StringComparison.Ordinal))
         {
             ModelState.AddModelError(string.Empty, "Las contraseñas no coinciden.");
@@ -156,16 +232,15 @@ public class AccountController : Controller
         }
 
         var result = await _passwordResetService.ResetPasswordAsync(
-            model.Email, model.Token, model.NewPassword, cancellationToken);
+            model.Email, model.Code, model.NewPassword, cancellationToken);
 
         if (!result.Success)
         {
-            ModelState.AddModelError(string.Empty, result.Message ?? "Enlace inválido o expirado.");
+            ModelState.AddModelError(string.Empty, result.Message ?? AuthCodeMessages.InvalidOrExpired);
             return View(model);
         }
 
-        // Mensaje para el login después del redirect
-        TempData["SuccessMessage"] = result.Message ?? "Contraseña actualizada. Ya puede iniciar sesión.";
+        TempData["SuccessMessage"] = result.Message ?? AuthCodeMessages.PasswordUpdated;
         return RedirectToAction(nameof(Login));
     }
 

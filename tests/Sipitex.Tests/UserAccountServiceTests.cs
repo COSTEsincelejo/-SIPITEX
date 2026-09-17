@@ -73,6 +73,21 @@ public class UserAccountServiceTests
     }
 
     [Fact]
+    public async Task AuthenticateAsync_WhenEmailNotConfirmed_ReturnsNull()
+    {
+        var user = CreateUser("nuevo@sipitex.test", "Clave123!");
+        user.EmailConfirmed = false;
+        _userRepository
+            .Setup(r => r.GetByEmailAsync("nuevo@sipitex.test", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var sut = CreateSut();
+        Assert.Null(await sut.AuthenticateAsync("nuevo@sipitex.test", "Clave123!"));
+        Assert.True(await sut.RequiresEmailVerificationAsync("nuevo@sipitex.test", "Clave123!"));
+        Assert.False(await sut.RequiresEmailVerificationAsync("nuevo@sipitex.test", "otra"));
+    }
+
+    [Fact]
     public async Task AuthenticateAsync_WhenUserIsInactive_ReturnsNull()
     {
         var user = CreateUser("instructor@sipitex.test", "Instructor123!", isActive: false);

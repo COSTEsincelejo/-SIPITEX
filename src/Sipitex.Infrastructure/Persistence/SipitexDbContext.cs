@@ -383,6 +383,7 @@ public class SipitexDbContext : DbContext
             e.Property(u => u.PermisosExtendidos).HasMaxLength(500); // Permisos extra si aplica
             e.Property(u => u.PhotoPath).HasMaxLength(260); // Ruta de la foto de perfil
             e.Property(u => u.FuncionDescripcion).HasMaxLength(800); // Descripción del cargo
+            e.Property(u => u.EmailConfirmed).HasDefaultValue(true);
             e.HasIndex(u => u.Email).IsUnique(); // Un email = una cuenta
             // Un instructor puede tener una ficha asignada como "principal"
             e.HasOne(u => u.FichaAsignada)
@@ -510,9 +511,10 @@ public class SipitexDbContext : DbContext
         modelBuilder.Entity<PasswordResetToken>(e =>
         {
             e.HasKey(t => t.Id); // PK del token
-            e.Property(t => t.TokenHash).HasMaxLength(128).IsRequired(); // Hash SHA del token
-            e.HasIndex(t => t.TokenHash); // Para buscar rápido al validar
-            e.HasIndex(t => new { t.UserId, t.CreatedAtUtc }); // Para rate limiting por usuario
+            e.Property(t => t.TokenHash).HasMaxLength(128).IsRequired(); // Hash SHA del código
+            e.Property(t => t.Purpose).HasMaxLength(40).IsRequired();
+            e.HasIndex(t => t.TokenHash);
+            e.HasIndex(t => new { t.UserId, t.Purpose, t.CreatedAtUtc });
             // Si borran al usuario, sus tokens también se van
             e.HasOne(t => t.User)
                 .WithMany()

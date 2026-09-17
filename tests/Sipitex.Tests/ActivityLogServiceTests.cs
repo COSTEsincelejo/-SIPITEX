@@ -207,6 +207,7 @@ public class AccountActivityLogInstrumentationTests
         var controller = new AccountController(
             _accounts.Object,
             _passwordReset.Object,
+            Mock.Of<IEmailVerificationService>(),
             _funcionalidades.Object,
             _activity.Object,
             _plantas.Object,

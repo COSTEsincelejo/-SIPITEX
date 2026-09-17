@@ -7,6 +7,7 @@ namespace Sipitex.Application.Interfaces.Services;
 public interface IUserAccountService
 {
     Task<User?> AuthenticateAsync(string email, string password, CancellationToken cancellationToken = default);
+    Task<bool> RequiresEmailVerificationAsync(string email, string password, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<User>> GetUsersAsync(CancellationToken cancellationToken = default);
     Task<User?> GetUserByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<ServiceResult> CreateUserAsync(

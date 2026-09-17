@@ -1,48 +1,58 @@
-using Microsoft.EntityFrameworkCore; // CountAsync, Where, FirstOrDefaultAsync...
-using Sipitex.Application.Interfaces.Repositories; // IPasswordResetTokenRepository
-using Sipitex.Domain.Entities; // PasswordResetToken
-using Sipitex.Infrastructure.Persistence; // SipitexDbContext
+using Microsoft.EntityFrameworkCore;
+using Sipitex.Application.Interfaces.Repositories;
+using Sipitex.Domain.Entities;
+using Sipitex.Infrastructure.Persistence;
 
 namespace Sipitex.Infrastructure.Repositories;
 
-// Tokens de recuperación de contraseña (solo guardamos el hash)
 public class PasswordResetTokenRepository : IPasswordResetTokenRepository
 {
     private readonly SipitexDbContext _context;
 
     public PasswordResetTokenRepository(SipitexDbContext context) => _context = context;
 
-    // Guarda un token nuevo cuando el usuario pide reset
     public Task AddAsync(PasswordResetToken token, CancellationToken cancellationToken = default) =>
         _context.PasswordResetTokens.AddAsync(token, cancellationToken).AsTask();
 
-    // Rate limiting: cuántos tokens pidió el usuario desde cierta fecha
-    public Task<int> CountCreatedSinceAsync(int userId, DateTime sinceUtc, CancellationToken cancellationToken = default) =>
+    public Task<int> CountCreatedSinceAsync(
+        int userId,
+        string purpose,
+        DateTime sinceUtc,
+        CancellationToken cancellationToken = default) =>
         _context.PasswordResetTokens.CountAsync(
-            t => t.UserId == userId && t.CreatedAtUtc >= sinceUtc,
+            t => t.UserId == userId && t.Purpose == purpose && t.CreatedAtUtc >= sinceUtc,
             cancellationToken);
 
-    // Tokens que aún no se usaron (para invalidarlos al generar uno nuevo)
     public async Task<IReadOnlyList<PasswordResetToken>> GetUnusedByUserAsync(
         int userId,
+        string purpose,
         CancellationToken cancellationToken = default) =>
         await _context.PasswordResetTokens
-            .Where(t => t.UserId == userId && t.UsedAtUtc == null) // UsedAtUtc null = vigente
+            .Where(t => t.UserId == userId && t.Purpose == purpose && t.UsedAtUtc == null)
             .ToListAsync(cancellationToken);
 
-    // Busca un token válido (no usado y no expirado)
+    public Task<PasswordResetToken?> FindLatestUnusedAsync(
+        int userId,
+        string purpose,
+        CancellationToken cancellationToken = default) =>
+        _context.PasswordResetTokens
+            .Where(t => t.UserId == userId && t.Purpose == purpose && t.UsedAtUtc == null)
+            .OrderByDescending(t => t.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<PasswordResetToken?> FindValidAsync(
         int userId,
+        string purpose,
         string tokenHash,
         DateTime utcNow,
         CancellationToken cancellationToken = default) =>
         _context.PasswordResetTokens.FirstOrDefaultAsync(
             t => t.UserId == userId
-                 && t.TokenHash == tokenHash // Comparo con el hash, no el token en claro
+                 && t.Purpose == purpose
+                 && t.TokenHash == tokenHash
                  && t.UsedAtUtc == null
-                 && t.ExpiresAtUtc > utcNow, // Todavía no venció
+                 && t.ExpiresAtUtc > utcNow,
             cancellationToken);
 
-    // Marca el token como usado después del reset exitoso
     public void Update(PasswordResetToken token) => _context.PasswordResetTokens.Update(token);
 }

@@ -53,8 +53,27 @@ public class UserAccountService : IUserAccountService
             return null;
         }
 
+        if (!user.EmailConfirmed)
+        {
+            _logger.LogInformation("Login bloqueado para {Email}: correo no verificado", user.Email);
+            return null;
+        }
+
         _logger.LogInformation("Login exitoso para {Email} (rol {Rol})", user.Email, user.Rol);
         return user;
+    }
+
+    public async Task<bool> RequiresEmailVerificationAsync(
+        string email,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            return false;
+
+        var user = await _userRepository.GetByEmailAsync(email.Trim(), cancellationToken);
+        return user is { IsActive: true, EmailConfirmed: false }
+            && PasswordHasher.Verify(password, user.PasswordHash);
     }
 
     // Lista completa (la usa el admin en la pantalla de usuarios)
