@@ -28,6 +28,13 @@ public class TrazabilidadController : Controller
         var orders = await _orders.GetOrdersAsync(userId, role, name, cancellationToken);
         var filter = BuildFilter(userId, role, orders.Select(o => o.Id).ToHashSet());
         var selected = orderId is int oid && orders.Any(o => o.Id == oid) ? oid : (int?)null;
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var exact = await _trazabilidad.GetByCodigoAsync(filter, q.Trim(), cancellationToken);
+            if (exact is not null)
+                return RedirectToAction(nameof(Details), new { id = exact.Id });
+        }
+
         return View(new TrazabilidadIndexViewModel
         {
             Query = q,

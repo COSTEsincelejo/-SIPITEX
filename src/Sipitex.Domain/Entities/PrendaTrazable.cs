@@ -7,7 +7,7 @@ public class PrendaTrazable
 {
     public int Id { get; set; }
 
-    // Código de negocio único, p. ej. SIP-OP-001-0001
+    // Código de negocio único, p. ej. SIPITEX-202609-4-0001
     public string Codigo { get; set; } = string.Empty;
 
     public int ProductionOrderId { get; set; }

@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
@@ -106,7 +107,7 @@ public class TrazabilidadService : ITrazabilidadService
                 $"La orden {order.OrderNumber} ya tiene {existentes} código(s) de trazabilidad.");
 
         var toCreate = Math.Min(cantidad, restantes);
-        var prefix = PrefixFor(order.OrderNumber);
+        var prefix = PrefixFor(order.Id, DateTime.UtcNow);
         var last = await _prendas.GetLastCodigoForPrefixAsync(prefix, cancellationToken);
         var now = DateTime.UtcNow;
         var created = new List<PrendaTrazable>(toCreate);
@@ -147,6 +148,10 @@ public class TrazabilidadService : ITrazabilidadService
             $"Se generaron {toCreate} código(s) único(s) para {order.OrderNumber}.");
     }
 
+    public static string PrefixFor(int orderId, DateTime utcNow) =>
+        $"SIPITEX-{utcNow:yyyyMM}-{orderId}-";
+
+    // Compatibilidad con códigos SIP-OP-### ya emitidos.
     public static string PrefixFor(string orderNumber)
     {
         var cleaned = new string((orderNumber ?? string.Empty)
@@ -193,7 +198,7 @@ public class TrazabilidadService : ITrazabilidadService
             eventos.Add(new PrendaTrazableEventDto(
                 c.FechaUtc,
                 "Consumo",
-                $"{c.Material?.Name ?? $"Material #{c.MaterialId}"} · {c.Cantidad:0.##}"));
+                $"{c.Material?.Name ?? $"Material #{c.MaterialId}"} · {c.Cantidad:0.##} @ {c.CostoUnitarioAlMomento:0.####}"));
         }
 
         var materiales = snapshots
@@ -207,6 +212,26 @@ public class TrazabilidadService : ITrazabilidadService
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
+
+        var insumos = consumos.Select(c =>
+        {
+            var linea = decimal.Round(c.Cantidad * c.CostoUnitarioAlMomento, 4, MidpointRounding.AwayFromZero);
+            var bodega = c.Material?.PlantaInventario?.Nombre
+                ?? (c.Material is null ? "—" : $"Planta #{c.Material.PlantaInventarioId}");
+            return new TrazabilidadInsumoDto(
+                c.Material?.Name ?? $"Material #{c.MaterialId}",
+                c.Cantidad,
+                c.Material is null ? "—" : UnitHelper.ToDisplay(c.Material.Unit),
+                c.CostoUnitarioAlMomento,
+                linea,
+                bodega);
+        }).ToList();
+
+        var volumen = Math.Max(0, order?.TotalQuantity ?? 0);
+        var costoOrden = decimal.Round(insumos.Sum(i => i.CostoLinea), 4, MidpointRounding.AwayFromZero);
+        var costoUnidad = volumen > 0
+            ? decimal.Round(costoOrden / volumen, 4, MidpointRounding.AwayFromZero)
+            : 0m;
 
         return new PrendaTrazableDetailDto(
             prenda.Id,
@@ -224,6 +249,9 @@ public class TrazabilidadService : ITrazabilidadService
             order?.ProducedQuantity ?? 0,
             order?.TotalQuantity ?? 0,
             materiales,
+            insumos,
+            costoUnidad,
+            costoOrden,
             eventos.OrderBy(e => e.AtUtc).ToList());
     }
 

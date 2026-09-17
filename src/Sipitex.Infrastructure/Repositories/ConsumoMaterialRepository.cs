@@ -21,6 +21,7 @@ public class ConsumoMaterialRepository : IConsumoMaterialRepository
             .AsNoTracking()
             .Include(c => c.ProductionOrder)
             .Include(c => c.Material)
+                .ThenInclude(m => m!.PlantaInventario)
             .Include(c => c.Responsable)
             .Where(c => c.ProductionOrderId == productionOrderId)
             .OrderByDescending(c => c.FechaUtc)

@@ -771,7 +771,18 @@ public record PrendaTrazableDetailDto(
     int ProducedQuantity,
     int TotalQuantity,
     IReadOnlyList<string> MaterialesBom,
+    IReadOnlyList<TrazabilidadInsumoDto> InsumosConsumidos,
+    decimal CostoMaterialesPorUnidad,
+    decimal CostoFinalOrden,
     IReadOnlyList<PrendaTrazableEventDto> Eventos);
+
+public record TrazabilidadInsumoDto(
+    string MaterialName,
+    decimal Cantidad,
+    string Unidad,
+    decimal CostoUnitarioAlMomento,
+    decimal CostoLinea,
+    string BodegaOrigen);
 
 public record ServiceResult<T>(bool Success, string? Message, T? Value)
 {
