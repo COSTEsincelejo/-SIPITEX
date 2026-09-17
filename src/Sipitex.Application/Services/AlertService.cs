@@ -120,7 +120,7 @@ public class AlertService : IAlertService
             AlertType = AlertType.StockBajo,
             Subject = subject,
             Body = body,
-            SentAt = DateTime.Now,
+            SentAt = DateTime.UtcNow,
             Channel = channel
         }, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -184,7 +184,7 @@ public class AlertService : IAlertService
                 AlertType = type,
                 Subject = subject,
                 Body = body,
-                SentAt = DateTime.Now,
+                SentAt = DateTime.UtcNow,
                 Channel = channel
             }, cancellationToken);
             sent++;
@@ -240,7 +240,7 @@ public class AlertService : IAlertService
                     AlertType = evt.Type,
                     Subject = evt.Subject,
                     Body = evt.Body,
-                    SentAt = DateTime.Now,
+                    SentAt = DateTime.UtcNow,
                     Channel = channel
                 }, cancellationToken);
                 sent++;

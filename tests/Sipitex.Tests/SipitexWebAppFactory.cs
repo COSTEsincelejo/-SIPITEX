@@ -1,12 +1,11 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Sipitex.Infrastructure.Persistence;
 
 namespace Sipitex.Tests;
 
 /// <summary>
-/// Un solo host WAF para health + login HTTP. Dos factories en paralelo
-/// caían en el mismo sipitex.db (appsettings pisa el AddInMemoryCollection)
-/// y SeedUsersAsync chocaba UNIQUE Users.Email.
+/// Un solo host WAF para health + login HTTP. Cada factory usa una base Postgres aislada.
 /// </summary>
 [CollectionDefinition(WebAppCollection.Name, DisableParallelization = true)]
 public sealed class WebAppCollection : ICollectionFixture<SipitexWebAppFactory>
@@ -16,9 +15,7 @@ public sealed class WebAppCollection : ICollectionFixture<SipitexWebAppFactory>
 
 public class SipitexWebAppFactory : WebApplicationFactory<Program>, IDisposable
 {
-    private readonly string _dbPath = Path.Combine(
-        Path.GetTempPath(),
-        $"sipitex-webapp-{Guid.NewGuid():N}.db");
+    private string? _databaseName;
 
     protected virtual string EnvironmentName => "Development";
 
@@ -33,13 +30,18 @@ public class SipitexWebAppFactory : WebApplicationFactory<Program>, IDisposable
             builder.UseSetting(setting.Key, setting.Value);
     }
 
+    private string EnsureDatabase()
+    {
+        return _databaseName ??= PostgresTestSupport.CreateDatabase();
+    }
+
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
+        var connectionString = PostgresTestSupport.BuildConnectionString(EnsureDatabase());
         builder.UseSetting(
             Microsoft.AspNetCore.Hosting.WebHostDefaults.EnvironmentKey,
             EnvironmentName);
-        // UseSetting gana a appsettings.json; AddInMemoryCollection en ConfigureAppConfiguration no.
-        builder.UseSetting("ConnectionStrings:DefaultConnection", $"Data Source={_dbPath}");
+        builder.UseSetting("ConnectionStrings:DefaultConnection", connectionString);
         builder.UseSetting("Email:Enabled", "false");
         ApplyExtraSettings(builder);
 
@@ -47,7 +49,7 @@ public class SipitexWebAppFactory : WebApplicationFactory<Program>, IDisposable
         {
             var values = new Dictionary<string, string?>
             {
-                ["ConnectionStrings:DefaultConnection"] = $"Data Source={_dbPath}",
+                ["ConnectionStrings:DefaultConnection"] = connectionString,
                 ["Email:Enabled"] = "false"
             };
             foreach (var setting in ExtraSettings)
@@ -59,25 +61,17 @@ public class SipitexWebAppFactory : WebApplicationFactory<Program>, IDisposable
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        try
+        if (_databaseName is not null)
         {
-            if (File.Exists(_dbPath)) File.Delete(_dbPath);
-            foreach (var suffix in new[] { "-shm", "-wal" })
-            {
-                var side = _dbPath + suffix;
-                if (File.Exists(side)) File.Delete(side);
-            }
-        }
-        catch
-        {
-            // best-effort cleanup
+            PostgresTestSupport.DropDatabase(_databaseName);
+            _databaseName = null;
         }
     }
 }
 
 /// <summary>
 /// Host aislado con Environment=Production: no siembra usuarios @sipitex.test.
-/// SQLite propio para no compartir BD con el fixture de Development.
+/// Base Postgres propia para no compartir BD con el fixture de Development.
 /// </summary>
 public sealed class ProductionSeedWebAppFactory : SipitexWebAppFactory
 {

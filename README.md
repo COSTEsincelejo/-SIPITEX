@@ -10,7 +10,7 @@ Sipitex/
 ├── src/
 │   ├── Sipitex.Domain/            # Entidades, enums (capa de dominio)
 │   ├── Sipitex.Application/       # Servicios, DTOs, contratos (lógica de negocio)
-│   ├── Sipitex.Infrastructure/    # EF Core, SQLite, repositorios (acceso a datos)
+│   ├── Sipitex.Infrastructure/    # EF Core, PostgreSQL, repositorios (acceso a datos)
 │   └── Sipitex.Web/               # ASP.NET Core MVC (presentación)
 ├── Dockerfile
 ├── docker-compose.yml
@@ -27,7 +27,7 @@ Web → Infrastructure → Application → Domain
 ## Requisitos
 
 - [.NET SDK 10](https://dotnet.microsoft.com/download) o superior
-- Docker (opcional, para RNF07)
+- PostgreSQL 16 (local, Docker Compose o instancia administrada)
 
 ## Ejecución local
 
@@ -38,7 +38,7 @@ dotnet run
 
 Abrir `https://localhost:5xxx` (el puerto se muestra en consola). La ruta por defecto es **Inventario** (requiere autenticación).
 
-Motor de datos: **SQLite** (`sipitex.db`), creado al iniciar con migraciones EF Core (`MigrateAsync`).
+Motor de datos: **PostgreSQL 16** (`ConnectionStrings:DefaultConnection`), creado al iniciar con migraciones EF Core (`MigrateAsync`). Para desarrollo local: `docker compose up db` o un Postgres en `localhost:5432` (usuario/clave/base `sipitex`).
 
 ### Usuarios demo (solo Development)
 
@@ -60,7 +60,7 @@ Para el demo público (p. ej. Render) puede reactivarse el seed con `Seed__DemoU
 docker compose up --build
 ```
 
-Abrir `http://localhost:8080`. La base de datos persiste en el volumen `sipitex-data`.
+Abrir `http://localhost:8080`. Postgres persiste en el volumen `sipitex-pgdata`.
 
 ## Módulos
 
@@ -119,7 +119,7 @@ El CI ejecuta `dotnet ef migrations has-pending-model-changes` y **falla** si el
 
 - ASP.NET Core MVC  
 - Cookie Authentication + roles  
-- Entity Framework Core + SQLite  
+- Entity Framework Core + PostgreSQL (Npgsql)  
 - Chart.js (estadísticas)  
 - Font Awesome + Inter (UI)  
 - Docker Compose  

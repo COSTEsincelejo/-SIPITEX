@@ -12,7 +12,7 @@ namespace Sipitex.Tests.Integration;
 
 /// <summary>
 /// Fixture de integración: SQLite temporal en %TEMP% por instancia (un test = un archivo).
-/// No usa sipitex.db ni rutas del proyecto. Cleanup borra .db + -wal/-shm.
+/// El esquema se crea con EnsureCreated (el runtime usa PostgreSQL + migraciones).
 /// </summary>
 public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
 {
@@ -65,7 +65,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             .Options;
 
         var context = new SipitexDbContext(options);
-        await context.Database.MigrateAsync(cancellationToken);
+        await context.Database.EnsureCreatedAsync(cancellationToken);
 
         var fixture = new SolicitudMaterialFlowFixture(dbPath, context);
         await fixture.SeedAsync(cancellationToken);

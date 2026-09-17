@@ -1,5 +1,5 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Sipitex.Infrastructure.Data;
 using Sipitex.Infrastructure.Persistence;
 
@@ -7,103 +7,105 @@ namespace Sipitex.Tests;
 
 public class MigrationBaselineTests
 {
-    private static SipitexDbContext CreateContext(string dbPath)
+    private static SipitexDbContext CreateContext(string connectionString)
     {
         var options = new DbContextOptionsBuilder<SipitexDbContext>()
-            .UseSqlite($"Data Source={dbPath}")
+            .UseNpgsql(connectionString)
             .Options;
         return new SipitexDbContext(options);
     }
 
-    private static string NewTempDbPath() =>
-        Path.Combine(Path.GetTempPath(), $"sipitex-baseline-{Guid.NewGuid():N}.db");
-
-    private static async Task<int> CountMigrationRowsAsync(string dbPath)
+    private static async Task<int> CountMigrationRowsAsync(string connectionString)
     {
-        await using var conn = new SqliteConnection($"Data Source={dbPath}");
+        await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = """SELECT COUNT(*) FROM "__EFMigrationsHistory";""";
         return Convert.ToInt32(await cmd.ExecuteScalarAsync());
     }
 
-    private static async Task<bool> TableExistsAsync(string dbPath, string table)
+    private static async Task<bool> TableExistsAsync(string connectionString, string table)
     {
-        await using var conn = new SqliteConnection($"Data Source={dbPath}");
+        await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name=$n LIMIT 1;";
-        var p = cmd.CreateParameter();
-        p.ParameterName = "$n";
-        p.Value = table;
-        cmd.Parameters.Add(p);
+        cmd.CommandText =
+            """
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = ANY (current_schemas(false))
+              AND table_name = @n
+            LIMIT 1;
+            """;
+        cmd.Parameters.AddWithValue("n", table);
         return await cmd.ExecuteScalarAsync() is not null and not DBNull;
     }
 
     [Fact]
     public async Task NewDatabase_MigrateAsync_CreatesFullSchema()
     {
-        var dbPath = NewTempDbPath();
+        var databaseName = PostgresTestSupport.CreateDatabase();
+        var connectionString = PostgresTestSupport.BuildConnectionString(databaseName);
         try
         {
-            await using (var context = CreateContext(dbPath))
+            await using (var context = CreateContext(connectionString))
             {
                 await MigrationBaseline.EnsureBaselineAsync(context);
                 await context.Database.MigrateAsync();
             }
 
-            Assert.True(await TableExistsAsync(dbPath, "Materials"));
-            Assert.True(await TableExistsAsync(dbPath, "ProductionSessions"));
-            Assert.True(await TableExistsAsync(dbPath, "Users"));
-            Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            // ... + MaterialRequestSolicitante + ActivityLog + InsumosLibres + AddBodegas + AddUserBodegas + RenameNomenclatura = 24
-            Assert.Equal(29, await CountMigrationRowsAsync(dbPath));
-            Assert.True(await TableExistsAsync(dbPath, "PlantasInventario"));
-            Assert.True(await TableExistsAsync(dbPath, "UserPlantasInventario"));
-            Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
-            Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
-            Assert.True(await TableExistsAsync(dbPath, "DetallesSolicitudMaterial"));
-            Assert.True(await TableExistsAsync(dbPath, "EntregasMaterial"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProductInstructors"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProductTallas"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProductPiezas"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProductMedidas"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProductMedidaValores"));
-            Assert.True(await TableExistsAsync(dbPath, "ProductionOrderMaterialRequirements"));
-            Assert.True(await TableExistsAsync(dbPath, "ProductionOrderStages"));
-            Assert.True(await TableExistsAsync(dbPath, "ProductionOrderBomSnapshots"));
-            Assert.True(await TableExistsAsync(dbPath, "StockMovements"));
-            Assert.True(await TableExistsAsync(dbPath, "OrderChangeLogs"));
-            Assert.True(await TableExistsAsync(dbPath, "ActivityLogs"));
-            Assert.True(await TableExistsAsync(dbPath, "ConsumosMaterial"));
-            Assert.True(await TableExistsAsync(dbPath, "GruposConfeccion"));
-            Assert.True(await TableExistsAsync(dbPath, "ActasMovimiento"));
-            Assert.True(await TableExistsAsync(dbPath, "ActasMovimientoDetalle"));
-            Assert.True(await TableExistsAsync(dbPath, "AppSettings"));
-            Assert.True(await TableExistsAsync(dbPath, "PrendasTrazables"));
-            Assert.True(await TableExistsAsync(dbPath, "MaterialRequests"));
+            Assert.True(await TableExistsAsync(connectionString, "Materials"));
+            Assert.True(await TableExistsAsync(connectionString, "ProductionSessions"));
+            Assert.True(await TableExistsAsync(connectionString, "Users"));
+            Assert.True(await TableExistsAsync(connectionString, "__EFMigrationsHistory"));
+            Assert.Equal(1, await CountMigrationRowsAsync(connectionString));
+            Assert.True(await TableExistsAsync(connectionString, "PlantasInventario"));
+            Assert.True(await TableExistsAsync(connectionString, "UserPlantasInventario"));
+            Assert.True(await TableExistsAsync(connectionString, "FichaInstructors"));
+            Assert.True(await TableExistsAsync(connectionString, "SolicitudesMaterial"));
+            Assert.True(await TableExistsAsync(connectionString, "DetallesSolicitudMaterial"));
+            Assert.True(await TableExistsAsync(connectionString, "EntregasMaterial"));
+            Assert.True(await TableExistsAsync(connectionString, "BomProducts"));
+            Assert.True(await TableExistsAsync(connectionString, "BomProductInstructors"));
+            Assert.True(await TableExistsAsync(connectionString, "BomProductTallas"));
+            Assert.True(await TableExistsAsync(connectionString, "BomProductPiezas"));
+            Assert.True(await TableExistsAsync(connectionString, "BomProductMedidas"));
+            Assert.True(await TableExistsAsync(connectionString, "BomProductMedidaValores"));
+            Assert.True(await TableExistsAsync(connectionString, "ProductionOrderMaterialRequirements"));
+            Assert.True(await TableExistsAsync(connectionString, "ProductionOrderStages"));
+            Assert.True(await TableExistsAsync(connectionString, "ProductionOrderBomSnapshots"));
+            Assert.True(await TableExistsAsync(connectionString, "StockMovements"));
+            Assert.True(await TableExistsAsync(connectionString, "OrderChangeLogs"));
+            Assert.True(await TableExistsAsync(connectionString, "ActivityLogs"));
+            Assert.True(await TableExistsAsync(connectionString, "ConsumosMaterial"));
+            Assert.True(await TableExistsAsync(connectionString, "GruposConfeccion"));
+            Assert.True(await TableExistsAsync(connectionString, "ActasMovimiento"));
+            Assert.True(await TableExistsAsync(connectionString, "ActasMovimientoDetalle"));
+            Assert.True(await TableExistsAsync(connectionString, "AppSettings"));
+            Assert.True(await TableExistsAsync(connectionString, "PrendasTrazables"));
+            Assert.True(await TableExistsAsync(connectionString, "MaterialRequests"));
         }
         finally
         {
-            if (File.Exists(dbPath)) File.Delete(dbPath);
+            PostgresTestSupport.DropDatabase(databaseName);
         }
     }
 
     [Fact]
     public async Task LegacyFullSchemaWithoutHistory_BaselineThenMigrate_Succeeds()
     {
-        var dbPath = NewTempDbPath();
+        var databaseName = PostgresTestSupport.CreateDatabase();
+        var connectionString = PostgresTestSupport.BuildConnectionString(databaseName);
         try
         {
-            // Esquema legacy = hasta AddPasswordResetTokens (sin AddFichaTurno / PhotoPath).
-            // Así el baseline marca las dos primeras y MigrateAsync aplica el resto.
-            await using (var context = CreateContext(dbPath))
+            string initialId;
+            await using (var context = CreateContext(connectionString))
             {
-                await context.Database.MigrateAsync(MigrationBaseline.AddPasswordResetTokensMigrationId);
+                await context.Database.MigrateAsync();
+                initialId = MigrationBaseline.InitialCreateMigrationId(context);
             }
 
-            await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
+            await using (var conn = new NpgsqlConnection(connectionString))
             {
                 await conn.OpenAsync();
                 await using var cmd = conn.CreateCommand();
@@ -111,148 +113,61 @@ public class MigrationBaselineTests
                 await cmd.ExecuteNonQueryAsync();
             }
 
-            Assert.False(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.True(await TableExistsAsync(dbPath, "Materials"));
+            Assert.False(await TableExistsAsync(connectionString, "__EFMigrationsHistory"));
+            Assert.True(await TableExistsAsync(connectionString, "Materials"));
 
-            await using (var context = CreateContext(dbPath))
+            await using (var context = CreateContext(connectionString))
             {
                 await MigrationBaseline.EnsureBaselineAsync(context);
-                await context.Database.MigrateAsync(); // aplica migraciones posteriores al baseline
+                await context.Database.MigrateAsync();
             }
 
-            Assert.True(await TableExistsAsync(dbPath, "__EFMigrationsHistory"));
-            Assert.Equal(29, await CountMigrationRowsAsync(dbPath));
-            Assert.True(await TableExistsAsync(dbPath, "FichaInstructors"));
-            Assert.True(await TableExistsAsync(dbPath, "SolicitudesMaterial"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProducts"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProductInstructors"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProductTallas"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProductPiezas"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProductMedidas"));
-            Assert.True(await TableExistsAsync(dbPath, "BomProductMedidaValores"));
-            Assert.True(await TableExistsAsync(dbPath, "ProductionOrderMaterialRequirements"));
-            Assert.True(await TableExistsAsync(dbPath, "StockMovements"));
-            Assert.True(await TableExistsAsync(dbPath, "OrderChangeLogs"));
-            Assert.True(await TableExistsAsync(dbPath, "ActivityLogs"));
+            Assert.True(await TableExistsAsync(connectionString, "__EFMigrationsHistory"));
+            Assert.Equal(1, await CountMigrationRowsAsync(connectionString));
+            Assert.True(await TableExistsAsync(connectionString, "PrendasTrazables"));
 
-            await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
+            await using (var conn = new NpgsqlConnection(connectionString))
             {
                 await conn.OpenAsync();
                 await using var cmd = conn.CreateCommand();
-                cmd.CommandText =
-                    """SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId";""";
-                await using var reader = await cmd.ExecuteReaderAsync();
-                var ids = new List<string>();
-                while (await reader.ReadAsync())
-                    ids.Add(reader.GetString(0));
-                Assert.Contains(MigrationBaseline.InitialCreateMigrationId, ids);
-                Assert.Contains(MigrationBaseline.AddPasswordResetTokensMigrationId, ids);
-                Assert.Contains(ids, id => id.Contains("AddFichaTurno", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddUserPhotoPath", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddUserFuncionDescripcion", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddFichaInstructors", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddFichaAssignedOrderText", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddFichaInstructorProceso", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddSolicitudMaterial", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddBomProductAndOrderSnapshot", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddOrderMaterialRequirements", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddProductionOrderMesFlow", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddStockMovements", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddOrderChangeLogs", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddStockEntryOrigin", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddBomProductInstructors", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddBomProductMetadataAndTallas", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddBomProductPatronajePiezasMedidas", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddMaterialRequestSolicitante", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddActivityLog", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddSolicitudMaterialInsumosLibres", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddBodegas", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddUserBodegas", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("RenameNomenclaturaPlantaInventario", StringComparison.Ordinal));
-                Assert.Contains(ids, id => id.Contains("AddFirmasTrazabilidadYTarifa", StringComparison.Ordinal));
+                cmd.CommandText = """SELECT "MigrationId" FROM "__EFMigrationsHistory";""";
+                var id = (string?)await cmd.ExecuteScalarAsync();
+                Assert.Equal(initialId, id);
+                Assert.Contains("InitialCreate", id, StringComparison.Ordinal);
             }
         }
         finally
         {
-            if (File.Exists(dbPath)) File.Delete(dbPath);
+            PostgresTestSupport.DropDatabase(databaseName);
         }
     }
 
     [Fact]
     public async Task ExistingMigrationsHistory_EnsureBaseline_DoesNothing()
     {
-        var dbPath = NewTempDbPath();
+        var databaseName = PostgresTestSupport.CreateDatabase();
+        var connectionString = PostgresTestSupport.BuildConnectionString(databaseName);
         try
         {
-            await using (var context = CreateContext(dbPath))
+            await using (var context = CreateContext(connectionString))
             {
                 await context.Database.MigrateAsync();
             }
 
-            var before = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(29, before);
+            var before = await CountMigrationRowsAsync(connectionString);
+            Assert.Equal(1, before);
 
-            await using (var context = CreateContext(dbPath))
+            await using (var context = CreateContext(connectionString))
             {
                 await MigrationBaseline.EnsureBaselineAsync(context);
-                await MigrationBaseline.EnsureBaselineAsync(context); // segunda vez idempotente
+                await MigrationBaseline.EnsureBaselineAsync(context);
             }
 
-            var after = await CountMigrationRowsAsync(dbPath);
-            Assert.Equal(before, after);
+            Assert.Equal(before, await CountMigrationRowsAsync(connectionString));
         }
         finally
         {
-            if (File.Exists(dbPath)) File.Delete(dbPath);
-        }
-    }
-
-    [Fact]
-    public async Task AddUserBodegas_CopiaBodegaIdSingularATablaPuente()
-    {
-        var dbPath = NewTempDbPath();
-        try
-        {
-            await using (var context = CreateContext(dbPath))
-            {
-                await context.Database.MigrateAsync("20260820011656_AddBodegas");
-            }
-
-            await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
-            {
-                await conn.OpenAsync();
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = """
-                    INSERT INTO "Users" ("Nombre", "Email", "PasswordHash", "Rol", "PermisosExtendidos", "IsActive", "BodegaId")
-                    VALUES ('Pedro Mig', 'pedro-mig@sipitex.test', 'x', 'Bodeguero', '', 1, 1);
-                    """;
-                Assert.Equal(1, await cmd.ExecuteNonQueryAsync());
-            }
-
-            await using (var context = CreateContext(dbPath))
-            {
-                await context.Database.MigrateAsync();
-            }
-
-            await using (var conn = new SqliteConnection($"Data Source={dbPath}"))
-            {
-                await conn.OpenAsync();
-                await using var countCmd = conn.CreateCommand();
-                countCmd.CommandText = """
-                    SELECT COUNT(*) FROM "UserPlantasInventario" ub
-                    INNER JOIN "Users" u ON u."Id" = ub."UserId"
-                    WHERE u."Email" = 'pedro-mig@sipitex.test' AND ub."PlantaInventarioId" = 1;
-                    """;
-                Assert.Equal(1, Convert.ToInt32(await countCmd.ExecuteScalarAsync()));
-
-                await using var colCmd = conn.CreateCommand();
-                colCmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Users') WHERE name = 'BodegaId';";
-                Assert.Equal(0, Convert.ToInt32(await colCmd.ExecuteScalarAsync()));
-            }
-        }
-        finally
-        {
-            if (File.Exists(dbPath)) File.Delete(dbPath);
+            PostgresTestSupport.DropDatabase(databaseName);
         }
     }
 }

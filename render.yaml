@@ -1,0 +1,29 @@
+databases:
+  - name: sipitex-db
+    plan: starter
+    databaseName: sipitex
+    user: sipitex
+    postgresMajorVersion: 16
+
+services:
+  - type: web
+    name: sipitex
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: sipitex-db
+          property: connectionString
+      - key: Seed__DemoUsers
+        value: "true"
+      - key: Email__Enabled
+        value: "false"
+      - key: Costing__LaborHourRate
+        value: "6500"
+      - key: ADMIN_SEED_PASSWORD
+        generateValue: true

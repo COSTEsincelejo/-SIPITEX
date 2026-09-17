@@ -32,7 +32,7 @@ Verificar cada ruta del menú lateral sin errores 500.
 ## 4.3 Criterios de aceptación
 
 - Compilación sin errores  
-- Persistencia SQLite entre reinicios  
+- Persistencia PostgreSQL entre reinicios  
 - UI equivalente al prototipo HTML original  
 - Separación clara de capas (sin EF en controllers)
 

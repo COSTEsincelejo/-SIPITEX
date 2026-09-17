@@ -9,6 +9,25 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sipitex
+          POSTGRES_PASSWORD: sipitex
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sipitex -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SIPITEX_TEST_PG_HOST: localhost
+      SIPITEX_TEST_PG_PORT: "5432"
+      SIPITEX_TEST_PG_USER: sipitex
+      SIPITEX_TEST_PG_PASSWORD: sipitex
     steps:
       - name: Checkout
         uses: actions/checkout@v4
