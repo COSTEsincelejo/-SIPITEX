@@ -1,3 +1,6 @@
+# Blueprint de Render: web (Dockerfile) + PostgreSQL 16.
+# Las variables con sync: false se completan en el panel al crear el Blueprint.
+# No ponga secretos reales (SMTP, ADMIN_SEED_PASSWORD) en este archivo ni en git.
 databases:
   - name: sipitex-db
     plan: starter
@@ -20,10 +23,14 @@ services:
           name: sipitex-db
           property: connectionString
       - key: Seed__DemoUsers
-        value: "true"
-      - key: Email__Enabled
-        value: "false"
-      - key: Costing__LaborHourRate
-        value: "6500"
+        sync: false
       - key: ADMIN_SEED_PASSWORD
-        generateValue: true
+        sync: false
+      - key: Email__Enabled
+        sync: false
+      - key: Email__User
+        sync: false
+      - key: Email__Password
+        sync: false
+      - key: Costing__LaborHourRate
+        sync: false

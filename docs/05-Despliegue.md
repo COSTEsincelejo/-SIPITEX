@@ -157,4 +157,18 @@ La URL pública la asigna Render al crear el servicio (`https://<nombre>.onrende
 
 ### Blueprint
 
-`render.yaml` en la raíz describe el Web Service + Postgres. En el dashboard: New → Blueprint → seleccionar el repo.
+`render.yaml` en la raíz describe el Web Service (Dockerfile) + Postgres 16. En el dashboard: New → Blueprint → seleccionar el repo. Las credenciales y el resto de variables listadas abajo van con `sync: false`: Render las pide en el panel y **no** quedan en git.
+
+## 5.11 Variables de entorno a configurar manualmente en Render antes del primer arranque
+
+Completar en el panel del Web Service (Environment). **No** pegue valores reales en el repositorio ni en esta guía.
+
+- [ ] `ConnectionStrings__DefaultConnection` — la genera Render al vincular `sipitex-db` (`fromDatabase.connectionString` en el Blueprint).
+- [ ] `Seed__DemoUsers` — `true` solo en una demo; `false` en operación.
+- [ ] `ADMIN_SEED_PASSWORD` — contraseña del administrador inicial (`admin@sipitex.local`) si la base no tiene administradores.
+- [ ] `Email__Enabled` — `true` cuando haya SMTP; `false` si aún no.
+- [ ] `Email__User` — usuario SMTP (vacío en `appsettings.json`; solo aquí).
+- [ ] `Email__Password` — contraseña o app password SMTP (vacío en `appsettings.json`; solo aquí).
+- [ ] `Costing__LaborHourRate` — tarifa de hora de mano de obra (referencia de negocio: 6500 COP/hora; el admin puede cambiarla luego en `/Costos`).
+
+Sin `Email__User` / `Email__Password`, aunque `Email__Enabled=true`, los correos siguen yendo al outbox (`email-outbox/`). El primer arranque aplica `MigrateAsync` sobre la Postgres administrada.
