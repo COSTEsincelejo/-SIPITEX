@@ -84,6 +84,9 @@ Abrir `http://localhost:8080`. Postgres persiste en el volumen `sipitex-pgdata`.
 | Reportes | `/Reportes` | Exportación PDF / Excel |
 | Alertas | `/Alertas` | Preferencias de correo por actor |
 | Usuarios | `/Account/Users` | CRUD de usuarios (Administrador) |
+| Mi perfil | `/Account/Profile` | Foto, funciones, datos y contraseña |
+
+Guía paso a paso para presentar el sistema: [`docs/06-Guia-Usuario-Exposicion.md`](docs/06-Guia-Usuario-Exposicion.md).
 
 ## Políticas de negocio documentadas
 
