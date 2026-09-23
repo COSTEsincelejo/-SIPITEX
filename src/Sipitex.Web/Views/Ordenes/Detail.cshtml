@@ -26,7 +26,11 @@
     <div class="row-actions">
         @if (User.IsInRole("Administrador") && m.Status == OrderStatus.Pendiente)
         {
-            <form asp-action="Approve" method="post" onsubmit="return confirm('¿Aprobar esta orden e iniciar producción/MES?');">
+            <form asp-action="Approve" method="post"
+                  data-confirm="¿Aprobar esta orden e iniciar producción/MES?"
+                  data-confirm-title="Aprobar orden"
+                  data-confirm-variant="primary"
+                  data-confirm-ok="Aprobar">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@m.OrderId" />
                 <button type="submit" class="primary"><i class="fas fa-check"></i> Aprobar orden</button>
@@ -35,7 +39,11 @@
         @if (User.IsInRole("Administrador") && m.Status is not (OrderStatus.Cancelada or OrderStatus.Finalizada))
         {
             <a class="ghost" asp-action="Edit" asp-route-id="@m.OrderId"><i class="fas fa-pen"></i> Editar</a>
-            <form asp-action="Cancel" method="post" onsubmit="return confirm('¿Cancelar esta orden? El stock entregado no se revierte.');">
+            <form asp-action="Cancel" method="post"
+                  data-confirm="¿Cancelar esta orden? El stock entregado no se revierte."
+                  data-confirm-title="Cancelar orden"
+                  data-confirm-variant="danger"
+                  data-confirm-ok="Cancelar orden">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@m.OrderId" />
                 <button type="submit" class="ghost small"><i class="fas fa-ban"></i> Cancelar orden</button>

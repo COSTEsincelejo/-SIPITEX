@@ -156,7 +156,10 @@
                             @if (User.IsInRole("Administrador"))
                             {
                                 <form asp-action="DeleteMaterial" method="post" class="row-actions" style="margin-top:4px;"
-                                      onsubmit="return confirm('¿Eliminar «@mat.Name» del catálogo?');">
+                                      data-confirm="¿Eliminar «@mat.Name» del catálogo?"
+                                      data-confirm-title="Eliminar material"
+                                      data-confirm-variant="danger"
+                                      data-confirm-ok="Eliminar">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@mat.Id" />
                                     <button type="submit" class="small ghost danger"><i class="fas fa-trash"></i> Eliminar</button>
@@ -231,12 +234,20 @@
                             @* Solo pendientes se pueden aprobar/rechazar *@
                             @if (req.Status == RequestStatus.Pendiente && canApproveRequests)
                             {
-                                <form asp-action="ApproveRequest" method="post" data-confirm="¿Aprobar esta solicitud y descontar stock?">
+                                <form asp-action="ApproveRequest" method="post"
+                                      data-confirm="¿Aprobar esta solicitud y descontar stock?"
+                                      data-confirm-title="Aprobar solicitud"
+                                      data-confirm-variant="primary"
+                                      data-confirm-ok="Aprobar">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@req.Id" />
                                     <button type="submit" class="small ghost"><i class="fas fa-check"></i> Aprobar</button>
                                 </form>
-                                <form asp-action="RejectRequest" method="post" data-confirm="¿Rechazar esta solicitud?">
+                                <form asp-action="RejectRequest" method="post"
+                                      data-confirm="¿Rechazar esta solicitud?"
+                                      data-confirm-title="Rechazar solicitud"
+                                      data-confirm-variant="danger"
+                                      data-confirm-ok="Rechazar">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@req.Id" />
                                     <button type="submit" class="small danger"><i class="fas fa-xmark"></i> Rechazar</button>

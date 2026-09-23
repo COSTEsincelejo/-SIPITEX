@@ -130,11 +130,18 @@
       node.remove();
     });
 
-    // Confirm destructive / sensitive actions
+    // Confirm destructive / sensitive actions with the shared modal.
+    // form.submit() does not re-fire this listener, so confirming cannot loop.
+    const confirmModal = initConfirmModal();
     document.querySelectorAll('form[data-confirm]').forEach((form) => {
       form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (confirmModal) {
+          confirmModal.open(form);
+          return;
+        }
         const message = form.getAttribute('data-confirm') || '¿Confirmar acción?';
-        if (!window.confirm(message)) e.preventDefault();
+        if (window.confirm(message)) form.submit();
       });
     });
 
@@ -273,6 +280,83 @@
     // Buscador global del header (módulos estáticos + /api/busqueda)
     initGlobalSearch();
   });
+
+  function initConfirmModal() {
+    const modal = document.getElementById('confirmModal');
+    const dialog = modal?.querySelector('.confirm-modal-dialog');
+    const titleEl = document.getElementById('confirmModalTitle');
+    const messageEl = document.getElementById('confirmModalMessage');
+    const acceptBtn = document.getElementById('confirmModalAccept');
+    if (!modal || !dialog || !titleEl || !messageEl || !acceptBtn) return null;
+
+    let pendingForm = null;
+    let lastFocus = null;
+
+    function focusable() {
+      return [...dialog.querySelectorAll('button:not([disabled])')];
+    }
+
+    function close() {
+      if (modal.hidden) return;
+      modal.hidden = true;
+      document.body.classList.remove('confirm-modal-open');
+      pendingForm = null;
+      const restore = lastFocus;
+      lastFocus = null;
+      if (restore && typeof restore.focus === 'function') restore.focus();
+    }
+
+    function open(form) {
+      const message = form.getAttribute('data-confirm') || '¿Confirmar acción?';
+      const variant = form.getAttribute('data-confirm-variant') === 'primary' ? 'primary' : 'danger';
+      const title = form.getAttribute('data-confirm-title') || 'Confirmar acción';
+      const okLabel = form.getAttribute('data-confirm-ok') || 'Confirmar';
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+      acceptBtn.textContent = okLabel;
+      acceptBtn.className = variant;
+      pendingForm = form;
+      lastFocus = document.activeElement;
+      modal.hidden = false;
+      document.body.classList.add('confirm-modal-open');
+      const cancelBtn = dialog.querySelector('[data-confirm-dismiss]');
+      (cancelBtn || acceptBtn).focus();
+    }
+
+    modal.addEventListener('click', (e) => {
+      if (e.target.closest('[data-confirm-dismiss]')) close();
+    });
+
+    acceptBtn.addEventListener('click', () => {
+      const form = pendingForm;
+      close();
+      if (form) form.submit();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (modal.hidden) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        close();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }, true);
+
+    return { open };
+  }
 
   function initGlobalSearch() {
     const root = document.getElementById('globalSearch');
