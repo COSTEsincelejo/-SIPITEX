@@ -32,5 +32,8 @@ services:
         sync: false
       - key: Email__Password
         sync: false
+      # Mismo buzón que Email__User. El From de appsettings es un marcador y Gmail lo rechaza.
+      - key: Email__From
+        sync: false
       - key: Costing__LaborHourRate
         sync: false
