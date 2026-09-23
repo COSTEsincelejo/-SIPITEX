@@ -172,3 +172,27 @@ Completar en el panel del Web Service (Environment). **No** pegue valores reales
 - [ ] `Costing__LaborHourRate` — tarifa de hora de mano de obra (referencia de negocio: 6500 COP/hora; el admin puede cambiarla luego en `/Costos`).
 
 Sin `Email__User` / `Email__Password`, aunque `Email__Enabled=true`, los correos siguen yendo al outbox (`email-outbox/`). El primer arranque aplica `MigrateAsync` sobre la Postgres administrada.
+
+### SMTP de Gmail para la demo (no pegar secretos aquí)
+
+El proveedor por defecto en `appsettings.json` ya es Gmail: `Email:Host=smtp.gmail.com`, `Email:Port=587`, `Email:UseSsl=true` (MailKit usa STARTTLS en el 587). No haga falta otra variable de host si el buzón es Gmail.
+
+`IsSmtpConfigured` es verdadero solo si `Email:Enabled`, `Email:Host`, `Email:From` y `Email:User` tienen valor. Con `Email:User` vacío el canal es Outbox aunque `Enabled` sea true. La contraseña no entra en esa condición, pero Gmail la exige al autenticar.
+
+En el Web Service de Render (Environment), completar y redeploy:
+
+| Variable | Valor |
+|----------|--------|
+| `Email__Enabled` | `true` |
+| `Email__User` | Correo Gmail que envía (el mismo de la cuenta) |
+| `Email__Password` | Contraseña de aplicación de Google, 16 caracteres. La contraseña normal de la cuenta la rechaza SMTP. |
+| `Email__From` | El mismo correo que `Email__User`. El `From` de `appsettings.json` (`sipitex@tudominio.com`) no es un buzón real y Gmail lo rechaza. |
+
+No defina `Email__Host`, `Email__Port` ni `Email__UseSsl` en blanco: una variable vacía pisa el valor de `appsettings.json` y el canal vuelve a Outbox. Docker Compose local usa los mismos nombres (`Email__User` / `Email__Password`) a partir de `EMAIL_SMTP_USER` y `EMAIL_SMTP_PASSWORD` en `.env`.
+
+Cómo comprobar el canal, sin abrir el secreto:
+
+- Log de envío real: `channel = SMTP`.
+- Log de archivo: `channel = Outbox`.
+- En `/Alertas`, el correo de prueba responde «enviado por SMTP» o «enviado por Outbox».
+- Recuperar contraseña en `/Account/ForgotPassword` debe dejar un código de 6 dígitos en la bandeja real. El código no se escribe en los logs.

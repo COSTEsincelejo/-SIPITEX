@@ -61,7 +61,7 @@ public class EmailSender : IEmailSender
                 await client.AuthenticateAsync(_options.User, _options.Password, cancellationToken); // Login si hay credenciales
             await client.SendAsync(message, cancellationToken); // Envío real
             await client.DisconnectAsync(true, cancellationToken); // Cierro bien la conexión
-            _logger.LogInformation("Correo enviado a {Email}: {Subject}", toEmail, subject);
+            _logger.LogInformation("Correo enviado channel = SMTP a {Email}: {Subject}", toEmail, subject);
             return; // Listo, salgo
         }
 
@@ -71,7 +71,7 @@ public class EmailSender : IEmailSender
         var file = Path.Combine(dir, $"{DateTime.Now:yyyyMMdd_HHmmss}_{Sanitize(toEmail)}_{Sanitize(subject)}.txt"); // Nombre único por timestamp
         var content = $"To: {toName} <{toEmail}>\nSubject: {subject}\nSentAt: {DateTime.Now:O}\n\n{body}\n"; // Contenido legible
         await File.WriteAllTextAsync(file, content, cancellationToken);
-        _logger.LogInformation("Correo simulado (outbox) para {Email}: {File}", toEmail, file);
+        _logger.LogInformation("Correo simulado channel = Outbox para {Email}: {File}", toEmail, file);
     }
 
     // Quito caracteres raros del nombre del archivo

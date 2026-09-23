@@ -89,7 +89,7 @@ Abrir `http://localhost:8080`. Postgres persiste en el volumen `sipitex-pgdata`.
 
 - **Actas:** conformidad con nombre, cargo, timestamp UTC y **firma gráfica** dibujada en pantalla (incluida en el PDF).
 - **Costeo:** tarifa de hora de mano de obra con valor de referencia `Costing:LaborHourRate` (6500 COP/h). El Administrador puede ajustarla en `/Costos` sin redesplegar.
-- **Alertas:** `Email:Enabled=true`. El envío SMTP real exige `Email:User` (variable `EMAIL_SMTP_USER`); si no hay usuario, los correos se guardan en `email-outbox/`.
+- **Alertas y códigos de correo:** `Email:Enabled=true` no basta. En Render hay que definir `Email__User`, `Email__Password` (contraseña de aplicación de Gmail, no la de la cuenta) y `Email__From` (el mismo correo que el usuario). Sin `Email__User` el canal es Outbox (`email-outbox/`). El log dice `channel = SMTP` o `channel = Outbox`. Detalle en `docs/05-Despliegue.md`.
 - **Login:** 5 intentos fallidos (correo + IP) bloquean 15 minutos. El mensaje no indica si el correo existe.
 
 ## Metodología cascada
