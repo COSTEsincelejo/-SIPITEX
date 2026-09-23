@@ -70,6 +70,49 @@ public class InventoryService : IInventoryService
         return materials.Select(MapMaterial).ToList();
     }
 
+    public async Task<MaterialPageDto> GetMaterialsPageAsync(
+        int? plantaInventarioId,
+        string? nombre,
+        string? nivel,
+        int? page,
+        int pageSize = Paging.DefaultPageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var allowed = _plantaAccessor.PlantaInventarioIds;
+        if (plantaInventarioId is int requested && allowed is not null && !allowed.Contains(requested))
+        {
+            return new MaterialPageDto { Page = 1, PageSize = pageSize };
+        }
+
+        var (items, total, totalSinFiltro, current) = await _materialRepository.PageAsync(
+            plantaInventarioId,
+            allowed,
+            nombre,
+            nivel,
+            page,
+            pageSize,
+            cancellationToken);
+
+        return new MaterialPageDto
+        {
+            Items = items.Select(MapMaterial).ToList(),
+            Page = current,
+            PageSize = pageSize < 1 ? Paging.DefaultPageSize : pageSize,
+            TotalCount = total,
+            TotalSinFiltro = totalSinFiltro
+        };
+    }
+
+    public async Task<IReadOnlyList<PlantaStockConteoDto>> SummarizeStockAsync(CancellationToken cancellationToken = default)
+    {
+        var rows = await _materialRepository.SummarizeByPlantaAsync(
+            _plantaAccessor.PlantaInventarioIds,
+            cancellationToken);
+        return rows
+            .Select(r => new PlantaStockConteoDto(r.PlantaInventarioId, r.Materiales, r.Bajo, r.Critico))
+            .ToList();
+    }
+
     // Crea un material nuevo con código autogenerado
     public async Task<ServiceResult> AddMaterialAsync(
         CreateMaterialDto dto,

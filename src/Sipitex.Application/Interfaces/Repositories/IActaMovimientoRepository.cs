@@ -7,5 +7,13 @@ public interface IActaMovimientoRepository
     Task AddAsync(ActaMovimiento acta, CancellationToken cancellationToken = default);
     Task<ActaMovimiento?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ActaMovimiento>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<ActaMovimiento> Items, int TotalCount, int Page)> PageAsync(
+        string? role,
+        int userId,
+        IReadOnlyCollection<int> plantaInventarioIds,
+        IReadOnlyCollection<int> allowedOrderIds,
+        int? page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
     Task<string?> GetLastNumeroAsync(CancellationToken cancellationToken = default);
 }

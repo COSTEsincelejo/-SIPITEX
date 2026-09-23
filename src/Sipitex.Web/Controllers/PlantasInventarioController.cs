@@ -52,33 +52,46 @@ public class PlantasInventarioController : Controller
         int? plantaInventarioId,
         string? q = null,
         string? nivel = null,
+        int? page = null,
         CancellationToken cancellationToken = default)
     {
         var plantas = VisiblePlantas(await _plantas.GetAllAsync(cancellationToken));
         if (plantaInventarioId is int requested && plantas.All(p => p.Id != requested))
             plantaInventarioId = null;
 
-        var materials = await _inventory.GetMaterialsByPlantaAsync(plantaInventarioId, cancellationToken);
-        var totalSinFiltro = materials.Count;
-
         IReadOnlyList<PlantaInventarioResumenItem> resumen = [];
+        IReadOnlyList<MaterialDto> materials = [];
+        var totalSinFiltro = 0;
+        var totalCount = 0;
+        var currentPage = 1;
+        var pageSize = Paging.DefaultPageSize;
+
         if (plantaInventarioId is null)
         {
+            var conteos = await _inventory.SummarizeStockAsync(cancellationToken);
             resumen = plantas.Select(p =>
             {
-                var mats = materials.Where(m => m.PlantaInventarioId == p.Id).ToList();
+                var conteo = conteos.FirstOrDefault(c => c.PlantaInventarioId == p.Id);
                 return new PlantaInventarioResumenItem
                 {
                     Id = p.Id,
                     Nombre = p.Nombre,
-                    Materiales = mats.Count,
-                    Bajo = mats.Count(m => StockNivelHelper.Classify(m.Stock, m.MinStock) == StockNivel.Bajo),
-                    Critico = mats.Count(m => StockNivelHelper.Classify(m.Stock, m.MinStock) == StockNivel.Critico)
+                    Materiales = conteo?.Materiales ?? 0,
+                    Bajo = conteo?.Bajo ?? 0,
+                    Critico = conteo?.Critico ?? 0
                 };
             }).ToList();
         }
-
-        materials = InventarioConsultaFilter.Apply(materials, q, nivel);
+        else
+        {
+            var materialPage = await _inventory.GetMaterialsPageAsync(
+                plantaInventarioId, q, nivel, page, cancellationToken: cancellationToken);
+            materials = materialPage.Items;
+            totalSinFiltro = materialPage.TotalSinFiltro;
+            totalCount = materialPage.TotalCount;
+            currentPage = materialPage.Page;
+            pageSize = materialPage.PageSize;
+        }
 
         return View(new ConsultarPlantasInventarioViewModel
         {
@@ -88,7 +101,10 @@ public class PlantasInventarioController : Controller
             Resumen = resumen,
             Q = q,
             Nivel = nivel,
-            TotalSinFiltro = totalSinFiltro
+            TotalSinFiltro = totalSinFiltro,
+            Page = currentPage,
+            PageSize = pageSize,
+            TotalCount = totalCount
         });
     }
 

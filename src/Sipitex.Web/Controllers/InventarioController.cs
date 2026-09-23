@@ -36,14 +36,14 @@ public class InventarioController : Controller
     // Pantalla principal del inventario (stock completo — no Instructor)
     [Authorize(Policy = AuthorizationPolicyNames.PuedeConsultarInventario)]
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(int? page = null, CancellationToken cancellationToken = default)
     {
         // Defensa en profundidad (unit-testable); la policy también bloquea en middleware
         if (User.IsInRole(UserRoles.Instructor) && !User.IsInRole(UserRoles.Administrador))
             return Forbid();
 
         // Armo el ViewModel con materiales, solicitudes y combos
-        return View(await BuildViewModel(cancellationToken));
+        return View(await BuildViewModel(page, cancellationToken));
     }
 
     // Historial de movimientos de stock (solo Admin / EncargadoDeBodega)
@@ -76,7 +76,7 @@ public class InventarioController : Controller
         if (!TryGetActorUserId(out var actorId))
         {
             ModelState.AddModelError(string.Empty, "Sesión no válida.");
-            return View("Index", await BuildViewModel(cancellationToken));
+            return View("Index", await BuildViewModel(null, cancellationToken));
         }
 
         // Llamo al servicio con los datos del formulario
@@ -84,7 +84,7 @@ public class InventarioController : Controller
             new CreateMaterialDto(form.Name, form.Stock, form.Unit, form.Origen, form.CostoAdquisicion), actorId, cancellationToken);
 
         // Vuelvo a cargar la pantalla completa para mostrar la tabla actualizada
-        var vm = await BuildViewModel(cancellationToken);
+        var vm = await BuildViewModel(null, cancellationToken);
         // Mensaje que ve el usuario según si salió bien o no
         vm.Message = result.Message ?? (result.Success ? "Material agregado." : "Error al agregar material.");
         // Bandera verde/roja en la vista
@@ -162,7 +162,7 @@ public class InventarioController : Controller
             cancellationToken);
 
         // Recargo datos de la pantalla
-        var vm = await BuildViewModel(cancellationToken);
+        var vm = await BuildViewModel(null, cancellationToken);
         vm.Message = result.Message ?? (result.Success ? "Solicitud creada." : "Error al crear solicitud.");
         vm.IsSuccess = result.Success;
         // Me quedo en Index como en AddMaterial
@@ -215,10 +215,12 @@ public class InventarioController : Controller
     }
 
     // Arma el ViewModel completo de la pantalla (materiales + solicitudes + combos)
-    private async Task<InventarioIndexViewModel> BuildViewModel(CancellationToken cancellationToken)
+    private async Task<InventarioIndexViewModel> BuildViewModel(int? page, CancellationToken cancellationToken)
     {
-        // Lista de materiales para la tabla principal
-        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
+        // Catálogo completo solo para el combo de solicitud y las alertas de mínimo.
+        var catalog = await _inventoryService.GetMaterialsAsync(cancellationToken);
+        var materialPage = await _inventoryService.GetMaterialsPageAsync(
+            null, null, null, page, cancellationToken: cancellationToken);
         // Órdenes para el dropdown al crear solicitud
         var orders = await _orderService.GetOrdersAsync(cancellationToken: cancellationToken);
 
@@ -230,8 +232,11 @@ public class InventarioController : Controller
         // Objeto que la vista Razor consume
         return new InventarioIndexViewModel
         {
-            // Tabla de materiales
-            Materials = materials,
+            Materials = materialPage.Items,
+            Catalog = catalog,
+            MaterialPage = materialPage.Page,
+            MaterialPageSize = materialPage.PageSize,
+            MaterialTotal = materialPage.TotalCount,
             // Solicitudes (Instructor scoped por SolicitanteId si llegara a llamar)
             Requests = await _inventoryService.GetRequestsAsync(viewerId, viewerRole, cancellationToken),
             // Combo de órdenes de producción
@@ -245,7 +250,7 @@ public class InventarioController : Controller
                 // Primera orden del listado o 0 si no hay ninguna
                 ProductionOrderId = orders.FirstOrDefault()?.Id ?? 0,
                 // Primer material o 0
-                MaterialId = materials.FirstOrDefault()?.Id ?? 0
+                MaterialId = catalog.FirstOrDefault()?.Id ?? 0
             },
             // Mensaje que vino de un POST anterior (TempData)
             Message = TempData["Message"] as string,

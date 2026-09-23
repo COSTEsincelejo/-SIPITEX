@@ -3,6 +3,11 @@
     ViewData["Title"] = "Trazabilidad de prendas";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Trazabilidad";
     Layout = "_Layout";
+    var pagerExtra = new Dictionary<string, string?>
+    {
+        ["q"] = Model.Query,
+        ["orderId"] = Model.OrderId?.ToString()
+    };
 }
 
 <div class="page-header">
@@ -68,7 +73,7 @@
 
 <div class="card">
     <div class="card-title teal"><i class="fas fa-shirt"></i> Prendas</div>
-    @if (Model.Prendas.Count == 0)
+    @if (Model.TotalCount == 0)
     {
         <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-barcode", Title = "Sin códigos", Text = "Genere códigos para una orden o busque un código único de prenda." }' />
     }
@@ -101,5 +106,6 @@
                 </tbody>
             </table>
         </div>
+        <partial name="_Pager" model='new PagerModel { Action = "Index", Page = Model.Page, TotalPages = (int)Math.Ceiling(Model.TotalCount / (double)Math.Max(1, Model.PageSize)), TotalCount = Model.TotalCount, JumpInputId = "trazabilidadPage", Extra = pagerExtra }' />
     }
 </div>

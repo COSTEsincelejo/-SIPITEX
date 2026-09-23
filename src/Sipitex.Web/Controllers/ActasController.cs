@@ -34,14 +34,18 @@ public class ActasController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(int? page, CancellationToken cancellationToken)
     {
         ViewData["Title"] = "Actas de ingreso y egreso";
         ViewData["Breadcrumb"] = "SIPITEX / Operación / Actas";
         var filter = await BuildFilterAsync(cancellationToken);
+        var actas = await _actas.GetPageAsync(filter, page, cancellationToken: cancellationToken);
         return View(new ActasIndexViewModel
         {
-            Actas = await _actas.GetAllAsync(filter, cancellationToken),
+            Actas = actas.Items,
+            Page = actas.Page,
+            PageSize = actas.PageSize,
+            TotalCount = actas.TotalCount,
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
