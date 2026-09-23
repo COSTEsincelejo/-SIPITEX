@@ -103,7 +103,7 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <input type="text" name="Resolve.Items[@idx].NewMaterialName" maxlength="120"
+                                    <input aria-label="Nombre nuevo" type="text" name="Resolve.Items[@idx].NewMaterialName" maxlength="120"
                                            placeholder="Nombre nuevo" style="width:100%;margin-bottom:4px;" />
                                     <select name="Resolve.Items[@idx].NewMaterialUnit" aria-label="Unidad material nuevo">
                                         <option value="">Unidad…</option>
@@ -158,8 +158,8 @@
                 </table>
             </div>
             <div class="field" style="margin-top:14px;max-width:480px;">
-                <label class="field-label">Observaciones (opcional)</label>
-                <input type="text" name="Resolve.Observaciones" maxlength="500" value="@s.Observaciones" placeholder="Notas de resolución" />
+                <label class="field-label" for="a11y-1">Observaciones (opcional)</label>
+                <input id="a11y-1" type="text" name="Resolve.Observaciones" maxlength="500" value="@s.Observaciones" placeholder="Notas de resolución" />
             </div>
             <div class="form-actions" style="margin-top:14px;">
                 <button type="submit" class="primary" data-confirm="¿Confirmar resolución de esta solicitud?">Confirmar resolución</button>

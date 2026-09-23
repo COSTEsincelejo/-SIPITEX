@@ -15,16 +15,16 @@
 <div class="card">
     <form method="get" class="form-row" style="margin-bottom:1rem;flex-wrap:wrap;">
         <div class="field">
-            <label class="field-label">Desde</label>
-            <input type="date" name="desde" value="@(Model.Desde?.ToString("yyyy-MM-dd"))" />
+            <label class="field-label" for="a11y-1">Desde</label>
+            <input id="a11y-1" type="date" name="desde" value="@(Model.Desde?.ToString("yyyy-MM-dd"))" />
         </div>
         <div class="field">
-            <label class="field-label">Hasta</label>
-            <input type="date" name="hasta" value="@(Model.Hasta?.ToString("yyyy-MM-dd"))" />
+            <label class="field-label" for="a11y-2">Hasta</label>
+            <input id="a11y-2" type="date" name="hasta" value="@(Model.Hasta?.ToString("yyyy-MM-dd"))" />
         </div>
         <div class="field" style="min-width:180px;">
-            <label class="field-label">Acción</label>
-            <select name="accion">
+            <label class="field-label" for="a11y-3">Acción</label>
+            <select id="a11y-3" name="accion">
                 <option value="">Todas</option>
                 @foreach (var a in Model.Actions)
                 {
@@ -40,8 +40,8 @@
             </select>
         </div>
         <div class="field" style="min-width:160px;">
-            <label class="field-label">Entidad</label>
-            <select name="entity">
+            <label class="field-label" for="a11y-4">Entidad</label>
+            <select id="a11y-4" name="entity">
                 <option value="">Todas</option>
                 @foreach (var e in Model.Entities)
                 {
@@ -57,8 +57,8 @@
             </select>
         </div>
         <div class="field" style="min-width:180px;">
-            <label class="field-label">Usuario</label>
-            <select name="userId">
+            <label class="field-label" for="a11y-5">Usuario</label>
+            <select id="a11y-5" name="userId">
                 <option value="">Todos</option>
                 @foreach (var u in Model.Actors)
                 {

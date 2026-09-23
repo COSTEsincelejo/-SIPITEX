@@ -65,7 +65,7 @@
                 @foreach (var m in Model.Movimientos.Take(40))
                 {
                     <tr>
-                        <td><input type="checkbox" name="Form.StockMovementIds" value="@m.Id" /></td>
+                        <td><input aria-label="Incluir movimiento" type="checkbox" name="Form.StockMovementIds" value="@m.Id" /></td>
                         <td>@m.FechaUtc.ToString("yyyy-MM-dd HH:mm")</td>
                         <td>@DisplayHelper.Label(m.TipoMovimiento)</td>
                         <td>@m.MaterialName</td>
@@ -91,7 +91,7 @@
                 @foreach (var c in Model.Consumos)
                 {
                     <tr>
-                        <td><input type="checkbox" name="Form.ConsumoIds" value="@c.Id" /></td>
+                        <td><input aria-label="Incluir consumo" type="checkbox" name="Form.ConsumoIds" value="@c.Id" /></td>
                         <td>@c.MaterialName</td>
                         <td>@c.Cantidad.ToString("0.##")</td>
                     </tr>

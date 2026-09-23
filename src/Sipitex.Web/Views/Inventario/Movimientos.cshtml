@@ -18,16 +18,16 @@
 <div class="card">
     <form method="get" class="form-row" style="margin-bottom:1rem;">
         <div class="field">
-            <label class="field-label">Desde</label>
-            <input type="date" name="desde" value="@(Model.Desde?.ToString("yyyy-MM-dd"))" />
+            <label class="field-label" for="a11y-1">Desde</label>
+            <input id="a11y-1" type="date" name="desde" value="@(Model.Desde?.ToString("yyyy-MM-dd"))" />
         </div>
         <div class="field">
-            <label class="field-label">Hasta</label>
-            <input type="date" name="hasta" value="@(Model.Hasta?.ToString("yyyy-MM-dd"))" />
+            <label class="field-label" for="a11y-2">Hasta</label>
+            <input id="a11y-2" type="date" name="hasta" value="@(Model.Hasta?.ToString("yyyy-MM-dd"))" />
         </div>
         <div class="field" style="min-width:200px;">
-            <label class="field-label">Material</label>
-                            <select name="materialId">
+            <label class="field-label" for="a11y-3">Material</label>
+                            <select id="a11y-3" name="materialId">
                 <option value="">Todos</option>
                 @foreach (var m in Model.Materials)
                 {

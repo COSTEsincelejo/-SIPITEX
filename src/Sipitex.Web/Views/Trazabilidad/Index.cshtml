@@ -53,12 +53,12 @@
     <form asp-action="Generar" method="post" class="form-row">
         @Html.AntiForgeryToken()
         <div class="field">
-            <label class="field-label">Orden</label>
-            <select name="orderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.OrderId))" required></select>
+            <label class="field-label" for="a11y-1">Orden</label>
+            <select id="a11y-1" name="orderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.OrderId))" required></select>
         </div>
         <div class="field">
-            <label class="field-label">Cantidad</label>
-            <input name="cantidad" type="number" min="1" max="200" value="1" required />
+            <label class="field-label" for="a11y-2">Cantidad</label>
+            <input id="a11y-2" name="cantidad" type="number" min="1" max="200" value="1" required />
         </div>
         <div class="field" style="align-self:flex-end;">
             <button type="submit" class="primary small">Generar</button>

@@ -118,7 +118,7 @@
         <form asp-action="AddStage" method="post" class="form-row" style="gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
             @Html.AntiForgeryToken()
             <input type="hidden" name="orderId" value="@m.OrderId" />
-            <div class="field"><label class="field-label">Nueva etapa</label><input name="name" required maxlength="80" placeholder="Ej. Bordado" /></div>
+            <div class="field"><label class="field-label" for="a11y-1">Nueva etapa</label><input id="a11y-1" name="name" required maxlength="80" placeholder="Ej. Bordado" /></div>
             <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="isOptional" value="true" /> Opcional</label>
             <button type="submit" class="small primary">Agregar</button>
         </form>
@@ -149,7 +149,7 @@
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="stageId" value="@s.Id" />
                                 <input type="hidden" name="orderId" value="@m.OrderId" />
-                                <select name="instructorUserId" style="max-width:160px">
+                                <select name="instructorUserId" style="max-width:160px" aria-label="Instructor de @s.Name">
                                     <option value="">—</option>
                                     @foreach (var i in Model.Instructors)
                                     {
@@ -194,8 +194,8 @@
                                 }
                                 @if (canManage)
                                 {
-                                    <form asp-action="MoveStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><input type="hidden" name="direction" value="-1" /><button class="small ghost" title="Subir">↑</button></form>
-                                    <form asp-action="MoveStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><input type="hidden" name="direction" value="1" /><button class="small ghost" title="Bajar">↓</button></form>
+                                    <form asp-action="MoveStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><input type="hidden" name="direction" value="-1" /><button class="small ghost" aria-label="Subir" title="Subir">↑</button></form>
+                                    <form asp-action="MoveStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><input type="hidden" name="direction" value="1" /><button class="small ghost" aria-label="Bajar" title="Bajar">↓</button></form>
                                     <form asp-action="RemoveStage" method="post">@Html.AntiForgeryToken()<input type="hidden" name="stageId" value="@s.Id" /><input type="hidden" name="orderId" value="@m.OrderId" /><button class="small ghost">Quitar</button></form>
                                 }
                             </div>
@@ -226,7 +226,7 @@
                                     <input type="hidden" name="stageId" value="@s.Id" />
                                     <input type="hidden" name="orderId" value="@m.OrderId" />
                                     <input type="number" name="quantity" min="1" value="1" style="width:64px" aria-label="Retiro" />
-                                    <input type="text" name="motive" required placeholder="Motivo" style="width:110px" />
+                                    <input aria-label="Motivo" type="text" name="motive" required placeholder="Motivo" style="width:110px" />
                                     <button class="small ghost">Retirar</button>
                                 </form>
                             </div>
@@ -247,8 +247,8 @@
             @Html.AntiForgeryToken()
             <input type="hidden" name="orderId" value="@m.OrderId" />
             <div class="field">
-                <label class="field-label">Instructor</label>
-                <select name="userId" required>
+                <label class="field-label" for="a11y-2">Instructor</label>
+                <select id="a11y-2" name="userId" required>
                     @foreach (var i in Model.Instructors)
                     {
                         <option value="@i.Id">@i.Nombre</option>
@@ -256,8 +256,8 @@
                 </select>
             </div>
             <div class="field">
-                <label class="field-label">Etapa</label>
-                <select name="stageName" required>
+                <label class="field-label" for="a11y-3">Etapa</label>
+                <select id="a11y-3" name="stageName" required>
                     @foreach (var s in m.Stages.Select(x => x.Name).Distinct())
                     {
                         <option value="@s">@s</option>
@@ -265,8 +265,8 @@
                 </select>
             </div>
             <div class="field">
-                <label class="field-label">Acción</label>
-                <select name="allowed">
+                <label class="field-label" for="a11y-4">Acción</label>
+                <select id="a11y-4" name="allowed">
                     <option value="true">Permitir</option>
                     <option value="false">Revocar</option>
                 </select>

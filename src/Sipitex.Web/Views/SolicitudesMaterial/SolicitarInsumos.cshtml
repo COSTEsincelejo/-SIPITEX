@@ -30,15 +30,15 @@
         @Html.AntiForgeryToken()
 
         <div class="field" style="margin-top:12px;">
-            <label class="field-label">Descripción general (opcional)</label>
-            <textarea name="Form.DescripcionLibre" rows="2" maxlength="2000" style="width:100%"
+            <label class="field-label" for="a11y-1">Descripción general (opcional)</label>
+            <textarea id="a11y-1" name="Form.DescripcionLibre" rows="2" maxlength="2000" style="width:100%"
                       placeholder="Contexto del pedido para planta de inventario">@f.DescripcionLibre</textarea>
         </div>
 
         <div class="form-row" style="margin-top:12px;">
             <div class="field" style="flex:1;">
-                <label class="field-label">Grupo SENA (opcional)</label>
-                <select name="Form.FichaId" style="width:100%">
+                <label class="field-label" for="a11y-2">Grupo SENA (opcional)</label>
+                <select id="a11y-2" name="Form.FichaId" style="width:100%">
                     <option value="">— Sin vincular —</option>
                     @foreach (var item in Model.Fichas)
                     {
@@ -54,8 +54,8 @@
                 </select>
             </div>
             <div class="field" style="flex:1;">
-                <label class="field-label">Orden de producción (opcional)</label>
-                <select name="Form.ProductionOrderId" style="width:100%">
+                <label class="field-label" for="a11y-3">Orden de producción (opcional)</label>
+                <select id="a11y-3" name="Form.ProductionOrderId" style="width:100%">
                     <option value="">— Sin vincular —</option>
                     @foreach (var item in Model.Ordenes)
                     {
@@ -71,8 +71,8 @@
                 </select>
             </div>
             <div class="field" style="flex:1;">
-                <label class="field-label">PlantaInventario destino</label>
-                <select name="Form.PlantaInventarioId" style="width:100%" required>
+                <label class="field-label" for="a11y-4">PlantaInventario destino</label>
+                <select id="a11y-4" name="Form.PlantaInventarioId" style="width:100%" required>
                     @foreach (var item in Model.PlantasInventario)
                     {
                         if ((f.PlantaInventarioId ?? 1) == item.Id)
@@ -97,14 +97,14 @@
                     var d = detalles[i];
                     <div class="solicitud-row" data-insumo-row>
                         <div class="field" style="flex:2;">
-                            <label class="field-label">Descripción del ítem</label>
-                            <input type="text" name="Form.Detalles[@i].DescripcionItem" value="@d.DescripcionItem"
+                            <label class="field-label" for="detalle-desc-@i">Descripción del ítem</label>
+                            <input id="detalle-desc-@i" type="text" name="Form.Detalles[@i].DescripcionItem" value="@d.DescripcionItem"
                                    required maxlength="500" style="width:100%"
                                    placeholder="Ej. Cremallera nylon #5 separable 60 cm" />
                         </div>
                         <div class="field" style="width:140px;">
-                            <label class="field-label">Cantidad</label>
-                            <input type="number" name="Form.Detalles[@i].CantidadSolicitada"
+                            <label class="field-label" for="detalle-cant-@i">Cantidad</label>
+                            <input id="detalle-cant-@i" type="number" name="Form.Detalles[@i].CantidadSolicitada"
                                    value="@d.CantidadSolicitada.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                    min="0.01" step="0.01" required />
                         </div>
@@ -118,13 +118,13 @@
             <div class="solicitud-row" data-insumo-row>
                 <div class="field" style="flex:2;">
                     <label class="field-label">Descripción del ítem</label>
-                    <input type="text" data-name-template="Form.Detalles[{i}].DescripcionItem"
+                    <input type="text" data-name-template="Form.Detalles[{i}].DescripcionItem" aria-label="Descripción del ítem"
                            required maxlength="500" style="width:100%"
                            placeholder="Ej. Hilo pespuntes color negro" />
                 </div>
                 <div class="field" style="width:140px;">
                     <label class="field-label">Cantidad</label>
-                    <input type="number" data-name-template="Form.Detalles[{i}].CantidadSolicitada"
+                    <input type="number" data-name-template="Form.Detalles[{i}].CantidadSolicitada" aria-label="Cantidad"
                            value="1" min="0.01" step="0.01" required />
                 </div>
                 <button type="button" class="small ghost danger" data-insumo-remove aria-label="Quitar ítem">Quitar</button>
@@ -132,8 +132,8 @@
         </template>
 
         <div class="field" style="margin-top:12px;max-width:480px;">
-            <label class="field-label">Observaciones (opcional)</label>
-            <input type="text" name="Form.Observaciones" maxlength="500" value="@f.Observaciones" placeholder="Notas para planta de inventario" />
+            <label class="field-label" for="a11y-9">Observaciones (opcional)</label>
+            <input id="a11y-9" type="text" name="Form.Observaciones" maxlength="500" value="@f.Observaciones" placeholder="Notas para planta de inventario" />
         </div>
 
         <div class="solicitud-form-actions" style="margin-top:14px;">
