@@ -22,18 +22,19 @@ public class UserEditViewModel
 {
     public int Id { get; set; } // 0 al crear, >0 al editar
 
-    [Required]
+    [Required(ErrorMessage = "El nombre es obligatorio.")]
+    [StringLength(120, ErrorMessage = "El nombre no puede superar 120 caracteres.")]
     public string Nombre { get; set; } = string.Empty;
 
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "El correo es obligatorio.")]
+    [EmailAddress(ErrorMessage = "El correo no es válido.")]
     public string Email { get; set; } = string.Empty;
 
     // Si viene vacío al editar, no se cambia la contraseña
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "El rol es obligatorio.")]
     public string Rol { get; set; } = "Instructor"; // Instructor o EncargadoDeBodega al crear
 
     public int? FichaAsignadaId { get; set; } // opcional, solo para instructores

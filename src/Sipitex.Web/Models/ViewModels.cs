@@ -628,6 +628,7 @@ public class CostosIndexViewModel
     public GarmentCostDto? Costo { get; set; }
     public bool LaborHourRateUnconfigured { get; set; }
     public decimal LaborHourRate { get; set; }
+    public string? RateError { get; set; }
     public bool CanEditRate { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
@@ -652,10 +653,16 @@ public class CreateActaForm
 {
     public ActaTipo Tipo { get; set; } = ActaTipo.Egreso;
     public ActaOrigen Origen { get; set; } = ActaOrigen.Manual;
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "El nombre de quien entrega es obligatorio.")]
+    [System.ComponentModel.DataAnnotations.StringLength(120, ErrorMessage = "El nombre de quien entrega no puede superar 120 caracteres.")]
     public string EntregaNombre { get; set; } = string.Empty;
+    [System.ComponentModel.DataAnnotations.StringLength(120, ErrorMessage = "El cargo de quien entrega no puede superar 120 caracteres.")]
     public string EntregaCargo { get; set; } = string.Empty;
     public bool EntregaConforme { get; set; } = true;
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "El nombre de quien recibe es obligatorio.")]
+    [System.ComponentModel.DataAnnotations.StringLength(120, ErrorMessage = "El nombre de quien recibe no puede superar 120 caracteres.")]
     public string RecibeNombre { get; set; } = string.Empty;
+    [System.ComponentModel.DataAnnotations.StringLength(120, ErrorMessage = "El cargo de quien recibe no puede superar 120 caracteres.")]
     public string RecibeCargo { get; set; } = string.Empty;
     public bool RecibeConforme { get; set; } = true;
     public string? Observaciones { get; set; }

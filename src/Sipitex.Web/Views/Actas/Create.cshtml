@@ -18,6 +18,7 @@
 <div class="card">
     <form asp-action="Create" method="post">
         @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
         <div class="form-row">
             <div class="field">
                 <label class="field-label">Tipo</label>
@@ -103,12 +104,14 @@
         <div class="card-title"><i class="fas fa-file-signature"></i> Conformidad</div>
         <div class="form-row">
             <div class="field">
-                <label class="field-label">Quien entrega</label>
-                <input asp-for="Form.EntregaNombre" required />
+                <label class="field-label" asp-for="Form.EntregaNombre">Quien entrega</label>
+                <input asp-for="Form.EntregaNombre" />
+                <span asp-validation-for="Form.EntregaNombre" class="field-error"></span>
             </div>
             <div class="field">
-                <label class="field-label">Cargo</label>
+                <label class="field-label" asp-for="Form.EntregaCargo">Cargo</label>
                 <input asp-for="Form.EntregaCargo" />
+                <span asp-validation-for="Form.EntregaCargo" class="field-error"></span>
             </div>
             <div class="field" style="align-self:flex-end;">
                 <label><input asp-for="Form.EntregaConforme" /> Conforme</label>
@@ -118,16 +121,19 @@
             <label class="field-label">Firma de quien entrega</label>
             <canvas width="320" height="120" aria-label="Firme aquí (quien entrega)"></canvas>
             <input type="hidden" asp-for="Form.EntregaFirmaDataUrl" />
+            <span asp-validation-for="Form.EntregaFirmaDataUrl" class="field-error"></span>
             <button type="button" class="ghost small" data-signature-clear>Limpiar firma</button>
         </div>
         <div class="form-row">
             <div class="field">
-                <label class="field-label">Quien recibe</label>
-                <input asp-for="Form.RecibeNombre" required />
+                <label class="field-label" asp-for="Form.RecibeNombre">Quien recibe</label>
+                <input asp-for="Form.RecibeNombre" />
+                <span asp-validation-for="Form.RecibeNombre" class="field-error"></span>
             </div>
             <div class="field">
-                <label class="field-label">Cargo</label>
+                <label class="field-label" asp-for="Form.RecibeCargo">Cargo</label>
                 <input asp-for="Form.RecibeCargo" />
+                <span asp-validation-for="Form.RecibeCargo" class="field-error"></span>
             </div>
             <div class="field" style="align-self:flex-end;">
                 <label><input asp-for="Form.RecibeConforme" /> Conforme</label>
@@ -137,6 +143,7 @@
             <label class="field-label">Firma de quien recibe</label>
             <canvas width="320" height="120" aria-label="Firme aquí (quien recibe)"></canvas>
             <input type="hidden" asp-for="Form.RecibeFirmaDataUrl" />
+            <span asp-validation-for="Form.RecibeFirmaDataUrl" class="field-error"></span>
             <button type="button" class="ghost small" data-signature-clear>Limpiar firma</button>
         </div>
         <div class="field">
@@ -148,5 +155,6 @@
 </div>
 
 @section Scripts {
+    <partial name="_ValidationScriptsPartial" />
     <script src="~/js/signature-pad.js" asp-append-version="true"></script>
 }

@@ -27,6 +27,43 @@ public class CostosController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(int? orderId, CancellationToken cancellationToken)
     {
+        return View(await BuildIndexAsync(orderId, cancellationToken));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = UserRoles.Administrador)]
+    public async Task<IActionResult> Tarifa(string? laborHourRate, int? orderId, CancellationToken cancellationToken)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId) || userId <= 0)
+        {
+            TempData["Message"] = "No se pudo identificar al usuario.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Index), new { orderId });
+        }
+
+        if (!TryParseRate(laborHourRate, out var rate, out var error))
+        {
+            var invalid = await BuildIndexAsync(orderId, cancellationToken);
+            invalid.RateError = error;
+            return View("Index", invalid);
+        }
+
+        var result = await _costingSettings.UpdateLaborHourRateAsync(rate, userId, cancellationToken);
+        if (!result.Success)
+        {
+            var failed = await BuildIndexAsync(orderId, cancellationToken);
+            failed.RateError = result.Message ?? "No se pudo guardar la tarifa.";
+            return View("Index", failed);
+        }
+
+        TempData["Message"] = result.Message;
+        TempData["IsSuccess"] = true;
+        return RedirectToAction(nameof(Index), new { orderId });
+    }
+
+    private async Task<CostosIndexViewModel> BuildIndexAsync(int? orderId, CancellationToken cancellationToken)
+    {
         ViewData["Title"] = "Costeo de prendas";
         ViewData["Breadcrumb"] = "SIPITEX / Análisis / Costeo";
         var (userId, role, name) = CurrentViewer();
@@ -38,7 +75,7 @@ public class CostosController : Controller
         var costo = selected is int oid
             ? await _costing.CalcularAsync(oid, cancellationToken)
             : null;
-        return View(new CostosIndexViewModel
+        return new CostosIndexViewModel
         {
             Orders = orders,
             OrderId = selected,
@@ -48,25 +85,35 @@ public class CostosController : Controller
             CanEditRate = User.IsInRole(UserRoles.Administrador),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
-        });
+        };
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Roles = UserRoles.Administrador)]
-    public async Task<IActionResult> Tarifa(decimal laborHourRate, int? orderId, CancellationToken cancellationToken)
+    private static bool TryParseRate(string? raw, out decimal rate, out string error)
     {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId) || userId <= 0)
+        rate = 0;
+        var text = (raw ?? string.Empty).Trim();
+        if (text.Length == 0)
         {
-            TempData["Message"] = "No se pudo identificar al usuario.";
-            TempData["IsSuccess"] = false;
-            return RedirectToAction(nameof(Index), new { orderId });
+            error = "Indique la tarifa por hora.";
+            return false;
         }
 
-        var result = await _costingSettings.UpdateLaborHourRateAsync(laborHourRate, userId, cancellationToken);
-        TempData["Message"] = result.Message;
-        TempData["IsSuccess"] = result.Success;
-        return RedirectToAction(nameof(Index), new { orderId });
+        var styles = System.Globalization.NumberStyles.Number;
+        if (!decimal.TryParse(text, styles, System.Globalization.CultureInfo.InvariantCulture, out rate)
+            && !decimal.TryParse(text, styles, new System.Globalization.CultureInfo("es-CO"), out rate))
+        {
+            error = "La tarifa debe ser un número mayor que cero.";
+            return false;
+        }
+
+        if (rate <= 0)
+        {
+            error = "La tarifa de hora debe ser mayor que cero.";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
     }
 
     private (int? UserId, string? Role, string? Name) CurrentViewer()

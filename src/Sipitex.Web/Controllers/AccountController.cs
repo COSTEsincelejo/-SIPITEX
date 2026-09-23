@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 // Servicios de usuarios y reset de contraseña
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
@@ -339,6 +340,10 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateUser(UserEditViewModel model, CancellationToken cancellationToken)
     {
+        var passwordError = PasswordRules.Validate(model.Password, required: true);
+        if (passwordError is not null)
+            ModelState.AddModelError(nameof(model.Password), passwordError);
+
         // Validación del lado del servidor (DataAnnotations)
         if (!ModelState.IsValid) { await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
@@ -397,6 +402,10 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditUser(UserEditViewModel model, CancellationToken cancellationToken)
     {
+        var passwordError = PasswordRules.Validate(model.Password, required: false);
+        if (passwordError is not null)
+            ModelState.AddModelError(nameof(model.Password), passwordError);
+
         // Reviso campos obligatorios del form
         if (!ModelState.IsValid) { await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
