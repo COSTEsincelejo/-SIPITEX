@@ -72,7 +72,10 @@
                             <div class="row-actions">
                                 <a asp-action="EditUser" asp-route-id="@u.Id" class="btn small ghost">Editar</a>
                                 <form asp-action="ToggleUserStatus" method="post"
-                                      data-confirm="@(u.IsActive ? "¿Desactivar este usuario?" : "¿Activar este usuario?")">
+                                      data-confirm="@(u.IsActive ? "¿Desactivar este usuario?" : "¿Activar este usuario?")"
+                                      data-confirm-title="@(u.IsActive ? "Desactivar usuario" : "Activar usuario")"
+                                      data-confirm-variant="@(u.IsActive ? "danger" : "primary")"
+                                      data-confirm-ok="@(u.IsActive ? "Desactivar" : "Activar")">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@u.Id" />
                                     <input type="hidden" name="isActive" value="@(!u.IsActive)" />
@@ -81,7 +84,10 @@
                                 @if (!isSelf)
                                 {
                                     <form asp-action="DeleteUser" method="post"
-                                          data-confirm="¿Eliminar permanentemente a «@u.Nombre»? Esta acción no se puede deshacer. Si tiene historial, el sistema bloqueará el borrado y deberá desactivar la cuenta.">
+                                          data-confirm="¿Eliminar permanentemente a «@u.Nombre»? Esta acción no se puede deshacer. Si tiene historial, el sistema bloqueará el borrado y deberá desactivar la cuenta."
+                                          data-confirm-title="Eliminar usuario"
+                                          data-confirm-variant="danger"
+                                          data-confirm-ok="Eliminar">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@u.Id" />
                                         <button type="submit" class="small danger">Eliminar</button>

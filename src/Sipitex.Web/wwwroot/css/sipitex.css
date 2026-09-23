@@ -355,3 +355,33 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 .inline-form{display:inline;}
 .text-end{text-align:right;}
 
+/* Modal de confirmación (reemplaza window.confirm) */
+.confirm-modal{
+  position:fixed;inset:0;z-index:1300;display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.confirm-modal[hidden]{display:none !important;}
+.confirm-modal-backdrop{position:absolute;inset:0;background:rgba(7,24,40,0.48);}
+.confirm-modal-dialog{
+  position:relative;width:min(440px,100%);background:var(--surface);border:1px solid #C9D6E8;
+  border-radius:var(--radius);box-shadow:var(--shadow-md);padding:22px 24px 20px;
+  animation:toastIn .22s var(--ease);
+}
+.confirm-modal-dialog::before{
+  content:'';display:block;height:4px;margin:-22px -24px 16px;border-radius:var(--radius) var(--radius) 0 0;
+  background:linear-gradient(90deg,#1F3864,#0B6FE0);
+}
+.confirm-modal-dialog h3{font-size:17px;font-weight:800;color:#1F3864;letter-spacing:-0.2px;margin-bottom:8px;}
+.confirm-modal-dialog p{font-size:14px;color:var(--text);line-height:1.5;margin-bottom:18px;}
+.confirm-modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;}
+.confirm-modal-actions button{min-height:44px;min-width:108px;}
+body.confirm-modal-open{overflow:hidden;}
+@media (max-width:560px){
+  .confirm-modal{align-items:flex-end;padding:0;}
+  .confirm-modal-dialog{
+    width:100%;border-radius:16px 16px 0 0;padding:18px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .confirm-modal-dialog::before{margin:-18px -16px 14px;border-radius:16px 16px 0 0;}
+  .confirm-modal-actions{flex-direction:column-reverse;}
+  .confirm-modal-actions button{width:100%;}
+}
+

@@ -202,6 +202,17 @@
     </div>
 </div>
 <div id="toastHost" class="toast-host" aria-live="polite"></div>
+<div id="confirmModal" class="confirm-modal" hidden>
+    <div class="confirm-modal-backdrop" data-confirm-dismiss></div>
+    <div class="confirm-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalMessage">
+        <h3 id="confirmModalTitle"></h3>
+        <p id="confirmModalMessage"></p>
+        <div class="confirm-modal-actions">
+            <button type="button" class="ghost" data-confirm-dismiss>Cancelar</button>
+            <button type="button" id="confirmModalAccept">Confirmar</button>
+        </div>
+    </div>
+</div>
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
