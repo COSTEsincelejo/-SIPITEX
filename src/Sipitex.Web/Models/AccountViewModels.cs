@@ -30,9 +30,9 @@ public class UserEditViewModel
     [EmailAddress(ErrorMessage = "El correo no es válido.")]
     public string Email { get; set; } = string.Empty;
 
-    // Si viene vacío al editar, no se cambia la contraseña
+    // Vacía al editar: no se cambia. Al crear, la vista y PasswordRules la exigen en español.
     [DataType(DataType.Password)]
-    public string Password { get; set; } = string.Empty;
+    public string? Password { get; set; }
 
     [Required(ErrorMessage = "El rol es obligatorio.")]
     public string Rol { get; set; } = "Instructor"; // Instructor o EncargadoDeBodega al crear

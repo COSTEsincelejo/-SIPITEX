@@ -657,13 +657,13 @@ public class CreateActaForm
     [System.ComponentModel.DataAnnotations.StringLength(120, ErrorMessage = "El nombre de quien entrega no puede superar 120 caracteres.")]
     public string EntregaNombre { get; set; } = string.Empty;
     [System.ComponentModel.DataAnnotations.StringLength(120, ErrorMessage = "El cargo de quien entrega no puede superar 120 caracteres.")]
-    public string EntregaCargo { get; set; } = string.Empty;
+    public string? EntregaCargo { get; set; }
     public bool EntregaConforme { get; set; } = true;
     [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "El nombre de quien recibe es obligatorio.")]
     [System.ComponentModel.DataAnnotations.StringLength(120, ErrorMessage = "El nombre de quien recibe no puede superar 120 caracteres.")]
     public string RecibeNombre { get; set; } = string.Empty;
     [System.ComponentModel.DataAnnotations.StringLength(120, ErrorMessage = "El cargo de quien recibe no puede superar 120 caracteres.")]
-    public string RecibeCargo { get; set; } = string.Empty;
+    public string? RecibeCargo { get; set; }
     public bool RecibeConforme { get; set; } = true;
     public string? Observaciones { get; set; }
     public int? ProductionOrderId { get; set; }
