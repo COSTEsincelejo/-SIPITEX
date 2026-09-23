@@ -85,8 +85,8 @@
                                 <form asp-action="Cerrar" method="post" class="row-actions" style="display:inline;">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@g.Id" />
-                                    <input type="time" name="horaFin" required />
-                                    <input type="number" name="cantidadPrendas" value="@g.CantidadPrendas" min="0" style="width:72px" />
+                                    <input aria-label="Hora de fin" type="time" name="horaFin" required />
+                                    <input aria-label="Cantidad de prendas" type="number" name="cantidadPrendas" value="@g.CantidadPrendas" min="0" style="width:72px" />
                                     <button type="submit" class="small">Cerrar</button>
                                 </form>
                             }

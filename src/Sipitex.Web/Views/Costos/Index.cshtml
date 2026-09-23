@@ -43,8 +43,8 @@
     <div class="card-title"><i class="fas fa-filter"></i> Consultar por orden</div>
     <form method="get" class="form-row">
         <div class="field">
-            <label class="field-label">Orden</label>
-            <select name="orderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.OrderId))"></select>
+            <label class="field-label" for="a11y-1">Orden</label>
+            <select id="a11y-1" name="orderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.OrderId))"></select>
         </div>
         <div class="field" style="align-self:flex-end;">
             <button type="submit" class="small">Calcular</button>

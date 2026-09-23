@@ -34,12 +34,12 @@
             <input asp-for="Password" type="password" />
         </div>
         <div class="field">
-            <label class="field-label">Rol</label>
+            <label class="field-label" for="a11y-1">Rol</label>
             @if (isAdminUser)
             {
                 @* Rol bloqueado: hidden para que siga viajando en el POST *@
                 <input asp-for="Rol" type="hidden" />
-                <input value="@Model.Rol" readonly class="readonly-input" />
+                <input id="a11y-1" value="@Model.Rol" readonly class="readonly-input" />
                 <p class="hint" style="margin-top:.35rem;">El rol del administrador no se puede cambiar.</p>
             }
             else

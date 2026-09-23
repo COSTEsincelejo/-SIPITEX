@@ -39,7 +39,7 @@
                 }
             </div>
             <div class="profile-photo-actions">
-                <label class="field-label">Foto de perfil</label>
+                <label class="field-label" for="photoInput">Foto de perfil</label>
                 <p class="hint">JPG, PNG o WEBP · máximo 2 MB</p>
                 <input type="file" name="photo" id="photoInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
                 @if (!string.IsNullOrWhiteSpace(Model.PhotoPath))
@@ -65,8 +65,8 @@
         </div>
 
         <div class="field">
-            <label class="field-label">Rol</label>
-            <input value="@Model.Rol" readonly class="readonly-input" />
+            <label class="field-label" for="a11y-1">Rol</label>
+            <input id="a11y-1" value="@Model.Rol" readonly class="readonly-input" />
         </div>
 
         <div class="field">

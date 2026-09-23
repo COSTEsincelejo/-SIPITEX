@@ -22,8 +22,8 @@
     <div class="card-title"><i class="fas fa-rotate-left"></i> Nuevo reingreso</div>
     <form method="get" asp-action="Reingreso" class="form-row" style="margin-bottom:1rem;">
         <div class="field" style="min-width:220px;">
-            <label class="field-label">Orden de producción</label>
-            <select name="orderId" onchange="this.form.submit()">
+            <label class="field-label" for="a11y-1">Orden de producción</label>
+            <select id="a11y-1" name="orderId" onchange="this.form.submit()">
                 <option value="">Seleccione orden…</option>
                 @foreach (var o in Model.Orders)
                 {
@@ -55,8 +55,8 @@
             <input type="hidden" name="Form.OrderId" value="@Model.Form.OrderId" />
 
             <div class="field" style="min-width:200px;">
-                <label class="field-label">Etapa de origen</label>
-                <select name="Form.StageId" required>
+                <label class="field-label" for="a11y-2">Etapa de origen</label>
+                <select id="a11y-2" name="Form.StageId" required>
                     <option value="">Seleccione etapa…</option>
                     @foreach (var s in Model.Stages)
                     {
@@ -80,8 +80,8 @@
             </div>
 
             <div class="field" id="materialField" style="min-width:200px;">
-                <label class="field-label">Material</label>
-                <select name="Form.MaterialId">
+                <label class="field-label" for="a11y-3">Material</label>
+                <select id="a11y-3" name="Form.MaterialId">
                     <option value="0">Seleccione material…</option>
                     @foreach (var m in Model.Materials)
                     {
@@ -91,13 +91,13 @@
             </div>
 
             <div class="field">
-                <label class="field-label">Cantidad</label>
-                <input type="number" name="Form.Quantity" min="1" value="@Model.Form.Quantity" required />
+                <label class="field-label" for="a11y-4">Cantidad</label>
+                <input id="a11y-4" type="number" name="Form.Quantity" min="1" value="@Model.Form.Quantity" required />
             </div>
 
             <div class="field" style="min-width:220px;">
-                <label class="field-label">Observaciones</label>
-                <input type="text" name="Form.Observations" maxlength="500" placeholder="Opcional" />
+                <label class="field-label" for="a11y-5">Observaciones</label>
+                <input id="a11y-5" type="text" name="Form.Observations" maxlength="500" placeholder="Opcional" />
             </div>
 
             <div class="field" style="align-self:flex-end;">
