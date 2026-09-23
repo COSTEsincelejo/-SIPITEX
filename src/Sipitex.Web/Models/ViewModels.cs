@@ -4,6 +4,17 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Web.Models;
 
+public class PagerModel
+{
+    public string Action { get; set; } = "Index";
+    public string? Controller { get; set; }
+    public int Page { get; set; } = 1;
+    public int TotalPages { get; set; } = 1;
+    public int TotalCount { get; set; }
+    public string JumpInputId { get; set; } = "pageJump";
+    public IDictionary<string, string?> Extra { get; set; } = new Dictionary<string, string?>();
+}
+
 // Aquí están los modelos usados por las vistas para mostrar datos al usuario.
 // Cada pantalla suele tener un *IndexViewModel con listas + formularios de creación.
 
@@ -11,6 +22,10 @@ namespace Sipitex.Web.Models;
 public class InventarioIndexViewModel
 {
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public IReadOnlyList<MaterialDto> Catalog { get; set; } = [];
+    public int MaterialPage { get; set; } = 1;
+    public int MaterialPageSize { get; set; } = 25;
+    public int MaterialTotal { get; set; }
     public IReadOnlyList<MaterialRequestDto> Requests { get; set; } = [];
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = []; // para el select de solicitudes
     public CreateMaterialForm CreateMaterial { get; set; } = new();
@@ -435,6 +450,9 @@ public class ConsultarPlantasInventarioViewModel
     public string? Q { get; set; }
     public string? Nivel { get; set; }
     public int TotalSinFiltro { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+    public int TotalCount { get; set; }
 }
 
 public class PlantaInventarioResumenItem
@@ -636,6 +654,9 @@ public class CostosIndexViewModel
 public class ActasIndexViewModel
 {
     public IReadOnlyList<ActaMovimientoDto> Actas { get; set; } = [];
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+    public int TotalCount { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -674,6 +695,9 @@ public class TrazabilidadIndexViewModel
     public int? OrderId { get; set; }
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public IReadOnlyList<PrendaTrazableListDto> Prendas { get; set; } = [];
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+    public int TotalCount { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }

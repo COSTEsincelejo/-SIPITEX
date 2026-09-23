@@ -21,7 +21,7 @@
 }
 
 <div class="card">
-    @if (Model.Actas.Count == 0)
+    @if (Model.TotalCount == 0)
     {
         <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-file-signature", Title = "Sin actas", Text = "Todavía no hay actas de ingreso o egreso." }' />
     }
@@ -61,5 +61,6 @@
                 </tbody>
             </table>
         </div>
+        <partial name="_Pager" model='new PagerModel { Action = "Index", Page = Model.Page, TotalPages = (int)Math.Ceiling(Model.TotalCount / (double)Math.Max(1, Model.PageSize)), TotalCount = Model.TotalCount, JumpInputId = "actasPage" }' />
     }
 </div>

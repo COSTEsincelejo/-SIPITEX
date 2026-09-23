@@ -6,7 +6,7 @@
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Inventario";
     Layout = "_Layout";
     // Materiales con stock bajo para el banner de alerta
-    var lowStock = Model.Materials.Where(m => m.IsLowStock).Select(m => m.Name).ToList();
+    var lowStock = Model.Catalog.Where(m => m.IsLowStock).Select(m => m.Name).ToList();
     var canManageStock = User.IsInRole("Administrador") || User.IsInRole("Encargado de bodega");
     // Políticas más finas que el rol (permisos extendidos)
     var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
@@ -66,7 +66,7 @@
             <button type="submit" class="primary"><i class="fas fa-plus"></i> Agregar material</button>
         </form>
     }
-    @if (!Model.Materials.Any())
+    @if (Model.MaterialTotal == 0)
     {
         <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin materiales", Text = "Todavía no hay materias primas registradas.", ActionText = canRegisterMaterial ? "Use el formulario superior para agregar el primero." : null }' />
     }
@@ -168,6 +168,7 @@
                 </tbody>
             </table>
         </div>
+        <partial name="_Pager" model='new PagerModel { Action = "Index", Page = Model.MaterialPage, TotalPages = (int)Math.Ceiling(Model.MaterialTotal / (double)Math.Max(1, Model.MaterialPageSize)), TotalCount = Model.MaterialTotal, JumpInputId = "inventarioPage" }' />
         @if (lowStock.Any())
         {
             <div class="alert alert-warning" style="margin-top:14px;">
@@ -196,7 +197,7 @@
             <div class="field">
                 <label class="field-label">Material</label>
                 <select asp-for="CreateRequest.MaterialId">
-                    @foreach (var m in Model.Materials)
+                    @foreach (var m in Model.Catalog)
                     {
                         <option value="@m.Id">@m.Name (stock: @m.Stock.ToString("0.0"))</option>
                     }

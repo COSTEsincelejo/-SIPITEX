@@ -54,6 +54,16 @@ public class PlantasInventarioConsultarControllerTests
         return new ClaimsPrincipal(identity);
     }
 
+    private static MaterialPageDto Page(IReadOnlyList<MaterialDto> items, int? totalSinFiltro = null) =>
+        new()
+        {
+            Items = items,
+            Page = 1,
+            PageSize = 25,
+            TotalCount = items.Count,
+            TotalSinFiltro = totalSinFiltro ?? items.Count
+        };
+
     private static MaterialDto Mat(
         int id,
         string name,
@@ -89,11 +99,11 @@ public class PlantasInventarioConsultarControllerTests
     public async Task Consultar_AdminSinFiltro_MuestraResumenDeTodasLasPlantas()
     {
         SetupTwoPlantas();
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
+        _inventory.Setup(s => s.SummarizeStockAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
-                Mat(1, "Tela", 20, 5, 1, "Planta 1"),
-                Mat(2, "Hilo", 0, 10, 2, "Planta 2")
+                new PlantaStockConteoDto(1, 1, 0, 0),
+                new PlantaStockConteoDto(2, 1, 0, 1)
             ]);
 
         var result = await CreateController(
@@ -113,17 +123,14 @@ public class PlantasInventarioConsultarControllerTests
     public async Task Consultar_AdminCambiaDePlanta_SoloMaterialesDeEsaPlanta()
     {
         SetupTwoPlantas();
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
+        _inventory.Setup(s => s.GetMaterialsPageAsync(1, null, null, null, 25, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(
             [
                 Mat(1, "Tela", 20, 5, 1, "Planta 1"),
                 Mat(3, "Botón", 4, 10, 1, "Planta 1")
-            ]);
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(2, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-            [
-                Mat(2, "Hilo", 8, 10, 2, "Planta 2")
-            ]);
+            ]));
+        _inventory.Setup(s => s.GetMaterialsPageAsync(2, null, null, null, 25, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page([Mat(2, "Hilo", 8, 10, 2, "Planta 2")]));
 
         var controller = CreateController(
             Principal(UserRoles.Administrador),
@@ -147,8 +154,8 @@ public class PlantasInventarioConsultarControllerTests
     public async Task Consultar_AdminPlantaSinInsumos_ListaVacia()
     {
         SetupTwoPlantas();
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(2, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+        _inventory.Setup(s => s.GetMaterialsPageAsync(2, null, null, null, 25, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page([]));
 
         var result = await CreateController(
                 Principal(UserRoles.Administrador),
@@ -167,13 +174,13 @@ public class PlantasInventarioConsultarControllerTests
     public async Task Consultar_FiltroPorNivelFaltantes_SoloBajoYCritico()
     {
         SetupTwoPlantas();
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
+        _inventory.Setup(s => s.GetMaterialsPageAsync(
+                1, null, InventarioConsultaFilter.Faltantes, null, 25, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(
             [
-                Mat(1, "Tela", 20, 5, 1, "Planta 1"),
                 Mat(2, "Hilo", 3, 10, 1, "Planta 1"),
                 Mat(3, "Botón", 0, 20, 1, "Planta 1")
-            ]);
+            ], totalSinFiltro: 3));
 
         var result = await CreateController(
                 Principal(UserRoles.Administrador),
@@ -196,12 +203,10 @@ public class PlantasInventarioConsultarControllerTests
     public async Task Consultar_FiltroPorNombre_SoloCoincidentes()
     {
         SetupTwoPlantas();
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-            [
-                Mat(1, "Tela Jersey", 20, 5, 1, "Planta 1"),
-                Mat(2, "Hilo Poliéster", 3, 10, 1, "Planta 1")
-            ]);
+        _inventory.Setup(s => s.GetMaterialsPageAsync(1, "hilo", null, null, 25, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(
+                [Mat(2, "Hilo Poliéster", 3, 10, 1, "Planta 1")],
+                totalSinFiltro: 2));
 
         var result = await CreateController(
                 Principal(UserRoles.Administrador),
@@ -219,16 +224,8 @@ public class PlantasInventarioConsultarControllerTests
     public async Task Consultar_EncargadoPlantaAjena_NoListaNiConsultaOtraPlanta()
     {
         SetupTwoPlantas();
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-            [
-                Mat(1, "Tela", 20, 5, 1, "Planta 1")
-            ]);
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(2, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-            [
-                Mat(9, "Insumo ajeno", 50, 1, 2, "Planta 2")
-            ]);
+        _inventory.Setup(s => s.SummarizeStockAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new PlantaStockConteoDto(1, 1, 0, 0)]);
 
         var result = await CreateController(
                 Principal(UserRoles.EncargadoDeBodega),
@@ -243,7 +240,9 @@ public class PlantasInventarioConsultarControllerTests
         Assert.DoesNotContain(vm.Plantas, p => p.Id == 2);
         Assert.DoesNotContain(vm.Materials, m => m.Name == "Insumo ajeno");
         Assert.All(vm.Materials, m => Assert.Equal(1, m.PlantaInventarioId));
-        _inventory.Verify(s => s.GetMaterialsByPlantaAsync(2, It.IsAny<CancellationToken>()), Times.Never);
+        _inventory.Verify(
+            s => s.GetMaterialsPageAsync(2, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

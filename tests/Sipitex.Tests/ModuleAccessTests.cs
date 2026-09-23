@@ -68,7 +68,7 @@ public class ModuleAccessTests
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
-        var planta1 = await client.GetAsync("/PlantasInventario/Consultar?plantaInventarioId=1");
+        var planta1 = await client.GetAsync("/PlantasInventario/Consultar?plantaInventarioId=1&q=Jersey");
         Assert.Equal(HttpStatusCode.OK, planta1.StatusCode);
         var planta1Html = await planta1.Content.ReadAsStringAsync();
         Assert.Contains("Inventario por bodega", planta1Html, StringComparison.OrdinalIgnoreCase);
@@ -141,7 +141,7 @@ public class ModuleAccessTests
         Assert.DoesNotContain("Planta de Inventario 2", ajenaHtml, StringComparison.Ordinal);
         Assert.Contains("Planta de Inventario 1", ajenaHtml, StringComparison.Ordinal);
 
-        var propia = await client.GetAsync("/PlantasInventario/Consultar?plantaInventarioId=1");
+        var propia = await client.GetAsync("/PlantasInventario/Consultar?plantaInventarioId=1&q=Jersey");
         Assert.Equal(HttpStatusCode.OK, propia.StatusCode);
         var propiaHtml = await propia.Content.ReadAsStringAsync();
         Assert.Contains("Tela Jersey", propiaHtml, StringComparison.Ordinal);

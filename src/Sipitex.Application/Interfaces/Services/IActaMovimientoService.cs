@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
 
 namespace Sipitex.Application.Interfaces.Services;
 
@@ -6,6 +7,12 @@ public interface IActaMovimientoService
 {
     Task<IReadOnlyList<ActaMovimientoDto>> GetAllAsync(
         ActaViewerFilter? filter = null,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResult<ActaMovimientoDto>> GetPageAsync(
+        ActaViewerFilter? filter,
+        int? page,
+        int pageSize = Paging.DefaultPageSize,
         CancellationToken cancellationToken = default);
 
     Task<ActaMovimientoDto?> GetByIdAsync(

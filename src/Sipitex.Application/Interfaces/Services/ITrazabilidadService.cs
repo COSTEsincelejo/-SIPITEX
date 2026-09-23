@@ -1,13 +1,16 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
 
 namespace Sipitex.Application.Interfaces.Services;
 
 public interface ITrazabilidadService
 {
-    Task<IReadOnlyList<PrendaTrazableListDto>> SearchAsync(
+    Task<PagedResult<PrendaTrazableListDto>> SearchAsync(
         TrazabilidadViewerFilter filter,
         string? query,
         int? productionOrderId,
+        int? page = null,
+        int pageSize = Paging.DefaultPageSize,
         CancellationToken cancellationToken = default);
 
     Task<PrendaTrazableDetailDto?> GetByCodigoAsync(

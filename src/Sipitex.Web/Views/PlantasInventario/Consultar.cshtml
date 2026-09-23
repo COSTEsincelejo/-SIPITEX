@@ -6,6 +6,12 @@
     var canManageCatalog = User.IsInRole("Administrador");
     var selected = Model.Plantas.FirstOrDefault(p => p.Id == Model.PlantaInventarioId);
     var nivelActual = Model.Nivel ?? "";
+    var pagerExtra = new Dictionary<string, string?>
+    {
+        ["plantaInventarioId"] = Model.PlantaInventarioId?.ToString(),
+        ["q"] = Model.Q,
+        ["nivel"] = Model.Nivel
+    };
 }
 
 <div class="page-header">
@@ -131,6 +137,9 @@ else
                     <label class="field-label" for="inventarioQ">Buscar insumo</label>
                     <input id="inventarioQ" name="q" type="search" value="@Model.Q" placeholder="Nombre del insumo" autocomplete="off" />
                 </div>
+                <div class="field" style="align-self:flex-end;">
+                    <button type="submit" class="primary small"><i class="fas fa-magnifying-glass"></i> Buscar</button>
+                </div>
                 <div class="field" style="min-width:220px;">
                     <span class="field-label">Nivel de stock</span>
                     <div class="row-actions" style="justify-content:flex-start;gap:6px;">
@@ -167,50 +176,15 @@ else
                     </tbody>
                 </table>
             </div>
-            <div id="inventarioFiltroVacio" class="empty-state" hidden>
-                <div class="empty-icon"><i class="fas fa-filter"></i></div>
-                <h3>Sin coincidencias</h3>
-                <p>Ningún insumo coincide con el nombre o el nivel de stock seleccionados.</p>
-            </div>
+            @if (Model.TotalCount == 0)
+            {
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fas fa-filter"></i></div>
+                    <h3>Sin coincidencias</h3>
+                    <p>Ningún insumo coincide con el nombre o el nivel de stock seleccionados.</p>
+                </div>
+            }
+            <partial name="_Pager" model='new PagerModel { Action = "Consultar", Page = Model.Page, TotalPages = (int)Math.Ceiling(Model.TotalCount / (double)Math.Max(1, Model.PageSize)), TotalCount = Model.TotalCount, JumpInputId = "bodegaPage", Extra = pagerExtra }' />
         }
     </div>
-}
-
-@if (Model.PlantaInventarioId is not null && Model.TotalSinFiltro > 0)
-{
-    <script>
-        (function () {
-            const input = document.getElementById('inventarioQ');
-            const table = document.getElementById('inventarioBodegaTable');
-            const empty = document.getElementById('inventarioFiltroVacio');
-            if (!input || !table) return;
-
-            const nivelFiltro = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(nivelActual));
-
-            function matchesNivel(actual) {
-                if (!nivelFiltro) return true;
-                if (nivelFiltro.toLowerCase() === 'faltantes') return actual === 'Bajo' || actual === 'Critico';
-                return actual.toLowerCase() === nivelFiltro.toLowerCase();
-            }
-
-            function apply() {
-                const term = (input.value || '').trim().toLowerCase();
-                const rows = table.tBodies[0]?.rows || [];
-                let visible = 0;
-                for (const row of rows) {
-                    const name = (row.getAttribute('data-name') || '').toLowerCase();
-                    const rowNivel = row.getAttribute('data-nivel') || '';
-                    const show = name.includes(term) && matchesNivel(rowNivel);
-                    row.hidden = !show;
-                    if (show) visible++;
-                }
-                const wrap = table.closest('.table-wrap');
-                if (wrap) wrap.hidden = visible === 0;
-                if (empty) empty.hidden = visible !== 0;
-            }
-
-            input.addEventListener('input', apply);
-            apply();
-        })();
-    </script>
 }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Domain.Entities;
 using Sipitex.Infrastructure.Persistence;
@@ -58,6 +59,57 @@ public class PrendaTrazableRepository : IPrendaTrazableRepository
             .ThenByDescending(p => p.Id)
             .Take(take)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<PrendaTrazable> Items, int TotalCount, int Page)> ListPageAsync(
+        int? productionOrderId,
+        string? query,
+        IReadOnlyCollection<int>? allowedOrderIds,
+        int? page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var size = pageSize < 1 ? Paging.DefaultPageSize : pageSize;
+        var rows = Filtered(productionOrderId, query, allowedOrderIds);
+        var total = await rows.CountAsync(cancellationToken);
+        var current = Paging.ClampPage(page, total, size);
+        var items = await rows
+            .OrderByDescending(p => p.CreadoUtc)
+            .ThenByDescending(p => p.Id)
+            .Skip((current - 1) * size)
+            .Take(size)
+            .ToListAsync(cancellationToken);
+        return (items, total, current);
+    }
+
+    private IQueryable<PrendaTrazable> Filtered(
+        int? productionOrderId,
+        string? query,
+        IReadOnlyCollection<int>? allowedOrderIds)
+    {
+        var q = (query ?? string.Empty).Trim();
+        var rows = _db.PrendasTrazables
+            .AsNoTracking()
+            .Include(p => p.ProductionOrder)
+            .Include(p => p.CreadoPor)
+            .AsQueryable();
+
+        if (allowedOrderIds is not null)
+            rows = rows.Where(p => allowedOrderIds.Contains(p.ProductionOrderId));
+
+        if (productionOrderId is int oid)
+            rows = rows.Where(p => p.ProductionOrderId == oid);
+
+        if (q.Length > 0)
+        {
+            var term = q.ToLower();
+            rows = rows.Where(p =>
+                p.Codigo.ToLower().Contains(term)
+                || p.ProductName.ToLower().Contains(term)
+                || p.ProductionOrder.OrderNumber.ToLower().Contains(term));
+        }
+
+        return rows;
     }
 
     public Task<int> CountByOrderAsync(int productionOrderId, CancellationToken cancellationToken = default) =>

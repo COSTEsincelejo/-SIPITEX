@@ -20,7 +20,7 @@ public class TrazabilidadController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(string? q, int? orderId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(string? q, int? orderId, int? page, CancellationToken cancellationToken)
     {
         ViewData["Title"] = "Trazabilidad de prendas";
         ViewData["Breadcrumb"] = "SIPITEX / Operación / Trazabilidad";
@@ -28,12 +28,16 @@ public class TrazabilidadController : Controller
         var orders = await _orders.GetOrdersAsync(userId, role, name, cancellationToken);
         var filter = BuildFilter(userId, role, orders.Select(o => o.Id).ToHashSet());
         var selected = orderId is int oid && orders.Any(o => o.Id == oid) ? oid : (int?)null;
+        var prendas = await _trazabilidad.SearchAsync(filter, q, selected, page, cancellationToken: cancellationToken);
         return View(new TrazabilidadIndexViewModel
         {
             Query = q,
             OrderId = selected,
             Orders = orders,
-            Prendas = await _trazabilidad.SearchAsync(filter, q, selected, cancellationToken),
+            Prendas = prendas.Items,
+            Page = prendas.Page,
+            PageSize = prendas.PageSize,
+            TotalCount = prendas.TotalCount,
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });

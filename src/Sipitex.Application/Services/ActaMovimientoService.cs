@@ -44,6 +44,30 @@ public class ActaMovimientoService : IActaMovimientoService
         return rows.Where(a => IsVisible(a, filter)).Select(Map).ToList();
     }
 
+    public async Task<PagedResult<ActaMovimientoDto>> GetPageAsync(
+        ActaViewerFilter? filter,
+        int? page,
+        int pageSize = Paging.DefaultPageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var (rows, total, current) = await _actas.PageAsync(
+            filter?.Role,
+            filter?.UserId ?? 0,
+            filter?.PlantaInventarioIds ?? [],
+            filter?.AllowedOrderIds ?? [],
+            page,
+            pageSize,
+            cancellationToken);
+
+        return new PagedResult<ActaMovimientoDto>
+        {
+            Items = rows.Select(Map).ToList(),
+            Page = current,
+            PageSize = pageSize < 1 ? Paging.DefaultPageSize : pageSize,
+            TotalCount = total
+        };
+    }
+
     public async Task<ActaMovimientoDto?> GetByIdAsync(
         int id,
         ActaViewerFilter? filter = null,

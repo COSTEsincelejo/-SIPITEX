@@ -117,7 +117,7 @@ public class InventarioInstructorRestrictionTests
     {
         var method = typeof(InventarioController)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-            .Single(m => m.Name == nameof(InventarioController.Index) && m.GetParameters().Length == 1);
+            .Single(m => m.Name == nameof(InventarioController.Index));
         var attr = method.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(attr);
         Assert.Equal(AuthorizationPolicyNames.PuedeConsultarInventario, attr!.Policy);
@@ -135,7 +135,7 @@ public class InventarioInstructorRestrictionTests
             orders.Object,
             movements.Object);
 
-        var result = await controller.Index(CancellationToken.None);
+        var result = await controller.Index(cancellationToken: CancellationToken.None);
 
         Assert.IsType<ForbidResult>(result);
         inventory.Verify(
@@ -153,6 +153,9 @@ public class InventarioInstructorRestrictionTests
         var inventory = new Mock<IInventoryService>();
         inventory.Setup(s => s.GetMaterialsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
+        inventory.Setup(s => s.GetMaterialsPageAsync(
+                null, null, null, null, 25, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MaterialPageDto());
         inventory.Setup(s => s.GetRequestsAsync(
                 It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
@@ -167,7 +170,7 @@ public class InventarioInstructorRestrictionTests
             orders.Object,
             movements.Object);
 
-        var result = await controller.Index(CancellationToken.None);
+        var result = await controller.Index(cancellationToken: CancellationToken.None);
 
         Assert.IsType<ViewResult>(result);
     }

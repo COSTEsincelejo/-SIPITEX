@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
@@ -43,17 +44,41 @@ public class TrazabilidadService : ITrazabilidadService
         _uow = uow;
     }
 
-    public async Task<IReadOnlyList<PrendaTrazableListDto>> SearchAsync(
+    public async Task<PagedResult<PrendaTrazableListDto>> SearchAsync(
         TrazabilidadViewerFilter filter,
         string? query,
         int? productionOrderId,
+        int? page = null,
+        int pageSize = Paging.DefaultPageSize,
         CancellationToken cancellationToken = default)
     {
         if (productionOrderId is int oid && !CanSeeOrder(filter, oid))
-            return [];
+        {
+            return new PagedResult<PrendaTrazableListDto> { Page = 1, PageSize = pageSize };
+        }
 
-        var rows = await _prendas.ListAsync(productionOrderId, query, take: 200, cancellationToken);
-        return rows.Where(p => CanSeeOrder(filter, p.ProductionOrderId)).Select(MapList).ToList();
+        IReadOnlyCollection<int>? allowed = null;
+        if (!string.Equals(filter.Role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(filter.Role, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase))
+        {
+            allowed = filter.AllowedOrderIds;
+        }
+
+        var (rows, total, current) = await _prendas.ListPageAsync(
+            productionOrderId,
+            query,
+            allowed,
+            page,
+            pageSize,
+            cancellationToken);
+
+        return new PagedResult<PrendaTrazableListDto>
+        {
+            Items = rows.Select(MapList).ToList(),
+            Page = current,
+            PageSize = pageSize < 1 ? Paging.DefaultPageSize : pageSize,
+            TotalCount = total
+        };
     }
 
     public async Task<PrendaTrazableDetailDto?> GetByCodigoAsync(
