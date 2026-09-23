@@ -15,6 +15,7 @@ public class UserAccountService : IUserAccountService
     private readonly IFichaRepository _fichaRepository;
     private readonly IPlantaInventarioRepository _plantaInventarioRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPasswordResetService _passwordResetService;
     private readonly ILogger<UserAccountService> _logger;
 
     public UserAccountService(
@@ -22,12 +23,14 @@ public class UserAccountService : IUserAccountService
         IFichaRepository fichaRepository,
         IPlantaInventarioRepository plantaInventarioRepository,
         IUnitOfWork unitOfWork,
+        IPasswordResetService passwordResetService,
         ILogger<UserAccountService> logger)
     {
         _userRepository = userRepository;
         _fichaRepository = fichaRepository;
         _plantaInventarioRepository = plantaInventarioRepository;
         _unitOfWork = unitOfWork;
+        _passwordResetService = passwordResetService;
         _logger = logger;
     }
 
@@ -51,6 +54,14 @@ public class UserAccountService : IUserAccountService
         {
             _logger.LogWarning("Login fallido para {Email}: contraseña inválida", user.Email);
             return null;
+        }
+
+        // Correo sin confirmar: devuelvo el usuario para que el login no abra sesión
+        // y lo mande a ingresar el código. No registro el código en el log.
+        if (!user.EmailConfirmed)
+        {
+            _logger.LogInformation("Login bloqueado para {Email}: correo sin confirmar", user.Email);
+            return user;
         }
 
         _logger.LogInformation("Login exitoso para {Email} (rol {Rol})", user.Email, user.Rol);
@@ -97,7 +108,8 @@ public class UserAccountService : IUserAccountService
             Rol = rol,
             FichaAsignadaId = fichaAsignadaId,
             PermisosExtendidos = ExtendedPermissions.Serialize(permisos),
-            IsActive = true
+            IsActive = true,
+            EmailConfirmed = false
         };
         ReplaceUserPlantasInventario(user, resolvedPlanta.PlantaInventarioIds);
 
@@ -106,7 +118,16 @@ public class UserAccountService : IUserAccountService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         // Si es instructor con ficha, sincronizo ownership
         await SyncFichaOwnershipAsync(user.Id, user.Nombre, user.Rol, fichaAsignadaId, cancellationToken);
-        return ServiceResult.Ok("Usuario creado correctamente.");
+
+        var sent = await TrySendEmailConfirmationAsync(user, cancellationToken);
+        if (!sent)
+        {
+            return ServiceResult.Ok(
+                "Usuario creado, pero no se pudo enviar el código de confirmación. Puede reenviarlo desde la pantalla de confirmar correo.");
+        }
+
+        return ServiceResult.Ok(
+            "Usuario creado. Se envió un código de 6 dígitos al correo; la cuenta no podrá iniciar sesión hasta confirmarlo.");
     }
 
     // Edición desde el admin: datos, rol, permisos y activo/inactivo
@@ -150,9 +171,12 @@ public class UserAccountService : IUserAccountService
         if (await _userRepository.EmailExistsAsync(email.Trim(), id, cancellationToken))
             return ServiceResult.Fail("Ya existe un usuario con ese correo.");
 
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var emailChanged = !string.Equals(user.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase);
+
         // Actualizo campos del usuario
         user.Nombre = nombre.Trim();
-        user.Email = email.Trim().ToLowerInvariant();
+        user.Email = normalizedEmail;
         user.Rol = rol;
         user.FichaAsignadaId = fichaAsignadaId;
         ReplaceUserPlantasInventario(user, resolvedPlanta.PlantaInventarioIds);
@@ -167,6 +191,12 @@ public class UserAccountService : IUserAccountService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         // Si cambió ficha de instructor, actualizo la ficha en BD
         await SyncFichaOwnershipAsync(user.Id, user.Nombre, user.Rol, fichaAsignadaId, cancellationToken);
+
+        // Si el correo aún no estaba confirmado y el admin lo corrigió, el código anterior
+        // apuntaba al correo viejo: mando uno nuevo a la dirección actual.
+        if (emailChanged && !user.EmailConfirmed)
+            await TrySendEmailConfirmationAsync(user, cancellationToken);
+
         return ServiceResult.Ok("Usuario actualizado correctamente.");
     }
 
@@ -271,6 +301,22 @@ public class UserAccountService : IUserAccountService
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok("Perfil actualizado correctamente.");
+    }
+
+    // El fallo de correo no deshace el alta: el usuario puede pedir otro código.
+    // El log no incluye el código.
+    private async Task<bool> TrySendEmailConfirmationAsync(User user, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var sent = await _passwordResetService.SendEmailConfirmationAsync(user, cancellationToken);
+            return sent.Success;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "No se pudo enviar el código de confirmación de correo a {Email}", user.Email);
+            return false;
+        }
     }
 
     // Validaciones comunes entre crear y editar usuario

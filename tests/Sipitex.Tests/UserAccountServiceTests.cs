@@ -1,7 +1,9 @@
 using Moq;
+using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
+using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 
@@ -13,9 +15,14 @@ public class UserAccountServiceTests
     private readonly Mock<IFichaRepository> _fichaRepository = new();
     private readonly Mock<IPlantaInventarioRepository> _plantaInventarioRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
+    private readonly Mock<IPasswordResetService> _passwordReset = new();
 
     private UserAccountService CreateSut()
     {
+        _passwordReset
+            .Setup(s => s.SendEmailConfirmationAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Ok());
+
         _plantaInventarioRepository
             .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PlantaInventario { Id = 1, Nombre = "PlantaInventario 1" });
@@ -31,7 +38,7 @@ public class UserAccountServiceTests
             ]);
 
         return new(_userRepository.Object, _fichaRepository.Object, _plantaInventarioRepository.Object, _unitOfWork.Object,
-            NullLogger<UserAccountService>.Instance);
+            _passwordReset.Object, NullLogger<UserAccountService>.Instance);
     }
 
     private static User CreateUser(string email, string password, bool isActive = true, string rol = UserRoles.Instructor) => new()
@@ -83,6 +90,21 @@ public class UserAccountServiceTests
         var result = await CreateSut().AuthenticateAsync("instructor@sipitex.test", "Instructor123!");
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task AuthenticateAsync_WhenEmailIsNotConfirmed_ReturnsUserWithoutOpeningASessionFlag()
+    {
+        var user = CreateUser("nuevo@sipitex.test", "Clave123!");
+        user.EmailConfirmed = false;
+        _userRepository
+            .Setup(r => r.GetByEmailAsync("nuevo@sipitex.test", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var result = await CreateSut().AuthenticateAsync("nuevo@sipitex.test", "Clave123!");
+
+        Assert.NotNull(result);
+        Assert.False(result.EmailConfirmed);
     }
 
     [Fact]
@@ -359,5 +381,104 @@ public class UserAccountServiceTests
         Assert.True(result.Success, result.Message);
         Assert.Equal([1], user.GetAssignedPlantaInventarioIds());
         _userRepository.Verify(r => r.Update(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_DejaCorreoSinConfirmar_YEnviaCodigo()
+    {
+        User? added = null;
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("nuevo@sipitex.test", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _userRepository
+            .Setup(r => r.Add(It.IsAny<User>()))
+            .Callback<User>(u =>
+            {
+                u.Id = 42;
+                added = u;
+            });
+
+        var sut = CreateSut();
+        var result = await sut.CreateUserAsync(
+            "Nuevo Instructor",
+            "nuevo@sipitex.test",
+            "Clave123!",
+            UserRoles.Instructor,
+            null,
+            null,
+            []);
+
+        Assert.True(result.Success, result.Message);
+        Assert.NotNull(added);
+        Assert.False(added!.EmailConfirmed);
+        Assert.Contains("código", result.Message, StringComparison.OrdinalIgnoreCase);
+        _passwordReset.Verify(s => s.SendEmailConfirmationAsync(
+            It.Is<User>(u => u.Id == 42 && !u.EmailConfirmed && u.Email == "nuevo@sipitex.test"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_SiFallaElCorreo_IgualCreaLaCuentaSinConfirmar()
+    {
+        User? added = null;
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("nuevo@sipitex.test", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _userRepository
+            .Setup(r => r.Add(It.IsAny<User>()))
+            .Callback<User>(u =>
+            {
+                u.Id = 9;
+                added = u;
+            });
+
+        var sut = CreateSut();
+        _passwordReset
+            .Setup(s => s.SendEmailConfirmationAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("smtp no disponible"));
+
+        var result = await sut.CreateUserAsync(
+            "Nuevo Instructor",
+            "nuevo@sipitex.test",
+            "Clave123!",
+            UserRoles.Instructor,
+            null,
+            null,
+            []);
+
+        Assert.True(result.Success, result.Message);
+        Assert.False(added!.EmailConfirmed);
+        Assert.Contains("no se pudo enviar", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("smtp", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_SiCambiaCorreoSinConfirmar_ReenviaCodigo()
+    {
+        var user = CreateUser("viejo@sipitex.test", "Clave123!");
+        user.Id = 15;
+        user.EmailConfirmed = false;
+        _userRepository.Setup(r => r.GetByIdAsync(15, It.IsAny<CancellationToken>())).ReturnsAsync(user);
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("nuevo@sipitex.test", 15, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _unitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().UpdateUserAsync(
+            15,
+            "Usuario Demo",
+            "nuevo@sipitex.test",
+            password: "",
+            UserRoles.Instructor,
+            fichaAsignadaId: null,
+            plantaInventarioIds: null,
+            [],
+            isActive: true);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal("nuevo@sipitex.test", user.Email);
+        _passwordReset.Verify(s => s.SendEmailConfirmationAsync(
+            It.Is<User>(u => u.Email == "nuevo@sipitex.test" && !u.EmailConfirmed),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

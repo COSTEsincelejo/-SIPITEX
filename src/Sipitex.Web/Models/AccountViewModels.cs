@@ -89,15 +89,17 @@ public class ForgotPasswordViewModel
     public string Email { get; set; } = string.Empty;
 }
 
-// Paso 2: el usuario llega con token en el link del correo
+// El usuario escribe el código de 6 dígitos y la contraseña nueva en la misma pantalla
 public class ResetPasswordViewModel
 {
-    [Required]
+    [Required(ErrorMessage = "El correo es obligatorio")]
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
-    public string Token { get; set; } = string.Empty; // viene oculto en el form
+    [Required(ErrorMessage = "El código es obligatorio")]
+    [RegularExpression(@"^\d{6}$", ErrorMessage = "Ingrese el código de 6 dígitos.")]
+    [Display(Name = "Código")]
+    public string Code { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria")]
     [DataType(DataType.Password)]
@@ -108,4 +110,17 @@ public class ResetPasswordViewModel
     [DataType(DataType.Password)]
     [Compare(nameof(NewPassword), ErrorMessage = "Las contraseñas no coinciden.")]
     public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+// Confirmación de correo al crear la cuenta
+public class ConfirmEmailViewModel
+{
+    [Required(ErrorMessage = "El correo es obligatorio")]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "El código es obligatorio")]
+    [RegularExpression(@"^\d{6}$", ErrorMessage = "Ingrese el código de 6 dígitos.")]
+    [Display(Name = "Código")]
+    public string Code { get; set; } = string.Empty;
 }
