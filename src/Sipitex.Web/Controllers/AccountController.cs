@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 // Servicios de usuarios y reset de contraseña
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
 
@@ -95,6 +96,13 @@ public class AccountController : Controller
 
         _loginAttemptGuard.Reset(model.Email, clientIp);
 
+        // Contraseña correcta, pero el correo todavía no se confirmó: no abro sesión.
+        if (!user.EmailConfirmed)
+        {
+            TempData["InfoMessage"] = "Confirme su correo para iniciar sesión. Ingrese el código de 6 dígitos que le enviamos.";
+            return RedirectToAction(nameof(ConfirmEmail), new { email = user.Email });
+        }
+
         // Cookie lista con rol, foto y permisos
         await SignInUserAsync(user);
         // Instructor no tiene Inventario general; Admin/EncargadoDeBodega van al stock
@@ -108,7 +116,7 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult ForgotPassword() => View(new ForgotPasswordViewModel());
 
-    // Manda el correo con el link de reset
+    // Manda el correo con el código de 6 dígitos. La respuesta no dice si el correo existe.
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -116,31 +124,27 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(model);
 
-        // El servicio arma el link del correo con esta URL base
-        var publicBaseUrl = $"{Request.Scheme}://{Request.Host}";
-        await _passwordResetService.RequestResetAsync(model.Email, publicBaseUrl, cancellationToken);
+        TempData["ResetEmail"] = model.Email.Trim();
+        await _passwordResetService.RequestResetAsync(model.Email, cancellationToken);
         return RedirectToAction(nameof(ForgotPasswordConfirmation));
     }
 
-    // Vista de "revisa tu correo"
+    // Vista de "revisa tu correo". El código no viaja en TempData, solo el correo para reenviar.
     [AllowAnonymous]
     [HttpGet]
-    public IActionResult ForgotPasswordConfirmation() => View();
-
-    // Abre el form de nueva contraseña con token y email de la URL
-    [AllowAnonymous]
-    [HttpGet]
-    public IActionResult ResetPassword(string? token, string? email)
+    public IActionResult ForgotPasswordConfirmation()
     {
-        // Token y email vienen en la URL del correo
-        return View(new ResetPasswordViewModel
-        {
-            Token = token ?? string.Empty,
-            Email = email ?? string.Empty
-        });
+        ViewBag.Email = TempData["ResetEmail"] as string;
+        return View();
     }
 
-    // Guarda la contraseña nueva si el token sigue válido
+    // El usuario escribe el código y la contraseña nueva en la misma pantalla
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult ResetPassword(string? email) =>
+        View(new ResetPasswordViewModel { Email = email ?? string.Empty });
+
+    // Guarda la contraseña nueva si el código sigue válido
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -156,17 +160,67 @@ public class AccountController : Controller
         }
 
         var result = await _passwordResetService.ResetPasswordAsync(
-            model.Email, model.Token, model.NewPassword, cancellationToken);
+            model.Email, model.Code, model.NewPassword, cancellationToken);
 
         if (!result.Success)
         {
-            ModelState.AddModelError(string.Empty, result.Message ?? "Enlace inválido o expirado.");
+            ModelState.AddModelError(string.Empty, result.Message ?? PasswordResetService.InvalidCodeMessage);
             return View(model);
         }
 
         // Mensaje para el login después del redirect
         TempData["SuccessMessage"] = result.Message ?? "Contraseña actualizada. Ya puede iniciar sesión.";
         return RedirectToAction(nameof(Login));
+    }
+
+    // Pantalla para ingresar el código de confirmación de correo
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult ConfirmEmail(string? email)
+    {
+        ViewBag.InfoMessage = TempData["InfoMessage"] as string;
+        return View(new ConfirmEmailViewModel { Email = email ?? string.Empty });
+    }
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmEmail(ConfirmEmailViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        var result = await _passwordResetService.ConfirmEmailAsync(model.Email, model.Code, cancellationToken);
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, result.Message ?? PasswordResetService.InvalidCodeMessage);
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = result.Message ?? "Correo confirmado. Ya puede iniciar sesión.";
+        return RedirectToAction(nameof(Login));
+    }
+
+    // Reenvía el código de confirmación. El cooldown lo aplica el servicio.
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendEmailConfirmation(string? email, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            ModelState.AddModelError(string.Empty, "El correo es obligatorio.");
+            return View(nameof(ConfirmEmail), new ConfirmEmailViewModel());
+        }
+
+        var result = await _passwordResetService.ResendEmailConfirmationAsync(email, cancellationToken);
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, result.Message ?? PasswordResetService.ResendCooldownMessage);
+            return View(nameof(ConfirmEmail), new ConfirmEmailViewModel { Email = email.Trim() });
+        }
+
+        TempData["InfoMessage"] = result.Message;
+        return RedirectToAction(nameof(ConfirmEmail), new { email = email.Trim() });
     }
 
     // Cierra sesión y borra la cookie

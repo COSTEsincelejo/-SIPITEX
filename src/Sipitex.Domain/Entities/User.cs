@@ -57,6 +57,10 @@ public class User
 
     // false = no puede entrar aunque tenga contraseña correcta
     public bool IsActive { get; set; } = true;
+
+    // Las cuentas ya existentes quedan confirmadas. CreateUserAsync deja esto en false
+    // hasta que el usuario ingrese el código enviado a su correo.
+    public bool EmailConfirmed { get; set; } = true;
 }
 
 // Constantes de roles para no escribir strings sueltos por todo el proyecto

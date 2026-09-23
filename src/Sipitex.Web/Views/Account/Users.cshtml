@@ -63,6 +63,10 @@
                         <td>@u.FormatAssignedPlantasInventario()</td>
                         <td>
                             <span class="badge @(u.IsActive ? "badge-success" : "badge-danger")">@(u.IsActive ? "Activo" : "Inactivo")</span>
+                            @if (!u.EmailConfirmed)
+                            {
+                                <span class="badge badge-warning">Correo sin confirmar</span>
+                            }
                         </td>
                         <td>
                             <div class="row-actions">

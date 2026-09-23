@@ -1,0 +1,36 @@
+@model ConfirmEmailViewModel
+@{
+    ViewData["Title"] = "Confirmar correo";
+    Layout = "_LoginLayout";
+}
+
+<div class="card auth-card">
+    <div class="card-title"><i class="fas fa-envelope"></i> Confirmar correo</div>
+    <p class="auth-hint">Ingrese el código de 6 dígitos que enviamos a su correo. Vence en 15 minutos y solo se puede usar una vez.</p>
+    @if (ViewBag.InfoMessage is string info && !string.IsNullOrWhiteSpace(info))
+    {
+        <div class="alert alert-success" style="margin-bottom:1rem;">@info</div>
+    }
+    <form asp-action="ConfirmEmail" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="field">
+            <label class="field-label" asp-for="Email">Correo</label>
+            <input asp-for="Email" type="email" autocomplete="username" required />
+        </div>
+        <div class="field">
+            <label class="field-label" asp-for="Code">Código</label>
+            <input asp-for="Code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required />
+        </div>
+        <button type="submit" class="primary auth-submit">Confirmar correo</button>
+    </form>
+    <form asp-action="ResendEmailConfirmation" method="post" style="margin-top:1rem;">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="email" value="@Model.Email" />
+        <button type="submit" class="ghost auth-submit">Reenviar código</button>
+    </form>
+    <p class="auth-hint">Puede reenviar el código una vez por minuto. El código nuevo anula el anterior.</p>
+    <p class="auth-hint" style="margin-top:1rem;">
+        <a asp-action="Login">Volver al inicio de sesión</a>
+    </p>
+</div>

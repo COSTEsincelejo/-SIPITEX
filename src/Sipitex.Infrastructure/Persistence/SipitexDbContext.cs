@@ -383,6 +383,10 @@ public class SipitexDbContext : DbContext
             e.Property(u => u.PermisosExtendidos).HasMaxLength(500); // Permisos extra si aplica
             e.Property(u => u.PhotoPath).HasMaxLength(260); // Ruta de la foto de perfil
             e.Property(u => u.FuncionDescripcion).HasMaxLength(800); // Descripción del cargo
+            // true por defecto: las cuentas que ya existen siguen pudiendo entrar.
+            // El sentinel es true para que un alta con EmailConfirmed = false sí se persista
+            // (si el sentinel fuera false, EF omitiría el valor y la BD aplicaría el default true).
+            e.Property(u => u.EmailConfirmed).HasDefaultValue(true).HasSentinel(true);
             e.HasIndex(u => u.Email).IsUnique(); // Un email = una cuenta
             // Un instructor puede tener una ficha asignada como "principal"
             e.HasOne(u => u.FichaAsignada)
@@ -506,14 +510,17 @@ public class SipitexDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Tokens para recuperar contraseña (guardamos el hash, no el token en claro)
+        // Códigos hasheados de reset y de confirmación de correo (nunca el código en claro)
         modelBuilder.Entity<PasswordResetToken>(e =>
         {
-            e.HasKey(t => t.Id); // PK del token
-            e.Property(t => t.TokenHash).HasMaxLength(128).IsRequired(); // Hash SHA del token
+            e.HasKey(t => t.Id); // PK del código
+            e.Property(t => t.TokenHash).HasMaxLength(128).IsRequired(); // Hash SHA del código
+            e.Property(t => t.Purpose).HasMaxLength(32).IsRequired()
+                .HasDefaultValue(VerificationCodePurpose.PasswordReset);
+            e.Property(t => t.FailedAttempts).HasDefaultValue(0);
             e.HasIndex(t => t.TokenHash); // Para buscar rápido al validar
-            e.HasIndex(t => new { t.UserId, t.CreatedAtUtc }); // Para rate limiting por usuario
-            // Si borran al usuario, sus tokens también se van
+            e.HasIndex(t => new { t.UserId, t.Purpose, t.CreatedAtUtc }); // Rate limit por usuario y flujo
+            // Si borran al usuario, sus códigos también se van
             e.HasOne(t => t.User)
                 .WithMany()
                 .HasForeignKey(t => t.UserId)

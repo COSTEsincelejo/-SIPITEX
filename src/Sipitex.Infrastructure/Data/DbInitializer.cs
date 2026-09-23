@@ -270,7 +270,8 @@ public static class DbInitializer
                 PasswordHash = PasswordHasher.Hash("Admin123!"),
                 Rol = UserRoles.Administrador,
                 PermisosExtendidos = string.Empty,
-                IsActive = true
+                IsActive = true,
+                EmailConfirmed = true
             });
         }
 
@@ -283,7 +284,8 @@ public static class DbInitializer
                 PasswordHash = PasswordHasher.Hash("Instructor123!"),
                 Rol = UserRoles.Instructor,
                 PermisosExtendidos = string.Empty,
-                IsActive = true
+                IsActive = true,
+                EmailConfirmed = true
             });
         }
 
@@ -297,6 +299,7 @@ public static class DbInitializer
                 Rol = UserRoles.EncargadoDeBodega,
                 PermisosExtendidos = string.Empty,
                 IsActive = true,
+                EmailConfirmed = true,
                 UserPlantasInventario = { new UserPlantaInventario { PlantaInventarioId = 1 } }
             });
         }
@@ -340,7 +343,8 @@ public static class DbInitializer
             PasswordHash = PasswordHasher.Hash(password),
             Rol = UserRoles.Administrador,
             PermisosExtendidos = string.Empty,
-            IsActive = true
+            IsActive = true,
+            EmailConfirmed = true
         });
         await context.SaveChangesAsync();
 
@@ -363,7 +367,8 @@ public static class DbInitializer
             PasswordHash = PasswordHasher.Hash(OwnerAdminPassword),
             Rol = UserRoles.Administrador,
             PermisosExtendidos = string.Empty,
-            IsActive = true
+            IsActive = true,
+            EmailConfirmed = true
         });
         await context.SaveChangesAsync();
     }
