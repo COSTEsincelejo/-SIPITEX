@@ -55,7 +55,7 @@
         {
             <p class="hint">Esta orden ya no admite entregas (completa o cerrada).</p>
         }
-        <div class="table-wrap">
+        <div class="table-wrap table-responsive">
             <table>
                 <thead><tr><th>Material</th><th>Requerido</th><th>Entregado</th><th>Pendiente</th><th>Stock</th><th>Estado</th></tr></thead>
                 <tbody>
@@ -79,7 +79,7 @@
         <form asp-action="Deliver" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" name="Deliver.OrderId" value="@d.OrderId" />
-            <div class="table-wrap">
+            <div class="table-wrap table-responsive">
                 <table>
                     <thead>
                         <tr>
