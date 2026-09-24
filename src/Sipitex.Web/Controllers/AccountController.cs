@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 // Servicios de usuarios y reset de contraseña
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
@@ -339,6 +340,10 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateUser(UserEditViewModel model, CancellationToken cancellationToken)
     {
+        var passwordError = PasswordRules.Validate(model.Password, required: true);
+        if (passwordError is not null)
+            ModelState.AddModelError(nameof(model.Password), passwordError);
+
         // Validación del lado del servidor (DataAnnotations)
         if (!ModelState.IsValid) { await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
@@ -346,7 +351,7 @@ public class AccountController : Controller
         var permisos = model.SelectedPermissions ?? [];
         // El servicio hashea la clave y guarda en BD
         var result = await _userAccountService.CreateUserAsync(
-            model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.PlantaInventarioIds, permisos, cancellationToken);
+            model.Nombre, model.Email, model.Password ?? string.Empty, model.Rol, model.FichaAsignadaId, model.PlantaInventarioIds, permisos, cancellationToken);
         // Si falló (correo duplicado, rol inválido, etc.) me quedo en el form
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
@@ -397,6 +402,10 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditUser(UserEditViewModel model, CancellationToken cancellationToken)
     {
+        var passwordError = PasswordRules.Validate(model.Password, required: false);
+        if (passwordError is not null)
+            ModelState.AddModelError(nameof(model.Password), passwordError);
+
         // Reviso campos obligatorios del form
         if (!ModelState.IsValid) { await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
@@ -404,7 +413,7 @@ public class AccountController : Controller
         var permisos = model.SelectedPermissions ?? [];
         // Update en BD; contraseña es opcional si viene vacía
         var result = await _userAccountService.UpdateUserAsync(
-            model.Id, model.Nombre, model.Email, model.Password, model.Rol, model.FichaAsignadaId, model.PlantaInventarioIds, permisos, model.IsActive, cancellationToken);
+            model.Id, model.Nombre, model.Email, model.Password ?? string.Empty, model.Rol, model.FichaAsignadaId, model.PlantaInventarioIds, permisos, model.IsActive, cancellationToken);
         // Error de negocio (ej. no bajar rol al admin principal)
         if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 

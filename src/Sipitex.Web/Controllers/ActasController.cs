@@ -50,27 +50,15 @@ public class ActasController : Controller
     [HttpGet]
     public async Task<IActionResult> Create(int? orderId, CancellationToken cancellationToken)
     {
-        ViewData["Title"] = "Nueva acta";
-        ViewData["Breadcrumb"] = "SIPITEX / Operación / Actas / Nueva";
-        var (userId, role, name) = CurrentViewer();
-        var orders = await _orders.GetOrdersAsync(userId, role, name, cancellationToken);
-        var selected = orderId is int id && orders.Any(o => o.Id == id) ? id : orders.FirstOrDefault()?.Id;
-        var vm = new ActaCreateViewModel
+        var (_, role, name) = CurrentViewer();
+        var form = new CreateActaForm
         {
-            Orders = orders,
-            Movimientos = await _stock.GetHistoryAsync(null, null, null, cancellationToken),
-            Consumos = selected is int oid
-                ? await _consumos.GetByOrderAsync(oid, cancellationToken)
-                : [],
-            Form = new CreateActaForm
-            {
-                ProductionOrderId = selected,
-                Origen = ActaOrigen.Manual,
-                EntregaNombre = name ?? string.Empty,
-                EntregaCargo = role ?? string.Empty
-            }
+            ProductionOrderId = orderId,
+            Origen = ActaOrigen.Manual,
+            EntregaNombre = name ?? string.Empty,
+            EntregaCargo = role ?? string.Empty
         };
-        return View(vm);
+        return View(await BuildCreateViewModel(form, cancellationToken));
     }
 
     [HttpPost]
@@ -84,14 +72,17 @@ public class ActasController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        if (!ModelState.IsValid)
+            return View(await BuildCreateViewModel(form, cancellationToken));
+
         var result = await _actas.CreateAsync(new CreateActaDto(
             form.Tipo,
             form.Origen,
             form.EntregaNombre,
-            form.EntregaCargo,
+            form.EntregaCargo ?? string.Empty,
             form.EntregaConforme,
             form.RecibeNombre,
-            form.RecibeCargo,
+            form.RecibeCargo ?? string.Empty,
             form.RecibeConforme,
             userId,
             form.Observaciones,
@@ -103,11 +94,62 @@ public class ActasController : Controller
             SignatureImage.FromDataUrl(form.EntregaFirmaDataUrl),
             SignatureImage.FromDataUrl(form.RecibeFirmaDataUrl)), cancellationToken);
 
-        TempData["Message"] = result.Message;
-        TempData["IsSuccess"] = result.Success;
         if (result is { Success: true, Value: { } acta })
+        {
+            TempData["Message"] = result.Message;
+            TempData["IsSuccess"] = true;
             return RedirectToAction(nameof(Details), new { id = acta.Id });
-        return RedirectToAction(nameof(Create), new { orderId = form.ProductionOrderId });
+        }
+
+        AddActaError(result.Message);
+        return View(await BuildCreateViewModel(form, cancellationToken));
+    }
+
+    private async Task<ActaCreateViewModel> BuildCreateViewModel(CreateActaForm form, CancellationToken cancellationToken)
+    {
+        ViewData["Title"] = "Nueva acta";
+        ViewData["Breadcrumb"] = "SIPITEX / Operación / Actas / Nueva";
+        var (userId, role, name) = CurrentViewer();
+        var orders = await _orders.GetOrdersAsync(userId, role, name, cancellationToken);
+        var selected = form.ProductionOrderId is int id && orders.Any(o => o.Id == id)
+            ? id
+            : orders.FirstOrDefault()?.Id;
+        form.ProductionOrderId = selected;
+        return new ActaCreateViewModel
+        {
+            Orders = orders,
+            Movimientos = await _stock.GetHistoryAsync(null, null, null, cancellationToken),
+            Consumos = selected is int oid
+                ? await _consumos.GetByOrderAsync(oid, cancellationToken)
+                : [],
+            Form = form
+        };
+    }
+
+    private void AddActaError(string? message)
+    {
+        var text = string.IsNullOrWhiteSpace(message) ? "No se pudo registrar el acta." : message;
+        if (text.Contains("quien entrega", StringComparison.OrdinalIgnoreCase)
+            && text.Contains("quien recibe", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError("Form.EntregaNombre", "El nombre de quien entrega es obligatorio.");
+            ModelState.AddModelError("Form.RecibeNombre", "El nombre de quien recibe es obligatorio.");
+            return;
+        }
+
+        if (text.Contains("quien entrega", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError("Form.EntregaFirmaDataUrl", text);
+            return;
+        }
+
+        if (text.Contains("quien recibe", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError("Form.RecibeFirmaDataUrl", text);
+            return;
+        }
+
+        ModelState.AddModelError(string.Empty, text);
     }
 
     [HttpGet]

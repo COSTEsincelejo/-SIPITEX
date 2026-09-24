@@ -25,12 +25,13 @@
     <div class="card">
         <div class="card-title"><i class="fas fa-sliders"></i> Tarifa de hora (referencia, no entra al costeo)</div>
         <p class="hint">Valor de referencia CMTC en COP por hora de grupo de confección. No se suma al costo final de la prenda.</p>
-        <form asp-action="Tarifa" method="post" class="form-row">
+        <form asp-action="Tarifa" method="post" class="form-row" novalidate>
             @Html.AntiForgeryToken()
             <input type="hidden" name="orderId" value="@Model.OrderId" />
             <div class="field">
                 <label class="field-label" for="laborHourRate">COP / hora</label>
-                <input id="laborHourRate" name="laborHourRate" type="number" min="0.01" step="0.01" value="@Model.LaborHourRate.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
+                <input id="laborHourRate" name="laborHourRate" type="number" min="0.01" step="0.01" value="@Model.LaborHourRate.ToString(System.Globalization.CultureInfo.InvariantCulture)" class="@(string.IsNullOrEmpty(Model.RateError) ? null : "input-validation-error")" />
+                <span class="field-error">@Model.RateError</span>
             </div>
             <div class="field" style="align-self:flex-end;">
                 <button type="submit" class="primary small"><i class="fas fa-save"></i> Guardar tarifa</button>

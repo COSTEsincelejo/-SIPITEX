@@ -22,16 +22,19 @@
         <input asp-for="Id" type="hidden" />
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
         <div class="field">
-            <label class="field-label">Nombre</label>
-            <input asp-for="Nombre" required />
+            <label class="field-label" asp-for="Nombre">Nombre</label>
+            <input asp-for="Nombre" />
+            <span asp-validation-for="Nombre" class="field-error"></span>
         </div>
         <div class="field">
-            <label class="field-label">Correo</label>
-            <input asp-for="Email" type="email" required />
+            <label class="field-label" asp-for="Email">Correo</label>
+            <input asp-for="Email" type="email" />
+            <span asp-validation-for="Email" class="field-error"></span>
         </div>
         <div class="field">
-            <label class="field-label">Nueva contraseña</label>
+            <label class="field-label" asp-for="Password">Nueva contraseña</label>
             <input asp-for="Password" type="password" />
+            <span asp-validation-for="Password" class="field-error"></span>
         </div>
         <div class="field">
             <label class="field-label">Rol</label>
@@ -96,6 +99,7 @@
 </div>
 
 @section Scripts {
+<partial name="_ValidationScriptsPartial" />
 <script>
 (function () {
     const rol = document.querySelector('[name="Rol"]');
