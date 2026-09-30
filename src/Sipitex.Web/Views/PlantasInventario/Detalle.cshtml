@@ -1,6 +1,6 @@
 @model PlantaDetalleViewModel
 @{
-    ViewData["Title"] = Model.Nombre;
+    ViewData["Title"] = $"Inventario de {Model.Nombre}";
     ViewData["Breadcrumb"] = $"SIPITEX / Administración / Plantas de inventario / {Model.Nombre}";
     Layout = "_Layout";
     var materialesSeleccionados = PlantaDetalleConsulta.EsMateriales(Model.Categoria);
@@ -9,7 +9,7 @@
 
 <div class="page-header">
     <div>
-        <h2>@Model.Nombre</h2>
+        <h2>Inventario de @Model.Nombre</h2>
         <div class="sub">Materiales e insumos registrados en esta planta de inventario.</div>
     </div>
     <div class="row-actions">

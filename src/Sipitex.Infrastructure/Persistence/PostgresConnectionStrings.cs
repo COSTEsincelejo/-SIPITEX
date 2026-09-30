@@ -9,12 +9,39 @@ namespace Sipitex.Infrastructure.Persistence;
 /// </summary>
 public static class PostgresConnectionStrings
 {
+    /// <summary>
+    /// DATABASE_URL es la variable de producción. ConnectionStrings__DefaultConnection sigue valiendo
+    /// si no apunta a la base local. En producción no se usa el 127.0.0.1 de appsettings.
+    /// </summary>
+    public static string? SelectRaw(
+        string? databaseUrl,
+        string? connectionStringsEnv,
+        string? configured,
+        bool production,
+        bool underTest)
+    {
+        if (!string.IsNullOrWhiteSpace(databaseUrl))
+            return databaseUrl.Trim();
+
+        var fromEnv = string.IsNullOrWhiteSpace(connectionStringsEnv) ? null : connectionStringsEnv.Trim();
+        var fromConfig = string.IsNullOrWhiteSpace(configured) ? null : configured.Trim();
+
+        // El host de pruebas inyecta su propia base. No la pisa un localhost del entorno.
+        if (underTest)
+            return fromConfig ?? fromEnv;
+
+        if (production)
+            return fromEnv is not null && !IsLoopback(fromEnv) ? fromEnv : null;
+
+        return fromEnv ?? fromConfig;
+    }
+
     public static string Normalize(string? connectionString)
     {
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new InvalidOperationException(
-                "Falta ConnectionStrings:DefaultConnection (variable de entorno ConnectionStrings__DefaultConnection).");
+                "Falta la cadena de PostgreSQL. Configure la variable de entorno DATABASE_URL o ConnectionStrings__DefaultConnection.");
         }
 
         var trimmed = connectionString.Trim();
@@ -37,8 +64,8 @@ public static class PostgresConnectionStrings
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Host))
         {
             throw new InvalidOperationException(
-                "ConnectionStrings__DefaultConnection parece una URL de Render, pero no se pudo leer el host. " +
-                "Use postgres://usuario:clave@host:5432/base o una cadena Npgsql Host=...;Database=...;Username=...;Password=...");
+                "DATABASE_URL parece una URL de PostgreSQL, pero no se pudo leer el host. " +
+                "Use postgresql://usuario:clave@host/base?sslmode=require o una cadena Npgsql Host=...;Database=...;Username=...;Password=...");
         }
 
         var user = "";
@@ -66,34 +93,31 @@ public static class PostgresConnectionStrings
             Username = user,
             Password = password
         };
-        ApplySslMode(builder, uri.Query);
+        builder.SslMode = SslMode.Require;
         return builder.ConnectionString;
     }
 
-    private static void ApplySslMode(NpgsqlConnectionStringBuilder builder, string query)
+    private static bool IsLoopback(string raw)
     {
-        if (string.IsNullOrEmpty(query))
-            return;
-
-        foreach (var pair in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        if (IsPostgresUrl(raw.Trim()))
         {
-            var eq = pair.IndexOf('=');
-            var key = Uri.UnescapeDataString(eq >= 0 ? pair[..eq] : pair);
-            if (!key.Equals("sslmode", StringComparison.OrdinalIgnoreCase))
-                continue;
+            return Uri.TryCreate(raw.Trim(), UriKind.Absolute, out var uri)
+                && IsLoopbackHost(uri.Host);
+        }
 
-            var value = eq >= 0 ? Uri.UnescapeDataString(pair[(eq + 1)..]) : "";
-            builder.SslMode = value.ToLowerInvariant() switch
-            {
-                "disable" => SslMode.Disable,
-                "allow" => SslMode.Allow,
-                "prefer" => SslMode.Prefer,
-                "require" => SslMode.Require,
-                "verify-ca" or "verifyca" => SslMode.VerifyCA,
-                "verify-full" or "verifyfull" => SslMode.VerifyFull,
-                _ => throw new InvalidOperationException(
-                    $"sslmode '{value}' en la URL de PostgreSQL no es un valor que Npgsql reconozca.")
-            };
+        try
+        {
+            return IsLoopbackHost(new NpgsqlConnectionStringBuilder(raw).Host);
+        }
+        catch (ArgumentException)
+        {
+            return false;
         }
     }
+
+    private static bool IsLoopbackHost(string? host) =>
+        string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(host, "::1", StringComparison.OrdinalIgnoreCase);
+
 }
