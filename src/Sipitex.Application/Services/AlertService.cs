@@ -111,7 +111,7 @@ public class AlertService : IAlertService
         var subject = "SIPITEX · Correo de prueba";
         var body = _emailSender.IsSmtpConfigured
             ? "Las alertas por correo están habilitadas. Este mensaje confirma el canal SMTP."
-            : "SMTP aún no tiene usuario configurado. Este mensaje se guardó en email-outbox/ como prueba del canal Outbox.";
+            : "SMTP aún no tiene usuario configurado. Este mensaje se guardó en la base (outbox) como prueba del canal.";
 
         await _emailSender.SendAsync(user.Email, user.Nombre, subject, body, cancellationToken);
         await _alertRepository.AddDeliveryAsync(new AlertDelivery

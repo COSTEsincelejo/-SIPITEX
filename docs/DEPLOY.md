@@ -10,9 +10,9 @@ La app se construye con el `Dockerfile` de la raíz (runtime Docker, no .NET nat
 - `ASPNETCORE_ENVIRONMENT` — `Production`.
 - `DATABASE_URL` — cadena de PostgreSQL en producción. Acepta `postgresql://usuario:clave@host/db?sslmode=require` (se convierte a Npgsql con SSL Mode=Require) o `Host=...;Database=...;Username=...;Password=...`. Si falta, el proceso termina y no usa 127.0.0.1. `ConnectionStrings__DefaultConnection` sigue valiendo cuando no apunta a localhost.
 - `RENDER_GIT_COMMIT` — la inyecta Render en build y en runtime. El footer muestra los primeros 7 caracteres. Sin valor, el texto es `local`.
-- `Seed__DemoUsers` — `true` solo en una demo.
-- `ADMIN_SEED_PASSWORD` — admin inicial si la base no tiene administradores.
-- `Email__Enabled`, `Email__User`, `Email__Password` — SMTP. Sin usuario, el correo va al outbox.
+- `SEED_DEMO_DATA` — `true` solo en una demo. Si no está, manda `Seed:DemoUsers` (apagado en producción).
+- `ADMIN_SEED_PASSWORD` — admin inicial si la base no tiene administradores. No se escribe en el log.
+- `Email__Enabled`, `Email__User`, `Email__Password` — SMTP. Sin usuario, el correo queda en `EmailOutboxMessages`.
 - `Costing__LaborHourRate` — tarifa de referencia.
 
 No guarde valores en git. El workflow de CI llama al Deploy Hook con el secret `RENDER_DEPLOY_HOOK_URL` en cada push a `main` que pase `build-and-test`. Si el secret no existe, el job se omite y el pipeline sigue en verde.

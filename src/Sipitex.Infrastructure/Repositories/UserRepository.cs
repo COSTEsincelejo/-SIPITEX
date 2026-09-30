@@ -98,4 +98,43 @@ public class UserRepository : IUserRepository
 
         return blockers;
     }
+
+    public Task<UserProfilePhoto?> GetProfilePhotoAsync(int userId, CancellationToken cancellationToken = default) =>
+        _context.UserProfilePhotos.FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
+
+    public async Task UpsertProfilePhotoAsync(
+        int userId,
+        byte[] content,
+        string contentType,
+        string fileName,
+        CancellationToken cancellationToken = default)
+    {
+        var existing = await _context.UserProfilePhotos
+            .FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
+        if (existing is null)
+        {
+            _context.UserProfilePhotos.Add(new UserProfilePhoto
+            {
+                UserId = userId,
+                Content = content,
+                ContentType = contentType,
+                FileName = fileName,
+                UpdatedAtUtc = DateTime.UtcNow
+            });
+            return;
+        }
+
+        existing.Content = content;
+        existing.ContentType = contentType;
+        existing.FileName = fileName;
+        existing.UpdatedAtUtc = DateTime.UtcNow;
+    }
+
+    public async Task RemoveProfilePhotoAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var existing = await _context.UserProfilePhotos
+            .FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
+        if (existing is not null)
+            _context.UserProfilePhotos.Remove(existing);
+    }
 }

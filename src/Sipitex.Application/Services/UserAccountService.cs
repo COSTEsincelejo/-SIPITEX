@@ -251,6 +251,9 @@ public class UserAccountService : IUserAccountService
         return ServiceResult.Ok($"Usuario «{user.Nombre}» eliminado.");
     }
 
+    public Task<UserProfilePhoto?> GetProfilePhotoAsync(int userId, CancellationToken cancellationToken = default) =>
+        _userRepository.GetProfilePhotoAsync(userId, cancellationToken);
+
     // El usuario edita su propio perfil (nombre, correo, foto, contraseña opcional)
     public async Task<ServiceResult> UpdateProfileAsync(
         int id,
@@ -260,7 +263,10 @@ public class UserAccountService : IUserAccountService
         string? newPassword,
         string? photoPath,
         bool removePhoto,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        byte[]? photoContent = null,
+        string? photoContentType = null,
+        string? photoFileName = null)
     {
         // Nombre y correo son obligatorios siempre
         if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(email))
@@ -292,11 +298,26 @@ public class UserAccountService : IUserAccountService
         if (!string.IsNullOrWhiteSpace(newPassword))
             user.PasswordHash = PasswordHasher.Hash(newPassword);
 
-        // Foto: quitar, actualizar o dejar como está
-        if (removePhoto)
+        // Foto nueva: bytes en UserProfilePhotos y ruta estable para el <img>.
+        if (photoContent is { Length: > 0 })
+        {
+            user.PhotoPath = $"/Account/Photo/{user.Id}";
+            await _userRepository.UpsertProfilePhotoAsync(
+                user.Id,
+                photoContent,
+                string.IsNullOrWhiteSpace(photoContentType) ? "image/jpeg" : photoContentType,
+                string.IsNullOrWhiteSpace(photoFileName) ? "foto" : photoFileName,
+                cancellationToken);
+        }
+        else if (removePhoto)
+        {
             user.PhotoPath = null;
+            await _userRepository.RemoveProfilePhotoAsync(user.Id, cancellationToken);
+        }
         else if (!string.IsNullOrWhiteSpace(photoPath))
+        {
             user.PhotoPath = photoPath;
+        }
 
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

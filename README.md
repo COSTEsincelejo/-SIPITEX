@@ -42,7 +42,7 @@ Motor de datos: **PostgreSQL 16** (`ConnectionStrings:DefaultConnection`), cread
 
 ### Usuarios demo (solo Development)
 
-Los tres usuarios de demostración se siembran **únicamente** cuando `Seed:DemoUsers` es `true` (`appsettings.Development.json`). En producción ese flag está en `false` y las credenciales **no** se muestran en la pantalla de login.
+Los usuarios, materiales, órdenes y fichas de demostración se siembran solo si `SEED_DEMO_DATA=true`. Si esa variable no está, se usa `Seed:DemoUsers` (`true` en Development, `false` en producción). En producción las credenciales **no** se muestran en la pantalla de login.
 
 | Correo | Contraseña | Rol |
 |--------|------------|-----|
@@ -50,9 +50,9 @@ Los tres usuarios de demostración se siembran **únicamente** cuando `Seed:Demo
 | `instructor@sipitex.test` | `Instructor123!` | Instructor |
 | `bodega@sipitex.test` | `Bodega123!` | Encargado de bodega |
 
-Si un entorno de producción arranca **sin ningún Administrador**, se crea `admin@sipitex.local` con la clave de `ADMIN_SEED_PASSWORD` (o una aleatoria, impresa una sola vez en el log de arranque). Cámbiela en el perfil tras el primer ingreso.
+Si un entorno de producción arranca **sin ningún Administrador** y `ADMIN_SEED_PASSWORD` tiene al menos 6 caracteres, se crea `admin@sipitex.local`. La contraseña no se escribe en el log. Si la variable falta, no se crea la cuenta.
 
-Para el demo público (p. ej. Render) puede reactivarse el seed con `Seed__DemoUsers=true`.
+Para el demo público (p. ej. Render) puede reactivarse el seed con `SEED_DEMO_DATA=true`.
 
 ## Docker Compose
 
@@ -61,6 +61,8 @@ docker compose up --build
 ```
 
 Abrir `http://localhost:8080`. Postgres persiste en el volumen `sipitex-pgdata`.
+
+Fotos de perfil, correos sin SMTP y claves de cookie viven en PostgreSQL. El respaldo con `pg_dump` y las ramas de Neon están en [`docs/BACKUP.md`](docs/BACKUP.md). Para copiar una base anterior se usa `tools/Sipitex.DataMigration` (`SOURCE_CONNECTION`, `DATABASE_URL`, `--dry-run`); no corre al arrancar la aplicación.
 
 ## Módulos
 
@@ -89,7 +91,7 @@ Abrir `http://localhost:8080`. Postgres persiste en el volumen `sipitex-pgdata`.
 
 - **Actas:** conformidad con nombre, cargo, timestamp UTC y **firma gráfica** dibujada en pantalla (incluida en el PDF).
 - **Costeo:** tarifa de hora de mano de obra con valor de referencia `Costing:LaborHourRate` (6500 COP/h). El Administrador puede ajustarla en `/Costos` sin redesplegar.
-- **Alertas:** `Email:Enabled=true`. El envío SMTP real exige `Email:User` (variable `EMAIL_SMTP_USER`); si no hay usuario, los correos se guardan en `email-outbox/`.
+- **Alertas:** `Email:Enabled=true`. El envío SMTP real exige `Email:User` (variable `EMAIL_SMTP_USER`); si no hay usuario, los correos se guardan en la tabla `EmailOutboxMessages`.
 - **Login:** 5 intentos fallidos (correo + IP) bloquean 15 minutos. El mensaje no indica si el correo existe.
 
 ## Metodología cascada

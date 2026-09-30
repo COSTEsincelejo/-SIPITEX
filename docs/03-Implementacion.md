@@ -44,9 +44,9 @@ El flujo MES (Trazo → Corte → Confección → Control de Calidad → Termina
 
 ## 3.3 Seed de datos
 
-`DbInitializer` aplica migraciones y, si el catálogo está vacío, carga materiales, BOM (Camisa/Pantalón), órdenes OP-001/OP-002, fichas y matriz RF/RNF.
+`DbInitializer` aplica migraciones y siembra de forma idempotente la matriz RF/RNF y el catálogo CMTC. Materiales de ejemplo, BOM Camisa/Pantalón, órdenes OP-001/OP-002, fichas y usuarios `*@sipitex.test` solo entran con `SEED_DEMO_DATA=true` (o `Seed:DemoUsers=true` si la variable no está).
 
-Los usuarios `*@sipitex.test` solo se crean con `Seed:DemoUsers=true`. En producción, si no hay Administrador, se crea `admin@sipitex.local`.
+En producción, si no hay Administrador y `ADMIN_SEED_PASSWORD` es válida, se crea `admin@sipitex.local`. La contraseña no se imprime.
 
 ## 3.4 Entregable de fase
 

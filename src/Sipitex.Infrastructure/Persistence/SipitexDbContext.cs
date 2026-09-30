@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore; // EF Core (PostgreSQL en runtime; SQLite en tests)
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities; // Las entidades del dominio que mapeo a tablas
@@ -6,7 +7,7 @@ using Sipitex.Domain.Enums;
 namespace Sipitex.Infrastructure.Persistence;
 
 // El DbContext de EF Core — mapeo a PostgreSQL (y SQLite en pruebas unitarias)
-public class SipitexDbContext : DbContext
+public class SipitexDbContext : DbContext, IDataProtectionKeyContext
 {
     private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
 
@@ -73,6 +74,9 @@ public class SipitexDbContext : DbContext
     public DbSet<ActaMovimientoDetalle> ActasMovimientoDetalle => Set<ActaMovimientoDetalle>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<PrendaTrazable> PrendasTrazables => Set<PrendaTrazable>();
+    public DbSet<UserProfilePhoto> UserProfilePhotos => Set<UserProfilePhoto>();
+    public DbSet<EmailOutboxMessage> EmailOutboxMessages => Set<EmailOutboxMessage>();
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -381,7 +385,7 @@ public class SipitexDbContext : DbContext
             e.Property(u => u.PasswordHash).HasMaxLength(256).IsRequired(); // Hash, nunca la clave en claro
             e.Property(u => u.Rol).HasMaxLength(40).IsRequired(); // Administrador, Instructor, EncargadoDeBodega...
             e.Property(u => u.PermisosExtendidos).HasMaxLength(500); // Permisos extra si aplica
-            e.Property(u => u.PhotoPath).HasMaxLength(260); // Ruta de la foto de perfil
+            e.Property(u => u.PhotoPath).HasMaxLength(260); // /Account/Photo/{id} o una ruta legado en disco
             e.Property(u => u.FuncionDescripcion).HasMaxLength(800); // Descripción del cargo
             // true por defecto: las cuentas que ya existen siguen pudiendo entrar.
             // El sentinel es true para que un alta con EmailConfirmed = false sí se persista
@@ -393,6 +397,35 @@ public class SipitexDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(u => u.FichaAsignadaId)
                 .OnDelete(DeleteBehavior.SetNull); // Si borran la ficha, el usuario sigue
+        });
+
+        modelBuilder.Entity<UserProfilePhoto>(e =>
+        {
+            e.HasKey(p => p.UserId);
+            e.Property(p => p.Content).IsRequired();
+            e.Property(p => p.ContentType).HasMaxLength(100).IsRequired();
+            e.Property(p => p.FileName).HasMaxLength(260).IsRequired();
+            e.HasOne(p => p.User)
+                .WithOne()
+                .HasForeignKey<UserProfilePhoto>(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmailOutboxMessage>(e =>
+        {
+            e.ToTable("EmailOutboxMessages");
+            e.HasKey(m => m.Id);
+            e.Property(m => m.ToEmail).HasMaxLength(160).IsRequired();
+            e.Property(m => m.ToName).HasMaxLength(120).IsRequired();
+            e.Property(m => m.Subject).HasMaxLength(300).IsRequired();
+            e.Property(m => m.Body).IsRequired();
+        });
+
+        modelBuilder.Entity<DataProtectionKey>(e =>
+        {
+            e.ToTable("DataProtectionKeys");
+            e.Property(k => k.FriendlyName).HasMaxLength(256);
+            e.Property(k => k.Xml).IsRequired();
         });
 
         // --- UserPlantaInventario (M2M encargadoDeBodega ↔ plantaInventario; reemplaza Users.PlantaInventarioId singular) ---

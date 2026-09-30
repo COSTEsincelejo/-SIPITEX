@@ -131,7 +131,7 @@ SIPITEX es una aplicación web **monolítica por capas** (arquitectura limpia si
 
 - Existe red local (intranet) del centro.  
 - Hay usuarios de demostración para pruebas (ver apéndice).  
-- Si no hay SMTP configurado, las alertas se guardan en `email-outbox/`.
+- Si no hay SMTP configurado, las alertas se guardan en la tabla `EmailOutboxMessages`.
 
 ---
 
@@ -270,7 +270,7 @@ Modelo de la **base de datos**: tablas, claves y relaciones.
 
 ### 5.1 Credenciales de demostración (solo Development)
 
-Estas cuentas se siembran solo con `Seed:DemoUsers=true`. **No** aplican a un despliegue de producción.
+Estas cuentas se siembran solo con `SEED_DEMO_DATA=true` (o `Seed:DemoUsers=true` si la variable de entorno no está). **No** aplican a un despliegue de producción.
 
 | Rol | Correo | Contraseña |
 |-----|--------|------------|
@@ -278,7 +278,7 @@ Estas cuentas se siembran solo con `Seed:DemoUsers=true`. **No** aplican a un de
 | Instructor | `instructor@sipitex.test` | `Instructor123!` |
 | Encargado de bodega | `bodega@sipitex.test` | `Bodega123!` |
 
-En producción, si no existe Administrador, el arranque crea `admin@sipitex.local` (`ADMIN_SEED_PASSWORD` o clave aleatoria en el log).
+En producción, si no existe Administrador y `ADMIN_SEED_PASSWORD` es válida, el arranque crea `admin@sipitex.local`. La contraseña no se escribe en el log.
 
 ### 5.2 Cómo ejecutar el sistema
 

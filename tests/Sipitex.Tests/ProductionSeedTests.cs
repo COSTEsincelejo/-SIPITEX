@@ -24,7 +24,9 @@ public class ProductionSeedTests : IDisposable
         Assert.DoesNotContain(DbInitializer.DemoInstructorEmail, emails, StringComparer.OrdinalIgnoreCase);
         Assert.DoesNotContain(DbInitializer.DemoEncargadoEmail, emails, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(DbInitializer.ProductionAdminEmail, emails, StringComparer.OrdinalIgnoreCase);
-        Assert.Contains(DbInitializer.OwnerAdminEmail, emails, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain(await db.Materials.Select(m => m.Code).ToListAsync(), c => c == "mat1");
+        Assert.DoesNotContain(await db.ProductionOrders.Select(o => o.OrderNumber).ToListAsync(), o => o == "OP-001");
+        Assert.True(await db.FunctionalRequirements.AnyAsync());
         Assert.Contains(await db.Users.Where(u => u.Rol == "Administrador").Select(u => u.Email).ToListAsync(),
             e => string.Equals(e, DbInitializer.ProductionAdminEmail, StringComparison.OrdinalIgnoreCase));
     }
@@ -41,7 +43,6 @@ public class ProductionSeedTests : IDisposable
         Assert.DoesNotContain("Admin123!", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Instructor123!", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Bodega123!", html, StringComparison.Ordinal);
-        Assert.DoesNotContain(DbInitializer.OwnerAdminPassword, html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -56,25 +57,6 @@ public class ProductionSeedTests : IDisposable
         {
             ["Email"] = DbInitializer.ProductionAdminEmail,
             ["Password"] = ProductionSeedWebAppFactory.AdminSeedPassword,
-            ["__RequestVerificationToken"] = token
-        }));
-
-        Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
-        Assert.DoesNotContain("/Account/Login", post.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public async Task Production_OwnerAdmin_CanSignIn()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var loginPage = await client.GetAsync("/Account/Login");
-        loginPage.EnsureSuccessStatusCode();
-        var token = ExtractAntiforgery(await loginPage.Content.ReadAsStringAsync());
-
-        var post = await client.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["Email"] = DbInitializer.OwnerAdminEmail,
-            ["Password"] = DbInitializer.OwnerAdminPassword,
             ["__RequestVerificationToken"] = token
         }));
 

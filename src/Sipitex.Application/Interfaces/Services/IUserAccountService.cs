@@ -34,7 +34,10 @@ public interface IUserAccountService
     // Hard delete (gap #1). actorUserId = quien ejecuta la acción (anti auto-borrado).
     Task<ServiceResult> DeleteUserAsync(int id, int actorUserId, CancellationToken cancellationToken = default);
 
-    // removePhoto = quitar foto del perfil sin subir una nueva
+    Task<UserProfilePhoto?> GetProfilePhotoAsync(int userId, CancellationToken cancellationToken = default);
+
+    // removePhoto = quitar foto del perfil sin subir una nueva.
+    // photoContent, si viene, se guarda en la base y PhotoPath pasa a /Account/Photo/{id}.
     Task<ServiceResult> UpdateProfileAsync(
         int id,
         string nombre,
@@ -43,5 +46,8 @@ public interface IUserAccountService
         string? newPassword,
         string? photoPath,
         bool removePhoto,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        byte[]? photoContent = null,
+        string? photoContentType = null,
+        string? photoFileName = null);
 }
