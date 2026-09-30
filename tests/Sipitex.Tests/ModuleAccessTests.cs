@@ -99,7 +99,7 @@ public class ModuleAccessTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
         Assert.Contains("fa-eye", html, StringComparison.Ordinal);
-        Assert.Contains("Ver</a>", html, StringComparison.Ordinal);
+        Assert.Contains("Consultar inventario</a>", html, StringComparison.Ordinal);
     }
 
     [Fact]

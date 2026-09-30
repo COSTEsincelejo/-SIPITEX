@@ -8,7 +8,7 @@ La app se construye con el `Dockerfile` de la raíz (runtime Docker, no .NET nat
 
 - `PORT` — la inyecta Render. No la fije en 8080 en el panel.
 - `ASPNETCORE_ENVIRONMENT` — `Production`.
-- `ConnectionStrings__DefaultConnection` — Postgres administrado (`fromDatabase` en el Blueprint). Vale la URL `postgres://` de Render o una cadena `Host=...;Password=...`. La app la convierte y desactiva el cifrado GSS: sin eso, la imagen `aspnet` muere con exit 139 en la primera consulta.
+- `DATABASE_URL` — cadena de PostgreSQL en producción. Acepta `postgresql://usuario:clave@host/db?sslmode=require` (se convierte a Npgsql con SSL Mode=Require) o `Host=...;Database=...;Username=...;Password=...`. Si falta, el proceso termina y no usa 127.0.0.1. `ConnectionStrings__DefaultConnection` sigue valiendo cuando no apunta a localhost.
 - `RENDER_GIT_COMMIT` — la inyecta Render en build y en runtime. El footer muestra los primeros 7 caracteres. Sin valor, el texto es `local`.
 - `Seed__DemoUsers` — `true` solo en una demo.
 - `ADMIN_SEED_PASSWORD` — admin inicial si la base no tiene administradores.

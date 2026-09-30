@@ -27,7 +27,7 @@ public static class DependencyInjection
         {
             // Se normaliza al crear el contexto, dentro del try de arranque, no al registrar servicios.
             var connectionString = PostgresConnectionStrings.Normalize(
-                configuration.GetConnectionString("DefaultConnection") ?? PostgresDefaults.LocalConnectionString);
+                configuration.GetConnectionString("DefaultConnection"));
             options.UseNpgsql(connectionString, npgsql =>
                 {
                     npgsql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);

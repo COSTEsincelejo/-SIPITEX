@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Logging;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Infrastructure;
 using Sipitex.Infrastructure.Data;
@@ -15,6 +16,49 @@ RenderListen.Apply();
 
 // Punto de entrada de la web. Acá registro servicios y armo el pipeline HTTP.
 var builder = WebApplication.CreateBuilder(args);
+
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+var connectionStringsEnv = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+var rawConnection = PostgresConnectionStrings.SelectRaw(
+    databaseUrl,
+    connectionStringsEnv,
+    builder.Configuration.GetConnectionString("DefaultConnection"),
+    builder.Environment.IsProduction(),
+    RunningUnderTestHost());
+if (rawConnection is null)
+{
+    const string missingDb =
+        "Falta la cadena de PostgreSQL. Configure la variable de entorno DATABASE_URL " +
+        "(postgresql://usuario:clave@host/db?sslmode=require o Host=...;Database=...;Username=...;Password=...). " +
+        "También se acepta ConnectionStrings__DefaultConnection si no apunta a 127.0.0.1. No se intenta una base local.";
+    LogStartupFailure(missingDb);
+    if (RunningUnderTestHost())
+        throw new InvalidOperationException(missingDb);
+
+    Environment.ExitCode = 1;
+    return;
+}
+
+var cameFromEnvironment = !string.IsNullOrWhiteSpace(databaseUrl)
+    || (!string.IsNullOrWhiteSpace(connectionStringsEnv)
+        && string.Equals(rawConnection, connectionStringsEnv.Trim(), StringComparison.Ordinal));
+if (cameFromEnvironment)
+{
+    try
+    {
+        builder.Configuration["ConnectionStrings:DefaultConnection"] = PostgresConnectionStrings.Normalize(rawConnection);
+    }
+    catch (Exception ex)
+    {
+        var detail = DatabaseAvailability.Describe(ex);
+        LogStartupFailure("La cadena de PostgreSQL no se pudo leer. " + detail + " Configure DATABASE_URL.");
+        if (RunningUnderTestHost())
+            throw;
+
+        Environment.ExitCode = 1;
+        return;
+    }
+}
 
 // Render termina TLS y reenvía X-Forwarded-Proto. Sin esto el host puede redirigir a https://localhost.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -89,7 +133,7 @@ for (var attempt = 1; attempt <= dbInitAttempts && !dbReady; attempt++)
         var detail = DatabaseAvailability.Describe(ex);
         app.Logger.LogCritical(
             ex,
-            "El arranque falló al preparar la base de datos y no se reintenta. {Detail} Revise ConnectionStrings__DefaultConnection.",
+            "El arranque falló al preparar la base de datos y no se reintenta. {Detail} Revise DATABASE_URL.",
             detail);
         Console.Error.WriteLine("SIPITEX: arranque abortado (exit 1). " + detail);
         if (RunningUnderTestHost())
@@ -171,6 +215,13 @@ app.MapControllerRoute(
     pattern: "{controller=Inventario}/{action=Index}/{id?}");
 
 app.Run(); // levanta el servidor
+
+static void LogStartupFailure(string message)
+{
+    using var bootstrap = LoggerFactory.Create(logging => logging.AddConsole());
+    bootstrap.CreateLogger("Startup").LogCritical(message);
+    Console.Error.WriteLine("SIPITEX: arranque abortado (exit 1). " + message);
+}
 
 static bool RunningUnderTestHost() =>
     AppDomain.CurrentDomain.GetAssemblies().Any(static assembly =>

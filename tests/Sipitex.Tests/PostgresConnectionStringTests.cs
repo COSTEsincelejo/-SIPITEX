@@ -1,4 +1,3 @@
-using System.Data;
 using System.Net.Sockets;
 using Npgsql;
 using Sipitex.Infrastructure.Persistence;
@@ -40,29 +39,90 @@ public class PostgresConnectionStringTests
     }
 
     [Fact]
-    public void UrlVacia_FallaConMensajeClaro()
+    public void UrlSinSslMode_QuedaEnSslRequire()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => PostgresConnectionStrings.Normalize("  "));
-        Assert.Contains("ConnectionStrings__DefaultConnection", ex.Message, StringComparison.Ordinal);
+        var normalized = PostgresConnectionStrings.Normalize(
+            "postgresql://usuario:clave@dpg-abc-a/sipitex");
+
+        var builder = new NpgsqlConnectionStringBuilder(normalized);
+        Assert.Equal("dpg-abc-a", builder.Host);
+        Assert.Equal("sipitex", builder.Database);
+        Assert.Equal("usuario", builder.Username);
+        Assert.Equal("clave", builder.Password);
+        Assert.Equal(SslMode.Require, builder.SslMode);
+        Assert.Equal(GssEncryptionMode.Disable, builder.GssEncryptionMode);
     }
 
     [Fact]
-    public async Task UrlDeRender_AbrePostgreSQLLocal()
+    public void CadenaNpgsql_NoFuerzaSsl()
     {
-        var database = PostgresTestSupport.CreateDatabase();
-        try
-        {
-            var source = new NpgsqlConnectionStringBuilder(PostgresTestSupport.BuildConnectionString(database));
-            var url =
-                $"postgres://{Uri.EscapeDataString(source.Username!)}:{Uri.EscapeDataString(source.Password!)}@{source.Host}:{source.Port}/{source.Database}";
-            await using var connection = new NpgsqlConnection(PostgresConnectionStrings.Normalize(url));
-            await connection.OpenAsync();
-            Assert.Equal(ConnectionState.Open, connection.State);
-        }
-        finally
-        {
-            PostgresTestSupport.DropDatabase(database);
-        }
+        var builder = new NpgsqlConnectionStringBuilder(PostgresConnectionStrings.Normalize(
+            "Host=db.interno;Database=sipitex;Username=sipitex;Password=secreta"));
+        Assert.Equal(SslMode.Prefer, builder.SslMode);
+    }
+
+    [Fact]
+    public void SelectRaw_DatabaseUrlTienePrioridad()
+    {
+        var selected = PostgresConnectionStrings.SelectRaw(
+            "postgresql://usuario:clave@db.render.com/sipitex",
+            "Host=localhost;Database=sipitex;Username=sipitex;Password=sipitex",
+            "Host=127.0.0.1;Database=otra",
+            production: true,
+            underTest: false);
+
+        Assert.StartsWith("postgresql://", selected, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SelectRaw_ProduccionSinVariable_NoUsaLocalhost()
+    {
+        Assert.Null(PostgresConnectionStrings.SelectRaw(
+            null,
+            "Host=127.0.0.1;Port=5432;Database=sipitex;Username=sipitex;Password=sipitex",
+            "Host=localhost;Database=sipitex;Username=sipitex;Password=sipitex",
+            production: true,
+            underTest: false));
+
+        Assert.Null(PostgresConnectionStrings.SelectRaw(
+            "  ",
+            null,
+            "Host=localhost;Database=sipitex",
+            production: true,
+            underTest: false));
+    }
+
+    [Fact]
+    public void SelectRaw_Produccion_AceptaLaClaveAnteriorSiNoEsLoopback()
+    {
+        var selected = PostgresConnectionStrings.SelectRaw(
+            null,
+            "Host=dpg-abc-a;Database=sipitex;Username=sipitex;Password=secreta",
+            "Host=127.0.0.1;Database=sipitex",
+            production: true,
+            underTest: false);
+
+        Assert.Contains("dpg-abc-a", selected, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SelectRaw_EnPruebas_ConservaLaCadenaDelHost()
+    {
+        var selected = PostgresConnectionStrings.SelectRaw(
+            null,
+            "Host=127.0.0.1;Database=sipitex;Username=sipitex;Password=sipitex",
+            "Host=localhost;Database=sipitex_t_abc;Username=sipitex;Password=sipitex",
+            production: true,
+            underTest: true);
+
+        Assert.Contains("sipitex_t_abc", selected, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UrlVacia_FallaConMensajeClaro()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => PostgresConnectionStrings.Normalize("  "));
+        Assert.Contains("DATABASE_URL", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
