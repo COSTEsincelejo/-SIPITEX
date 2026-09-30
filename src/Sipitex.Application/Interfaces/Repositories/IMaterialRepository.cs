@@ -13,6 +13,9 @@ public interface IMaterialRepository
         int plantaInventarioId,
         CancellationToken cancellationToken = default);
     Task<Material?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+
+    // Alta/edición/ajuste del inventario de una planta: ignora el filtro global y exige el id de esa planta.
+    Task<Material?> GetByIdInPlantaAsync(int id, int plantaInventarioId, CancellationToken cancellationToken = default);
     Task AddAsync(Material material, CancellationToken cancellationToken = default);
     void Update(Material material);
     void Remove(Material material);

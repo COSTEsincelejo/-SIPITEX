@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.Authorization;
-using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
@@ -10,253 +8,173 @@ using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
 
-// Materiales, stock, solicitudes y aprobaciones del inventario
+// El inventario vive en PlantasInventario/Detalle. Estas rutas responden 301 y no modifican stock.
 [Authorize]
 public class InventarioController : Controller
 {
-    // Servicio que habla con la BD de materiales y solicitudes
-    private readonly IInventoryService _inventoryService;
-    // Lo necesito para el combo de órdenes al pedir material
-    private readonly IProductionOrderService _orderService;
-    private readonly IStockMovementService _stockMovements;
+    private readonly ICurrentPlantaInventarioAccessor? _plantaAccessor;
 
-    // ASP.NET inyecta los servicios por constructor
+    // Los tres servicios se conservan en la firma para no romper los tests que construyen el controlador.
     public InventarioController(
         IInventoryService inventoryService,
         IProductionOrderService orderService,
-        IStockMovementService stockMovements)
+        IStockMovementService stockMovements,
+        ICurrentPlantaInventarioAccessor? plantaAccessor = null)
     {
-        // Guardo referencia al servicio de inventario
-        _inventoryService = inventoryService;
-        // Guardo referencia al servicio de órdenes
-        _orderService = orderService;
-        _stockMovements = stockMovements;
+        _ = inventoryService;
+        _ = orderService;
+        _ = stockMovements;
+        _plantaAccessor = plantaAccessor;
     }
 
-    // Pantalla principal del inventario (stock completo — no Instructor)
+    // Pantalla principal: el Instructor sigue sin acceso; el resto va a la planta que le corresponde.
     [Authorize(Policy = AuthorizationPolicyNames.PuedeConsultarInventario)]
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        // Defensa en profundidad (unit-testable); la policy también bloquea en middleware
+        _ = cancellationToken;
         if (User.IsInRole(UserRoles.Instructor) && !User.IsInRole(UserRoles.Administrador))
-            return Forbid();
+            return Task.FromResult<IActionResult>(Forbid());
 
-        // Armo el ViewModel con materiales, solicitudes y combos
-        return View(await BuildViewModel(cancellationToken));
+        return Task.FromResult(RedirectLegacy(movimientos: false));
     }
 
-    // Historial de movimientos de stock (solo Admin / EncargadoDeBodega)
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     [HttpGet]
-    public async Task<IActionResult> Movimientos(
+    public IActionResult Movimientos(
         DateOnly? desde,
         DateOnly? hasta,
         int? materialId,
         CancellationToken cancellationToken)
     {
-        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
-        var movements = await _stockMovements.GetHistoryAsync(desde, hasta, materialId, cancellationToken);
-        return View(new InventarioMovimientosViewModel
-        {
-            Movimientos = movements,
-            Materials = materials,
-            Desde = desde,
-            Hasta = hasta,
-            MaterialId = materialId
-        });
+        _ = desde;
+        _ = hasta;
+        _ = materialId;
+        _ = cancellationToken;
+        return RedirectLegacy(movimientos: true);
     }
 
-    // Agrega un material nuevo al catálogo
     [Authorize(Policy = AuthorizationPolicyNames.PuedeRegistrarMateriales)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddMaterial([Bind(Prefix = "CreateMaterial")] CreateMaterialForm form, CancellationToken cancellationToken)
+    public IActionResult AddMaterial([Bind(Prefix = "CreateMaterial")] CreateMaterialForm form, CancellationToken cancellationToken)
     {
-        if (!TryGetActorUserId(out var actorId))
-        {
-            ModelState.AddModelError(string.Empty, "Sesión no válida.");
-            return View("Index", await BuildViewModel(cancellationToken));
-        }
-
-        // Llamo al servicio con los datos del formulario
-        var result = await _inventoryService.AddMaterialAsync(
-            new CreateMaterialDto(form.Name, form.Stock, form.Unit, form.Origen, form.CostoAdquisicion), actorId, cancellationToken);
-
-        // Vuelvo a cargar la pantalla completa para mostrar la tabla actualizada
-        var vm = await BuildViewModel(cancellationToken);
-        // Mensaje que ve el usuario según si salió bien o no
-        vm.Message = result.Message ?? (result.Success ? "Material agregado." : "Error al agregar material.");
-        // Bandera verde/roja en la vista
-        vm.IsSuccess = result.Success;
-        // Devuelvo la misma vista con mensaje en vez de redirect (el form queda en la página)
-        return View("Index", vm);
+        _ = form;
+        _ = cancellationToken;
+        return RedirectLegacy(movimientos: false);
     }
 
-    // Edición completa de metadatos (nombre, unidad, mínimo) — solo Administrador
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditMaterial(EditMaterialForm form, CancellationToken cancellationToken)
+    public IActionResult EditMaterial(EditMaterialForm form, CancellationToken cancellationToken)
     {
-        var result = await _inventoryService.UpdateMaterialAsync(
-            new UpdateMaterialDto(form.MaterialId, form.Name, form.Unit, form.MinStock, form.CostoAdquisicion), cancellationToken);
-
-        TempData["Message"] = result.Message ?? (result.Success ? "Material actualizado." : "Error al actualizar material.");
-        TempData["IsSuccess"] = result.Success;
-        return RedirectToAction(nameof(Index));
+        _ = form;
+        _ = cancellationToken;
+        return RedirectLegacy(movimientos: false);
     }
 
-    // Ajuste de stock (plantaInventario/admin). Uso TempData porque hago redirect.
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AdjustStock(AdjustStockForm form, CancellationToken cancellationToken)
+    public IActionResult AdjustStock(AdjustStockForm form, CancellationToken cancellationToken)
     {
-        if (!TryGetActorUserId(out var actorId))
-        {
-            TempData["Message"] = "Sesión no válida.";
-            TempData["IsSuccess"] = false;
-            return RedirectToAction(nameof(Index));
-        }
-
-        // El servicio busca el material y pone el stock nuevo
-        var result = await _inventoryService.AdjustStockAsync(
-            new AdjustStockDto(form.MaterialId, form.NewStock, form.Origen, form.PrecioUnitario), actorId, cancellationToken);
-
-        // Guardo mensaje para después del redirect
-        TempData["Message"] = result.Message ?? (result.Success ? "Stock actualizado." : "Error al ajustar stock.");
-        // Igual con el indicador de éxito
-        TempData["IsSuccess"] = result.Success;
-        // Vuelvo al listado para que se vea el cambio
-        return RedirectToAction(nameof(Index));
+        _ = form;
+        _ = cancellationToken;
+        return RedirectLegacy(movimientos: false);
     }
 
-    // Cambia estado del material (activo, agotado, etc.)
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateStatus(int MaterialId, MaterialStatus Status, CancellationToken cancellationToken)
+    public IActionResult UpdateStatus(int MaterialId, MaterialStatus Status, CancellationToken cancellationToken)
     {
-        // Actualizo Bueno/Regular/Deteriorado en BD
-        var result = await _inventoryService.UpdateStatusAsync(
-            new UpdateMaterialStatusDto(MaterialId, Status), cancellationToken);
-
-        // Mensaje flash para la siguiente carga de Index
-        TempData["Message"] = result.Message ?? (result.Success ? "Estado actualizado." : "Error al actualizar estado.");
-        TempData["IsSuccess"] = result.Success;
-        return RedirectToAction(nameof(Index));
+        _ = MaterialId;
+        _ = Status;
+        _ = cancellationToken;
+        return RedirectLegacy(movimientos: false);
     }
 
-    // Solicitudes legacy MaterialRequest: solo Admin (Instructor usa SolicitudesMaterial / MRP)
     [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateRequest([Bind(Prefix = "CreateRequest")] CreateRequestForm form, CancellationToken cancellationToken)
+    public IActionResult CreateRequest([Bind(Prefix = "CreateRequest")] CreateRequestForm form, CancellationToken cancellationToken)
     {
-        TryGetActorUserId(out var solicitanteId);
-        // Creo solicitud en estado Pendiente
-        var result = await _inventoryService.CreateRequestAsync(
-            new CreateMaterialRequestDto(form.ProductionOrderId, form.MaterialId, form.Quantity),
-            solicitanteId > 0 ? solicitanteId : null,
-            cancellationToken);
-
-        // Recargo datos de la pantalla
-        var vm = await BuildViewModel(cancellationToken);
-        vm.Message = result.Message ?? (result.Success ? "Solicitud creada." : "Error al crear solicitud.");
-        vm.IsSuccess = result.Success;
-        // Me quedo en Index como en AddMaterial
-        return View("Index", vm);
+        _ = form;
+        _ = cancellationToken;
+        return RedirectLegacy(movimientos: false);
     }
 
-    // Aprueba una solicitud y descuenta stock si alcanza
     [Authorize(Policy = AuthorizationPolicyNames.PuedeAprobarSolicitudes)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ApproveRequest(int id, CancellationToken cancellationToken)
+    public IActionResult ApproveRequest(int id, CancellationToken cancellationToken)
     {
-        if (!TryGetActorUserId(out var actorId))
+        _ = id;
+        _ = cancellationToken;
+        return RedirectLegacy(movimientos: false);
+    }
+
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeAprobarSolicitudes)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult RejectRequest(int id, CancellationToken cancellationToken)
+    {
+        _ = id;
+        _ = cancellationToken;
+        return RedirectLegacy(movimientos: false);
+    }
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult DeleteMaterial(int id, CancellationToken cancellationToken)
+    {
+        _ = id;
+        _ = cancellationToken;
+        return RedirectLegacy(movimientos: false);
+    }
+
+    private IActionResult RedirectLegacy(bool movimientos)
+    {
+        if (!movimientos)
+            return RedirectPermanent(LegacyInventarioUrl());
+
+        var query = Request?.QueryString.Value ?? string.Empty;
+        if (EsEncargadoDeUnaSolaPlanta(out var plantaId)
+            && query.Contains("plantaInventarioId", StringComparison.OrdinalIgnoreCase) == false)
         {
-            TempData["Message"] = "Sesión no válida.";
-            TempData["IsSuccess"] = false;
-            return RedirectToAction(nameof(Index));
+            query = string.IsNullOrEmpty(query)
+                ? $"?plantaInventarioId={plantaId}"
+                : query + $"&plantaInventarioId={plantaId}";
         }
 
-        // id es el de la solicitud; el servicio valida stock y descuenta
-        var result = await _inventoryService.ApproveRequestAsync(id, actorId, cancellationToken);
-        TempData["Message"] = result.Message ?? (result.Success ? "Solicitud aprobada." : "No se pudo aprobar.");
-        TempData["IsSuccess"] = result.Success;
-        return RedirectToAction(nameof(Index));
+        return RedirectPermanent("/PlantasInventario/Movimientos" + query);
     }
 
-    // Rechaza la solicitud sin tocar inventario
-    [Authorize(Policy = AuthorizationPolicyNames.PuedeAprobarSolicitudes)]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RejectRequest(int id, CancellationToken cancellationToken)
+    private string LegacyInventarioUrl()
     {
-        // Solo cambia el estado a Rechazada
-        var result = await _inventoryService.RejectRequestAsync(id, cancellationToken);
-        TempData["Message"] = result.Message ?? (result.Success ? "Solicitud rechazada." : "No se pudo rechazar.");
-        TempData["IsSuccess"] = result.Success;
-        return RedirectToAction(nameof(Index));
+        if (EsEncargadoDeUnaSolaPlanta(out var plantaId))
+            return $"/PlantasInventario/Detalle/{plantaId}";
+
+        if (User.IsInRole(UserRoles.Administrador)
+            || User.IsInRole(UserRoles.EncargadoDeBodega))
+            return "/PlantasInventario";
+
+        return "/PlantasInventario/Consultar";
     }
 
-    // Elimina material del catálogo (bloqueado si está en alguna ficha técnica)
-    [Authorize(Roles = UserRoles.Administrador)]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteMaterial(int id, CancellationToken cancellationToken)
+    private bool EsEncargadoDeUnaSolaPlanta(out int plantaId)
     {
-        var result = await _inventoryService.DeleteMaterialAsync(id, cancellationToken);
-        TempData["Message"] = result.Message ?? (result.Success ? "Material eliminado." : "No se pudo eliminar.");
-        TempData["IsSuccess"] = result.Success;
-        return RedirectToAction(nameof(Index));
-    }
+        plantaId = 0;
+        if (!User.IsInRole(UserRoles.EncargadoDeBodega) || User.IsInRole(UserRoles.Administrador))
+            return false;
 
-    // Arma el ViewModel completo de la pantalla (materiales + solicitudes + combos)
-    private async Task<InventarioIndexViewModel> BuildViewModel(CancellationToken cancellationToken)
-    {
-        // Lista de materiales para la tabla principal
-        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
-        // Órdenes para el dropdown al crear solicitud
-        var orders = await _orderService.GetOrdersAsync(cancellationToken: cancellationToken);
+        var ids = _plantaAccessor?.PlantaInventarioIds;
+        if (ids is not { Count: 1 })
+            return false;
 
-        int? viewerId = null;
-        if (TryGetActorUserId(out var uid))
-            viewerId = uid;
-        var viewerRole = User.FindFirstValue(ClaimTypes.Role);
-
-        // Objeto que la vista Razor consume
-        return new InventarioIndexViewModel
-        {
-            // Tabla de materiales
-            Materials = materials,
-            // Solicitudes (Instructor scoped por SolicitanteId si llegara a llamar)
-            Requests = await _inventoryService.GetRequestsAsync(viewerId, viewerRole, cancellationToken),
-            // Combo de órdenes de producción
-            Orders = orders,
-            // Form vacío para agregar material
-            CreateMaterial = new CreateMaterialForm(),
-            // Form de solicitud con valores por defecto en los combos
-            // Prefiero dejar seleccionado el primer ítem para que el form no quede vacío
-            CreateRequest = new CreateRequestForm
-            {
-                // Primera orden del listado o 0 si no hay ninguna
-                ProductionOrderId = orders.FirstOrDefault()?.Id ?? 0,
-                // Primer material o 0
-                MaterialId = materials.FirstOrDefault()?.Id ?? 0
-            },
-            // Mensaje que vino de un POST anterior (TempData)
-            Message = TempData["Message"] as string,
-            // Si el último POST fue exitoso
-            IsSuccess = TempData["IsSuccess"] as bool? ?? false
-        };
-    }
-
-    private bool TryGetActorUserId(out int userId)
-    {
-        userId = 0;
-        return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId) && userId > 0;
+        plantaId = ids[0];
+        return plantaId > 0;
     }
 }

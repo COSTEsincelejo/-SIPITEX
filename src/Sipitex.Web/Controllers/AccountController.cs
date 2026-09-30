@@ -106,10 +106,10 @@ public class AccountController : Controller
 
         // Cookie lista con rol, foto y permisos
         await SignInUserAsync(user);
-        // Instructor no tiene Inventario general; Admin/EncargadoDeBodega van al stock
+        // Instructor no opera el inventario de planta; Admin y Encargado entran por sus plantas.
         if (string.Equals(user.Rol, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase))
             return RedirectToAction("Index", "Ordenes");
-        return RedirectToAction("Index", "Inventario");
+        return RedirectToAction("Index", "PlantasInventario");
     }
 
     // Formulario "olvidé mi contraseña"

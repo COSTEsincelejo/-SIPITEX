@@ -1,3 +1,9 @@
+@*
+    OBSOLETA. Ningún controlador devuelve esta vista.
+    /Inventario y sus POST responden 301 hacia PlantasInventario.
+    Se conserva el formulario legacy de MaterialRequest (aprobar/rechazar) porque la cola vigente
+    es PlantasInventarioSolicitudes y no se migró esa UI aquí. No enlazar esta vista.
+*@
 @* Modelo con materiales, solicitudes y formularios de creación *@
 @model InventarioIndexViewModel
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService

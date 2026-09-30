@@ -27,6 +27,8 @@ public class MenuRouteTests
         Assert.Contains("asp-controller=\"PlantasInventarioOrdenes\"", layout, StringComparison.Ordinal);
         Assert.Contains("Inventario por bodega", layout, StringComparison.Ordinal);
         Assert.Contains("asp-action=\"Consultar\"", layout, StringComparison.Ordinal);
+        Assert.Contains("Plantas de inventario", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("asp-controller=\"Inventario\"", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("asp-controller=\"PlantaInventarioSolicitudes\"", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("asp-controller=\"PlantaInventarioOrdenes\"", layout, StringComparison.Ordinal);
 
@@ -40,6 +42,9 @@ public class MenuRouteTests
         var js = File.ReadAllText(FindRepoFile(Path.Combine("src", "Sipitex.Web", "wwwroot", "js", "site.js")));
         Assert.Contains("'/PlantasInventarioSolicitudes'", js, StringComparison.Ordinal);
         Assert.Contains("'/PlantasInventarioOrdenes'", js, StringComparison.Ordinal);
+        Assert.Contains("'/PlantasInventario/Movimientos'", js, StringComparison.Ordinal);
+        Assert.DoesNotContain("'/Inventario'", js, StringComparison.Ordinal);
+        Assert.DoesNotContain("'/Inventario/Movimientos'", js, StringComparison.Ordinal);
         Assert.DoesNotContain("'/PlantaInventarioSolicitudes'", js, StringComparison.Ordinal);
         Assert.DoesNotContain("'/PlantaInventarioOrdenes'", js, StringComparison.Ordinal);
     }

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Sipitex.Application.Authorization;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Services;
@@ -19,28 +20,46 @@ public class PlantasInventarioController : Controller
     private readonly IActivityLogService _activityLog;
     private readonly IInventoryService _inventory;
     private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
+    private readonly IStockMovementService? _stockMovements;
 
     public PlantasInventarioController(
         IPlantaInventarioService plantasInventario,
         IPlantaInventarioReassignmentService reassignment,
         IActivityLogService activityLog,
         IInventoryService inventory,
-        ICurrentPlantaInventarioAccessor plantaAccessor)
+        ICurrentPlantaInventarioAccessor plantaAccessor,
+        IStockMovementService? stockMovements = null)
     {
         _plantas = plantasInventario;
         _reassignment = reassignment;
         _activityLog = activityLog;
         _inventory = inventory;
         _plantaAccessor = plantaAccessor;
+        _stockMovements = stockMovements;
     }
 
     [HttpGet]
-    [Authorize(Roles = UserRoles.Administrador)]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
+        var plantas = await _plantas.GetAllAsync(cancellationToken);
+        if (!User.IsInRole(UserRoles.Administrador))
+        {
+            var visibles = VisiblePlantas(plantas);
+            if (visibles.Count == 1)
+                return RedirectToAction(nameof(Detalle), new { id = visibles[0].Id });
+
+            return View(new PlantasInventarioIndexViewModel
+            {
+                PlantasInventario = visibles,
+                Message = TempData["Message"] as string,
+                IsSuccess = TempData["IsSuccess"] as bool? ?? false
+            });
+        }
+
         return View(new PlantasInventarioIndexViewModel
         {
-            PlantasInventario = await _plantas.GetAllAsync(cancellationToken),
+            PlantasInventario = plantas,
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -98,30 +117,24 @@ public class PlantasInventarioController : Controller
         int id,
         string? busqueda,
         string? categoria,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? nivel = null)
     {
-        var esAdmin = User.IsInRole(UserRoles.Administrador);
-        var esEncargado = User.IsInRole(UserRoles.EncargadoDeBodega);
-        if (!esAdmin && !esEncargado)
-            return Forbid();
+        var acceso = await AutorizarPlantaAsync(id, cancellationToken);
+        if (acceso.Error is not null)
+            return acceso.Error;
 
-        var planta = await _plantas.GetByIdAsync(id, cancellationToken);
-        if (planta is null)
-            return NotFound();
-
-        // El encargado solo ve plantas asignadas. El admin no depende de la bodega activa.
-        if (esEncargado)
-        {
-            var allowed = _plantaAccessor.PlantaInventarioIds;
-            if (allowed is null || !allowed.Contains(id))
-                return Forbid();
-        }
-
+        var planta = acceso.Planta!;
         var stock = await _inventory.GetStockByPlantaDetalleAsync(id, cancellationToken);
         var nivelesPlanta = stock
             .Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock))
             .ToList();
         var filtrados = PlantaDetalleConsulta.Apply(stock, busqueda, categoria);
+        if (!string.IsNullOrWhiteSpace(nivel))
+            filtrados = filtrados.Where(m => CoincideNivel(m, nivel)).ToList();
+
+        var esAdmin = User.IsInRole(UserRoles.Administrador);
+        var varias = _plantaAccessor.PlantaInventarioIds is { Count: > 1 };
 
         return View(new PlantaDetalleViewModel
         {
@@ -130,20 +143,209 @@ public class PlantasInventarioController : Controller
             Activa = planta.Activo,
             Busqueda = busqueda,
             Categoria = categoria,
+            Nivel = nivel,
+            MostrarVolverAlCatalogo = esAdmin || varias,
             Materiales = filtrados.Select(m => new MaterialPlantaItem
             {
+                Id = m.Id,
                 Codigo = m.Code,
                 Nombre = m.Name,
                 Categoria = PlantaDetalleConsulta.Etiqueta(m.EnFichaTecnica),
+                Unidad = m.Unit,
                 UnidadMedida = UnitHelper.ToDisplay(m.Unit),
                 StockActual = m.Stock,
+                MinStock = m.MinStock,
+                Estado = m.Status,
+                UltimaEntrada = m.LastEntryDate,
+                CostoAdquisicion = m.CostoAdquisicion,
+                CostoPromedioPonderado = m.CostoPromedioPonderado,
                 NivelStock = StockNivelHelper.Classify(m.Stock, m.MinStock)
             }).ToList(),
             TotalItems = stock.Count,
             TotalBajo = nivelesPlanta.Count(n => n == StockNivel.Bajo),
             TotalCritico = nivelesPlanta.Count(n => n == StockNivel.Critico),
-            TotalSinFiltro = stock.Count
+            TotalSinFiltro = stock.Count,
+            NombresAlerta = stock
+                .Where(m => StockNivelHelper.Classify(m.Stock, m.MinStock) != StockNivel.Ok)
+                .Select(m => m.Name)
+                .ToList(),
+            Message = TempData["Message"] as string,
+            IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
+    }
+
+    [HttpGet]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
+    public async Task<IActionResult> Movimientos(
+        DateOnly? desde,
+        DateOnly? hasta,
+        int? materialId,
+        int? plantaInventarioId,
+        CancellationToken cancellationToken)
+    {
+        if (_stockMovements is null)
+            return StatusCode(StatusCodes.Status500InternalServerError);
+
+        if (plantaInventarioId is int plantaId)
+        {
+            var acceso = await AutorizarPlantaAsync(plantaId, cancellationToken);
+            if (acceso.Error is not null)
+                return acceso.Error;
+        }
+        else if (!User.IsInRole(UserRoles.Administrador))
+        {
+            var allowed = _plantaAccessor.PlantaInventarioIds;
+            if (allowed is null)
+                return Forbid();
+        }
+
+        var materials = await _inventory.GetMaterialsByPlantaAsync(plantaInventarioId, cancellationToken);
+        var movements = await _stockMovements.GetHistoryAsync(desde, hasta, materialId, cancellationToken);
+        if (plantaInventarioId is int)
+        {
+            var ids = materials.Select(m => m.Id).ToHashSet();
+            movements = movements.Where(m => ids.Contains(m.MaterialId)).ToList();
+        }
+
+        string? plantaNombre = null;
+        if (plantaInventarioId is int pid)
+            plantaNombre = (await _plantas.GetByIdAsync(pid, cancellationToken))?.Nombre;
+
+        return View("~/Views/Inventario/Movimientos.cshtml", new InventarioMovimientosViewModel
+        {
+            Movimientos = movements,
+            Materials = materials,
+            Desde = desde,
+            Hasta = hasta,
+            MaterialId = materialId,
+            PlantaInventarioId = plantaInventarioId,
+            PlantaNombre = plantaNombre
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeRegistrarMateriales)]
+    public async Task<IActionResult> AddMaterial(
+        int id,
+        [Bind(Prefix = "CreateMaterial")] CreateMaterialForm form,
+        CancellationToken cancellationToken)
+    {
+        var acceso = await AutorizarPlantaAsync(id, cancellationToken);
+        if (acceso.Error is not null)
+            return acceso.Error;
+
+        if (!TryGetActorUserId(out var actorId))
+        {
+            TempData["Message"] = "Sesión no válida.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+
+        var result = await _inventory.AddMaterialAsync(
+            new CreateMaterialDto(form.Name, form.Stock, form.Unit, form.Origen, form.CostoAdquisicion, id),
+            actorId,
+            cancellationToken);
+
+        TempData["Message"] = result.Message ?? (result.Success ? "Material agregado." : "Error al agregar material.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Detalle), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = UserRoles.Administrador)]
+    public async Task<IActionResult> EditMaterial(int id, EditMaterialForm form, CancellationToken cancellationToken)
+    {
+        var acceso = await AutorizarPlantaAsync(id, cancellationToken);
+        if (acceso.Error is not null)
+            return acceso.Error;
+
+        if (!await _inventory.MaterialPerteneceAPlantaAsync(form.MaterialId, id, cancellationToken))
+            return NotFound();
+
+        var result = await _inventory.UpdateMaterialAsync(
+            new UpdateMaterialDto(form.MaterialId, form.Name, form.Unit, form.MinStock, form.CostoAdquisicion),
+            cancellationToken,
+            id);
+
+        TempData["Message"] = result.Message ?? (result.Success ? "Material actualizado." : "Error al actualizar material.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Detalle), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
+    public async Task<IActionResult> AdjustStock(int id, AdjustStockForm form, CancellationToken cancellationToken)
+    {
+        var acceso = await AutorizarPlantaAsync(id, cancellationToken);
+        if (acceso.Error is not null)
+            return acceso.Error;
+
+        if (!TryGetActorUserId(out var actorId))
+        {
+            TempData["Message"] = "Sesión no válida.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+
+        if (!await _inventory.MaterialPerteneceAPlantaAsync(form.MaterialId, id, cancellationToken))
+            return NotFound();
+
+        var result = await _inventory.AdjustStockAsync(
+            new AdjustStockDto(form.MaterialId, form.NewStock, form.Origen, form.PrecioUnitario),
+            actorId,
+            cancellationToken,
+            id);
+
+        TempData["Message"] = result.Message ?? (result.Success ? "Stock actualizado." : "Error al ajustar stock.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Detalle), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
+    public async Task<IActionResult> UpdateStatus(
+        int id,
+        int materialId,
+        MaterialStatus status,
+        CancellationToken cancellationToken)
+    {
+        var acceso = await AutorizarPlantaAsync(id, cancellationToken);
+        if (acceso.Error is not null)
+            return acceso.Error;
+
+        if (!await _inventory.MaterialPerteneceAPlantaAsync(materialId, id, cancellationToken))
+            return NotFound();
+
+        var result = await _inventory.UpdateStatusAsync(
+            new UpdateMaterialStatusDto(materialId, status),
+            cancellationToken,
+            id);
+
+        TempData["Message"] = result.Message ?? (result.Success ? "Estado actualizado." : "Error al actualizar estado.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Detalle), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = UserRoles.Administrador)]
+    public async Task<IActionResult> DeleteMaterial(int id, int materialId, CancellationToken cancellationToken)
+    {
+        var acceso = await AutorizarPlantaAsync(id, cancellationToken);
+        if (acceso.Error is not null)
+            return acceso.Error;
+
+        if (!await _inventory.MaterialPerteneceAPlantaAsync(materialId, id, cancellationToken))
+            return NotFound();
+
+        var result = await _inventory.DeleteMaterialAsync(materialId, cancellationToken, id);
+        TempData["Message"] = result.Message ?? (result.Success ? "Material eliminado." : "No se pudo eliminar.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Detalle), new { id });
     }
 
     [HttpPost]
@@ -281,6 +483,45 @@ public class PlantasInventarioController : Controller
         TempData["Message"] = result.Message ?? (result.Success ? "Planta de inventario actualizada." : "No se pudo eliminar la planta de inventario.");
         TempData["IsSuccess"] = result.Success;
         return result.Success ? RedirectToAction(nameof(Index)) : RedirectToAction(nameof(Delete), new { id });
+    }
+
+    private async Task<(IActionResult? Error, PlantaInventario? Planta)> AutorizarPlantaAsync(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var esAdmin = User.IsInRole(UserRoles.Administrador);
+        var esEncargado = User.IsInRole(UserRoles.EncargadoDeBodega);
+        if (!esAdmin && !esEncargado)
+            return (Forbid(), null);
+
+        var planta = await _plantas.GetByIdAsync(id, cancellationToken);
+        if (planta is null)
+            return (NotFound(), null);
+
+        // El encargado solo opera plantas de su accessor. El admin ignora la bodega activa.
+        if (!esAdmin)
+        {
+            var allowed = _plantaAccessor.PlantaInventarioIds;
+            if (allowed is null || !allowed.Contains(id))
+                return (Forbid(), null);
+        }
+
+        return (null, planta);
+    }
+
+    private static bool CoincideNivel(MaterialPlantaStockDto item, string nivel)
+    {
+        var actual = StockNivelHelper.Classify(item.Stock, item.MinStock);
+        if (string.Equals(nivel, InventarioConsultaFilter.Faltantes, StringComparison.OrdinalIgnoreCase))
+            return actual is StockNivel.Bajo or StockNivel.Critico;
+
+        return Enum.TryParse<StockNivel>(nivel, ignoreCase: true, out var parsed) && actual == parsed;
+    }
+
+    private bool TryGetActorUserId(out int userId)
+    {
+        userId = 0;
+        return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId) && userId > 0;
     }
 
     private IReadOnlyList<PlantaInventario> VisiblePlantas(IReadOnlyList<PlantaInventario> plantas)

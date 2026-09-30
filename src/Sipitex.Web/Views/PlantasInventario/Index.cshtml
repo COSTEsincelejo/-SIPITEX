@@ -8,7 +8,14 @@
 <div class="page-header">
     <div>
         <h2>Plantas de inventario</h2>
-        <div class="sub">Cree, renombre o desactive plantas de inventario. Planta de Inventario 1 no se puede eliminar (es la planta por defecto). Si hay stock, hay que reasignarlo a otra planta antes de desactivar.</div>
+        @if (User.IsInRole(UserRoles.Administrador))
+        {
+            <div class="sub">Cree, renombre o desactive plantas de inventario. Planta de Inventario 1 no se puede eliminar (es la planta por defecto). Si hay stock, hay que reasignarlo a otra planta antes de desactivar.</div>
+        }
+        else
+        {
+            <div class="sub">Elija una planta para consultar y operar su inventario.</div>
+        }
     </div>
     <div>
         <a class="ghost" asp-action="Consultar"><i class="fas fa-clipboard-list"></i> Consultar inventario por planta</a>
@@ -20,28 +27,31 @@
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
-<div class="card" style="max-width:560px;">
-    <div class="card-title teal"><i class="fas fa-plus"></i> Nueva planta de inventario</div>
-    <form asp-action="Create" method="post">
-        @Html.AntiForgeryToken()
-        <div class="form-row">
-            <div class="field" style="flex:1;">
-                <label class="field-label">Nombre</label>
-                <input type="text" name="Form.Nombre" value="@Model.Form.Nombre" maxlength="80" required
-                       placeholder="Ej. Planta de Inventario 3" />
+@if (User.IsInRole(UserRoles.Administrador))
+{
+    <div class="card" style="max-width:560px;">
+        <div class="card-title teal"><i class="fas fa-plus"></i> Nueva planta de inventario</div>
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="form-row">
+                <div class="field" style="flex:1;">
+                    <label class="field-label">Nombre</label>
+                    <input type="text" name="Form.Nombre" value="@Model.Form.Nombre" maxlength="80" required
+                           placeholder="Ej. Planta de Inventario 3" />
+                </div>
+                <div class="field" style="align-self:flex-end;">
+                    <button type="submit" class="primary">Crear</button>
+                </div>
             </div>
-            <div class="field" style="align-self:flex-end;">
-                <button type="submit" class="primary">Crear</button>
-            </div>
-        </div>
-    </form>
-</div>
+        </form>
+    </div>
+}
 
 <div class="card">
     <div class="card-title"><i class="fas fa-warehouse"></i> Catálogo</div>
     @if (!Model.PlantasInventario.Any())
     {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-warehouse", Title = "Sin plantas de inventario", Text = "No hay plantas de inventario registradas.", ActionText = null }' />
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-warehouse", Title = "Sin plantas de inventario", Text = User.IsInRole(UserRoles.Administrador) ? "No hay plantas de inventario registradas." : "Su usuario no tiene plantas de inventario asignadas.", ActionText = null }' />
     }
     else
     {
@@ -74,10 +84,13 @@
                         <td>
                             <div class="row-actions">
                                 <a asp-action="Detalle" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-eye"></i> Consultar inventario</a>
-                                <a asp-action="Edit" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-pen"></i> Editar</a>
-                                @if (b.Activo)
+                                @if (User.IsInRole(UserRoles.Administrador))
                                 {
-                                    <a asp-action="Delete" asp-route-id="@b.Id" class="btn small danger"><i class="fas fa-trash"></i> Eliminar</a>
+                                    <a asp-action="Edit" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-pen"></i> Editar</a>
+                                    @if (b.Activo)
+                                    {
+                                        <a asp-action="Delete" asp-route-id="@b.Id" class="btn small danger"><i class="fas fa-trash"></i> Eliminar</a>
+                                    }
                                 }
                             </div>
                         </td>

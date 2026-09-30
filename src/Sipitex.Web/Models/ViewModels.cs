@@ -27,6 +27,8 @@ public class InventarioMovimientosViewModel
     public DateOnly? Desde { get; set; }
     public DateOnly? Hasta { get; set; }
     public int? MaterialId { get; set; }
+    public int? PlantaInventarioId { get; set; }
+    public string? PlantaNombre { get; set; }
 }
 
 // Formulario para agregar un material nuevo
@@ -454,22 +456,37 @@ public class PlantaDetalleViewModel
     public bool Activa { get; set; }
     public string? Busqueda { get; set; }
     public string? Categoria { get; set; }
+    public string? Nivel { get; set; }
+    public bool MostrarVolverAlCatalogo { get; set; }
     public IReadOnlyList<MaterialPlantaItem> Materiales { get; set; } = [];
+    public IReadOnlyList<string> NombresAlerta { get; set; } = [];
+    public CreateMaterialForm CreateMaterial { get; set; } = new();
     public int TotalItems { get; set; }
     public int TotalBajo { get; set; }
     public int TotalCritico { get; set; }
     public int TotalSinFiltro { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
     public bool HayFiltros =>
-        !string.IsNullOrWhiteSpace(Busqueda) || !string.IsNullOrWhiteSpace(Categoria);
+        !string.IsNullOrWhiteSpace(Busqueda)
+        || !string.IsNullOrWhiteSpace(Categoria)
+        || !string.IsNullOrWhiteSpace(Nivel);
 }
 
 public class MaterialPlantaItem
 {
+    public int Id { get; set; }
     public string Codigo { get; set; } = string.Empty;
     public string Nombre { get; set; } = string.Empty;
     public string Categoria { get; set; } = string.Empty;
+    public MaterialUnit Unidad { get; set; }
     public string UnidadMedida { get; set; } = string.Empty;
     public decimal StockActual { get; set; }
+    public decimal MinStock { get; set; }
+    public MaterialStatus Estado { get; set; }
+    public DateOnly UltimaEntrada { get; set; }
+    public decimal CostoAdquisicion { get; set; }
+    public decimal CostoPromedioPonderado { get; set; }
     public StockNivel NivelStock { get; set; }
 }
 

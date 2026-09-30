@@ -148,18 +148,10 @@ public class InventarioInstructorRestrictionTests
     }
 
     [Fact]
-    public async Task InventarioController_Index_Administrador_ReturnsView()
+    public async Task InventarioController_Index_Administrador_RedirigeAPlantas()
     {
         var inventory = new Mock<IInventoryService>();
-        inventory.Setup(s => s.GetMaterialsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
-        inventory.Setup(s => s.GetRequestsAsync(
-                It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
         var orders = new Mock<IProductionOrderService>();
-        orders.Setup(s => s.GetOrdersAsync(
-                It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
         var movements = new Mock<IStockMovementService>();
         var controller = CreateController(
             Principal(1, UserRoles.Administrador, "Admin"),
@@ -169,7 +161,10 @@ public class InventarioInstructorRestrictionTests
 
         var result = await controller.Index(CancellationToken.None);
 
-        Assert.IsType<ViewResult>(result);
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.True(redirect.Permanent);
+        Assert.Equal("/PlantasInventario", redirect.Url);
+        inventory.Verify(s => s.GetMaterialsAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

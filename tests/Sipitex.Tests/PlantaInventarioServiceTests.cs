@@ -212,8 +212,7 @@ public class PlantaInventarioServiceTests
 
         foreach (var method in typeof(PlantasInventarioController)
                      .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-                     .Where(m => m.Name is nameof(PlantasInventarioController.Index)
-                         or nameof(PlantasInventarioController.Create)
+                     .Where(m => m.Name is nameof(PlantasInventarioController.Create)
                          or nameof(PlantasInventarioController.Edit)
                          or nameof(PlantasInventarioController.Delete)))
         {
@@ -224,6 +223,16 @@ public class PlantaInventarioServiceTests
             Assert.DoesNotContain(UserRoles.EncargadoDeBodega, methodAttr.Roles!, StringComparison.Ordinal);
             Assert.DoesNotContain(UserRoles.Instructor, methodAttr.Roles!, StringComparison.Ordinal);
         }
+
+        var index = typeof(PlantasInventarioController).GetMethod(nameof(PlantasInventarioController.Index));
+        Assert.NotNull(index);
+        var indexRoles = index!.GetCustomAttributes<AuthorizeAttribute>()
+            .Select(a => a.Roles)
+            .FirstOrDefault(r => !string.IsNullOrEmpty(r));
+        Assert.NotNull(indexRoles);
+        Assert.Contains(UserRoles.Administrador, indexRoles, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.EncargadoDeBodega, indexRoles, StringComparison.Ordinal);
+        Assert.DoesNotContain(UserRoles.Instructor, indexRoles, StringComparison.Ordinal);
 
         var consultar = typeof(PlantasInventarioController)
             .GetMethod(nameof(PlantasInventarioController.Consultar));

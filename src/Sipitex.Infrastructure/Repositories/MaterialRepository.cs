@@ -34,12 +34,25 @@ public class MaterialRepository : IMaterialRepository
                 m.Unit,
                 m.Stock,
                 m.MinStock,
-                m.BomItems.Any()))
+                m.BomItems.Any(),
+                m.Id,
+                m.Status,
+                m.LastEntryDate,
+                m.CostoAdquisicion,
+                m.CostoPromedioPonderado))
             .ToListAsync(cancellationToken);
 
     // Busca un material por Id (para editar o ver detalle)
     public Task<Material?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _context.Materials.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+
+    // Solo lo usan las operaciones del inventario de una planta. El WHERE lleva el id de esa planta.
+    public Task<Material?> GetByIdInPlantaAsync(int id, int plantaInventarioId, CancellationToken cancellationToken = default) =>
+        _context.Materials
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(
+                m => m.Id == id && m.PlantaInventarioId == plantaInventarioId,
+                cancellationToken);
 
     // Agrega un material nuevo al contexto
     public async Task AddAsync(Material material, CancellationToken cancellationToken = default) =>
