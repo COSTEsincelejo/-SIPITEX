@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore; // OrderBy, FirstOrDefaultAsync, AddAsync...
+using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Repositories; // IMaterialRepository
 using Sipitex.Domain.Entities; // Material
 using Sipitex.Infrastructure.Persistence; // SipitexDbContext
@@ -17,6 +18,23 @@ public class MaterialRepository : IMaterialRepository
         await _context.Materials
             .Include(m => m.PlantaInventario)
             .OrderBy(m => m.Name)
+            .ToListAsync(cancellationToken);
+
+    // Solo esta lectura ignora el filtro global: el id de planta va explícito en el WHERE.
+    public async Task<IReadOnlyList<MaterialPlantaStockDto>> ListStockByPlantaDetalleAsync(
+        int plantaInventarioId,
+        CancellationToken cancellationToken = default) =>
+        await _context.Materials
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(m => m.PlantaInventarioId == plantaInventarioId)
+            .Select(m => new MaterialPlantaStockDto(
+                m.Code,
+                m.Name,
+                m.Unit,
+                m.Stock,
+                m.MinStock,
+                m.BomItems.Any()))
             .ToListAsync(cancellationToken);
 
     // Busca un material por Id (para editar o ver detalle)

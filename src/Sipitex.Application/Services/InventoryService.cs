@@ -70,6 +70,11 @@ public class InventoryService : IInventoryService
         return materials.Select(MapMaterial).ToList();
     }
 
+    public Task<IReadOnlyList<MaterialPlantaStockDto>> GetStockByPlantaDetalleAsync(
+        int plantaInventarioId,
+        CancellationToken cancellationToken = default) =>
+        _materialRepository.ListStockByPlantaDetalleAsync(plantaInventarioId, cancellationToken);
+
     // Crea un material nuevo con código autogenerado
     public async Task<ServiceResult> AddMaterialAsync(
         CreateMaterialDto dto,
