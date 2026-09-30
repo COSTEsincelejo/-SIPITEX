@@ -13,6 +13,10 @@
     <UseRazorSourceGenerator>false</UseRazorSourceGenerator>
   </PropertyGroup>
 
+  <Target Name="WriteBuildTimestamp" AfterTargets="Publish">
+    <WriteLinesToFile File="$(PublishDir)build-timestamp.txt" Lines="$([System.DateTime]::UtcNow.ToString('o'))" Overwrite="true" />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
       <PrivateAssets>all</PrivateAssets>

@@ -30,7 +30,7 @@ services:
       Email__User: "${EMAIL_SMTP_USER}"
       Email__Password: "${EMAIL_SMTP_PASSWORD}"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
