@@ -491,8 +491,8 @@ public class PlantasInventarioController : Controller
         if (planta is null)
             return (NotFound(), null);
 
-        // El encargado solo opera plantas de su accessor. El admin ignora la bodega activa.
-        if (!esAdmin)
+        // El encargado solo opera plantas de su accessor. Admin e Instructor (solo lectura) no usan esa lista.
+        if (esEncargado && !esAdmin)
         {
             var allowed = _plantaAccessor.PlantaInventarioIds;
             if (allowed is null || !allowed.Contains(id))

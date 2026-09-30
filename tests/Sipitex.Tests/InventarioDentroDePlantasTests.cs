@@ -173,14 +173,27 @@ public class InventarioDentroDePlantasTests
         Assert.Equal(3, telaFinal.Stock);
         Assert.Equal(1, telaFinal.PlantaInventarioId);
 
-        var cierre = await admin.Db.Materials.IgnoreQueryFilters().SingleAsync(m => m.Name == "Cierre");
-        var borrado = await admin.Controller.DeleteMaterial(1, cierre.Id, CancellationToken.None);
-        Assert.IsType<RedirectToActionResult>(borrado);
+        var etiqueta = new Material
+        {
+            Code = "mat-eti",
+            Name = "Etiqueta",
+            Unit = MaterialUnit.Unidades,
+            Stock = 1,
+            MinStock = 0,
+            PlantaInventarioId = 1
+        };
+        admin.Db.Materials.Add(etiqueta);
+        await admin.Db.SaveChangesAsync();
+
         var borradoAjeno = await encargado.Controller.DeleteMaterial(2, forroId, CancellationToken.None);
         Assert.IsType<ForbidResult>(borradoAjeno);
+        var borradoCruzado = await admin.Controller.DeleteMaterial(1, forroId, CancellationToken.None);
+        Assert.IsType<NotFoundResult>(borradoCruzado);
+        var borrado = await admin.Controller.DeleteMaterial(1, etiqueta.Id, CancellationToken.None);
+        Assert.IsType<RedirectToActionResult>(borrado);
 
         admin.Db.ChangeTracker.Clear();
-        Assert.False(await admin.Db.Materials.IgnoreQueryFilters().AnyAsync(m => m.Id == cierre.Id));
+        Assert.False(await admin.Db.Materials.IgnoreQueryFilters().AnyAsync(m => m.Id == etiqueta.Id));
         var forroTrasBorrar = await admin.Db.Materials.IgnoreQueryFilters().SingleAsync(m => m.Id == forroId);
         Assert.Equal("Forro", forroTrasBorrar.Name);
         Assert.Equal(8, forroTrasBorrar.Stock);
@@ -256,7 +269,7 @@ public class InventarioDentroDePlantasTests
                 new MaterialRepository(db),
                 Mock.Of<IMaterialRequestRepository>(),
                 Mock.Of<IProductionOrderRepository>(),
-                Mock.Of<IBomRepository>(),
+                new BomRepository(db),
                 new StockMovementRepository(db),
                 new UnitOfWork(db),
                 accessor);
