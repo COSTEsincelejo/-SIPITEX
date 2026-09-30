@@ -21,18 +21,20 @@ public static class DependencyInjection
     // Método de extensión que llama Program.cs para cablear todo
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? PostgresDefaults.LocalConnectionString;
-
         services.TryAddScoped<IAuditActorAccessor, NullAuditActorAccessor>();
         services.AddScoped<AuditSaveChangesInterceptor>();
         services.AddDbContext<SipitexDbContext>((sp, options) =>
+        {
+            // Se normaliza al crear el contexto, dentro del try de arranque, no al registrar servicios.
+            var connectionString = PostgresConnectionStrings.Normalize(
+                configuration.GetConnectionString("DefaultConnection") ?? PostgresDefaults.LocalConnectionString);
             options.UseNpgsql(connectionString, npgsql =>
                 {
                     npgsql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
                     npgsql.CommandTimeout(60);
                 })
-                .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
+                .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>());
+        });
 
         // Opciones de correo desde la sección "Email" del appsettings
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
