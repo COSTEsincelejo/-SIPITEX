@@ -282,7 +282,7 @@
 
     const apiUrl = root.getAttribute('data-search-api') || '/api/busqueda';
     const modules = [
-      { texto: 'Inventario', url: '/Inventario', keywords: 'inventario materiales stock plantaInventario', icon: 'fa-boxes-stacked' },
+      { texto: 'Plantas de inventario', url: '/PlantasInventario', keywords: 'inventario materiales stock plantas bodega plantaInventario', icon: 'fa-warehouse' },
       { texto: 'Órdenes de producción', url: '/Ordenes', keywords: 'ordenes órdenes producción op', icon: 'fa-clipboard-list' },
       { texto: 'MRP / Materiales', url: '/Mrp', keywords: 'mrp bom materiales requerimientos ficha técnica', icon: 'fa-diagram-project' },
       { texto: 'Fichas & producción', url: '/Fichas', keywords: 'fichas producción instructor turno', icon: 'fa-people-group' },
@@ -290,7 +290,7 @@
       { texto: 'Solicitudes de materiales', url: '/PlantasInventarioSolicitudes', keywords: 'plantaInventario solicitudes materiales cola', icon: 'fa-truck-ramp-box' },
       { texto: 'Materiales de órdenes', url: '/PlantasInventarioOrdenes', keywords: 'materiales órdenes entrega planta inventario', icon: 'fa-clipboard-check' },
       { texto: 'Reingreso desde etapas', url: '/PlantasInventarioOrdenes/Reingreso', keywords: 'reingreso etapas trazo corte confección', icon: 'fa-rotate-left' },
-      { texto: 'Movimientos de stock', url: '/Inventario/Movimientos', keywords: 'movimientos stock historial entrada salida', icon: 'fa-clock-rotate-left' },
+      { texto: 'Movimientos de stock', url: '/PlantasInventario/Movimientos', keywords: 'movimientos stock historial entrada salida', icon: 'fa-clock-rotate-left' },
       { texto: 'Actas de ingreso/egreso', url: '/Actas', keywords: 'actas ingreso egreso conformidad firma pdf', icon: 'fa-file-signature' },
       { texto: 'Trazabilidad', url: '/Trazabilidad', keywords: 'trazabilidad código único prenda qr sip', icon: 'fa-barcode' },
       { texto: 'Control de calidad', url: '/Calidad', keywords: 'calidad inspección reproceso bueno regular malo', icon: 'fa-clipboard-check' },
@@ -301,7 +301,6 @@
       { texto: 'Reportes', url: '/Reportes', keywords: 'reportes pdf excel exportar', icon: 'fa-file-export' },
       { texto: 'Alertas', url: '/Alertas', keywords: 'alertas notificaciones correo', icon: 'fa-bell' },
       { texto: 'Usuarios', url: '/Account/Users', keywords: 'usuarios administración cuentas', icon: 'fa-users-gear' },
-      { texto: 'Plantas de inventario', url: '/PlantasInventario', keywords: 'plantas inventario administración almacén encargado bodega bodega', icon: 'fa-warehouse' },
       { texto: 'Inventario por bodega', url: '/PlantasInventario/Consultar', keywords: 'inventario bodega planta stock insumos faltantes', icon: 'fa-clipboard-list' },
       { texto: 'Mi perfil', url: '/Account/Profile', keywords: 'perfil cuenta foto contraseña', icon: 'fa-user' }
     ];

@@ -209,10 +209,10 @@ app.MapGet("/version", (IWebHostEnvironment env) =>
 }).AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous(); // endpoint público de salud (consulta la BD)
 app.MapControllers(); // rutas por atributo (ej. /api/busqueda)
-// Ruta por defecto: al entrar va a Inventario
+// La raíz abre el panel. El inventario vive en PlantasInventario/Detalle/{id}.
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Inventario}/{action=Index}/{id?}");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run(); // levanta el servidor
 

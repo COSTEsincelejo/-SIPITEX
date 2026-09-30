@@ -109,7 +109,8 @@ public class InventoryService : IInventoryService
             Status = MaterialStatus.Bueno,
             LastEntryDate = DateOnly.FromDateTime(DateTime.Today),
             CostoAdquisicion = precio,
-            CostoPromedioPonderado = precio
+            CostoPromedioPonderado = precio,
+            PlantaInventarioId = dto.PlantaInventarioId > 0 ? dto.PlantaInventarioId : 1
         };
 
         if (dto.Origen == StockEntryOrigin.Compra)
@@ -137,17 +138,28 @@ public class InventoryService : IInventoryService
         return ServiceResult.Ok("Material agregado.");
     }
 
+    public Task<bool> MaterialPerteneceAPlantaAsync(
+        int materialId,
+        int plantaInventarioId,
+        CancellationToken cancellationToken = default)
+    {
+        if (materialId <= 0 || plantaInventarioId <= 0)
+            return Task.FromResult(false);
+
+        return MaterialEstaEnPlantaAsync(materialId, plantaInventarioId, cancellationToken);
+    }
+
     // Ajuste manual de stock (no deja negativo). Origen obligatorio si el stock sube.
     public async Task<ServiceResult> AdjustStockAsync(
         AdjustStockDto dto,
         int actorUserId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        int? plantaInventarioId = null)
     {
         if (actorUserId <= 0)
             return ServiceResult.Fail("Usuario responsable no válido.");
 
-        // Busco el material por id del form
-        var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
+        var material = await LoadMaterialAsync(dto.MaterialId, plantaInventarioId, cancellationToken);
         if (material is null) return ServiceResult.Fail("Material no encontrado.");
 
         var previous = material.Stock;
@@ -198,7 +210,8 @@ public class InventoryService : IInventoryService
     // Edición completa de metadatos (nombre, unidad, mínimo). No modifica stock.
     public async Task<ServiceResult> UpdateMaterialAsync(
         UpdateMaterialDto dto,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        int? plantaInventarioId = null)
     {
         if (string.IsNullOrWhiteSpace(dto.Name))
             return ServiceResult.Fail("Ingrese un nombre válido.");
@@ -209,7 +222,7 @@ public class InventoryService : IInventoryService
         if (!Enum.IsDefined(dto.Unit))
             return ServiceResult.Fail("Unidad no válida.");
 
-        var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
+        var material = await LoadMaterialAsync(dto.MaterialId, plantaInventarioId, cancellationToken);
         if (material is null) return ServiceResult.Fail("Material no encontrado.");
 
         material.Name = dto.Name.Trim();
@@ -227,9 +240,12 @@ public class InventoryService : IInventoryService
     }
 
     // Cambia el estado físico: Bueno / Regular / Deteriorado
-    public async Task<ServiceResult> UpdateStatusAsync(UpdateMaterialStatusDto dto, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult> UpdateStatusAsync(
+        UpdateMaterialStatusDto dto,
+        CancellationToken cancellationToken = default,
+        int? plantaInventarioId = null)
     {
-        var material = await _materialRepository.GetByIdAsync(dto.MaterialId, cancellationToken);
+        var material = await LoadMaterialAsync(dto.MaterialId, plantaInventarioId, cancellationToken);
         if (material is null) return ServiceResult.Fail("Material no encontrado.");
 
         // Asigno el nuevo estado del enum
@@ -345,9 +361,12 @@ public class InventoryService : IInventoryService
     }
 
     // Elimina del catálogo solo si no está en ninguna ficha técnica activa
-    public async Task<ServiceResult> DeleteMaterialAsync(int materialId, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult> DeleteMaterialAsync(
+        int materialId,
+        CancellationToken cancellationToken = default,
+        int? plantaInventarioId = null)
     {
-        var material = await _materialRepository.GetByIdAsync(materialId, cancellationToken);
+        var material = await LoadMaterialAsync(materialId, plantaInventarioId, cancellationToken);
         if (material is null) return ServiceResult.Fail("Material no encontrado.");
 
         var products = await _bomRepository.GetProductNamesUsingMaterialAsync(materialId, cancellationToken);
@@ -361,6 +380,24 @@ public class InventoryService : IInventoryService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok($"Material «{material.Name}» eliminado.");
     }
+
+    private async Task<bool> MaterialEstaEnPlantaAsync(
+        int materialId,
+        int plantaInventarioId,
+        CancellationToken cancellationToken)
+    {
+        var material = await _materialRepository.GetByIdInPlantaAsync(materialId, plantaInventarioId, cancellationToken);
+        return material is not null;
+    }
+
+    // Con planta, la búsqueda ignora el filtro global y exige PlantaInventarioId. Sin planta, queda el filtro global.
+    private Task<Material?> LoadMaterialAsync(
+        int materialId,
+        int? plantaInventarioId,
+        CancellationToken cancellationToken) =>
+        plantaInventarioId is int planta and > 0
+            ? _materialRepository.GetByIdInPlantaAsync(materialId, planta, cancellationToken)
+            : _materialRepository.GetByIdAsync(materialId, cancellationToken);
 
     // Armo el DTO e indico si está bajo el mínimo (para pintar en rojo en la vista)
     private static MaterialDto MapMaterial(Material m) => new(

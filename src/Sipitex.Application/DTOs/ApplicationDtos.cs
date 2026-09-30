@@ -28,15 +28,22 @@ public record MaterialPlantaStockDto(
     MaterialUnit Unit,
     decimal Stock,
     decimal MinStock,
-    bool EnFichaTecnica);
+    bool EnFichaTecnica,
+    int Id = 0,
+    MaterialStatus Status = MaterialStatus.Bueno,
+    DateOnly LastEntryDate = default,
+    decimal CostoAdquisicion = 0,
+    decimal CostoPromedioPonderado = 0);
 
-// Datos para crear material nuevo (origen tipifica la Entrada del ledger)
+// Datos para crear material nuevo (origen tipifica la Entrada del ledger).
+// PlantaInventarioId 0 conserva el default de la entidad (planta 1) para altas que no vienen del detalle.
 public record CreateMaterialDto(
     string Name,
     decimal Stock,
     MaterialUnit Unit,
     StockEntryOrigin Origen,
-    decimal CostoAdquisicion = 0);
+    decimal CostoAdquisicion = 0,
+    int PlantaInventarioId = 0);
 
 // Ajuste manual de stock; Origen obligatorio cuando NewStock > stock actual
 public record AdjustStockDto(

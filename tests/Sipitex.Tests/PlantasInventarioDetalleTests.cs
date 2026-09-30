@@ -130,6 +130,13 @@ public class PlantasInventarioDetalleTests
         Assert.Equal("unidad", boton.UnidadMedida);
         Assert.Equal(1, vm.TotalBajo);
         Assert.Equal(1, vm.TotalCritico);
+
+        var criticos = await scope.Controller.Detalle(1, null, null, CancellationToken.None, nivel: nameof(StockNivel.Critico));
+        var criticosView = Assert.IsType<ViewResult>(criticos);
+        var criticosVm = Assert.IsType<PlantaDetalleViewModel>(criticosView.Model);
+        var soloCritico = Assert.Single(criticosVm.Materiales);
+        Assert.Equal("Botón nácar", soloCritico.Nombre);
+        Assert.Equal(StockNivelHelper.Classify(0, 4), soloCritico.NivelStock);
         scope.Activity.Verify(
             a => a.LogAsync(
                 It.IsAny<int>(),

@@ -29,7 +29,7 @@ public class BusquedaService : IBusquedaService
             .Take(MaxPerCategory)
             .Select(m => new BusquedaItemDto(
                 m.Name + " (" + m.Code + ")",
-                "/Inventario",
+                "/PlantasInventario/Detalle/" + m.PlantaInventarioId,
                 "Materiales"))
             .ToListAsync(cancellationToken);
 

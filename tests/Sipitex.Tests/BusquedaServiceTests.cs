@@ -33,7 +33,7 @@ public class BusquedaServiceTests
         var result = await sut.SearchAsync("denim");
 
         Assert.Contains(result, r => r.Categoria == "Materiales" && r.Texto.Contains("denim", StringComparison.OrdinalIgnoreCase));
-        Assert.All(result.Where(r => r.Categoria == "Materiales"), r => Assert.Equal("/Inventario", r.Url));
+        Assert.All(result.Where(r => r.Categoria == "Materiales"), r => Assert.Equal("/PlantasInventario/Detalle/1", r.Url));
     }
 
     [Fact]

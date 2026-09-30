@@ -1,10 +1,15 @@
 @model PlantaDetalleViewModel
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = $"Inventario de {Model.Nombre}";
     ViewData["Breadcrumb"] = $"SIPITEX / Administración / Plantas de inventario / {Model.Nombre}";
     Layout = "_Layout";
     var materialesSeleccionados = PlantaDetalleConsulta.EsMateriales(Model.Categoria);
     var insumosSeleccionados = PlantaDetalleConsulta.EsInsumos(Model.Categoria);
+    var nivelActual = Model.Nivel ?? "";
+    var canManageStock = User.IsInRole(UserRoles.Administrador) || User.IsInRole(UserRoles.EncargadoDeBodega);
+    var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
+    var esAdmin = User.IsInRole(UserRoles.Administrador);
 }
 
 <div class="page-header">
@@ -21,7 +26,11 @@
         {
             <span class="badge badge-warning">Inactiva</span>
         }
-        @if (User.IsInRole(UserRoles.Administrador))
+        @if (canManageStock)
+        {
+            <a class="ghost" asp-action="Movimientos" asp-route-plantaInventarioId="@Model.Id"><i class="fas fa-clock-rotate-left"></i> Historial de movimientos</a>
+        }
+        @if (Model.MostrarVolverAlCatalogo)
         {
             <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
         }
@@ -31,6 +40,11 @@
         }
     </div>
 </div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
 
 <div class="kpi-grid">
     <div class="kpi-card">
@@ -52,9 +66,40 @@
 
 <div class="card">
     <div class="card-title"><i class="fas fa-boxes-stacked"></i> Materiales e insumos</div>
+    @if (canRegisterMaterial)
+    {
+        <form asp-action="AddMaterial" asp-route-id="@Model.Id" method="post" class="form-row">
+            @Html.AntiForgeryToken()
+            <div class="field" style="flex:2;min-width:200px;">
+                <label class="field-label">Material</label>
+                <input asp-for="CreateMaterial.Name" placeholder="ej. Tela jersey" style="width:100%" required />
+            </div>
+            <div class="field" style="width:120px;">
+                <label class="field-label">Stock inicial</label>
+                <input asp-for="CreateMaterial.Stock" type="number" step="0.1" min="0" required />
+            </div>
+            <div class="field" style="width:120px;">
+                <label class="field-label">Unidad</label>
+                <select asp-for="CreateMaterial.Unit" asp-items="Html.GetEnumSelectList<MaterialUnit>()"></select>
+            </div>
+            <div class="field" style="width:160px;">
+                <label class="field-label">Precio unitario (compra)</label>
+                <input asp-for="CreateMaterial.CostoAdquisicion" type="number" step="0.01" min="0" />
+            </div>
+            <div class="field" style="min-width:180px;">
+                <label class="field-label">Origen de entrada</label>
+                <select asp-for="CreateMaterial.Origen" required>
+                    <option value="@StockEntryOrigin.Compra">Compra</option>
+                    <option value="@StockEntryOrigin.Devolucion">Devolución</option>
+                    <option value="@StockEntryOrigin.OtraFuenteAutorizada">Otra fuente autorizada</option>
+                </select>
+            </div>
+            <button type="submit" class="primary"><i class="fas fa-plus"></i> Agregar material</button>
+        </form>
+    }
     @if (Model.TotalSinFiltro == 0)
     {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin inventario", Text = "Esta planta no tiene materiales ni insumos registrados.", ActionText = null }' />
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin inventario", Text = "Esta planta no tiene materiales ni insumos registrados.", ActionText = canRegisterMaterial ? "Use el formulario superior para agregar el primero." : null }' />
     }
     else
     {
@@ -92,6 +137,51 @@
                     }
                 </select>
             </div>
+            <div class="field" style="min-width:160px;">
+                <label class="field-label" for="nivel">Nivel</label>
+                <select id="nivel" name="nivel">
+                    @if (string.IsNullOrEmpty(nivelActual))
+                    {
+                        <option value="" selected>Todos</option>
+                    }
+                    else
+                    {
+                        <option value="">Todos</option>
+                    }
+                    @if (string.Equals(nivelActual, nameof(StockNivel.Ok), StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@nameof(StockNivel.Ok)" selected>OK</option>
+                    }
+                    else
+                    {
+                        <option value="@nameof(StockNivel.Ok)">OK</option>
+                    }
+                    @if (string.Equals(nivelActual, nameof(StockNivel.Bajo), StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@nameof(StockNivel.Bajo)" selected>Bajo</option>
+                    }
+                    else
+                    {
+                        <option value="@nameof(StockNivel.Bajo)">Bajo</option>
+                    }
+                    @if (string.Equals(nivelActual, nameof(StockNivel.Critico), StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@nameof(StockNivel.Critico)" selected>Crítico</option>
+                    }
+                    else
+                    {
+                        <option value="@nameof(StockNivel.Critico)">Crítico</option>
+                    }
+                    @if (string.Equals(nivelActual, InventarioConsultaFilter.Faltantes, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@InventarioConsultaFilter.Faltantes" selected>Bajo y crítico</option>
+                    }
+                    else
+                    {
+                        <option value="@InventarioConsultaFilter.Faltantes">Bajo y crítico</option>
+                    }
+                </select>
+            </div>
             <div class="field" style="align-self:flex-end;">
                 <button type="submit" class="primary"><i class="fas fa-search"></i> Buscar</button>
             </div>
@@ -105,7 +195,7 @@
 
         @if (!Model.Materiales.Any())
         {
-            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-filter", Title = "Sin coincidencias", Text = "Ningún material o insumo coincide con la búsqueda o la categoría seleccionada.", ActionText = null }' />
+            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-filter", Title = "Sin coincidencias", Text = "Ningún material o insumo coincide con la búsqueda, la categoría o el nivel seleccionado.", ActionText = null }' />
         }
         else
         {
@@ -119,6 +209,10 @@
                             <th>Unidad</th>
                             <th>Stock</th>
                             <th>Nivel</th>
+                            <th>Costo promedio</th>
+                            <th>Estado</th>
+                            <th>Mínimo</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -131,11 +225,102 @@
                             <td>@item.UnidadMedida</td>
                             <td>@item.StockActual.ToString("0.0")</td>
                             <td><span class="badge @DisplayHelper.BadgeClass(item.NivelStock)">@DisplayHelper.StatusText(item.NivelStock)</span></td>
+                            <td>@item.CostoPromedioPonderado.ToString("0.####")</td>
+                            <td>
+                                @if (canManageStock)
+                                {
+                                    <form asp-action="UpdateStatus" asp-route-id="@Model.Id" method="post" class="row-actions">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="materialId" value="@item.Id" />
+                                        <select name="status" onchange="this.form.submit()" aria-label="Estado del material">
+                                            @foreach (MaterialStatus st in Enum.GetValues<MaterialStatus>())
+                                            {
+                                                if (st == item.Estado)
+                                                {
+                                                    <option value="@st" selected>@DisplayHelper.StatusText(st)</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@st">@DisplayHelper.StatusText(st)</option>
+                                                }
+                                            }
+                                        </select>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="badge @DisplayHelper.BadgeClass(item.Estado)">@DisplayHelper.StatusText(item.Estado)</span>
+                                }
+                            </td>
+                            <td>@item.MinStock.ToString("0.##")</td>
+                            <td>
+                                @if (esAdmin)
+                                {
+                                    <form asp-action="EditMaterial" asp-route-id="@Model.Id" method="post" class="row-actions" style="flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="MaterialId" value="@item.Id" />
+                                        <input type="text" name="Name" value="@item.Nombre" required style="width:140px" aria-label="Nombre" />
+                                        <select name="Unit" aria-label="Unidad">
+                                            @foreach (MaterialUnit u in Enum.GetValues<MaterialUnit>())
+                                            {
+                                                if (u == item.Unidad)
+                                                {
+                                                    <option value="@u" selected>@UnitHelper.ToDisplay(u)</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@u">@UnitHelper.ToDisplay(u)</option>
+                                                }
+                                            }
+                                        </select>
+                                        <input type="number" name="MinStock" value="@item.MinStock.ToString("0.##")" step="0.1" min="0" style="width:72px" aria-label="Stock mínimo" />
+                                        <input type="number" name="CostoAdquisicion" value="@item.CostoAdquisicion.ToString("0.####")" step="0.01" min="0" style="width:88px" aria-label="Costo de adquisición" />
+                                        <button type="submit" class="small ghost"><i class="fas fa-floppy-disk"></i> Guardar</button>
+                                    </form>
+                                }
+                                @if (canManageStock)
+                                {
+                                    <form asp-action="AdjustStock" asp-route-id="@Model.Id" method="post" class="row-actions" style="flex-wrap:wrap;gap:6px;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="MaterialId" value="@item.Id" />
+                                        <input type="number" name="NewStock" value="@item.StockActual.ToString("0.##")" step="0.1" min="0" style="width:88px" aria-label="Nuevo stock" />
+                                        <select name="Origen" aria-label="Origen si aumenta stock">
+                                            <option value="">Origen (si sube)</option>
+                                            <option value="@StockEntryOrigin.Compra">Compra</option>
+                                            <option value="@StockEntryOrigin.Devolucion">Devolución</option>
+                                            <option value="@StockEntryOrigin.OtraFuenteAutorizada">Otra fuente autorizada</option>
+                                        </select>
+                                        <input type="number" name="PrecioUnitario" step="0.01" min="0" style="width:140px" placeholder="Precio compra" title="Precio unitario obligatorio si el origen es Compra" aria-label="Precio unitario de compra" />
+                                        <button type="submit" class="small ghost"><i class="fas fa-pen"></i> Ajustar</button>
+                                    </form>
+                                }
+                                @if (esAdmin)
+                                {
+                                    <form asp-action="DeleteMaterial" asp-route-id="@Model.Id" method="post" class="row-actions" style="margin-top:4px;"
+                                          onsubmit="return confirm('¿Eliminar «@item.Nombre» del catálogo?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="materialId" value="@item.Id" />
+                                        <button type="submit" class="small ghost danger"><i class="fas fa-trash"></i> Eliminar</button>
+                                    </form>
+                                }
+                            </td>
                         </tr>
                     }
                     </tbody>
                 </table>
             </div>
+            @if (Model.NombresAlerta.Any())
+            {
+                <div class="alert alert-warning" style="margin-top:14px;">
+                    <i class="fas fa-triangle-exclamation"></i> Alertas de stock mínimo: @string.Join(", ", Model.NombresAlerta)
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-success" style="margin-top:14px;">
+                    <i class="fas fa-circle-check"></i> Stock dentro de los niveles normales
+                </div>
+            }
         }
     }
 </div>

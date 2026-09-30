@@ -5,6 +5,13 @@
     var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     // Devuelve la clase CSS si el ítem del menú coincide con el controlador actual
     string NavClass(string name) => controller.Equals(name, StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item";
+    bool EsCatalogoPlantas() =>
+        controller.Equals("PlantasInventario", StringComparison.OrdinalIgnoreCase)
+        && (action.Equals("Index", StringComparison.OrdinalIgnoreCase)
+            || action.Equals("Detalle", StringComparison.OrdinalIgnoreCase)
+            || action.Equals("Edit", StringComparison.OrdinalIgnoreCase)
+            || action.Equals("Delete", StringComparison.OrdinalIgnoreCase)
+            || action.Equals("Create", StringComparison.OrdinalIgnoreCase));
     // Para resaltar sub-opciones de Account (usuarios, perfil, etc.)
     bool IsAccountAction(params string[] actions) =>
         controller.Equals("Account", StringComparison.OrdinalIgnoreCase)
@@ -48,15 +55,10 @@
             <div class="nav-group-label">Operación</div>
             <a class="@NavClass("Ordenes")" asp-controller="Ordenes" asp-action="Index"><i class="fas fa-clipboard-list"></i> Órdenes de producción</a>
             <a class="@NavClass("Mrp")" asp-controller="Mrp" asp-action="Index"><i class="fas fa-diagram-project"></i> MRP / Materiales</a>
-            @* Inventario general: Admin y EncargadoDeBodega. Instructor consulta materiales vía MRP. *@
+            @* El inventario vive dentro de cada planta. El encargado con una sola planta entra directo a su detalle. *@
             @if (User.IsInRole("Administrador") || User.IsInRole("Encargado de bodega"))
             {
-                <a class="@NavClass("Inventario")" asp-controller="Inventario" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Inventario</a>
-            }
-            @* Catálogo de plantasInventario: solo Administrador (PlantasInventarioController). *@
-            @if (User.IsInRole("Administrador"))
-            {
-                <a class="@(controller.Equals("PlantasInventario", StringComparison.OrdinalIgnoreCase) && action.Equals("Index", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
+                <a class="@(EsCatalogoPlantas() ? "nav-item active" : "nav-item")"
                    asp-controller="PlantasInventario" asp-action="Index"><i class="fas fa-warehouse"></i> Plantas de inventario</a>
             }
             @if (User.IsInRole("Administrador") || User.IsInRole("Instructor") || User.IsInRole("Encargado de bodega"))
@@ -77,8 +79,8 @@
             }
             @if (User.IsInRole("Administrador") || User.IsInRole("Encargado de bodega"))
             {
-                <a class="@(controller.Equals("Inventario", StringComparison.OrdinalIgnoreCase) && action.Equals("Movimientos", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
-                   asp-controller="Inventario" asp-action="Movimientos"><i class="fas fa-clock-rotate-left"></i> Movimientos de stock</a>
+                <a class="@(controller.Equals("PlantasInventario", StringComparison.OrdinalIgnoreCase) && action.Equals("Movimientos", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
+                   asp-controller="PlantasInventario" asp-action="Movimientos"><i class="fas fa-clock-rotate-left"></i> Movimientos de stock</a>
             }
             @* Fichas y calidad solo para admin e instructor *@
             @if (User.IsInRole("Administrador") || User.IsInRole("Instructor"))

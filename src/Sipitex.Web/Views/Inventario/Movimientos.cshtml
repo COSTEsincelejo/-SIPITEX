@@ -1,7 +1,9 @@
 @model InventarioMovimientosViewModel
 @{
     ViewData["Title"] = "Historial de movimientos";
-    ViewData["Breadcrumb"] = "SIPITEX / Operación / Inventario / Movimientos";
+    ViewData["Breadcrumb"] = string.IsNullOrWhiteSpace(Model.PlantaNombre)
+        ? "SIPITEX / Administración / Plantas de inventario / Movimientos"
+        : $"SIPITEX / Administración / Plantas de inventario / {Model.PlantaNombre} / Movimientos";
     Layout = "_Layout";
 }
 
@@ -11,12 +13,23 @@
         <div class="sub">Consulta entradas, salidas, ajustes y aprobaciones de stock</div>
     </div>
     <div>
-        <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver a inventario</a>
+        @if (Model.PlantaInventarioId is int plantaId)
+        {
+            <a class="ghost" asp-controller="PlantasInventario" asp-action="Detalle" asp-route-id="@plantaId"><i class="fas fa-arrow-left"></i> Volver a inventario</a>
+        }
+        else
+        {
+            <a class="ghost" asp-controller="PlantasInventario" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver a plantas de inventario</a>
+        }
     </div>
 </div>
 
 <div class="card">
-    <form method="get" class="form-row" style="margin-bottom:1rem;">
+    <form method="get" class="form-row" style="margin-bottom:1rem;" asp-controller="PlantasInventario" asp-action="Movimientos">
+        @if (Model.PlantaInventarioId is int plantaFiltro)
+        {
+            <input type="hidden" name="plantaInventarioId" value="@plantaFiltro" />
+        }
         <div class="field">
             <label class="field-label">Desde</label>
             <input type="date" name="desde" value="@(Model.Desde?.ToString("yyyy-MM-dd"))" />

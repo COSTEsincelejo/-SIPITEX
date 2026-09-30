@@ -15,9 +15,23 @@ public interface IInventoryService
         int plantaInventarioId,
         CancellationToken cancellationToken = default);
     Task<ServiceResult> AddMaterialAsync(CreateMaterialDto dto, int actorUserId, CancellationToken cancellationToken = default);
-    Task<ServiceResult> AdjustStockAsync(AdjustStockDto dto, int actorUserId, CancellationToken cancellationToken = default);
-    Task<ServiceResult> UpdateMaterialAsync(UpdateMaterialDto dto, CancellationToken cancellationToken = default);
-    Task<ServiceResult> UpdateStatusAsync(UpdateMaterialStatusDto dto, CancellationToken cancellationToken = default);
+
+    // true solo si el material existe y su PlantaInventarioId es el de la ruta (IgnoreQueryFilters + filtro explícito).
+    Task<bool> MaterialPerteneceAPlantaAsync(int materialId, int plantaInventarioId, CancellationToken cancellationToken = default);
+
+    Task<ServiceResult> AdjustStockAsync(
+        AdjustStockDto dto,
+        int actorUserId,
+        CancellationToken cancellationToken = default,
+        int? plantaInventarioId = null);
+    Task<ServiceResult> UpdateMaterialAsync(
+        UpdateMaterialDto dto,
+        CancellationToken cancellationToken = default,
+        int? plantaInventarioId = null);
+    Task<ServiceResult> UpdateStatusAsync(
+        UpdateMaterialStatusDto dto,
+        CancellationToken cancellationToken = default,
+        int? plantaInventarioId = null);
     Task<IReadOnlyList<MaterialRequestDto>> GetRequestsAsync(
         int? viewerUserId = null,
         string? viewerRole = null,
@@ -28,5 +42,8 @@ public interface IInventoryService
         CancellationToken cancellationToken = default);
     Task<ServiceResult> ApproveRequestAsync(int requestId, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> RejectRequestAsync(int requestId, CancellationToken cancellationToken = default);
-    Task<ServiceResult> DeleteMaterialAsync(int materialId, CancellationToken cancellationToken = default);
+    Task<ServiceResult> DeleteMaterialAsync(
+        int materialId,
+        CancellationToken cancellationToken = default,
+        int? plantaInventarioId = null);
 }
