@@ -13,8 +13,10 @@ services:
     name: sipitex
     runtime: docker
     plan: starter
+    branch: main
+    autoDeploy: true
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /health
+    healthCheckPath: /healthz
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production

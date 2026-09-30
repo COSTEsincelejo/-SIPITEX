@@ -91,6 +91,18 @@ public class ModuleAccessTests
     }
 
     [Fact]
+    public async Task Administrador_CatalogoPlantas_MuestraBotonVer()
+    {
+        var client = await LoginAsync("admin@sipitex.test", "Admin123!");
+
+        var response = await client.GetAsync("/PlantasInventario");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("fa-eye", html, StringComparison.Ordinal);
+        Assert.Contains("Ver</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Instructor_VeSolicitudesYOrdenes_NoReingreso()
     {
         var client = await LoginAsync("instructor@sipitex.test", "Instructor123!");

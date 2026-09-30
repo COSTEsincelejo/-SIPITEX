@@ -134,7 +134,7 @@ Este agente **no crea** el servicio en la consola de Render. Hay que vincular el
 ### Alta manual
 
 1. **PostgreSQL** — New → PostgreSQL, plan Starter (o el disponible), versión 16. Anote la **Internal Database URL**.
-2. **Web Service** — New → Web Service, repo de SIPITEX, runtime **Docker**, `Dockerfile` en la raíz. Health check: `/health`.
+2. **Web Service** — New → Web Service, repo de SIPITEX, runtime **Docker**, `Dockerfile` en la raíz. Health check: `/healthz`. La guía operativa corta está en `docs/DEPLOY.md`.
 3. Variables de entorno del Web Service (sin pegar contraseñas en documentación ni en git):
 
 | Variable | Valor |
@@ -148,7 +148,7 @@ Este agente **no crea** el servicio en la consola de Render. Hay que vincular el
 | `Costing__LaborHourRate` | `6500` (referencia; el admin puede cambiarla en `/Costos`) |
 
 4. El primer arranque ejecuta `MigrateAsync` y crea el esquema en la BD administrada.
-5. Compruebe `https://<servicio>.onrender.com/health` → `200` y cuerpo `Healthy`.
+5. Compruebe `https://<servicio>.onrender.com/healthz` → `200` y cuerpo `ok`. `/version` devuelve el commit en JSON.
 6. La pantalla de login es `https://<servicio>.onrender.com/Account/Login`. Con `Seed__DemoUsers=true` valen los usuarios demo; si no, el admin de `ADMIN_SEED_PASSWORD`.
 
 Los datos **persisten** en Postgres administrado entre reinicios del Web Service (a diferencia del SQLite efímero en disco del contenedor).

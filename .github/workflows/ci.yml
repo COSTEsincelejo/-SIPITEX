@@ -53,3 +53,23 @@ jobs:
 
       - name: Test
         run: dotnet test Sipitex.slnx --configuration Release --no-build --verbosity normal
+
+  # Solo en push a main, y solo si build-and-test pasó. El hook no se imprime.
+  deploy:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy hook
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL no está configurado. Se omite el deploy. Cree un Deploy Hook en Render y guárdelo como secret del repositorio."
+            exit 0
+          fi
+          if ! curl -fsS -X POST -o /dev/null --retry 2 --retry-all-errors "$RENDER_DEPLOY_HOOK_URL" >/dev/null 2>&1; then
+            echo "El Deploy Hook de Render respondió con error. Revise el secret y el servicio."
+            exit 1
+          fi
+          echo "Deploy de Render solicitado."
