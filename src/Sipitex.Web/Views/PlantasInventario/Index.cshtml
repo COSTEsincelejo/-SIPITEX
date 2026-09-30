@@ -12,13 +12,14 @@
         {
             <div class="sub">Cree, renombre o desactive plantas de inventario. Planta de Inventario 1 no se puede eliminar (es la planta por defecto). Si hay stock, hay que reasignarlo a otra planta antes de desactivar.</div>
         }
-        else
+        else if (User.IsInRole(UserRoles.EncargadoDeBodega))
         {
             <div class="sub">Elija una planta para consultar y operar su inventario.</div>
         }
-    </div>
-    <div>
-        <a class="ghost" asp-action="Consultar"><i class="fas fa-clipboard-list"></i> Consultar inventario por planta</a>
+        else
+        {
+            <div class="sub">Consulte los materiales e insumos de cada planta.</div>
+        }
     </div>
 </div>
 
@@ -47,6 +48,15 @@
     </div>
 }
 
+@if (Model.SinPlantasAsignadas)
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-warehouse"></i> Sin plantas asignadas</div>
+        <p>No tienes plantas asignadas. Contacta al administrador.</p>
+    </div>
+}
+else
+{
 <div class="card">
     <div class="card-title"><i class="fas fa-warehouse"></i> Catálogo</div>
     @if (!Model.PlantasInventario.Any())
@@ -101,3 +111,4 @@
         </div>
     }
 </div>
+}

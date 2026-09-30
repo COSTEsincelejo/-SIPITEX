@@ -115,4 +115,47 @@ public class AlertNotifyUsersTests
             e => e.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task EvaluateAndSendAsync_StockBajo_EnlazaDetalleDeCadaPlanta()
+    {
+        _materials.Setup(m => m.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new Material { Name = "Tela", Stock = 1, MinStock = 5, PlantaInventarioId = 7 },
+                new Material { Name = "Hilo", Stock = 0, MinStock = 2, PlantaInventarioId = 3 }
+            ]);
+        _requests.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _orders.Setup(o => o.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _quality.Setup(q => q.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+
+        var user = new User
+        {
+            Id = 1,
+            Nombre = "Ana",
+            Email = "ana@test.com",
+            IsActive = true,
+            Rol = UserRoles.Administrador
+        };
+        _alerts.Setup(a => a.GetEnabledPreferencesAsync(AlertType.StockBajo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new AlertPreference { UserId = 1, User = user, AlertType = AlertType.StockBajo, Enabled = true }]);
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        string? body = null;
+        _email.Setup(e => e.SendAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<string, string, string, string, CancellationToken>((_, _, _, b, _) => body = b)
+            .Returns(Task.CompletedTask);
+
+        await CreateSut().EvaluateAndSendAsync();
+
+        Assert.NotNull(body);
+        Assert.Contains("/PlantasInventario/Detalle/7", body, StringComparison.Ordinal);
+        Assert.Contains("/PlantasInventario/Detalle/3", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Revise Inventario", body, StringComparison.Ordinal);
+    }
 }

@@ -13,6 +13,7 @@ using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 using Sipitex.Infrastructure.Persistence;
 using Sipitex.Infrastructure.Repositories;
+using Sipitex.Web.Authorization;
 using Sipitex.Web.Controllers;
 using Sipitex.Web.Models;
 
@@ -21,26 +22,27 @@ namespace Sipitex.Tests;
 public class InventarioDentroDePlantasTests
 {
     [Fact]
-    public async Task Inventario_EncargadoConUnaPlanta_RedirigeAlDetalle()
+    public void Inventario_EncargadoConUnaPlanta_RedirigeAlDetalle()
     {
-        var controller = LegacyController(UserRoles.EncargadoDeBodega, new FixedCurrentPlantaInventarioAccessor([4]));
+        var url = InventarioLegacyRedirect.Destination(
+            Principal(1, UserRoles.EncargadoDeBodega),
+            [4]);
 
-        var index = await controller.Index(CancellationToken.None);
-        var redirect = Assert.IsType<RedirectResult>(index);
-        Assert.True(redirect.Permanent);
-        Assert.Equal("/PlantasInventario/Detalle/4", redirect.Url);
+        Assert.Equal("/PlantasInventario/Detalle/4", url);
     }
 
     [Fact]
-    public void Inventario_EncargadoConVariasPlantas_RedirigeAlCatalogo()
+    public void Inventario_EncargadoConVariasONinguna_RedirigeAlCatalogo()
     {
-        var controller = LegacyController(UserRoles.EncargadoDeBodega, new FixedCurrentPlantaInventarioAccessor([1, 2]));
-
-        var result = controller.Movimientos(null, null, null, CancellationToken.None);
-
-        var redirect = Assert.IsType<RedirectResult>(result);
-        Assert.True(redirect.Permanent);
-        Assert.Equal("/PlantasInventario/Movimientos", redirect.Url);
+        Assert.Equal(
+            "/PlantasInventario",
+            InventarioLegacyRedirect.Destination(Principal(1, UserRoles.EncargadoDeBodega), [1, 2]));
+        Assert.Equal(
+            "/PlantasInventario",
+            InventarioLegacyRedirect.Destination(Principal(1, UserRoles.EncargadoDeBodega), []));
+        Assert.Equal(
+            "/PlantasInventario",
+            InventarioLegacyRedirect.Destination(Principal(1, UserRoles.Administrador), [4]));
     }
 
     [Fact]
@@ -65,6 +67,22 @@ public class InventarioDentroDePlantasTests
         var view = Assert.IsType<ViewResult>(result);
         var vm = Assert.IsType<PlantasInventarioIndexViewModel>(view.Model);
         Assert.Equal([1, 2], vm.PlantasInventario.Select(p => p.Id).OrderBy(id => id).ToArray());
+        Assert.False(vm.SinPlantasAsignadas);
+    }
+
+    [Fact]
+    public async Task Index_EncargadoSinPlantas_MuestraMensaje()
+    {
+        await using var scope = await Scope.CreateAsync(
+            UserRoles.EncargadoDeBodega,
+            new FixedCurrentPlantaInventarioAccessor([]));
+
+        var result = await scope.Controller.Index(CancellationToken.None);
+
+        var view = Assert.IsType<ViewResult>(result);
+        var vm = Assert.IsType<PlantasInventarioIndexViewModel>(view.Model);
+        Assert.True(vm.SinPlantasAsignadas);
+        Assert.Empty(vm.PlantasInventario);
     }
 
     [Fact]
@@ -154,6 +172,19 @@ public class InventarioDentroDePlantasTests
         Assert.Equal(2, forroFinal.PlantaInventarioId);
         Assert.Equal(3, telaFinal.Stock);
         Assert.Equal(1, telaFinal.PlantaInventarioId);
+
+        var cierre = await admin.Db.Materials.IgnoreQueryFilters().SingleAsync(m => m.Name == "Cierre");
+        var borrado = await admin.Controller.DeleteMaterial(1, cierre.Id, CancellationToken.None);
+        Assert.IsType<RedirectToActionResult>(borrado);
+        var borradoAjeno = await encargado.Controller.DeleteMaterial(2, forroId, CancellationToken.None);
+        Assert.IsType<ForbidResult>(borradoAjeno);
+
+        admin.Db.ChangeTracker.Clear();
+        Assert.False(await admin.Db.Materials.IgnoreQueryFilters().AnyAsync(m => m.Id == cierre.Id));
+        var forroTrasBorrar = await admin.Db.Materials.IgnoreQueryFilters().SingleAsync(m => m.Id == forroId);
+        Assert.Equal("Forro", forroTrasBorrar.Name);
+        Assert.Equal(8, forroTrasBorrar.Stock);
+        Assert.Equal(2, forroTrasBorrar.PlantaInventarioId);
     }
 
     private static async Task<PlantaDetalleViewModel> Detalle(Scope scope, int id)
@@ -161,22 +192,6 @@ public class InventarioDentroDePlantasTests
         var result = await scope.Controller.Detalle(id, null, null, CancellationToken.None);
         var view = Assert.IsType<ViewResult>(result);
         return Assert.IsType<PlantaDetalleViewModel>(view.Model);
-    }
-
-    private static InventarioController LegacyController(string role, ICurrentPlantaInventarioAccessor accessor)
-    {
-        var controller = new InventarioController(
-            Mock.Of<IInventoryService>(),
-            Mock.Of<IProductionOrderService>(),
-            Mock.Of<IStockMovementService>(),
-            accessor)
-        {
-            ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = Principal(1, role) }
-            }
-        };
-        return controller;
     }
 
     private static ClaimsPrincipal Principal(int userId, string role)

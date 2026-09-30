@@ -1,8 +1,4 @@
-using System.Reflection;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Sipitex.Application.Authorization;
 using Sipitex.Application.DTOs;
@@ -12,7 +8,7 @@ using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
-using Sipitex.Web.Controllers;
+using Sipitex.Web.Authorization;
 
 namespace Sipitex.Tests;
 
@@ -45,25 +41,6 @@ public class InventarioInstructorRestrictionTests
             new Claim(ClaimTypes.Name, name)
         ], "Test");
         return new ClaimsPrincipal(identity);
-    }
-
-    private static InventarioController CreateController(
-        ClaimsPrincipal user,
-        IInventoryService inventory,
-        IProductionOrderService orders,
-        IStockMovementService movements)
-    {
-        var controller = new InventarioController(inventory, orders, movements)
-        {
-            ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = user }
-            }
-        };
-        controller.TempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(
-            controller.HttpContext,
-            Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
-        return controller;
     }
 
     private static MaterialRequest Request(
@@ -113,58 +90,14 @@ public class InventarioInstructorRestrictionTests
     }
 
     [Fact]
-    public void InventarioController_Index_RequiresPuedeConsultarInventarioPolicy()
+    public void LegacyInventario_InstructorYAdministrador_VanAlCatalogo()
     {
-        var method = typeof(InventarioController)
-            .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-            .Single(m => m.Name == nameof(InventarioController.Index) && m.GetParameters().Length == 1);
-        var attr = method.GetCustomAttribute<AuthorizeAttribute>();
-        Assert.NotNull(attr);
-        Assert.Equal(AuthorizationPolicyNames.PuedeConsultarInventario, attr!.Policy);
-    }
-
-    [Fact]
-    public async Task InventarioController_Index_Instructor_ReturnsForbid()
-    {
-        var inventory = new Mock<IInventoryService>();
-        var orders = new Mock<IProductionOrderService>();
-        var movements = new Mock<IStockMovementService>();
-        var controller = CreateController(
-            Principal(10, UserRoles.Instructor, "Laura"),
-            inventory.Object,
-            orders.Object,
-            movements.Object);
-
-        var result = await controller.Index(CancellationToken.None);
-
-        Assert.IsType<ForbidResult>(result);
-        inventory.Verify(
-            s => s.GetMaterialsAsync(It.IsAny<CancellationToken>()),
-            Times.Never);
-        inventory.Verify(
-            s => s.GetRequestsAsync(
-                It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task InventarioController_Index_Administrador_RedirigeAPlantas()
-    {
-        var inventory = new Mock<IInventoryService>();
-        var orders = new Mock<IProductionOrderService>();
-        var movements = new Mock<IStockMovementService>();
-        var controller = CreateController(
-            Principal(1, UserRoles.Administrador, "Admin"),
-            inventory.Object,
-            orders.Object,
-            movements.Object);
-
-        var result = await controller.Index(CancellationToken.None);
-
-        var redirect = Assert.IsType<RedirectResult>(result);
-        Assert.True(redirect.Permanent);
-        Assert.Equal("/PlantasInventario", redirect.Url);
-        inventory.Verify(s => s.GetMaterialsAsync(It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Equal(
+            "/PlantasInventario",
+            InventarioLegacyRedirect.Destination(Principal(10, UserRoles.Instructor, "Laura"), null));
+        Assert.Equal(
+            "/PlantasInventario",
+            InventarioLegacyRedirect.Destination(Principal(1, UserRoles.Administrador, "Admin"), [1]));
     }
 
     [Fact]

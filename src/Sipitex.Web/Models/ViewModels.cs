@@ -7,19 +7,7 @@ namespace Sipitex.Web.Models;
 // Aquí están los modelos usados por las vistas para mostrar datos al usuario.
 // Cada pantalla suele tener un *IndexViewModel con listas + formularios de creación.
 
-// Pantalla principal de inventario: materiales, solicitudes y formularios
-public class InventarioIndexViewModel
-{
-    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
-    public IReadOnlyList<MaterialRequestDto> Requests { get; set; } = [];
-    public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = []; // para el select de solicitudes
-    public CreateMaterialForm CreateMaterial { get; set; } = new();
-    public CreateRequestForm CreateRequest { get; set; } = new();
-    public string? Message { get; set; } // mensaje flash después de una acción
-    public bool IsSuccess { get; set; } // true = toast verde, false = rojo
-}
-
-// Historial de movimientos de inventario (Admin / EncargadoDeBodega)
+// Historial de movimientos de stock de una planta (Admin, Encargado e Instructor en solo lectura)
 public class InventarioMovimientosViewModel
 {
     public IReadOnlyList<StockMovementDto> Movimientos { get; set; } = [];
@@ -39,14 +27,6 @@ public class CreateMaterialForm
     public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
     public StockEntryOrigin Origen { get; set; } = StockEntryOrigin.Compra;
     public decimal CostoAdquisicion { get; set; }
-}
-
-// Formulario para pedir material a plantaInventario
-public class CreateRequestForm
-{
-    public int ProductionOrderId { get; set; }
-    public int MaterialId { get; set; }
-    public decimal Quantity { get; set; }
 }
 
 // Ajuste manual de stock (encargadoDeBodega/admin); Origen requerido si sube el stock
@@ -398,6 +378,7 @@ public class PlantasInventarioIndexViewModel
     public CreatePlantaInventarioForm Form { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
+    public bool SinPlantasAsignadas { get; set; }
 }
 
 public class CreatePlantaInventarioForm
@@ -426,26 +407,6 @@ public class DeletePlantaInventarioViewModel
     public IReadOnlyList<PlantaInventario> Destinos { get; set; } = [];
     public int DestinoId { get; set; }
     public string? Message { get; set; }
-}
-
-public class ConsultarPlantasInventarioViewModel
-{
-    public int? PlantaInventarioId { get; set; }
-    public IReadOnlyList<PlantaInventario> Plantas { get; set; } = [];
-    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
-    public IReadOnlyList<PlantaInventarioResumenItem> Resumen { get; set; } = [];
-    public string? Q { get; set; }
-    public string? Nivel { get; set; }
-    public int TotalSinFiltro { get; set; }
-}
-
-public class PlantaInventarioResumenItem
-{
-    public int Id { get; set; }
-    public string Nombre { get; set; } = string.Empty;
-    public int Materiales { get; set; }
-    public int Bajo { get; set; }
-    public int Critico { get; set; }
 }
 
 // Detalle de una planta: catálogo de materiales e insumos de esa planta.

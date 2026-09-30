@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
@@ -204,7 +205,7 @@ public class PlantaInventarioServiceTests
     }
 
     [Fact]
-    public void PlantasInventarioController_CrudSoloAdministrador_ConsultarIncluyeInstructorYEncargado()
+    public void PlantasInventarioController_CrudSoloAdministrador_DetalleIncluyeInstructorYEncargado()
     {
         var classAttr = typeof(PlantasInventarioController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(classAttr);
@@ -232,18 +233,19 @@ public class PlantaInventarioServiceTests
         Assert.NotNull(indexRoles);
         Assert.Contains(UserRoles.Administrador, indexRoles, StringComparison.Ordinal);
         Assert.Contains(UserRoles.EncargadoDeBodega, indexRoles, StringComparison.Ordinal);
-        Assert.DoesNotContain(UserRoles.Instructor, indexRoles, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.Instructor, indexRoles, StringComparison.Ordinal);
 
-        var consultar = typeof(PlantasInventarioController)
-            .GetMethod(nameof(PlantasInventarioController.Consultar));
-        Assert.NotNull(consultar);
-        var consultarRoles = consultar!.GetCustomAttributes<AuthorizeAttribute>()
+        var detalle = typeof(PlantasInventarioController).GetMethod(nameof(PlantasInventarioController.Detalle));
+        Assert.NotNull(detalle);
+        var detalleRoles = detalle!.GetCustomAttributes<AuthorizeAttribute>()
             .Select(a => a.Roles)
             .FirstOrDefault(r => !string.IsNullOrEmpty(r));
-        Assert.NotNull(consultarRoles);
-        Assert.Contains(UserRoles.Administrador, consultarRoles, StringComparison.Ordinal);
-        Assert.Contains(UserRoles.Instructor, consultarRoles, StringComparison.Ordinal);
-        Assert.Contains(UserRoles.EncargadoDeBodega, consultarRoles, StringComparison.Ordinal);
+        Assert.NotNull(detalleRoles);
+        Assert.Contains(UserRoles.Administrador, detalleRoles, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.Instructor, detalleRoles, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.EncargadoDeBodega, detalleRoles, StringComparison.Ordinal);
+        Assert.Null(detalle.GetCustomAttribute<HttpPostAttribute>());
+        Assert.Null(typeof(PlantasInventarioController).GetMethod("Consultar"));
     }
 
     [Fact]

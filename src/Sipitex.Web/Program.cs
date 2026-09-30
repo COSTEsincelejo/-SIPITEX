@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Logging;
@@ -186,6 +187,27 @@ app.UseStaticFiles(); // CSS, JS, imágenes de wwwroot
 app.UseRouting(); // resuelve rutas antes de auth
 app.UseAuthentication(); // tiene que ir antes de Authorization
 app.UseAuthorization(); // revisa roles y políticas
+
+// Favoritos de la sección eliminada. 302 según rol y planta; no lee el cuerpo ni modifica datos.
+app.Use(async (http, next) =>
+{
+    if (!http.Request.Path.StartsWithSegments("/Inventario", StringComparison.OrdinalIgnoreCase))
+    {
+        await next();
+        return;
+    }
+
+    if (http.User.Identity?.IsAuthenticated != true)
+    {
+        await http.ChallengeAsync();
+        return;
+    }
+
+    var accessor = http.RequestServices.GetRequiredService<ICurrentPlantaInventarioAccessor>();
+    http.Response.Redirect(
+        InventarioLegacyRedirect.Destination(http.User, accessor.PlantaInventarioIds),
+        permanent: false);
+});
 
 app.MapGet("/healthz", () => Results.Text("ok", "text/plain")).AllowAnonymous();
 app.MapGet("/version", (IWebHostEnvironment env) =>

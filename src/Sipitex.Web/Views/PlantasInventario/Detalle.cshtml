@@ -7,8 +7,9 @@
     var materialesSeleccionados = PlantaDetalleConsulta.EsMateriales(Model.Categoria);
     var insumosSeleccionados = PlantaDetalleConsulta.EsInsumos(Model.Categoria);
     var nivelActual = Model.Nivel ?? "";
-    var canManageStock = User.IsInRole(UserRoles.Administrador) || User.IsInRole(UserRoles.EncargadoDeBodega);
-    var canRegisterMaterial = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
+    var puedeOperar = User.IsInRole(UserRoles.Administrador) || User.IsInRole(UserRoles.EncargadoDeBodega);
+    var canManageStock = puedeOperar;
+    var canRegisterMaterial = puedeOperar && (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeRegistrarMateriales)).Succeeded;
     var esAdmin = User.IsInRole(UserRoles.Administrador);
 }
 
@@ -26,17 +27,10 @@
         {
             <span class="badge badge-warning">Inactiva</span>
         }
-        @if (canManageStock)
-        {
-            <a class="ghost" asp-action="Movimientos" asp-route-plantaInventarioId="@Model.Id"><i class="fas fa-clock-rotate-left"></i> Historial de movimientos</a>
-        }
+        <a class="ghost" asp-action="Movimientos" asp-route-plantaInventarioId="@Model.Id"><i class="fas fa-clock-rotate-left"></i> Historial de movimientos</a>
         @if (Model.MostrarVolverAlCatalogo)
         {
             <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
-        }
-        else
-        {
-            <a class="ghost" asp-action="Consultar" asp-route-plantaInventarioId="@Model.Id"><i class="fas fa-arrow-left"></i> Volver</a>
         }
     </div>
 </div>

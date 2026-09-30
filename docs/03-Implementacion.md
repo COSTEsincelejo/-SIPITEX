@@ -7,12 +7,11 @@ Cada controlador de `src/Sipitex.Web/Controllers` y su función:
 | Módulo UI | Ruta | Controller | Servicio | Función |
 |-----------|------|------------|----------|---------|
 | Inicio | `/Home` | `HomeController` | — | Landing autenticada, privacidad y página de error |
-| Inventario | `/Inventario` | `InventarioController` | `InventoryService` | Stock, altas, estado de material, movimientos |
 | Órdenes | `/Ordenes` | `OrdenesController` | `ProductionOrderService`, `ProductionFlowService` | Crear/aprobar/cancelar órdenes y flujo MES |
 | MRP | `/Mrp` | `MrpController` | `MrpService`, `BomCatalogService` | Ficha técnica y simulación de requerimientos |
 | Fichas | `/Fichas` | `FichasController` | `FichaService` | Grupos SENA, sesiones de producción |
 | Solicitudes (ficha) | `/SolicitudesMaterial` | `SolicitudesMaterialController` | `SolicitudMaterialService` | Solicitudes multi-ítem por ficha o insumos libres |
-| Plantas de inventario | `/PlantasInventario` | `PlantasInventarioController` | `PlantaInventarioService` | Catálogo y reasignación de plantas |
+| Plantas de inventario | `/PlantasInventario` y `/PlantasInventario/Detalle/{id}` | `PlantasInventarioController` | `PlantaInventarioService`, `InventoryService` | Catálogo de plantas y, dentro de cada una, consulta, altas, stock, estado y movimientos |
 | Solicitudes de planta | `/PlantasInventarioSolicitudes` | `PlantasInventarioSolicitudesController` | `SolicitudMaterialService` | Cola de aprobación por planta / rol |
 | Órdenes de planta | `/PlantasInventarioOrdenes` | `PlantasInventarioOrdenesController` | `OrderMaterialService`, `ProductionFlowService` | Entrega de materiales y reingreso |
 | Grupos de confección | `/GruposConfeccion` | `GruposConfeccionController` | `GrupoConfeccionService` | Registro de horas y prendas por grupo |

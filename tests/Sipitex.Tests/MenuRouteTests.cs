@@ -25,9 +25,11 @@ public class MenuRouteTests
 
         Assert.Contains("asp-controller=\"PlantasInventarioSolicitudes\"", layout, StringComparison.Ordinal);
         Assert.Contains("asp-controller=\"PlantasInventarioOrdenes\"", layout, StringComparison.Ordinal);
-        Assert.Contains("Inventario por bodega", layout, StringComparison.Ordinal);
-        Assert.Contains("asp-action=\"Consultar\"", layout, StringComparison.Ordinal);
         Assert.Contains("Plantas de inventario", layout, StringComparison.Ordinal);
+        Assert.Contains("User.IsInRole(\"Instructor\")", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("Inventario por bodega", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("asp-action=\"Consultar\"", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("> Inventario</a>", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("asp-controller=\"Inventario\"", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("asp-controller=\"PlantaInventarioSolicitudes\"", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("asp-controller=\"PlantaInventarioOrdenes\"", layout, StringComparison.Ordinal);
@@ -43,6 +45,9 @@ public class MenuRouteTests
         Assert.Contains("'/PlantasInventarioSolicitudes'", js, StringComparison.Ordinal);
         Assert.Contains("'/PlantasInventarioOrdenes'", js, StringComparison.Ordinal);
         Assert.Contains("'/PlantasInventario/Movimientos'", js, StringComparison.Ordinal);
+        Assert.Contains("'/PlantasInventario'", js, StringComparison.Ordinal);
+        Assert.DoesNotContain("Inventario por bodega", js, StringComparison.Ordinal);
+        Assert.DoesNotContain("'/PlantasInventario/Consultar'", js, StringComparison.Ordinal);
         Assert.DoesNotContain("'/Inventario'", js, StringComparison.Ordinal);
         Assert.DoesNotContain("'/Inventario/Movimientos'", js, StringComparison.Ordinal);
         Assert.DoesNotContain("'/PlantaInventarioSolicitudes'", js, StringComparison.Ordinal);
