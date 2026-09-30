@@ -20,6 +20,16 @@ public record MaterialDto(
     string PlantaInventarioNombre = "",
     decimal CostoPromedioPonderado = 0);
 
+// Fila de stock de una planta para el detalle del catálogo.
+// EnFichaTecnica distingue Material (está en un BomItem) de Insumo (solo existe en la planta).
+public record MaterialPlantaStockDto(
+    string Code,
+    string Name,
+    MaterialUnit Unit,
+    decimal Stock,
+    decimal MinStock,
+    bool EnFichaTecnica);
+
 // Datos para crear material nuevo (origen tipifica la Entrada del ledger)
 public record CreateMaterialDto(
     string Name,

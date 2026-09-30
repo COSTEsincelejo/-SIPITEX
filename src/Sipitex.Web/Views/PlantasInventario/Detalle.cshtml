@@ -1,0 +1,141 @@
+@model PlantaDetalleViewModel
+@{
+    ViewData["Title"] = Model.Nombre;
+    ViewData["Breadcrumb"] = $"SIPITEX / Administración / Plantas de inventario / {Model.Nombre}";
+    Layout = "_Layout";
+    var materialesSeleccionados = PlantaDetalleConsulta.EsMateriales(Model.Categoria);
+    var insumosSeleccionados = PlantaDetalleConsulta.EsInsumos(Model.Categoria);
+}
+
+<div class="page-header">
+    <div>
+        <h2>@Model.Nombre</h2>
+        <div class="sub">Materiales e insumos registrados en esta planta de inventario.</div>
+    </div>
+    <div class="row-actions">
+        @if (Model.Activa)
+        {
+            <span class="badge badge-success">Activa</span>
+        }
+        else
+        {
+            <span class="badge badge-warning">Inactiva</span>
+        }
+        @if (User.IsInRole(UserRoles.Administrador))
+        {
+            <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
+        }
+        else
+        {
+            <a class="ghost" asp-action="Consultar" asp-route-plantaInventarioId="@Model.Id"><i class="fas fa-arrow-left"></i> Volver</a>
+        }
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-label">Total de ítems</div>
+        <div class="kpi-value">@Model.TotalItems</div>
+        <div class="kpi-trend">En esta planta</div>
+    </div>
+    <div class="kpi-card amber">
+        <div class="kpi-label">Nivel bajo</div>
+        <div class="kpi-value">@Model.TotalBajo</div>
+        <div class="kpi-trend">Con existencias, bajo el mínimo</div>
+    </div>
+    <div class="kpi-card red">
+        <div class="kpi-label">Nivel crítico</div>
+        <div class="kpi-value">@Model.TotalCritico</div>
+        <div class="kpi-trend">Sin existencias</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-boxes-stacked"></i> Materiales e insumos</div>
+    @if (Model.TotalSinFiltro == 0)
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = "Sin inventario", Text = "Esta planta no tiene materiales ni insumos registrados.", ActionText = null }' />
+    }
+    else
+    {
+        <form asp-action="Detalle" asp-route-id="@Model.Id" method="get" class="form-row">
+            <div class="field" style="min-width:220px;flex:1;">
+                <label class="field-label" for="busqueda">Buscar</label>
+                <input id="busqueda" name="busqueda" type="search" value="@Model.Busqueda" placeholder="Nombre o código" autocomplete="off" />
+            </div>
+            <div class="field" style="min-width:180px;">
+                <label class="field-label" for="categoria">Categoría</label>
+                <select id="categoria" name="categoria">
+                    @if (!materialesSeleccionados && !insumosSeleccionados)
+                    {
+                        <option value="" selected>Todas</option>
+                    }
+                    else
+                    {
+                        <option value="">Todas</option>
+                    }
+                    @if (materialesSeleccionados)
+                    {
+                        <option value="@PlantaDetalleConsulta.Materiales" selected>Materiales</option>
+                    }
+                    else
+                    {
+                        <option value="@PlantaDetalleConsulta.Materiales">Materiales</option>
+                    }
+                    @if (insumosSeleccionados)
+                    {
+                        <option value="@PlantaDetalleConsulta.Insumos" selected>Insumos</option>
+                    }
+                    else
+                    {
+                        <option value="@PlantaDetalleConsulta.Insumos">Insumos</option>
+                    }
+                </select>
+            </div>
+            <div class="field" style="align-self:flex-end;">
+                <button type="submit" class="primary"><i class="fas fa-search"></i> Buscar</button>
+            </div>
+            @if (Model.HayFiltros)
+            {
+                <div class="field" style="align-self:flex-end;">
+                    <a class="btn small ghost" asp-action="Detalle" asp-route-id="@Model.Id"><i class="fas fa-xmark"></i> Limpiar filtros</a>
+                </div>
+            }
+        </form>
+
+        @if (!Model.Materiales.Any())
+        {
+            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-filter", Title = "Sin coincidencias", Text = "Ningún material o insumo coincide con la búsqueda o la categoría seleccionada.", ActionText = null }' />
+        }
+        else
+        {
+            <div class="table-wrap table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Unidad</th>
+                            <th>Stock</th>
+                            <th>Nivel</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.Materiales)
+                    {
+                        <tr>
+                            <td>@item.Codigo</td>
+                            <td><strong>@item.Nombre</strong></td>
+                            <td>@item.Categoria</td>
+                            <td>@item.UnidadMedida</td>
+                            <td>@item.StockActual.ToString("0.0")</td>
+                            <td><span class="badge @DisplayHelper.BadgeClass(item.NivelStock)">@DisplayHelper.StatusText(item.NivelStock)</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>

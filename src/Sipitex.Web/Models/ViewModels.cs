@@ -446,6 +446,33 @@ public class PlantaInventarioResumenItem
     public int Critico { get; set; }
 }
 
+// Detalle de una planta: catálogo de materiales e insumos de esa planta.
+public class PlantaDetalleViewModel
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public bool Activa { get; set; }
+    public string? Busqueda { get; set; }
+    public string? Categoria { get; set; }
+    public IReadOnlyList<MaterialPlantaItem> Materiales { get; set; } = [];
+    public int TotalItems { get; set; }
+    public int TotalBajo { get; set; }
+    public int TotalCritico { get; set; }
+    public int TotalSinFiltro { get; set; }
+    public bool HayFiltros =>
+        !string.IsNullOrWhiteSpace(Busqueda) || !string.IsNullOrWhiteSpace(Categoria);
+}
+
+public class MaterialPlantaItem
+{
+    public string Codigo { get; set; } = string.Empty;
+    public string Nombre { get; set; } = string.Empty;
+    public string Categoria { get; set; } = string.Empty;
+    public string UnidadMedida { get; set; } = string.Empty;
+    public decimal StockActual { get; set; }
+    public StockNivel NivelStock { get; set; }
+}
+
 // Pantalla de reportes con filtros opcionales
 public class ReportesIndexViewModel
 {

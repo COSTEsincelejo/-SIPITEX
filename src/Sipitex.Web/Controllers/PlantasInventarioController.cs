@@ -92,6 +92,60 @@ public class PlantasInventarioController : Controller
         });
     }
 
+    [HttpGet]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
+    public async Task<IActionResult> Detalle(
+        int id,
+        string? busqueda,
+        string? categoria,
+        CancellationToken cancellationToken = default)
+    {
+        var esAdmin = User.IsInRole(UserRoles.Administrador);
+        var esEncargado = User.IsInRole(UserRoles.EncargadoDeBodega);
+        if (!esAdmin && !esEncargado)
+            return Forbid();
+
+        var planta = await _plantas.GetByIdAsync(id, cancellationToken);
+        if (planta is null)
+            return NotFound();
+
+        // El encargado solo ve plantas asignadas. El admin no depende de la bodega activa.
+        if (esEncargado)
+        {
+            var allowed = _plantaAccessor.PlantaInventarioIds;
+            if (allowed is null || !allowed.Contains(id))
+                return Forbid();
+        }
+
+        var stock = await _inventory.GetStockByPlantaDetalleAsync(id, cancellationToken);
+        var nivelesPlanta = stock
+            .Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock))
+            .ToList();
+        var filtrados = PlantaDetalleConsulta.Apply(stock, busqueda, categoria);
+
+        return View(new PlantaDetalleViewModel
+        {
+            Id = planta.Id,
+            Nombre = planta.Nombre,
+            Activa = planta.Activo,
+            Busqueda = busqueda,
+            Categoria = categoria,
+            Materiales = filtrados.Select(m => new MaterialPlantaItem
+            {
+                Codigo = m.Code,
+                Nombre = m.Name,
+                Categoria = PlantaDetalleConsulta.Etiqueta(m.EnFichaTecnica),
+                UnidadMedida = UnitHelper.ToDisplay(m.Unit),
+                StockActual = m.Stock,
+                NivelStock = StockNivelHelper.Classify(m.Stock, m.MinStock)
+            }).ToList(),
+            TotalItems = stock.Count,
+            TotalBajo = nivelesPlanta.Count(n => n == StockNivel.Bajo),
+            TotalCritico = nivelesPlanta.Count(n => n == StockNivel.Critico),
+            TotalSinFiltro = stock.Count
+        });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = UserRoles.Administrador)]

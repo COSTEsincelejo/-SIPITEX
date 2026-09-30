@@ -9,6 +9,11 @@ public interface IInventoryService
     Task<IReadOnlyList<MaterialDto>> GetMaterialsByPlantaAsync(
         int? plantaInventarioId,
         CancellationToken cancellationToken = default);
+
+    // Stock de una planta concreta, sin el filtro global de bodega activa.
+    Task<IReadOnlyList<MaterialPlantaStockDto>> GetStockByPlantaDetalleAsync(
+        int plantaInventarioId,
+        CancellationToken cancellationToken = default);
     Task<ServiceResult> AddMaterialAsync(CreateMaterialDto dto, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> AdjustStockAsync(AdjustStockDto dto, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateMaterialAsync(UpdateMaterialDto dto, CancellationToken cancellationToken = default);

@@ -73,6 +73,7 @@
                         </td>
                         <td>
                             <div class="row-actions">
+                                <a asp-action="Detalle" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-eye"></i> Ver</a>
                                 <a asp-action="Edit" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-pen"></i> Editar</a>
                                 @if (b.Activo)
                                 {
