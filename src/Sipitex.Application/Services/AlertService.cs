@@ -270,12 +270,18 @@ public class AlertService : IAlertService
         var low = materials.Where(m => m.Stock < m.MinStock).ToList();
         if (low.Count > 0)
         {
-            // Armo líneas de texto para el cuerpo del correo
-            var lines = string.Join("\n", low.Select(m => $"- {m.Name}: {m.Stock:0.##}/{m.MinStock:0.##}"));
+            var blocks = low
+                .GroupBy(m => m.PlantaInventarioId)
+                .OrderBy(g => g.Key)
+                .Select(g =>
+                {
+                    var lines = string.Join("\n", g.Select(m => $"- {m.Name}: {m.Stock:0.##}/{m.MinStock:0.##}"));
+                    return $"{lines}\n/PlantasInventario/Detalle/{g.Key}";
+                });
             events.Add(new AlertEvent(
                 AlertType.StockBajo,
                 $"SIPITEX · {low.Count} material(es) bajo mínimo",
-                $"Se detectó stock bajo:\n{lines}\n\nRevise Inventario."));
+                $"Se detectó stock bajo:\n{string.Join("\n\n", blocks)}"));
         }
 
         // --- Solicitudes de material sin aprobar ---
@@ -287,7 +293,7 @@ public class AlertService : IAlertService
             events.Add(new AlertEvent(
                 AlertType.SolicitudPendiente,
                 $"SIPITEX · {pending.Count} solicitud(es) pendiente(s)",
-                $"Solicitudes pendientes de planta de inventario:\n{lines}\n\nApruebe o rechace en Inventario."));
+                $"Solicitudes pendientes de planta de inventario:\n{lines}\n\nApruebe o rechace en /PlantasInventarioSolicitudes."));
         }
 
         // Traigo todas las órdenes para revisar plazos

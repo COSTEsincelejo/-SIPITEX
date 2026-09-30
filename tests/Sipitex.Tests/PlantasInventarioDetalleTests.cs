@@ -149,14 +149,37 @@ public class PlantasInventarioDetalleTests
     }
 
     [Fact]
-    public async Task Detalle_Instructor_Forbid()
+    public async Task Detalle_Instructor_EsSoloLectura()
     {
         await using var scope = await Scope.CreateAsync(UserRoles.Instructor, NullCurrentPlantaInventarioAccessor.Instance);
         await scope.SeedAsync();
 
-        var result = await scope.Controller.Detalle(1, null, null, CancellationToken.None);
+        var vm = await DetalleVm(scope, 1);
+        Assert.Equal(3, vm.Materiales.Count);
+        Assert.DoesNotContain(vm.Materiales, m => m.Nombre == "Forro");
+        Assert.True(vm.MostrarVolverAlCatalogo);
 
-        Assert.IsType<ForbidResult>(result);
+        Assert.IsType<ForbidResult>(await scope.Controller.AddMaterial(1, new CreateMaterialForm
+        {
+            Name = "No permitido",
+            Stock = 1,
+            Unit = MaterialUnit.Unidades,
+            Origen = StockEntryOrigin.Devolucion
+        }, CancellationToken.None));
+        Assert.IsType<ForbidResult>(await scope.Controller.EditMaterial(1, new EditMaterialForm
+        {
+            MaterialId = 1,
+            Name = "No",
+            Unit = MaterialUnit.Metros
+        }, CancellationToken.None));
+        Assert.IsType<ForbidResult>(await scope.Controller.AdjustStock(1, new AdjustStockForm
+        {
+            MaterialId = 1,
+            NewStock = 1
+        }, CancellationToken.None));
+        Assert.IsType<ForbidResult>(await scope.Controller.UpdateStatus(
+            1, 1, MaterialStatus.Regular, CancellationToken.None));
+        Assert.IsType<ForbidResult>(await scope.Controller.DeleteMaterial(1, 1, CancellationToken.None));
     }
 
     [Fact]
@@ -189,7 +212,7 @@ public class PlantasInventarioDetalleTests
     }
 
     [Fact]
-    public void Detalle_Roles_AdminYEncargado_NoInstructor()
+    public void Detalle_Roles_AdminEncargadoEInstructor()
     {
         var method = typeof(PlantasInventarioController).GetMethod(nameof(PlantasInventarioController.Detalle));
         Assert.NotNull(method);
@@ -199,7 +222,7 @@ public class PlantasInventarioDetalleTests
         Assert.NotNull(roles);
         Assert.Contains(UserRoles.Administrador, roles, StringComparison.Ordinal);
         Assert.Contains(UserRoles.EncargadoDeBodega, roles, StringComparison.Ordinal);
-        Assert.DoesNotContain(UserRoles.Instructor, roles, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.Instructor, roles, StringComparison.Ordinal);
         Assert.Null(method.GetCustomAttribute<HttpPostAttribute>());
     }
 

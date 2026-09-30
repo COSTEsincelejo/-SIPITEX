@@ -66,11 +66,10 @@ Abrir `http://localhost:8080`. Postgres persiste en el volumen `sipitex-pgdata`.
 
 | Módulo | Ruta | Descripción |
 |--------|------|-------------|
-| Inventario | `/Inventario` | Materiales, stock, movimientos |
+| Plantas de inventario | `/PlantasInventario` | Catálogo y, en `/PlantasInventario/Detalle/{id}`, materiales, stock y movimientos |
 | Órdenes | `/Ordenes` | Órdenes de producción, MES y avance |
 | MRP | `/Mrp` | BOM y simulación de requerimientos |
 | Fichas | `/Fichas` | Registro de producción por grupo SENA |
-| Plantas de inventario | `/PlantasInventario` | Catálogo de plantas |
 | Solicitudes de planta | `/PlantasInventarioSolicitudes` | Cola de solicitudes de material |
 | Órdenes de planta | `/PlantasInventarioOrdenes` | Entrega / reingreso de materiales de orden |
 | Grupos de confección | `/GruposConfeccion` | Horas y prendas por grupo |

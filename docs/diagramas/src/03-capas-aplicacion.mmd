@@ -1,7 +1,7 @@
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f1fb', 'primaryTextColor': '#1a2b3c', 'primaryBorderColor': '#2c5282', 'lineColor': '#4a5568', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
 classDiagram
   direction LR
-  class InventarioController
+  class PlantasInventarioController
   class OrdenesController
   class MrpController
   class ReportesController
@@ -12,7 +12,7 @@ classDiagram
   class IMaterialRepository
   class SipitexDbContext
 
-  InventarioController --> IInventoryService
+  PlantasInventarioController --> IInventoryService
   OrdenesController --> IProductionOrderService
   MrpController --> IMrpService
   ReportesController --> IReportService

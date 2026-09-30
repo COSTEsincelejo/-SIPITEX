@@ -39,13 +39,34 @@ public class PlantasInventarioController : Controller
     }
 
     [HttpGet]
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega},{UserRoles.Instructor}")]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         var plantas = await _plantas.GetAllAsync(cancellationToken);
-        if (!User.IsInRole(UserRoles.Administrador))
+        if (User.IsInRole(UserRoles.EncargadoDeBodega) && !User.IsInRole(UserRoles.Administrador))
         {
+            var allowed = _plantaAccessor.PlantaInventarioIds;
+            if (allowed is not { Count: > 0 })
+            {
+                return View(new PlantasInventarioIndexViewModel
+                {
+                    SinPlantasAsignadas = true,
+                    Message = TempData["Message"] as string,
+                    IsSuccess = TempData["IsSuccess"] as bool? ?? false
+                });
+            }
+
             var visibles = VisiblePlantas(plantas);
+            if (visibles.Count == 0)
+            {
+                return View(new PlantasInventarioIndexViewModel
+                {
+                    SinPlantasAsignadas = true,
+                    Message = TempData["Message"] as string,
+                    IsSuccess = TempData["IsSuccess"] as bool? ?? false
+                });
+            }
+
             if (visibles.Count == 1)
                 return RedirectToAction(nameof(Detalle), new { id = visibles[0].Id });
 
@@ -66,53 +87,7 @@ public class PlantasInventarioController : Controller
     }
 
     [HttpGet]
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor},{UserRoles.EncargadoDeBodega}")]
-    public async Task<IActionResult> Consultar(
-        int? plantaInventarioId,
-        string? q = null,
-        string? nivel = null,
-        CancellationToken cancellationToken = default)
-    {
-        var plantas = VisiblePlantas(await _plantas.GetAllAsync(cancellationToken));
-        if (plantaInventarioId is int requested && plantas.All(p => p.Id != requested))
-            plantaInventarioId = null;
-
-        var materials = await _inventory.GetMaterialsByPlantaAsync(plantaInventarioId, cancellationToken);
-        var totalSinFiltro = materials.Count;
-
-        IReadOnlyList<PlantaInventarioResumenItem> resumen = [];
-        if (plantaInventarioId is null)
-        {
-            resumen = plantas.Select(p =>
-            {
-                var mats = materials.Where(m => m.PlantaInventarioId == p.Id).ToList();
-                return new PlantaInventarioResumenItem
-                {
-                    Id = p.Id,
-                    Nombre = p.Nombre,
-                    Materiales = mats.Count,
-                    Bajo = mats.Count(m => StockNivelHelper.Classify(m.Stock, m.MinStock) == StockNivel.Bajo),
-                    Critico = mats.Count(m => StockNivelHelper.Classify(m.Stock, m.MinStock) == StockNivel.Critico)
-                };
-            }).ToList();
-        }
-
-        materials = InventarioConsultaFilter.Apply(materials, q, nivel);
-
-        return View(new ConsultarPlantasInventarioViewModel
-        {
-            PlantaInventarioId = plantaInventarioId,
-            Plantas = plantas,
-            Materials = materials,
-            Resumen = resumen,
-            Q = q,
-            Nivel = nivel,
-            TotalSinFiltro = totalSinFiltro
-        });
-    }
-
-    [HttpGet]
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega},{UserRoles.Instructor}")]
     public async Task<IActionResult> Detalle(
         int id,
         string? busqueda,
@@ -134,7 +109,9 @@ public class PlantasInventarioController : Controller
             filtrados = filtrados.Where(m => CoincideNivel(m, nivel)).ToList();
 
         var esAdmin = User.IsInRole(UserRoles.Administrador);
+        var esEncargado = User.IsInRole(UserRoles.EncargadoDeBodega);
         var varias = _plantaAccessor.PlantaInventarioIds is { Count: > 1 };
+        var soloLectura = !esAdmin && !esEncargado;
 
         return View(new PlantaDetalleViewModel
         {
@@ -144,7 +121,7 @@ public class PlantasInventarioController : Controller
             Busqueda = busqueda,
             Categoria = categoria,
             Nivel = nivel,
-            MostrarVolverAlCatalogo = esAdmin || varias,
+            MostrarVolverAlCatalogo = esAdmin || soloLectura || varias,
             Materiales = filtrados.Select(m => new MaterialPlantaItem
             {
                 Id = m.Id,
@@ -175,7 +152,7 @@ public class PlantasInventarioController : Controller
     }
 
     [HttpGet]
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega},{UserRoles.Instructor}")]
     public async Task<IActionResult> Movimientos(
         DateOnly? desde,
         DateOnly? hasta,
@@ -192,7 +169,7 @@ public class PlantasInventarioController : Controller
             if (acceso.Error is not null)
                 return acceso.Error;
         }
-        else if (!User.IsInRole(UserRoles.Administrador))
+        else if (!User.IsInRole(UserRoles.Administrador) && !User.IsInRole(UserRoles.Instructor))
         {
             var allowed = _plantaAccessor.PlantaInventarioIds;
             if (allowed is null)
@@ -211,7 +188,7 @@ public class PlantasInventarioController : Controller
         if (plantaInventarioId is int pid)
             plantaNombre = (await _plantas.GetByIdAsync(pid, cancellationToken))?.Nombre;
 
-        return View("~/Views/Inventario/Movimientos.cshtml", new InventarioMovimientosViewModel
+        return View(new InventarioMovimientosViewModel
         {
             Movimientos = movements,
             Materials = materials,
@@ -231,6 +208,9 @@ public class PlantasInventarioController : Controller
         [Bind(Prefix = "CreateMaterial")] CreateMaterialForm form,
         CancellationToken cancellationToken)
     {
+        if (RechazarSiNoPuedeEscribir() is { } lectura)
+            return lectura;
+
         var acceso = await AutorizarPlantaAsync(id, cancellationToken);
         if (acceso.Error is not null)
             return acceso.Error;
@@ -257,6 +237,9 @@ public class PlantasInventarioController : Controller
     [Authorize(Roles = UserRoles.Administrador)]
     public async Task<IActionResult> EditMaterial(int id, EditMaterialForm form, CancellationToken cancellationToken)
     {
+        if (RechazarSiNoEsAdministrador() is { } soloAdmin)
+            return soloAdmin;
+
         var acceso = await AutorizarPlantaAsync(id, cancellationToken);
         if (acceso.Error is not null)
             return acceso.Error;
@@ -279,6 +262,9 @@ public class PlantasInventarioController : Controller
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
     public async Task<IActionResult> AdjustStock(int id, AdjustStockForm form, CancellationToken cancellationToken)
     {
+        if (RechazarSiNoPuedeEscribir() is { } lectura)
+            return lectura;
+
         var acceso = await AutorizarPlantaAsync(id, cancellationToken);
         if (acceso.Error is not null)
             return acceso.Error;
@@ -313,6 +299,9 @@ public class PlantasInventarioController : Controller
         MaterialStatus status,
         CancellationToken cancellationToken)
     {
+        if (RechazarSiNoPuedeEscribir() is { } lectura)
+            return lectura;
+
         var acceso = await AutorizarPlantaAsync(id, cancellationToken);
         if (acceso.Error is not null)
             return acceso.Error;
@@ -335,6 +324,9 @@ public class PlantasInventarioController : Controller
     [Authorize(Roles = UserRoles.Administrador)]
     public async Task<IActionResult> DeleteMaterial(int id, int materialId, CancellationToken cancellationToken)
     {
+        if (RechazarSiNoEsAdministrador() is { } soloAdmin)
+            return soloAdmin;
+
         var acceso = await AutorizarPlantaAsync(id, cancellationToken);
         if (acceso.Error is not null)
             return acceso.Error;
@@ -491,15 +483,16 @@ public class PlantasInventarioController : Controller
     {
         var esAdmin = User.IsInRole(UserRoles.Administrador);
         var esEncargado = User.IsInRole(UserRoles.EncargadoDeBodega);
-        if (!esAdmin && !esEncargado)
+        var esInstructor = User.IsInRole(UserRoles.Instructor);
+        if (!esAdmin && !esEncargado && !esInstructor)
             return (Forbid(), null);
 
         var planta = await _plantas.GetByIdAsync(id, cancellationToken);
         if (planta is null)
             return (NotFound(), null);
 
-        // El encargado solo opera plantas de su accessor. El admin ignora la bodega activa.
-        if (!esAdmin)
+        // El encargado solo opera plantas de su accessor. Admin e Instructor (solo lectura) no usan esa lista.
+        if (esEncargado && !esAdmin)
         {
             var allowed = _plantaAccessor.PlantaInventarioIds;
             if (allowed is null || !allowed.Contains(id))
@@ -517,6 +510,14 @@ public class PlantasInventarioController : Controller
 
         return Enum.TryParse<StockNivel>(nivel, ignoreCase: true, out var parsed) && actual == parsed;
     }
+
+    private IActionResult? RechazarSiNoPuedeEscribir() =>
+        User.IsInRole(UserRoles.Administrador) || User.IsInRole(UserRoles.EncargadoDeBodega)
+            ? null
+            : Forbid();
+
+    private IActionResult? RechazarSiNoEsAdministrador() =>
+        User.IsInRole(UserRoles.Administrador) ? null : Forbid();
 
     private bool TryGetActorUserId(out int userId)
     {
