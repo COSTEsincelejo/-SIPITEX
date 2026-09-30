@@ -25,7 +25,7 @@ Copiar carpeta `publish` al servidor IIS o ejecutar:
 
 El motor es **PostgreSQL 16** (Npgsql + EF Core). La cadena de conexión se lee de `ConnectionStrings:DefaultConnection`. En producción use variables de entorno (`ConnectionStrings__DefaultConnection`) y no deje credenciales en el repositorio.
 
-`Seed:DemoUsers` debe quedar en `false` salvo demos. Defina `ADMIN_SEED_PASSWORD` para el administrador inicial (`admin@sipitex.local`) si la base está vacía. Los usuarios `*@sipitex.test` no se crean en este entorno.
+`SEED_DEMO_DATA` debe quedar sin definir (o en `false`) salvo demos. `Seed:DemoUsers` en `appsettings.json` ya está en `false`. Defina `ADMIN_SEED_PASSWORD` para el administrador inicial (`admin@sipitex.local`) si la base no tiene administradores. Los usuarios `*@sipitex.test` no se crean en este entorno.
 
 `Costing:LaborHourRate` tiene valor de referencia **6500** (COP/hora). El Administrador puede cambiarlo en `/Costos`; el valor queda en `AppSettings`.
 
@@ -71,7 +71,7 @@ Health check: `http://localhost:8080/health` (sin autenticación).
 
 - **Reportes** (`/Reportes`): PDF (QuestPDF) y Excel (ClosedXML) de Inventario, Órdenes, Calidad y Dashboard.
 - **Alertas** (`/Alertas`): cada actor activa/desactiva notificaciones (stock bajo, solicitudes pendientes, órdenes por vencer/atrasadas, reprocesos). Botón de correo de prueba.
-- Sin usuario SMTP (`Email:User` vacío) los correos se guardan en `email-outbox/` aunque `Email:Enabled=true`.
+- Sin usuario SMTP (`Email:User` vacío) los correos se guardan en la tabla `EmailOutboxMessages` aunque `Email:Enabled=true`.
 - **Trazabilidad** (`/Trazabilidad`): códigos únicos de prenda y QR.
 
 ### Credenciales SMTP — no guardarlas en appsettings
@@ -149,7 +149,7 @@ Este agente **no crea** el servicio en la consola de Render. Hay que vincular el
 
 4. El primer arranque ejecuta `MigrateAsync` y crea el esquema en la BD administrada.
 5. Compruebe `https://<servicio>.onrender.com/healthz` → `200` y cuerpo `ok`. `/version` devuelve el commit en JSON.
-6. La pantalla de login es `https://<servicio>.onrender.com/Account/Login`. Con `Seed__DemoUsers=true` valen los usuarios demo; si no, el admin de `ADMIN_SEED_PASSWORD`.
+6. La pantalla de login es `https://<servicio>.onrender.com/Account/Login`. Con `SEED_DEMO_DATA=true` valen los usuarios demo; si no, el admin de `ADMIN_SEED_PASSWORD`.
 
 Los datos **persisten** en Postgres administrado entre reinicios del Web Service (a diferencia del SQLite efímero en disco del contenedor).
 
@@ -164,11 +164,11 @@ La URL pública la asigna Render al crear el servicio (`https://<nombre>.onrende
 Completar en el panel del Web Service (Environment). **No** pegue valores reales en el repositorio ni en esta guía.
 
 - [ ] `ConnectionStrings__DefaultConnection` — la genera Render al vincular `sipitex-db` (`fromDatabase.connectionString` en el Blueprint).
-- [ ] `Seed__DemoUsers` — `true` solo en una demo; `false` en operación.
+- [ ] `SEED_DEMO_DATA` — `true` solo en una demo; en operación no la defina (o `false`).
 - [ ] `ADMIN_SEED_PASSWORD` — contraseña del administrador inicial (`admin@sipitex.local`) si la base no tiene administradores.
 - [ ] `Email__Enabled` — `true` cuando haya SMTP; `false` si aún no.
 - [ ] `Email__User` — usuario SMTP (vacío en `appsettings.json`; solo aquí).
 - [ ] `Email__Password` — contraseña o app password SMTP (vacío en `appsettings.json`; solo aquí).
 - [ ] `Costing__LaborHourRate` — tarifa de hora de mano de obra (referencia de negocio: 6500 COP/hora; el admin puede cambiarla luego en `/Costos`).
 
-Sin `Email__User` / `Email__Password`, aunque `Email__Enabled=true`, los correos siguen yendo al outbox (`email-outbox/`). El primer arranque aplica `MigrateAsync` sobre la Postgres administrada.
+Sin `Email__User` / `Email__Password`, aunque `Email__Enabled=true`, los correos se guardan en `EmailOutboxMessages`. El primer arranque aplica `MigrateAsync` sobre la Postgres administrada. Las claves de Data Protection también quedan en esa base (`DataProtectionKeys`), así que las cookies sobreviven a un redeploy.

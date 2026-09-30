@@ -37,7 +37,7 @@
         else
         {
             <strong>Canal Outbox (demo)</strong>
-            <span> — configure <code>EMAIL_SMTP_USER</code> y <code>EMAIL_SMTP_PASSWORD</code> (o user-secrets) para habilitar el envío real. Mientras tanto los mensajes se guardan en <code>email-outbox/</code>.</span>
+            <span> — configure <code>EMAIL_SMTP_USER</code> y <code>EMAIL_SMTP_PASSWORD</code> (o user-secrets) para habilitar el envío real. Mientras tanto los mensajes se guardan en la tabla <code>EmailOutboxMessages</code>.</span>
         }
         <form asp-action="Probar" method="post" class="inline-form" style="margin-top:8px;">
             @Html.AntiForgeryToken()

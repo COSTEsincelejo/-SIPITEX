@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Logging;
 using Sipitex.Application.Interfaces.Services;
@@ -75,6 +76,11 @@ builder.Services.AddApplicationServices();
 // BD, repositorios y cosas de infraestructura
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Las claves de las cookies viven en DataProtectionKeys. Un deploy de Render no cierra sesiones.
+builder.Services.AddDataProtection()
+    .SetApplicationName("SIPITEX")
+    .PersistKeysToDbContext<SipitexDbContext>();
+
 // Login con cookies, no JWT ni nada raro
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -111,7 +117,7 @@ for (var attempt = 1; attempt <= dbInitAttempts && !dbReady; attempt++)
     {
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SipitexDbContext>();
-        var seedDemoUsers = app.Configuration.GetValue("Seed:DemoUsers", app.Environment.IsDevelopment());
+        var seedDemoUsers = ResolveSeedDemoData(app);
         var adminSeedPassword = app.Configuration["ADMIN_SEED_PASSWORD"];
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbInitializer");
         await DbInitializer.InitializeAsync(db, seedDemoUsers, adminSeedPassword, logger);
@@ -221,6 +227,17 @@ static void LogStartupFailure(string message)
     using var bootstrap = LoggerFactory.Create(logging => logging.AddConsole());
     bootstrap.CreateLogger("Startup").LogCritical(message);
     Console.Error.WriteLine("SIPITEX: arranque abortado (exit 1). " + message);
+}
+
+static bool ResolveSeedDemoData(WebApplication app)
+{
+    var raw = Environment.GetEnvironmentVariable("SEED_DEMO_DATA");
+    if (!string.IsNullOrWhiteSpace(raw))
+    {
+        return raw.Trim() is "1" or "true" or "TRUE" or "True" or "yes" or "YES" or "Yes";
+    }
+
+    return app.Configuration.GetValue("Seed:DemoUsers", app.Environment.IsDevelopment());
 }
 
 static bool RunningUnderTestHost() =>

@@ -1,9 +1,11 @@
 using MailKit.Net.Smtp; // Cliente SMTP para mandar correos de verdad
 using MailKit.Security; // StartTls, SSL...
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging; // Para loguear si mandó o simuló
 using Microsoft.Extensions.Options; // Lee EmailOptions del appsettings
 using MimeKit; // Arma el mensaje MIME (asunto, cuerpo, destinatario)
 using Sipitex.Application.Interfaces.Services; // IEmailSender
+using Sipitex.Infrastructure.Persistence;
 
 namespace Sipitex.Infrastructure.Email;
 
@@ -19,7 +21,7 @@ public class EmailOptions
     public string From { get; set; } = "sipitex@local"; // Remitente del correo
     public string FromName { get; set; } = "SIPITEX Alertas"; // Nombre que ve el destinatario
     public bool UseSsl { get; set; } = true; // Usar TLS al conectar
-    // Si no hay SMTP, guardo los correos acá como .txt (útil en desarrollo)
+    // Ya no se usa: el fallback vive en EmailOutboxMessages. Se deja para no romper appsettings viejos.
     public string OutboxPath { get; set; } = "email-outbox";
 }
 
@@ -28,12 +30,17 @@ public class EmailSender : IEmailSender
 {
     private readonly EmailOptions _options; // Config leída una vez
     private readonly ILogger<EmailSender> _logger; // Para dejar rastro en consola
+    private readonly SipitexDbContext? _db;
 
-    // El DI inyecta opciones y logger
-    public EmailSender(IOptions<EmailOptions> options, ILogger<EmailSender> logger)
+    // El DI inyecta opciones, logger y el contexto. Los tests de configuración no pasan contexto.
+    public EmailSender(
+        IOptions<EmailOptions> options,
+        ILogger<EmailSender> logger,
+        SipitexDbContext? db = null)
     {
         _options = options.Value; // .Value saca el objeto de IOptions
         _logger = logger;
+        _db = db;
     }
 
     // Reviso si hay servidor SMTP listo: host, remitente y usuario.
@@ -44,7 +51,7 @@ public class EmailSender : IEmailSender
         !string.IsNullOrWhiteSpace(_options.From) &&
         !string.IsNullOrWhiteSpace(_options.User);
 
-    // Manda el correo por SMTP o lo guarda en archivo
+    // Manda el correo por SMTP o lo guarda en la base
     public async Task SendAsync(string toEmail, string toName, string subject, string body, CancellationToken cancellationToken = default)
     {
         if (IsSmtpConfigured)
@@ -65,23 +72,17 @@ public class EmailSender : IEmailSender
             return; // Listo, salgo
         }
 
-        // Fallback: escribo el correo a un archivo en vez de mandarlo
-        var dir = Path.GetFullPath(_options.OutboxPath); // Ruta absoluta de la carpeta outbox
-        Directory.CreateDirectory(dir); // La creo si no existe
-        var file = Path.Combine(dir, $"{DateTime.Now:yyyyMMdd_HHmmss}_{Sanitize(toEmail)}_{Sanitize(subject)}.txt"); // Nombre único por timestamp
-        var content = $"To: {toName} <{toEmail}>\nSubject: {subject}\nSentAt: {DateTime.Now:O}\n\n{body}\n"; // Contenido legible
-        await File.WriteAllTextAsync(file, content, cancellationToken);
-        _logger.LogInformation("Correo simulado (outbox) para {Email}: {File}", toEmail, file);
+        if (_db is null)
+            throw new InvalidOperationException("No hay base de datos para guardar el correo en el outbox.");
+
+        // INSERT directo: no arrastra otros cambios pendientes del mismo DbContext.
+        // El cuerpo (códigos de confirmación) no se escribe en el log.
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO "EmailOutboxMessages" ("ToEmail", "ToName", "Subject", "Body", "CreatedAtUtc")
+            VALUES ({toEmail}, {toName}, {subject}, {body}, {DateTime.UtcNow})
+            """,
+            cancellationToken);
+        _logger.LogInformation("Correo guardado en la base (outbox) para {Email}: {Subject}", toEmail, subject);
     }
-
-    // Quito caracteres raros del nombre del archivo
-    private static string Sanitize(string value) =>
-        string.Concat(value.Where(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_')).Truncate(40);
-}
-
-// Helper chiquito para acortar strings en el nombre del archivo
-file static class StringExtensions
-{
-    public static string Truncate(this string value, int max) =>
-        value.Length <= max ? value : value[..max]; // Corto si se pasa del límite
 }

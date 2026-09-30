@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore; // Consultas async y MigrateAsync
 using Microsoft.Extensions.Logging;
 using Sipitex.Application.Helpers; // PasswordHasher para los usuarios de prueba
@@ -13,8 +12,6 @@ namespace Sipitex.Infrastructure.Data;
 public static class DbInitializer
 {
     public const string ProductionAdminEmail = "admin@sipitex.local";
-    public const string OwnerAdminEmail = "cristianccbr@gmail.com";
-    public const string OwnerAdminPassword = "Qweasd123";
     public const string DemoAdminEmail = "admin@sipitex.test";
     public const string DemoInstructorEmail = "instructor@sipitex.test";
     public const string DemoEncargadoEmail = "bodega@sipitex.test";
@@ -32,8 +29,8 @@ public static class DbInitializer
         await EnsureAddFichaTurnoCompatibleAsync(context);
         await context.Database.MigrateAsync();
 
-        // Solo meto datos de demo si la tabla está vacía
-        if (!await context.Materials.AnyAsync())
+        // Materiales, órdenes y fichas de ejemplo solo con SEED_DEMO_DATA / Seed:DemoUsers.
+        if (seedDemoUsers && !await context.Materials.AnyAsync())
         {
             var today = DateOnly.FromDateTime(DateTime.Today); // Fecha de hoy para LastEntryDate
             // Cuatro materiales de ejemplo para probar inventario y BOM
@@ -112,8 +109,7 @@ public static class DbInitializer
                 new Ficha { NumeroGrupo = "FICHA-C2", ProcessName = "Corte", InstructorName = "Carlos Méndez", Turno = "Mañana", ProductionOrderId = op1.Id },
                 new Ficha { NumeroGrupo = "FICHA-E3", ProcessName = "Confección", InstructorName = "Ana Rojas", Turno = "Tarde", ProductionOrderId = op2.Id });
 
-            SeedRequirements(context); // RF y RNF del proyecto académico
-            await context.SaveChangesAsync(); // Persisto fichas y requisitos
+            await context.SaveChangesAsync();
         }
 
         // Usuarios demo solo con Seed:DemoUsers (Development). Producción: un admin si no hay ninguno.
@@ -127,8 +123,7 @@ public static class DbInitializer
             await EnsureProductionAdminAsync(context, adminSeedPassword, logger);
         }
 
-        await EnsureOwnerAdminAsync(context);
-
+        await SeedRequirementsAsync(context);
         await LinkFichasToInstructorUsersAsync(context);
         await SeedAlertPreferencesAsync(context);
         await EnsureBomProductsAndSnapshotsAsync(context);
@@ -332,9 +327,14 @@ public static class DbInitializer
         if (await context.Users.AnyAsync(u => u.Rol == UserRoles.Administrador))
             return;
 
-        var fromEnv = !string.IsNullOrWhiteSpace(adminSeedPassword)
-            && adminSeedPassword.Length >= PasswordRules.MinLength;
-        var password = fromEnv ? adminSeedPassword!.Trim() : GenerateStartupPassword();
+        var password = adminSeedPassword?.Trim();
+        if (string.IsNullOrWhiteSpace(password) || password.Length < PasswordRules.MinLength)
+        {
+            logger?.LogWarning(
+                "No hay administrador y ADMIN_SEED_PASSWORD no está definida o es demasiado corta. No se creó {Email}.",
+                ProductionAdminEmail);
+            return;
+        }
 
         context.Users.Add(new User
         {
@@ -348,38 +348,9 @@ public static class DbInitializer
         });
         await context.SaveChangesAsync();
 
-        logger?.LogWarning(
-            "Administrador inicial de producción creado. Correo: {Email}. Contraseña temporal: {Password}. Cámbiela en el perfil tras el primer ingreso.",
-            ProductionAdminEmail,
-            password);
-    }
-
-    private static async Task EnsureOwnerAdminAsync(SipitexDbContext context)
-    {
-        var exists = await context.Users.AnyAsync(u => u.Email == OwnerAdminEmail);
-        if (exists)
-            return;
-
-        context.Users.Add(new User
-        {
-            Nombre = "Cristian",
-            Email = OwnerAdminEmail,
-            PasswordHash = PasswordHasher.Hash(OwnerAdminPassword),
-            Rol = UserRoles.Administrador,
-            PermisosExtendidos = string.Empty,
-            IsActive = true,
-            EmailConfirmed = true
-        });
-        await context.SaveChangesAsync();
-    }
-
-    private static string GenerateStartupPassword()
-    {
-        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-        Span<char> buffer = stackalloc char[16];
-        for (var i = 0; i < buffer.Length; i++)
-            buffer[i] = chars[RandomNumberGenerator.GetInt32(chars.Length)];
-        return new string(buffer);
+        logger?.LogInformation(
+            "Administrador inicial de producción creado: {Email}. La contraseña no se registra.",
+            ProductionAdminEmail);
     }
 
     // Une fichas con usuarios instructor por nombre y rellena la tabla M2M FichaInstructors
@@ -478,9 +449,17 @@ public static class DbInitializer
         await context.SaveChangesAsync();
     }
 
-    // Tabla de trazabilidad RF/RNF del proyecto académico
-    private static void SeedRequirements(SipitexDbContext context)
+    // Tabla de trazabilidad RF/RNF del proyecto académico. Idempotente por código.
+    private static async Task SeedRequirementsAsync(SipitexDbContext context)
     {
+        var existingRf = await context.FunctionalRequirements
+            .Select(r => r.Code)
+            .ToListAsync();
+        var existingRnf = await context.NonFunctionalRequirements
+            .Select(r => r.Code)
+            .ToListAsync();
+        var rfCodes = existingRf.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var rnfCodes = existingRnf.ToHashSet(StringComparer.OrdinalIgnoreCase);
         // Array con todos los requisitos funcionales y su estado de cumplimiento
         var rf = new[]
         {
@@ -508,6 +487,8 @@ public static class DbInitializer
 
         foreach (var (code, desc, module, status, obs) in rf)
         {
+            if (!rfCodes.Add(code))
+                continue;
             context.FunctionalRequirements.Add(new FunctionalRequirement
             {
                 Code = code,
@@ -533,6 +514,8 @@ public static class DbInitializer
 
         foreach (var (code, desc, status, obs) in rnf)
         {
+            if (!rnfCodes.Add(code))
+                continue;
             context.NonFunctionalRequirements.Add(new NonFunctionalRequirement
             {
                 Code = code,
@@ -541,5 +524,8 @@ public static class DbInitializer
                 Observation = obs
             });
         }
+
+        if (context.ChangeTracker.HasChanges())
+            await context.SaveChangesAsync();
     }
 }

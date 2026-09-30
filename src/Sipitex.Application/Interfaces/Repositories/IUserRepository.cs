@@ -18,4 +18,15 @@ public interface IUserRepository
 
     // Motivos que impiden hard-delete (historial / FKs de auditoría)
     Task<IReadOnlyList<string>> GetDeletionBlockersAsync(int userId, CancellationToken cancellationToken = default);
+
+    Task<UserProfilePhoto?> GetProfilePhotoAsync(int userId, CancellationToken cancellationToken = default);
+
+    Task UpsertProfilePhotoAsync(
+        int userId,
+        byte[] content,
+        string contentType,
+        string fileName,
+        CancellationToken cancellationToken = default);
+
+    Task RemoveProfilePhotoAsync(int userId, CancellationToken cancellationToken = default);
 }

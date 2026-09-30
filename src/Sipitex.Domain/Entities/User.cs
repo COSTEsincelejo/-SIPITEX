@@ -49,7 +49,7 @@ public class User
     // Permisos extra en texto, separados por comas (los parseo con ExtendedPermissions)
     public string PermisosExtendidos { get; set; } = string.Empty;
 
-    // Ruta web de la foto, ej: /uploads/profiles/1_abc.jpg (null = sin foto)
+    // Ruta web de la foto. Las nuevas quedan en /Account/Photo/{id} (bytes en UserProfilePhotos).
     public string? PhotoPath { get; set; }
 
     // Texto libre de qué hace en su rol (lo escribe él en el perfil)

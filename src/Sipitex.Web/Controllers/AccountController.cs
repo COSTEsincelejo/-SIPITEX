@@ -260,19 +260,24 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
-        string? newPhotoPath = null;
         string? previousPhotoPath = user.PhotoPath;
+        byte[]? photoBytes = null;
+        string? photoContentType = null;
+        string? photoFileName = null;
 
-        // Si subieron archivo, lo guardo en disco primero
+        // La imagen queda en la base, no en wwwroot. Si el update falla, no hay archivo huérfano.
         if (photo is { Length: > 0 })
         {
-            var saveResult = await SaveProfilePhotoAsync(user.Id, photo, cancellationToken);
-            if (!saveResult.Success)
+            var read = await ReadProfilePhotoAsync(photo, cancellationToken);
+            if (!read.Success)
             {
-                ModelState.AddModelError(string.Empty, saveResult.Error!);
+                ModelState.AddModelError(string.Empty, read.Error!);
                 return View(model);
             }
-            newPhotoPath = saveResult.Path;
+
+            photoBytes = read.Content;
+            photoContentType = read.ContentType;
+            photoFileName = read.FileName;
             model.RemovePhoto = false;
         }
 
@@ -282,23 +287,22 @@ public class AccountController : Controller
             model.Email,
             model.FuncionDescripcion,
             model.NewPassword,
-            newPhotoPath,
+            photoPath: null,
             model.RemovePhoto,
-            cancellationToken);
+            cancellationToken,
+            photoBytes,
+            photoContentType,
+            photoFileName);
 
         if (!result.Success)
         {
-            // Si falló el update, borro la foto nueva para no dejar basura en uploads
-            if (!string.IsNullOrWhiteSpace(newPhotoPath))
-                DeleteProfilePhotoFile(newPhotoPath);
             ModelState.AddModelError(string.Empty, result.Message ?? "No se pudo actualizar el perfil.");
             return View(model);
         }
 
-        // Solo borro la foto vieja si realmente cambió o la quitaron
-        if ((model.RemovePhoto || !string.IsNullOrWhiteSpace(newPhotoPath)) &&
-            !string.IsNullOrWhiteSpace(previousPhotoPath) &&
-            !string.Equals(previousPhotoPath, newPhotoPath, StringComparison.OrdinalIgnoreCase))
+        // Limpia una foto vieja que todavía estuviera en disco (deploys anteriores).
+        if ((model.RemovePhoto || photoBytes is not null) &&
+            !string.IsNullOrWhiteSpace(previousPhotoPath))
         {
             DeleteProfilePhotoFile(previousPhotoPath);
         }
@@ -502,6 +506,17 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult AccessDenied() => View();
 
+    // La foto se sirve desde la base. Antes era un archivo estático público.
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> Photo(int id, CancellationToken cancellationToken)
+    {
+        if (id <= 0) return NotFound();
+        var photo = await _userAccountService.GetProfilePhotoAsync(id, cancellationToken);
+        if (photo is null || photo.Content.Length == 0) return NotFound();
+        return File(photo.Content, photo.ContentType);
+    }
+
     // Saco el usuario de la cookie y lo busco en BD (más confiable que solo leer claims)
     private async Task<User?> GetCurrentUserAsync(CancellationToken cancellationToken)
     {
@@ -556,34 +571,31 @@ public class AccountController : Controller
         FuncionDescripcion = user.FuncionDescripcion
     };
 
-    // Guarda la imagen en wwwroot/uploads/profiles con nombre único
-    private async Task<(bool Success, string? Path, string? Error)> SaveProfilePhotoAsync(
-        int userId,
+    // Lee la imagen en memoria. El servicio la persiste en UserProfilePhotos.
+    private async Task<(bool Success, byte[]? Content, string? ContentType, string? FileName, string? Error)> ReadProfilePhotoAsync(
         IFormFile photo,
         CancellationToken cancellationToken)
     {
         if (photo.Length > MaxPhotoBytes)
-            return (false, null, "La foto no puede superar 2 MB.");
+            return (false, null, null, null, "La foto no puede superar 2 MB.");
 
         var extension = Path.GetExtension(photo.FileName);
         if (string.IsNullOrWhiteSpace(extension) || !AllowedPhotoExtensions.Contains(extension))
-            return (false, null, "Formato no válido. Use JPG, PNG o WEBP.");
+            return (false, null, null, null, "Formato no válido. Use JPG, PNG o WEBP.");
 
         var contentType = photo.ContentType?.ToLowerInvariant() ?? string.Empty;
         if (!contentType.StartsWith("image/", StringComparison.Ordinal))
-            return (false, null, "El archivo debe ser una imagen.");
+            return (false, null, null, null, "El archivo debe ser una imagen.");
 
-        var uploadsRoot = Path.Combine(_environment.WebRootPath, "uploads", "profiles");
-        Directory.CreateDirectory(uploadsRoot);
+        await using var buffer = new MemoryStream();
+        await photo.CopyToAsync(buffer, cancellationToken);
+        var fileName = Path.GetFileName(photo.FileName);
+        if (string.IsNullOrWhiteSpace(fileName))
+            fileName = "foto" + extension.ToLowerInvariant();
+        if (fileName.Length > 260)
+            fileName = fileName[^260..];
 
-        var fileName = $"{userId}_{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-        var physicalPath = Path.Combine(uploadsRoot, fileName);
-
-        await using (var stream = System.IO.File.Create(physicalPath))
-            await photo.CopyToAsync(stream, cancellationToken);
-
-        // Ruta relativa para guardar en BD y mostrar en el HTML
-        return (true, $"/uploads/profiles/{fileName}", null);
+        return (true, buffer.ToArray(), contentType, fileName, null);
     }
 
     // Por seguridad solo borro archivos dentro de uploads/profiles
