@@ -57,22 +57,47 @@ builder.Services.AddHostedService<Sipitex.Web.Hosting.AlertEvaluationHostedServi
 var app = builder.Build();
 
 // Al arrancar, asegura que la BD tenga datos iniciales si hace falta.
-// Si falla, se registra la causa y se relanza: un deploy roto no debe quedar a medias.
-try
+// Un fallo transitorio (Postgres aún no acepta conexiones) se reintenta.
+// Un fallo definitivo termina con código 1: re-lanzar la excepción en Linux acaba en SIGSEGV (139).
+const int dbInitAttempts = 5;
+var dbReady = false;
+for (var attempt = 1; attempt <= dbInitAttempts && !dbReady; attempt++)
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<SipitexDbContext>();
-    var seedDemoUsers = app.Configuration.GetValue("Seed:DemoUsers", app.Environment.IsDevelopment());
-    var adminSeedPassword = app.Configuration["ADMIN_SEED_PASSWORD"];
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbInitializer");
-    await DbInitializer.InitializeAsync(db, seedDemoUsers, adminSeedPassword, logger);
-}
-catch (Exception ex)
-{
-    app.Logger.LogCritical(
-        ex,
-        "El arranque falló al preparar la base de datos. Revise ConnectionStrings__DefaultConnection y que PostgreSQL acepte conexiones. El proceso se detiene para que Render conserve la instancia anterior.");
-    throw;
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SipitexDbContext>();
+        var seedDemoUsers = app.Configuration.GetValue("Seed:DemoUsers", app.Environment.IsDevelopment());
+        var adminSeedPassword = app.Configuration["ADMIN_SEED_PASSWORD"];
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbInitializer");
+        await DbInitializer.InitializeAsync(db, seedDemoUsers, adminSeedPassword, logger);
+        dbReady = true;
+    }
+    catch (Exception ex) when (attempt < dbInitAttempts && DatabaseAvailability.IsStartupTransient(ex))
+    {
+        var detail = DatabaseAvailability.Describe(ex);
+        app.Logger.LogWarning(
+            ex,
+            "PostgreSQL no respondió (intento {Attempt} de {Max}). {Detail} Nuevo intento en 2 s.",
+            attempt,
+            dbInitAttempts,
+            detail);
+        await Task.Delay(TimeSpan.FromSeconds(2));
+    }
+    catch (Exception ex)
+    {
+        var detail = DatabaseAvailability.Describe(ex);
+        app.Logger.LogCritical(
+            ex,
+            "El arranque falló al preparar la base de datos y no se reintenta. {Detail} Revise ConnectionStrings__DefaultConnection.",
+            detail);
+        Console.Error.WriteLine("SIPITEX: arranque abortado (exit 1). " + detail);
+        if (RunningUnderTestHost())
+            throw;
+
+        Environment.ExitCode = 1;
+        return;
+    }
 }
 
 // En producción no mostramos el stack trace feo al usuario
@@ -146,6 +171,10 @@ app.MapControllerRoute(
     pattern: "{controller=Inventario}/{action=Index}/{id?}");
 
 app.Run(); // levanta el servidor
+
+static bool RunningUnderTestHost() =>
+    AppDomain.CurrentDomain.GetAssemblies().Any(static assembly =>
+        string.Equals(assembly.GetName().Name, "Microsoft.AspNetCore.Mvc.Testing", StringComparison.Ordinal));
 
 // Lo pide el proyecto de tests de integración para levantar la app
 public partial class Program;

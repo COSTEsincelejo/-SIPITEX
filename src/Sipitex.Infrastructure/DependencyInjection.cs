@@ -21,8 +21,8 @@ public static class DependencyInjection
     // Método de extensión que llama Program.cs para cablear todo
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? PostgresDefaults.LocalConnectionString;
+        var connectionString = PostgresConnectionStrings.Normalize(
+            configuration.GetConnectionString("DefaultConnection") ?? PostgresDefaults.LocalConnectionString);
 
         services.TryAddScoped<IAuditActorAccessor, NullAuditActorAccessor>();
         services.AddScoped<AuditSaveChangesInterceptor>();

@@ -8,7 +8,7 @@ La app se construye con el `Dockerfile` de la raíz (runtime Docker, no .NET nat
 
 - `PORT` — la inyecta Render. No la fije en 8080 en el panel.
 - `ASPNETCORE_ENVIRONMENT` — `Production`.
-- `ConnectionStrings__DefaultConnection` — Postgres administrado (`fromDatabase` en el Blueprint).
+- `ConnectionStrings__DefaultConnection` — Postgres administrado (`fromDatabase` en el Blueprint). Vale la URL `postgres://` de Render o una cadena `Host=...;Password=...`. La app la convierte y desactiva el cifrado GSS: sin eso, la imagen `aspnet` muere con exit 139 en la primera consulta.
 - `RENDER_GIT_COMMIT` — la inyecta Render en build y en runtime. El footer muestra los primeros 7 caracteres. Sin valor, el texto es `local`.
 - `Seed__DemoUsers` — `true` solo en una demo.
 - `ADMIN_SEED_PASSWORD` — admin inicial si la base no tiene administradores.
@@ -27,7 +27,7 @@ Si el hash no es el de `main`, producción no está corriendo ese commit.
 ## Si un deploy falla
 
 1. En el panel de Render, Events del servicio: el build o el health check quedaron en rojo y el tráfico sigue en la instancia anterior.
-2. Logs de arranque: un `LogCritical` de base de datos indica cadena de conexión o Postgres inalcanzable. Las migraciones toleran una base ya creada; un esquema a medias sí detiene el proceso.
+2. Logs de arranque: un `LogCritical` y la línea `SIPITEX: arranque abortado (exit 1)` indican cadena de conexión o Postgres inalcanzable. Si la base aún no acepta conexiones, hay hasta 5 intentos con 2 s de espera. Un esquema a medias detiene el proceso con código 1 (no 139).
 3. Health check path: `/healthz`.
 4. Clear build cache & deploy, luego `GET /version`.
 
