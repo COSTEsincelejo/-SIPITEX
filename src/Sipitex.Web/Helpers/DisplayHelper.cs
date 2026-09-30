@@ -5,6 +5,17 @@ namespace Sipitex.Web.Helpers;
 // Esta clase ayuda a mostrar etiquetas visuales en la interfaz, como colores de estado.
 public static class DisplayHelper
 {
+    // Hash corto del deploy. Render inyecta RENDER_GIT_COMMIT; en local queda "local".
+    public static string BuildLabel(string? commit = null)
+    {
+        commit ??= Environment.GetEnvironmentVariable("RENDER_GIT_COMMIT");
+        if (string.IsNullOrWhiteSpace(commit))
+            return "local";
+
+        var trimmed = commit.Trim();
+        return trimmed.Length <= 7 ? trimmed : trimmed[..7];
+    }
+
     // Devuelve la clase CSS del badge según el estado del material
     public static string BadgeClass(MaterialStatus status) => status switch
     {
