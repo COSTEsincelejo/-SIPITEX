@@ -144,23 +144,30 @@
                     <div class="breadcrumb">@breadcrumb</div>
                 </div>
             </div>
-            @* Buscador global: módulos (JS) + entidades (/api/busqueda) *@
             @if (User.Identity?.IsAuthenticated == true)
             {
-                <div class="topbar-search" id="globalSearch" data-search-api="@Url.Content("~/api/busqueda")">
+                <div class="topbar-search" id="globalSearch" data-search-api="@Url.Action("Sugerencias", "Buscar")">
                     <div class="search-field">
                         <i class="fas fa-magnifying-glass search-icon" aria-hidden="true"></i>
                         <input type="search"
                                id="globalSearchInput"
                                class="search-input"
+                               role="combobox"
                                placeholder="Buscar en SIPITEX..."
                                autocomplete="off"
                                aria-label="Buscar en SIPITEX"
                                aria-autocomplete="list"
                                aria-controls="globalSearchResults"
-                               aria-expanded="false" />
+                               aria-expanded="false"
+                               aria-haspopup="listbox"
+                               aria-keyshortcuts="Control+K"
+                               aria-busy="false" />
+                        <span class="search-loading" hidden>
+                            <span class="search-spinner" aria-hidden="true"></span>
+                            <span class="visually-hidden">Buscando</span>
+                        </span>
                     </div>
-                    <div class="search-dropdown" id="globalSearchResults" role="listbox" hidden></div>
+                    <div class="search-dropdown" id="globalSearchResults" role="listbox" aria-label="Sugerencias de búsqueda" hidden></div>
                 </div>
             }
             <div class="topbar-right">

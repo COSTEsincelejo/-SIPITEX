@@ -270,7 +270,6 @@
       });
     });
 
-    // Buscador global del header (módulos estáticos + /api/busqueda)
     initGlobalSearch();
   });
 
@@ -278,91 +277,111 @@
     const root = document.getElementById('globalSearch');
     const input = document.getElementById('globalSearchInput');
     const dropdown = document.getElementById('globalSearchResults');
+    const loading = root ? root.querySelector('.search-loading') : null;
     if (!root || !input || !dropdown) return;
 
-    const apiUrl = root.getAttribute('data-search-api') || '/api/busqueda';
-    const modules = [
-      { texto: 'Plantas de inventario', url: '/PlantasInventario', keywords: 'inventario materiales stock plantas bodega plantaInventario', icon: 'fa-warehouse' },
-      { texto: 'Órdenes de producción', url: '/Ordenes', keywords: 'ordenes órdenes producción op', icon: 'fa-clipboard-list' },
-      { texto: 'MRP / Materiales', url: '/Mrp', keywords: 'mrp bom materiales requerimientos ficha técnica', icon: 'fa-diagram-project' },
-      { texto: 'Fichas & producción', url: '/Fichas', keywords: 'fichas producción instructor turno', icon: 'fa-people-group' },
-      { texto: 'Mis solicitudes', url: '/SolicitudesMaterial', keywords: 'solicitudes material pedido', icon: 'fa-clipboard-list' },
-      { texto: 'Solicitudes de materiales', url: '/PlantasInventarioSolicitudes', keywords: 'plantaInventario solicitudes materiales cola', icon: 'fa-truck-ramp-box' },
-      { texto: 'Materiales de órdenes', url: '/PlantasInventarioOrdenes', keywords: 'materiales órdenes entrega planta inventario', icon: 'fa-clipboard-check' },
-      { texto: 'Reingreso desde etapas', url: '/PlantasInventarioOrdenes/Reingreso', keywords: 'reingreso etapas trazo corte confección', icon: 'fa-rotate-left' },
-      { texto: 'Movimientos de stock', url: '/PlantasInventario/Movimientos', keywords: 'movimientos stock historial entrada salida', icon: 'fa-clock-rotate-left' },
-      { texto: 'Actas de ingreso/egreso', url: '/Actas', keywords: 'actas ingreso egreso conformidad firma pdf', icon: 'fa-file-signature' },
-      { texto: 'Trazabilidad', url: '/Trazabilidad', keywords: 'trazabilidad código único prenda qr sip', icon: 'fa-barcode' },
-      { texto: 'Control de calidad', url: '/Calidad', keywords: 'calidad inspección reproceso bueno regular malo', icon: 'fa-clipboard-check' },
-      { texto: 'Grupos de confección', url: '/GruposConfeccion', keywords: 'grupo confección instructor prendas', icon: 'fa-people-group' },
-      { texto: 'Consumo de materiales', url: '/Consumos', keywords: 'consumo materiales ficha costo promedio', icon: 'fa-scissors' },
-      { texto: 'Costeo de prendas', url: '/Costos', keywords: 'costeo costo tarifa mano de obra', icon: 'fa-coins' },
-      { texto: 'Estadísticas', url: '/Estadisticas', keywords: 'estadísticas kpi dashboard gráficos', icon: 'fa-chart-line' },
-      { texto: 'Reportes', url: '/Reportes', keywords: 'reportes pdf excel exportar', icon: 'fa-file-export' },
-      { texto: 'Alertas', url: '/Alertas', keywords: 'alertas notificaciones correo', icon: 'fa-bell' },
-      { texto: 'Usuarios', url: '/Account/Users', keywords: 'usuarios administración cuentas', icon: 'fa-users-gear' },
-      { texto: 'Inventario por bodega', url: '/PlantasInventario/Consultar', keywords: 'inventario bodega planta stock insumos faltantes', icon: 'fa-clipboard-list' },
-      { texto: 'Mi perfil', url: '/Account/Profile', keywords: 'perfil cuenta foto contraseña', icon: 'fa-user' }
-    ];
-
-    const categoryIcons = {
-      'Módulos': 'fa-compass',
-      'Materiales': 'fa-boxes-stacked',
-      'Órdenes': 'fa-clipboard-list',
-      'Fichas': 'fa-people-group',
-      'Solicitudes': 'fa-truck-ramp-box',
-      'Trazabilidad': 'fa-barcode'
-    };
-
+    const apiUrl = root.getAttribute('data-search-api') || '/Buscar/Sugerencias';
+    const ejemplosBase = ['OP-001', 'stock crítico planta 1', 'camisa'];
     let debounceTimer = null;
     let activeIndex = -1;
     let flatItems = [];
     let abortController = null;
-    const DEBOUNCE_MS = 300;
+    let requestSeq = 0;
+    const DEBOUNCE_MS = 250;
 
-    function normalize(text) {
+    function fold(text) {
       return (text || '')
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '');
     }
 
-    function matchModules(query) {
-      const nq = normalize(query);
-      if (!nq) return [];
-      return modules
-        .filter((m) => normalize(m.texto).includes(nq) || normalize(m.keywords).includes(nq))
-        .slice(0, 8)
-        .map((m) => ({
-          texto: m.texto,
-          url: m.url,
-          categoria: 'Módulos',
-          icon: m.icon
-        }));
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    function highlight(text, query) {
+      const source = String(text || '');
+      const tokens = fold(query).split(/\s+/).filter((t) => t.length >= 2);
+      if (!tokens.length) return escapeHtml(source);
+
+      const starts = [];
+      let folded = '';
+      for (let i = 0; i < source.length; i++) {
+        const ch = fold(source[i]);
+        for (let k = 0; k < ch.length; k++) starts.push(i);
+        folded += ch;
+      }
+
+      const marks = [];
+      tokens.forEach((token) => {
+        let from = 0;
+        while (from < folded.length) {
+          const at = folded.indexOf(token, from);
+          if (at < 0) break;
+          marks.push([at, at + token.length]);
+          from = at + token.length;
+        }
+      });
+      if (!marks.length) return escapeHtml(source);
+
+      marks.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+      const merged = [];
+      marks.forEach((range) => {
+        const last = merged[merged.length - 1];
+        if (!last || range[0] > last[1]) merged.push(range.slice());
+        else last[1] = Math.max(last[1], range[1]);
+      });
+
+      let html = '';
+      let cursor = 0;
+      merged.forEach(([start, end]) => {
+        const origStart = starts[start];
+        const origEnd = (starts[end] ?? source.length);
+        if (origStart > cursor) html += escapeHtml(source.slice(cursor, origStart));
+        html += '<mark class="search-mark">' + escapeHtml(source.slice(origStart, origEnd)) + '</mark>';
+        cursor = origEnd;
+      });
+      html += escapeHtml(source.slice(cursor));
+      return html;
+    }
+
+    function setExpanded(open) {
+      dropdown.hidden = !open;
+      input.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (!open) input.removeAttribute('aria-activedescendant');
+    }
+
+    function setLoading(on) {
+      input.setAttribute('aria-busy', on ? 'true' : 'false');
+      if (loading) loading.hidden = !on;
     }
 
     function closeDropdown() {
-      dropdown.hidden = true;
+      setLoading(false);
       dropdown.innerHTML = '';
-      input.setAttribute('aria-expanded', 'false');
+      setExpanded(false);
       activeIndex = -1;
       flatItems = [];
     }
 
-    function openDropdown() {
-      dropdown.hidden = false;
-      input.setAttribute('aria-expanded', 'true');
-    }
-
     function setActive(index) {
       const nodes = dropdown.querySelectorAll('[data-search-item]');
-      nodes.forEach((el) => el.classList.remove('is-active'));
+      nodes.forEach((el) => {
+        el.classList.remove('is-active');
+        el.removeAttribute('aria-selected');
+      });
       if (index < 0 || index >= nodes.length) {
         activeIndex = -1;
+        input.removeAttribute('aria-activedescendant');
         return;
       }
       activeIndex = index;
       nodes[index].classList.add('is-active');
+      nodes[index].setAttribute('aria-selected', 'true');
+      input.setAttribute('aria-activedescendant', nodes[index].id);
       nodes[index].scrollIntoView({ block: 'nearest' });
     }
 
@@ -371,127 +390,202 @@
       window.location.href = url;
     }
 
-    function render(query, entityItems) {
-      const moduleItems = matchModules(query);
-      const all = [...moduleItems, ...(entityItems || [])];
-      flatItems = all;
-
-      if (!all.length) {
-        const safe = query.replace(/[<>&"]/g, '');
-        dropdown.innerHTML = `<div class="search-empty">Sin resultados para '<strong></strong>'</div>`;
-        dropdown.querySelector('strong').textContent = safe;
-        openDropdown();
-        activeIndex = -1;
-        return;
-      }
-
-      const groups = new Map();
-      all.forEach((item, idx) => {
-        const cat = item.categoria || 'Otros';
-        if (!groups.has(cat)) groups.set(cat, []);
-        groups.get(cat).push({ ...item, _idx: idx });
-      });
-
-      const parts = [];
-      for (const [cat, items] of groups) {
-        parts.push(`<div class="search-group-label">${cat}</div>`);
-        items.forEach((item) => {
-          const icon = item.icon || categoryIcons[cat] || 'fa-search';
-          parts.push(
-            `<a class="search-item" role="option" href="${item.url}" data-search-item data-index="${item._idx}">` +
-            `<i class="fas ${icon}" aria-hidden="true"></i><span></span></a>`
-          );
+    function renderExamples(message, ejemplos) {
+      const lista = (ejemplos && ejemplos.length) ? ejemplos : ejemplosBase;
+      flatItems = [];
+      activeIndex = -1;
+      input.removeAttribute('aria-activedescendant');
+      dropdown.innerHTML =
+        '<div class="search-empty"></div><div class="search-examples"></div>';
+      dropdown.querySelector('.search-empty').textContent = message;
+      const host = dropdown.querySelector('.search-examples');
+      lista.forEach((ejemplo) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'search-example';
+        btn.textContent = ejemplo;
+        btn.addEventListener('click', () => {
+          input.value = ejemplo;
+          input.focus();
+          runSearch(ejemplo, false);
         });
-      }
-      dropdown.innerHTML = parts.join('');
-      dropdown.querySelectorAll('[data-search-item]').forEach((el) => {
-        const idx = Number(el.getAttribute('data-index'));
-        const span = el.querySelector('span');
-        if (span && flatItems[idx]) span.textContent = flatItems[idx].texto;
-        el.addEventListener('mouseenter', () => setActive(idx));
+        host.appendChild(btn);
       });
-      openDropdown();
-      setActive(all.length ? 0 : -1);
+      setExpanded(true);
     }
 
-    async function runSearch(query) {
-      const q = (query || '').trim();
-      if (!q) {
-        closeDropdown();
+    function render(query, data) {
+      const grupos = Array.isArray(data?.grupos) ? data.grupos : [];
+      const ejemplos = Array.isArray(data?.ejemplos) ? data.ejemplos : [];
+      const entendi = typeof data?.entendi === 'string' ? data.entendi : '';
+      flatItems = [];
+      grupos.forEach((grupo) => {
+        (grupo.items || []).forEach((item) => {
+          flatItems.push({
+            texto: item.texto || '',
+            url: item.url || '',
+            destino: item.destino || '',
+            icono: item.icono || 'fa-search',
+            tipo: grupo.tipo || 'Resultados'
+          });
+        });
+      });
+
+      if (!flatItems.length) {
+        const mensaje = entendi
+          ? entendi + '. Prueba con un ejemplo:'
+          : 'No reconocí la búsqueda. Prueba con:';
+        renderExamples(mensaje, ejemplos);
         return;
       }
 
-      const modulesOnly = matchModules(q);
-      // Feedback inmediato con módulos; "sin resultados" solo tras la API
-      if (modulesOnly.length) render(q, []);
+      dropdown.innerHTML = '';
+      if (entendi) {
+        const frase = document.createElement('div');
+        frase.className = 'search-entendi';
+        frase.textContent = entendi;
+        dropdown.appendChild(frase);
+      }
+
+      let idx = 0;
+      grupos.forEach((grupo) => {
+        const items = grupo.items || [];
+        if (!items.length) return;
+        const label = document.createElement('div');
+        label.className = 'search-group-label';
+        label.textContent = grupo.tipo || 'Resultados';
+        dropdown.appendChild(label);
+        items.forEach(() => {
+          const item = flatItems[idx];
+          const el = document.createElement('a');
+          el.className = 'search-item';
+          el.setAttribute('role', 'option');
+          el.setAttribute('data-search-item', '');
+          el.id = 'search-opt-' + idx;
+          el.setAttribute('data-index', String(idx));
+          el.href = item.url;
+          const icon = document.createElement('i');
+          icon.className = 'fas ' + (item.icono || 'fa-search');
+          icon.setAttribute('aria-hidden', 'true');
+          const body = document.createElement('span');
+          body.className = 'search-item-body';
+          const text = document.createElement('span');
+          text.className = 'search-item-text';
+          text.innerHTML = highlight(item.texto, query);
+          const dest = document.createElement('span');
+          dest.className = 'search-item-dest';
+          dest.textContent = item.destino || '';
+          body.append(text, dest);
+          el.append(icon, body);
+          const current = idx;
+          el.addEventListener('mouseenter', () => setActive(current));
+          dropdown.appendChild(el);
+          idx += 1;
+        });
+      });
+      setExpanded(true);
+      setActive(-1);
+    }
+
+    async function runSearch(query, openBest) {
+      const q = (query || '').trim();
+      const seq = ++requestSeq;
+      if (q.length < 2) {
+        if (abortController) abortController.abort();
+        setLoading(false);
+        renderExamples('Escribe al menos 2 caracteres. Por ejemplo:', ejemplosBase);
+        return;
+      }
 
       if (abortController) abortController.abort();
       abortController = new AbortController();
+      setLoading(true);
+      if (dropdown.hidden) {
+        dropdown.innerHTML = '<div class="search-empty">Buscando…</div>';
+        setExpanded(true);
+      }
 
       try {
-        const res = await fetch(`${apiUrl}?q=${encodeURIComponent(q)}`, {
+        const res = await fetch(apiUrl + '?q=' + encodeURIComponent(q), {
           headers: { Accept: 'application/json' },
           signal: abortController.signal,
           credentials: 'same-origin'
         });
+        if (seq !== requestSeq) return;
+        setLoading(false);
         if (!res.ok) {
-          if (!modulesOnly.length) {
-            dropdown.innerHTML = `<div class="search-empty">Sin resultados para '<strong></strong>'</div>`;
-            dropdown.querySelector('strong').textContent = q;
-            openDropdown();
-          }
+          renderExamples('No pude buscar ahora. Prueba con:', ejemplosBase);
           return;
         }
         const data = await res.json();
-        const entities = Array.isArray(data?.resultados) ? data.resultados : [];
-        render(q, entities);
+        if (seq !== requestSeq) return;
+        render(q, data);
+        if (openBest && flatItems[0]) goTo(flatItems[0].url);
       } catch (err) {
-        if (err?.name === 'AbortError') return;
-        if (!modulesOnly.length) {
-          dropdown.innerHTML = `<div class="search-empty">Sin resultados para '<strong></strong>'</div>`;
-          dropdown.querySelector('strong').textContent = q;
-          openDropdown();
-        }
+        if (err && err.name === 'AbortError') return;
+        if (seq !== requestSeq) return;
+        setLoading(false);
+        renderExamples('No pude buscar ahora. Prueba con:', ejemplosBase);
       }
     }
 
     input.addEventListener('input', () => {
       clearTimeout(debounceTimer);
       const value = input.value;
-      debounceTimer = setTimeout(() => runSearch(value), DEBOUNCE_MS);
+      debounceTimer = setTimeout(() => runSearch(value, false), DEBOUNCE_MS);
+    });
+
+    input.addEventListener('focus', () => {
+      if (!input.value.trim()) renderExamples('Prueba con:', ejemplosBase);
+      else if (flatItems.length || dropdown.querySelector('.search-example, .search-entendi, .search-item')) setExpanded(true);
     });
 
     input.addEventListener('keydown', (e) => {
-      if (dropdown.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-        if (input.value.trim()) runSearch(input.value);
-        return;
-      }
-      if (dropdown.hidden) return;
-
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActive(Math.min(activeIndex + 1, flatItems.length - 1));
+        if (dropdown.hidden) {
+          runSearch(input.value, false);
+          return;
+        }
+        if (!flatItems.length) return;
+        setActive(activeIndex < 0 ? 0 : Math.min(activeIndex + 1, flatItems.length - 1));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActive(Math.max(activeIndex - 1, 0));
+        if (!flatItems.length) return;
+        setActive(activeIndex < 0 ? flatItems.length - 1 : Math.max(activeIndex - 1, 0));
       } else if (e.key === 'Enter') {
         if (activeIndex >= 0 && flatItems[activeIndex]) {
           e.preventDefault();
           goTo(flatItems[activeIndex].url);
+          return;
+        }
+        if (flatItems[0]) {
+          e.preventDefault();
+          goTo(flatItems[0].url);
+          return;
+        }
+        const q = input.value.trim();
+        if (q.length >= 2) {
+          e.preventDefault();
+          clearTimeout(debounceTimer);
+          runSearch(q, true);
         }
       } else if (e.key === 'Escape') {
         e.preventDefault();
         closeDropdown();
-        input.blur();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        input.focus();
+        input.select();
       }
     });
 
     document.addEventListener('click', (e) => {
       if (!root.contains(e.target)) closeDropdown();
-    });
-
-    input.addEventListener('focus', () => {
-      if (input.value.trim() && flatItems.length) openDropdown();
     });
   }
 })();

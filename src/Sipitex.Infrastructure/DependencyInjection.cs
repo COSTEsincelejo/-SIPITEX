@@ -43,7 +43,8 @@ public static class DependencyInjection
         services.AddScoped<IEmailSender, EmailSender>(); // Un EmailSender por request
         services.AddScoped<IReportService, ReportService>(); // Reportes Excel/PDF
         services.AddScoped<IFuncionalidadesReportService, FuncionalidadesReportService>(); // Catálogo Word
-        services.AddScoped<IBusquedaService, BusquedaService>(); // Búsqueda global del header
+        services.AddScoped<IBusquedaService, BusquedaService>(); // Búsqueda global anterior (/api/busqueda)
+        services.AddScoped<IBuscadorSugerenciasService, BuscadorSugerenciasService>();
 
         // Repositorios scoped = una instancia por request HTTP
         services.AddScoped<IUnitOfWork, UnitOfWork>(); // Guarda cambios al final del request

@@ -40,12 +40,21 @@ public class MenuRouteTests
     public void SiteJs_SearchUrlsUsePluralPlantasInventarioControllers()
     {
         var js = File.ReadAllText(FindRepoFile(Path.Combine("src", "Sipitex.Web", "wwwroot", "js", "site.js")));
-        Assert.Contains("'/PlantasInventarioSolicitudes'", js, StringComparison.Ordinal);
-        Assert.Contains("'/PlantasInventarioOrdenes'", js, StringComparison.Ordinal);
-        Assert.Contains("'/PlantasInventario/Movimientos'", js, StringComparison.Ordinal);
+        var servicio = File.ReadAllText(FindRepoFile(Path.Combine(
+            "src", "Sipitex.Infrastructure", "Search", "BuscadorSugerenciasService.cs")));
+
+        Assert.Contains("/Buscar/Sugerencias", js, StringComparison.Ordinal);
         Assert.DoesNotContain("'/Inventario'", js, StringComparison.Ordinal);
         Assert.DoesNotContain("'/Inventario/Movimientos'", js, StringComparison.Ordinal);
         Assert.DoesNotContain("'/PlantaInventarioSolicitudes'", js, StringComparison.Ordinal);
         Assert.DoesNotContain("'/PlantaInventarioOrdenes'", js, StringComparison.Ordinal);
+
+        Assert.Contains("\"/PlantasInventarioSolicitudes\"", servicio, StringComparison.Ordinal);
+        Assert.Contains("\"/PlantasInventarioOrdenes", servicio, StringComparison.Ordinal);
+        Assert.Contains("\"/PlantasInventario/Movimientos\"", servicio, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"/Inventario\"", servicio, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"/Inventario/Movimientos\"", servicio, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"/PlantaInventarioSolicitudes\"", servicio, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"/PlantaInventarioOrdenes\"", servicio, StringComparison.Ordinal);
     }
 }
