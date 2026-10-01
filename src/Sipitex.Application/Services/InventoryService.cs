@@ -408,7 +408,7 @@ public class InventoryService : IInventoryService
         m.Stock,
         m.Status,
         m.MinStock,
-        m.Stock < m.MinStock,
+        StockNivelHelper.RequiereAtencion(StockNivelHelper.Classify(m.Stock, m.MinStock)),
         m.LastEntryDate,
         m.CostoAdquisicion,
         m.PlantaInventarioId,

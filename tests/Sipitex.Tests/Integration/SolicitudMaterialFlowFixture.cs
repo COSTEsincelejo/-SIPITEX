@@ -193,8 +193,6 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
         var userRepo = new UserRepository(Context);
         var plantaInventarioRepo = new PlantaInventarioRepository(Context);
         var alertRepo = new AlertRepository(Context);
-        // Repos que AlertService exige pero NotifyUsersAsync no usa en evaluación
-        var materialRequestRepo = new MaterialRequestRepository(Context);
         var orderRepo = new ProductionOrderRepository(Context);
         var qualityRepo = new QualityRepository(Context);
 
@@ -214,7 +212,7 @@ public sealed class SolicitudMaterialFlowFixture : IAsyncDisposable
             alertRepo,
             userRepo,
             materialRepo,
-            materialRequestRepo,
+            solicitudRepo,
             orderRepo,
             qualityRepo,
             EmailMock.Object,

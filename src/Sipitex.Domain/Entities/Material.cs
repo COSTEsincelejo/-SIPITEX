@@ -20,7 +20,7 @@ public class Material
     // Cantidad actual en planta de inventario (puede tener decimales)
     public decimal Stock { get; set; }
 
-    // Umbral mínimo; si Stock < MinStock dispara alerta de stock bajo
+    // Umbral de reposición. <= 0 significa que no hay mínimo: el nivel es Sin mínimo definido y no alerta.
     public decimal MinStock { get; set; }
 
     // Estado físico del material; arranca en Bueno

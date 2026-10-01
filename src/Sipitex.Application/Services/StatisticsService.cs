@@ -53,10 +53,10 @@ public class StatisticsService : IStatisticsService
         var qualityRate = inspected > 0 ? Math.Round(approved * 100m / inspected, 1) : 0;
         var activeOrders = orders.Count(o => o.Status == OrderStatus.EnProceso);
         var pendingApproval = orders.Count(o => o.Status == OrderStatus.Pendiente);
-        var niveles = materials.Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock)).ToList();
-        var lowStock = niveles.Count(n => n == StockNivel.Bajo);
-        var criticalStock = niveles.Count(n => n == StockNivel.Critico);
-        var okStock = niveles.Count(n => n == StockNivel.Ok);
+        var conteos = StockNivelHelper.Contar(materials.Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock)));
+        var lowStock = conteos.Bajo;
+        var criticalStock = conteos.Critico;
+        var okStock = conteos.Ok;
         var efficiency = totalTarget > 0 ? Math.Round(totalProduced * 100m / totalTarget, 1) : 0;
 
         var chart = orders
@@ -75,7 +75,8 @@ public class StatisticsService : IStatisticsService
             reproceso,
             approved,
             rejected,
-            efficiency);
+            efficiency,
+            conteos.SinMinimo);
     }
 
     private static bool IsInstructorViewer(string? viewerRole, int? viewerUserId) =>

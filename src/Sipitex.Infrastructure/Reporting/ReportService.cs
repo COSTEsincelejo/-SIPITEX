@@ -72,10 +72,10 @@ public class ReportService : IReportService
             m.MinStock.ToString("0.##"),
             m.Status.ToString(),
             m.LastEntryDate.ToString("yyyy-MM-dd"),
-            m.Stock < m.MinStock ? "Sí" : "No"
+            StockNivelHelper.Etiqueta(StockNivelHelper.Classify(m.Stock, m.MinStock))
         }).ToList();
 
-        var headers = new[] { "Material", "Unidad", "Stock", "Mínimo", "Estado", "Última entrada", "Bajo mínimo" };
+        var headers = new[] { "Material", "Unidad", "Stock", "Mínimo", "Estado", "Última entrada", "Nivel de stock" };
         return Build("Inventario", "Reporte de inventario SIPITEX", headers, rows, format, filter);
     }
 
@@ -147,9 +147,13 @@ public class ReportService : IReportService
                 new[] { "Prendas producidas", dash.TotalProduced.ToString(), "", "", "" },
                 new[] { "Tasa de calidad", $"{dash.QualityRate}%", "", "", "" },
                 new[] { "Órdenes activas", dash.ActiveOrders.ToString(), "", "", "" },
-                new[] { "Pendientes de aprobación", dash.PendingApprovalOrders.ToString(), "", "", "" },
-                new[] { "Materiales bajo mínimo", dash.LowStockCount.ToString(), "", "", "" }
+                new[] { "Pendientes de aprobación", dash.PendingApprovalOrders.ToString(), "", "", "" }
             };
+            AddStockRows(rowsFull, new StockNivelConteos(
+                dash.OkStockCount,
+                dash.LowStockCount,
+                dash.CriticalStockCount,
+                dash.SinMinimoStockCount));
             rowsFull.AddRange(dash.ChartData.Select(c => new[] { "Orden", c.Label, c.Produced.ToString(), c.Target.ToString(), "" }));
             var headersFull = new[] { "Indicador", "Valor / Orden", "Producido", "Meta", "" };
             return Build("Dashboard", "Reporte KPI SIPITEX", headersFull, rowsFull, format, filter);
@@ -178,16 +182,16 @@ public class ReportService : IReportService
         var qualityRate = inspected > 0 ? Math.Round(approved * 100m / inspected, 1) : 0;
         var activeOrders = orders.Count(o => o.Status == OrderStatus.EnProceso);
         var pendingApproval = orders.Count(o => o.Status == OrderStatus.Pendiente);
-        var lowStock = materials.Count(m => m.Stock < m.MinStock);
+        var conteos = StockNivelHelper.Contar(materials.Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock)));
 
         var rows = new List<string[]>
         {
             new[] { "Prendas producidas", totalProduced.ToString(), "", "", "" },
             new[] { "Tasa de calidad", $"{qualityRate}%", "", "", "" },
             new[] { "Órdenes activas", activeOrders.ToString(), "", "", "" },
-            new[] { "Pendientes de aprobación", pendingApproval.ToString(), "", "", "" },
-            new[] { "Materiales bajo mínimo", lowStock.ToString(), "", "", "" }
+            new[] { "Pendientes de aprobación", pendingApproval.ToString(), "", "", "" }
         };
+        AddStockRows(rows, conteos);
         rows.AddRange(orders.Select(o => new[]
         {
             "Orden",
@@ -386,6 +390,14 @@ public class ReportService : IReportService
         }
 
         return ids;
+    }
+
+    private static void AddStockRows(List<string[]> rows, StockNivelConteos conteos)
+    {
+        rows.Add(["Stock OK", conteos.Ok.ToString(), "", "", ""]);
+        rows.Add(["Materiales bajo mínimo", conteos.Bajo.ToString(), "", "", ""]);
+        rows.Add(["Materiales críticos", conteos.Critico.ToString(), "", "", ""]);
+        rows.Add(["Sin mínimo definido", conteos.SinMinimo.ToString(), "", "", ""]);
     }
 
     // Arma el archivo final — excel con ClosedXML o pdf con QuestPDF

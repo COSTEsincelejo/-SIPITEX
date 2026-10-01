@@ -50,7 +50,12 @@
     <div class="kpi-card">
         <div class="kpi-label">Total de ítems</div>
         <div class="kpi-value">@Model.TotalItems</div>
-        <div class="kpi-trend">En esta planta</div>
+        <div class="kpi-trend">OK + Bajo + Crítico + Sin mínimo</div>
+    </div>
+    <div class="kpi-card teal">
+        <div class="kpi-label">Nivel OK</div>
+        <div class="kpi-value">@Model.TotalOk</div>
+        <div class="kpi-trend">En o sobre el mínimo</div>
     </div>
     <div class="kpi-card amber">
         <div class="kpi-label">Nivel bajo</div>
@@ -60,7 +65,12 @@
     <div class="kpi-card red">
         <div class="kpi-label">Nivel crítico</div>
         <div class="kpi-value">@Model.TotalCritico</div>
-        <div class="kpi-trend">Sin existencias</div>
+        <div class="kpi-trend">Sin existencias, con mínimo definido</div>
+    </div>
+    <div class="kpi-card neutral">
+        <div class="kpi-label">Sin mínimo</div>
+        <div class="kpi-value">@Model.TotalSinMinimo</div>
+        <div class="kpi-trend">Mínimo en 0: no cuenta como falta</div>
     </div>
 </div>
 
@@ -171,6 +181,14 @@
                     else
                     {
                         <option value="@nameof(StockNivel.Critico)">Crítico</option>
+                    }
+                    @if (string.Equals(nivelActual, nameof(StockNivel.SinMinimo), StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@nameof(StockNivel.SinMinimo)" selected>Sin mínimo</option>
+                    }
+                    else
+                    {
+                        <option value="@nameof(StockNivel.SinMinimo)">Sin mínimo</option>
                     }
                     @if (string.Equals(nivelActual, InventarioConsultaFilter.Faltantes, StringComparison.OrdinalIgnoreCase))
                     {

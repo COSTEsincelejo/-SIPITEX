@@ -71,8 +71,10 @@
                         <tr>
                             <th>Planta</th>
                             <th>Insumos</th>
+                            <th>OK</th>
                             <th>Bajo</th>
                             <th>Crítico</th>
+                            <th>Sin mínimo</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -82,6 +84,7 @@
                         <tr>
                             <td><strong>@r.Nombre</strong></td>
                             <td>@r.Materiales</td>
+                            <td>@r.Ok</td>
                             <td>
                                 @if (r.Bajo > 0)
                                 {
@@ -96,6 +99,16 @@
                                 @if (r.Critico > 0)
                                 {
                                     <span class="badge badge-danger">@r.Critico</span>
+                                }
+                                else
+                                {
+                                    <span>0</span>
+                                }
+                            </td>
+                            <td>
+                                @if (r.SinMinimo > 0)
+                                {
+                                    <span class="badge badge-neutral">@r.SinMinimo</span>
                                 }
                                 else
                                 {
@@ -137,6 +150,7 @@ else
                         <button type="submit" name="nivel" value="" class="small @(string.IsNullOrEmpty(nivelActual) ? "primary" : "ghost")" data-nivel="">Todos</button>
                         <button type="submit" name="nivel" value="@nameof(StockNivel.Bajo)" class="small @(string.Equals(nivelActual, nameof(StockNivel.Bajo), StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@nameof(StockNivel.Bajo)">Bajo</button>
                         <button type="submit" name="nivel" value="@nameof(StockNivel.Critico)" class="small @(string.Equals(nivelActual, nameof(StockNivel.Critico), StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@nameof(StockNivel.Critico)">Crítico</button>
+                        <button type="submit" name="nivel" value="@nameof(StockNivel.SinMinimo)" class="small @(string.Equals(nivelActual, nameof(StockNivel.SinMinimo), StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@nameof(StockNivel.SinMinimo)">Sin mínimo</button>
                         <button type="submit" name="nivel" value="@InventarioConsultaFilter.Faltantes" class="small @(string.Equals(nivelActual, InventarioConsultaFilter.Faltantes, StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@InventarioConsultaFilter.Faltantes">Bajo y crítico</button>
                     </div>
                 </div>

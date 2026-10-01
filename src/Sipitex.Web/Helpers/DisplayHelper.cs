@@ -1,3 +1,4 @@
+using Sipitex.Application.Helpers;
 using Sipitex.Domain.Enums;
 
 namespace Sipitex.Web.Helpers;
@@ -256,14 +257,10 @@ public static class DisplayHelper
     {
         StockNivel.Ok => "badge-success",
         StockNivel.Bajo => "badge-warning",
-        _ => "badge-danger"
+        StockNivel.Critico => "badge-danger",
+        StockNivel.SinMinimo => "badge-neutral",
+        _ => "badge-neutral"
     };
 
-    public static string StatusText(StockNivel nivel) => nivel switch
-    {
-        StockNivel.Ok => "OK",
-        StockNivel.Bajo => "Bajo",
-        StockNivel.Critico => "Crítico",
-        _ => nivel.ToString()
-    };
+    public static string StatusText(StockNivel nivel) => StockNivelHelper.Etiqueta(nivel);
 }
