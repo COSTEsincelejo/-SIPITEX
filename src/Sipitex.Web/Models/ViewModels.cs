@@ -444,8 +444,10 @@ public class PlantaInventarioResumenItem
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;
     public int Materiales { get; set; }
+    public int Ok { get; set; }
     public int Bajo { get; set; }
     public int Critico { get; set; }
+    public int SinMinimo { get; set; }
 }
 
 // Detalle de una planta: catálogo de materiales e insumos de esa planta.
@@ -462,8 +464,10 @@ public class PlantaDetalleViewModel
     public IReadOnlyList<string> NombresAlerta { get; set; } = [];
     public CreateMaterialForm CreateMaterial { get; set; } = new();
     public int TotalItems { get; set; }
+    public int TotalOk { get; set; }
     public int TotalBajo { get; set; }
     public int TotalCritico { get; set; }
+    public int TotalSinMinimo { get; set; }
     public int TotalSinFiltro { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }

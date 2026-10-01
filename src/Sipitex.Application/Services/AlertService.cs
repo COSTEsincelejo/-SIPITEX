@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
@@ -16,8 +17,8 @@ public class AlertService : IAlertService
     private readonly IUserRepository _userRepository;
     // Repo de materiales para detectar stock bajo
     private readonly IMaterialRepository _materialRepository;
-    // Repo de solicitudes pendientes de planta de inventario
-    private readonly IMaterialRequestRepository _requestRepository;
+    // Cola vigente de solicitudes multi-ítem
+    private readonly ISolicitudMaterialRepository _solicitudRepository;
     // Repo de órdenes de producción (vencimiento, atrasos)
     private readonly IProductionOrderRepository _orderRepository;
     // Repo de calidad para reprocesos recientes
@@ -32,7 +33,7 @@ public class AlertService : IAlertService
         IAlertRepository alertRepository,
         IUserRepository userRepository,
         IMaterialRepository materialRepository,
-        IMaterialRequestRepository requestRepository,
+        ISolicitudMaterialRepository solicitudRepository,
         IProductionOrderRepository orderRepository,
         IQualityRepository qualityRepository,
         IEmailSender emailSender,
@@ -41,7 +42,7 @@ public class AlertService : IAlertService
         _alertRepository = alertRepository;
         _userRepository = userRepository;
         _materialRepository = materialRepository;
-        _requestRepository = requestRepository;
+        _solicitudRepository = solicitudRepository;
         _orderRepository = orderRepository;
         _qualityRepository = qualityRepository;
         _emailSender = emailSender;
@@ -264,30 +265,33 @@ public class AlertService : IAlertService
         // Fecha de hoy para comparar plazos
         var today = DateOnly.FromDateTime(DateTime.Today);
 
-        // --- Stock bajo mínimo ---
+        // --- Stock en nivel Bajo o Crítico (misma regla que la pantalla) ---
         var materials = await _materialRepository.GetAllAsync(cancellationToken);
-        // Filtro los que están por debajo del mínimo
-        var low = materials.Where(m => m.Stock < m.MinStock).ToList();
+        var low = materials
+            .Select(m => (Material: m, Nivel: StockNivelHelper.Classify(m.Stock, m.MinStock)))
+            .Where(x => StockNivelHelper.RequiereAtencion(x.Nivel))
+            .ToList();
         if (low.Count > 0)
         {
-            // Armo líneas de texto para el cuerpo del correo
-            var lines = string.Join("\n", low.Select(m => $"- {m.Name}: {m.Stock:0.##}/{m.MinStock:0.##}"));
+            var lines = string.Join("\n", low.Select(x =>
+                $"- {x.Material.Name}: {x.Material.Stock:0.##}/{x.Material.MinStock:0.##} · {StockNivelHelper.Etiqueta(x.Nivel)}"));
             events.Add(new AlertEvent(
                 AlertType.StockBajo,
                 $"SIPITEX · {low.Count} material(es) bajo mínimo",
-                $"Se detectó stock bajo:\n{lines}\n\nRevise Inventario."));
+                $"Se detectó stock en alerta:\n{lines}\n\nRevise el inventario de la planta."));
         }
 
-        // --- Solicitudes de material sin aprobar ---
-        var requests = await _requestRepository.GetAllAsync(cancellationToken);
-        var pending = requests.Where(r => r.Status == RequestStatus.Pendiente).ToList();
+        // --- SolicitudMaterial pendiente (no el modelo legado MaterialRequest) ---
+        var solicitudes = await _solicitudRepository.GetAllWithFichaAsync(cancellationToken);
+        var pending = solicitudes.Where(s => s.Estado == SolicitudMaterialEstado.Pendiente).ToList();
         if (pending.Count > 0)
         {
-            var lines = string.Join("\n", pending.Select(r => $"- {r.Material.Name} ({r.Quantity:0.##}) · {r.ProductionOrder.OrderNumber}"));
+            var lines = string.Join("\n", pending.Select(s =>
+                $"- {s.Codigo} · {s.Ficha?.NumeroGrupo ?? s.DescripcionLibre ?? "sin grupo"}"));
             events.Add(new AlertEvent(
                 AlertType.SolicitudPendiente,
                 $"SIPITEX · {pending.Count} solicitud(es) pendiente(s)",
-                $"Solicitudes pendientes de planta de inventario:\n{lines}\n\nApruebe o rechace en Inventario."));
+                $"Solicitudes de materiales pendientes:\n{lines}\n\nResuélvalas en Solicitudes de materiales."));
         }
 
         // Traigo todas las órdenes para revisar plazos

@@ -50,7 +50,12 @@
     <div class="kpi-card red">
         <div class="kpi-label">Stock crítico</div>
         <div class="kpi-value">@d.CriticalStockCount</div>
-        <div class="kpi-trend">Sin existencias</div>
+        <div class="kpi-trend">Sin existencias, con mínimo definido</div>
+    </div>
+    <div class="kpi-card neutral">
+        <div class="kpi-label">Sin mínimo</div>
+        <div class="kpi-value">@d.SinMinimoStockCount</div>
+        <div class="kpi-trend">OK + bajo + crítico + sin mínimo = inventario</div>
     </div>
 </div>
 

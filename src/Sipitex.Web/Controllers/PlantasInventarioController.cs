@@ -86,13 +86,16 @@ public class PlantasInventarioController : Controller
             resumen = plantas.Select(p =>
             {
                 var mats = materials.Where(m => m.PlantaInventarioId == p.Id).ToList();
+                var conteos = StockNivelHelper.Contar(mats.Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock)));
                 return new PlantaInventarioResumenItem
                 {
                     Id = p.Id,
                     Nombre = p.Nombre,
-                    Materiales = mats.Count,
-                    Bajo = mats.Count(m => StockNivelHelper.Classify(m.Stock, m.MinStock) == StockNivel.Bajo),
-                    Critico = mats.Count(m => StockNivelHelper.Classify(m.Stock, m.MinStock) == StockNivel.Critico)
+                    Materiales = conteos.Total,
+                    Ok = conteos.Ok,
+                    Bajo = conteos.Bajo,
+                    Critico = conteos.Critico,
+                    SinMinimo = conteos.SinMinimo
                 };
             }).ToList();
         }
@@ -129,6 +132,7 @@ public class PlantasInventarioController : Controller
         var nivelesPlanta = stock
             .Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock))
             .ToList();
+        var conteos = StockNivelHelper.Contar(nivelesPlanta);
         var filtrados = PlantaDetalleConsulta.Apply(stock, busqueda, categoria);
         if (!string.IsNullOrWhiteSpace(nivel))
             filtrados = filtrados.Where(m => CoincideNivel(m, nivel)).ToList();
@@ -161,12 +165,14 @@ public class PlantasInventarioController : Controller
                 CostoPromedioPonderado = m.CostoPromedioPonderado,
                 NivelStock = StockNivelHelper.Classify(m.Stock, m.MinStock)
             }).ToList(),
-            TotalItems = stock.Count,
-            TotalBajo = nivelesPlanta.Count(n => n == StockNivel.Bajo),
-            TotalCritico = nivelesPlanta.Count(n => n == StockNivel.Critico),
+            TotalItems = conteos.Total,
+            TotalOk = conteos.Ok,
+            TotalBajo = conteos.Bajo,
+            TotalCritico = conteos.Critico,
+            TotalSinMinimo = conteos.SinMinimo,
             TotalSinFiltro = stock.Count,
             NombresAlerta = stock
-                .Where(m => StockNivelHelper.Classify(m.Stock, m.MinStock) != StockNivel.Ok)
+                .Where(m => StockNivelHelper.RequiereAtencion(StockNivelHelper.Classify(m.Stock, m.MinStock)))
                 .Select(m => m.Name)
                 .ToList(),
             Message = TempData["Message"] as string,

@@ -15,7 +15,7 @@ public class AlertSendTestTests
         var alerts = new Mock<IAlertRepository>();
         var users = new Mock<IUserRepository>();
         var materials = new Mock<IMaterialRepository>();
-        var requests = new Mock<IMaterialRequestRepository>();
+        var solicitudes = new Mock<ISolicitudMaterialRepository>();
         var orders = new Mock<IProductionOrderRepository>();
         var quality = new Mock<IQualityRepository>();
         var email = new Mock<IEmailSender>();
@@ -27,7 +27,7 @@ public class AlertSendTestTests
         uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var sut = new AlertService(
-            alerts.Object, users.Object, materials.Object, requests.Object,
+            alerts.Object, users.Object, materials.Object, solicitudes.Object,
             orders.Object, quality.Object, email.Object, uow.Object);
 
         var result = await sut.SendTestAsync(3);

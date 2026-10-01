@@ -128,8 +128,11 @@ public class PlantasInventarioDetalleTests
         Assert.Equal(StockNivel.Critico, boton.NivelStock);
         Assert.Equal("metro", tela.UnidadMedida);
         Assert.Equal("unidad", boton.UnidadMedida);
+        Assert.Equal(1, vm.TotalOk);
         Assert.Equal(1, vm.TotalBajo);
         Assert.Equal(1, vm.TotalCritico);
+        Assert.Equal(0, vm.TotalSinMinimo);
+        Assert.Equal(vm.TotalItems, vm.TotalOk + vm.TotalBajo + vm.TotalCritico + vm.TotalSinMinimo);
 
         var criticos = await scope.Controller.Detalle(1, null, null, CancellationToken.None, nivel: nameof(StockNivel.Critico));
         var criticosView = Assert.IsType<ViewResult>(criticos);

@@ -1,13 +1,38 @@
-﻿@{
+﻿@model DashboardKpiDto
+@{
     // Página de inicio con accesos rápidos a cada módulo
     ViewData["Title"] = "Inicio";
     ViewData["Breadcrumb"] = "SIPITEX / Inicio";
+    var stockTotal = Model.OkStockCount + Model.LowStockCount + Model.CriticalStockCount + Model.SinMinimoStockCount;
 }
 
 <div class="page-header">
     <div>
         <h2>Panel SIPITEX</h2>
         <div class="sub">Seleccione un módulo operativo para continuar</div>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card teal">
+        <div class="kpi-label">Stock OK</div>
+        <div class="kpi-value">@Model.OkStockCount</div>
+        <div class="kpi-trend">En o sobre el mínimo</div>
+    </div>
+    <div class="kpi-card amber">
+        <div class="kpi-label">Stock bajo</div>
+        <div class="kpi-value">@Model.LowStockCount</div>
+        <div class="kpi-trend">Con existencias, bajo el mínimo</div>
+    </div>
+    <div class="kpi-card red">
+        <div class="kpi-label">Stock crítico</div>
+        <div class="kpi-value">@Model.CriticalStockCount</div>
+        <div class="kpi-trend">Sin existencias, con mínimo definido</div>
+    </div>
+    <div class="kpi-card neutral">
+        <div class="kpi-label">Sin mínimo</div>
+        <div class="kpi-value">@Model.SinMinimoStockCount</div>
+        <div class="kpi-trend">@stockTotal insumos · los cuatro niveles suman el total</div>
     </div>
 </div>
 

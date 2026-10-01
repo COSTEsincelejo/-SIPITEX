@@ -13,7 +13,7 @@ public class AlertNotifyUsersTests
     private readonly Mock<IAlertRepository> _alerts = new();
     private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IMaterialRepository> _materials = new();
-    private readonly Mock<IMaterialRequestRepository> _requests = new();
+    private readonly Mock<ISolicitudMaterialRepository> _solicitudes = new();
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IQualityRepository> _quality = new();
     private readonly Mock<IEmailSender> _email = new();
@@ -23,7 +23,7 @@ public class AlertNotifyUsersTests
         _alerts.Object,
         _users.Object,
         _materials.Object,
-        _requests.Object,
+        _solicitudes.Object,
         _orders.Object,
         _quality.Object,
         _email.Object,

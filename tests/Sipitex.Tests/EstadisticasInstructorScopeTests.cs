@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
@@ -109,6 +110,33 @@ public class EstadisticasInstructorScopeTests
         Assert.Equal(50m, dash.QualityRate); // 5 aprobadas / 10 inspeccionadas
         Assert.Equal(2, dash.ChartData.Count);
         Assert.Equal(1, dash.LowStockCount);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_ConteosDeStock_CoincidenConElHelper()
+    {
+        _orders.Setup(s => s.GetOrdersAsync(1, UserRoles.Administrador, "Admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        var materials = new List<Material>
+        {
+            new() { Id = 1, Name = "Tela", Stock = 20, MinStock = 5, Unit = MaterialUnit.Metros },
+            new() { Id = 2, Name = "Hilo", Stock = 2, MinStock = 10, Unit = MaterialUnit.Unidades },
+            new() { Id = 3, Name = "Botón", Stock = 0, MinStock = 4, Unit = MaterialUnit.Unidades },
+            new() { Id = 4, Name = "Guata", Stock = 0, MinStock = 0, Unit = MaterialUnit.Metros }
+        };
+        _materials.Setup(m => m.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(materials);
+        _quality.Setup(q => q.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+
+        var dash = await CreateSut().GetDashboardAsync(1, UserRoles.Administrador, "Admin");
+        var conteos = StockNivelHelper.Contar(materials.Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock)));
+
+        Assert.Equal(conteos.Ok, dash.OkStockCount);
+        Assert.Equal(conteos.Bajo, dash.LowStockCount);
+        Assert.Equal(conteos.Critico, dash.CriticalStockCount);
+        Assert.Equal(conteos.SinMinimo, dash.SinMinimoStockCount);
+        Assert.Equal(materials.Count, dash.OkStockCount + dash.LowStockCount + dash.CriticalStockCount + dash.SinMinimoStockCount);
+        Assert.Equal(1, dash.CriticalStockCount);
+        Assert.Equal(1, dash.SinMinimoStockCount);
     }
 
     [Fact]

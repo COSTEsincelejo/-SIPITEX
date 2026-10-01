@@ -396,7 +396,8 @@ public record DashboardKpiDto(
     int ReprocesoCount = 0,
     int QualityApprovedUnits = 0,
     int QualityRejectedUnits = 0,
-    decimal EfficiencyPercent = 0);
+    decimal EfficiencyPercent = 0,
+    int SinMinimoStockCount = 0);
 
 // Una barra del gráfico de órdenes
 public record ChartBarDto(string Label, int Produced, int Target);

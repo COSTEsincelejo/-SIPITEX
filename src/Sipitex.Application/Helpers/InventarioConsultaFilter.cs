@@ -3,7 +3,7 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Helpers;
 
-// Filtro de la consulta de inventario por bodega (nombre y nivel OK/Bajo/Crítico).
+// Filtro de la consulta de inventario (nombre y nivel OK/Bajo/Crítico/Sin mínimo).
 public static class InventarioConsultaFilter
 {
     public const string Faltantes = "Faltantes";

@@ -110,6 +110,41 @@ public class PlantasInventarioConsultarControllerTests
     }
 
     [Fact]
+    public async Task Consultar_Resumen_CuadraConStockNivelHelper()
+    {
+        SetupTwoPlantas();
+        MaterialDto[] materials =
+        [
+            Mat(1, "Tela", 20, 5, 1, "Planta 1"),
+            Mat(2, "Hilo", 2, 10, 1, "Planta 1"),
+            Mat(3, "Botón", 0, 4, 1, "Planta 1"),
+            Mat(4, "Guata", 0, 0, 1, "Planta 1"),
+            Mat(5, "Forro", 3, 8, 2, "Planta 2")
+        ];
+        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(materials);
+
+        var vm = Assert.IsType<ConsultarPlantasInventarioViewModel>(
+            Assert.IsType<ViewResult>(await CreateController(
+                    Principal(UserRoles.Administrador),
+                    NullCurrentPlantaInventarioAccessor.Instance)
+                .Consultar(null, cancellationToken: CancellationToken.None)).Model);
+
+        var planta1 = vm.Resumen.Single(r => r.Id == 1);
+        var esperado = StockNivelHelper.Contar(materials.Where(m => m.PlantaInventarioId == 1).Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock)));
+        Assert.Equal(esperado.Ok, planta1.Ok);
+        Assert.Equal(esperado.Bajo, planta1.Bajo);
+        Assert.Equal(esperado.Critico, planta1.Critico);
+        Assert.Equal(esperado.SinMinimo, planta1.SinMinimo);
+        Assert.Equal(1, planta1.Ok);
+        Assert.Equal(1, planta1.Bajo);
+        Assert.Equal(1, planta1.Critico);
+        Assert.Equal(1, planta1.SinMinimo);
+        Assert.Equal(planta1.Materiales, planta1.Ok + planta1.Bajo + planta1.Critico + planta1.SinMinimo);
+        Assert.Equal(esperado.Total, planta1.Materiales);
+    }
+
+    [Fact]
     public async Task Consultar_AdminCambiaDePlanta_SoloMaterialesDeEsaPlanta()
     {
         SetupTwoPlantas();
