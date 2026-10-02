@@ -371,6 +371,8 @@ public class AlertasIndexViewModel
     public IReadOnlyList<AlertDeliveryDto> Deliveries { get; set; } = [];
     public bool SmtpConfigured { get; set; } // cambia el mensaje informativo
     public string SmtpHost { get; set; } = string.Empty;
+    public string DeliveryChannel { get; set; } = string.Empty;
+    public bool EmailReady { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }

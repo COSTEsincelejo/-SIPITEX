@@ -30,6 +30,16 @@ services:
         sync: false
       - key: Email__Enabled
         sync: false
+      - key: Email__Provider
+        sync: false
+      - key: Email__ApiKey
+        sync: false
+      - key: Email__FromAddress
+        sync: false
+      - key: Email__FromName
+        sync: false
+      - key: Email__Host
+        sync: false
       - key: Email__User
         sync: false
       - key: Email__Password

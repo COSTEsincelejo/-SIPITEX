@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Logging;
 using Sipitex.Application.Interfaces.Services;
+using Microsoft.Extensions.Options;
 using Sipitex.Infrastructure;
 using Sipitex.Infrastructure.Data;
+using Sipitex.Infrastructure.Email;
 using Sipitex.Infrastructure.Persistence;
 using Sipitex.Web;
 using Sipitex.Web.Authorization;
@@ -105,6 +107,10 @@ builder.Services.AddHealthChecks()
 builder.Services.AddHostedService<Sipitex.Web.Hosting.AlertEvaluationHostedService>();
 
 var app = builder.Build();
+
+var emailOptions = app.Services.GetRequiredService<IOptions<EmailOptions>>().Value;
+var (emailLevel, emailDetail) = EmailConfiguration.StartupStatus(emailOptions);
+app.Logger.Log(emailLevel, "Configuración de correo: {Detail}", emailDetail);
 
 // Al arrancar, asegura que la BD tenga datos iniciales si hace falta.
 // Un fallo transitorio (Postgres aún no acepta conexiones) se reintenta.

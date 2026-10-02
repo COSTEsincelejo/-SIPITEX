@@ -40,6 +40,9 @@ public class AlertasController : Controller
             Deliveries = await _alertService.GetRecentDeliveriesAsync(20, isAdmin ? null : userId, cancellationToken),
             SmtpConfigured = _emailSender.IsSmtpConfigured,
             SmtpHost = _emailOptions.Host,
+            DeliveryChannel = _emailSender.DeliveryChannel,
+            EmailReady = EmailConfiguration.DescribeBlockingProblem(_emailOptions) is null
+                && !string.Equals(_emailSender.DeliveryChannel, "Outbox", StringComparison.OrdinalIgnoreCase),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });

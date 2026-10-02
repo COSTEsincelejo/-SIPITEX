@@ -29,6 +29,7 @@ public class PasswordResetService : IPasswordResetService
     public const string ResendCooldownMessage = "Espere un minuto antes de reenviar el código.";
     public const string ConfirmationPendingMessage =
         "Si hay una cuenta pendiente de confirmación, enviamos un código nuevo.";
+    public const string SendFailedMessage = EmailDeliveryException.UserMessage;
 
     private readonly IUserRepository _userRepository;
     private readonly IPasswordResetTokenRepository _tokenRepository;
@@ -49,34 +50,31 @@ public class PasswordResetService : IPasswordResetService
 
     // Pide reset: genera un código de 6 dígitos, invalida los anteriores y lo manda por correo.
     // No dice si el email existe (por seguridad) y no escribe el código en ningún log.
-    public async Task RequestResetAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult> RequestResetAsync(string email, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(email))
-            return;
+            return ServiceResult.Ok();
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
         var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
         if (user is null || !user.IsActive)
-            return;
+            return ServiceResult.Ok();
 
-        await IssueCodeAsync(
+        var status = await IssueCodeAsync(
             user,
             VerificationCodePurpose.PasswordReset,
-            "SIPITEX — Código para restablecer contraseña",
-            plainCode =>
-                $"""
-                Hola {user.Nombre},
-
-                Recibimos una solicitud para restablecer su contraseña en SIPITEX.
-                Ingrese este código de un solo uso en la pantalla de restablecimiento:
-
-                {plainCode}
-
-                El código vence en 15 minutos.
-                Si usted no solicitó este cambio, ignore este mensaje.
-                """,
+            VerificationEmailTemplate.PasswordResetSubject,
+            plainCode => VerificationEmailTemplate.Build(
+                user.Nombre,
+                plainCode,
+                "Recibimos una solicitud para restablecer su contraseña en SIPITEX. Ingrese este código de un solo uso en la pantalla de restablecimiento.",
+                "Si usted no solicitó este cambio, ignore este mensaje."),
             enforceCooldown: false,
             cancellationToken);
+
+        return status == CodeIssueStatus.SendFailed
+            ? ServiceResult.Fail(SendFailedMessage)
+            : ServiceResult.Ok();
     }
 
     // Cambia la contraseña si el código sigue válido. No revela si el correo existe.
@@ -118,14 +116,17 @@ public class PasswordResetService : IPasswordResetService
         var status = await IssueCodeAsync(
             user,
             VerificationCodePurpose.EmailConfirmation,
-            "SIPITEX — Confirme su correo",
+            VerificationEmailTemplate.ConfirmationSubject,
             ConfirmationBody(user.Nombre),
             enforceCooldown: false,
             cancellationToken);
 
-        return status == CodeIssueStatus.RateLimited
-            ? ServiceResult.Fail("No se pudo enviar el código de confirmación en este momento.")
-            : ServiceResult.Ok();
+        return status switch
+        {
+            CodeIssueStatus.RateLimited => ServiceResult.Fail("No se pudo enviar el código de confirmación en este momento."),
+            CodeIssueStatus.SendFailed => ServiceResult.Fail(SendFailedMessage),
+            _ => ServiceResult.Ok()
+        };
     }
 
     public async Task<ServiceResult> ConfirmEmailAsync(
@@ -172,7 +173,7 @@ public class PasswordResetService : IPasswordResetService
         var status = await IssueCodeAsync(
             user,
             VerificationCodePurpose.EmailConfirmation,
-            "SIPITEX — Confirme su correo",
+            VerificationEmailTemplate.ConfirmationSubject,
             ConfirmationBody(user.Nombre),
             enforceCooldown: true,
             cancellationToken);
@@ -181,6 +182,7 @@ public class PasswordResetService : IPasswordResetService
         {
             CodeIssueStatus.Cooldown => ServiceResult.Fail(ResendCooldownMessage),
             CodeIssueStatus.RateLimited => ServiceResult.Fail("Demasiadas solicitudes. Espere unos minutos e intente de nuevo."),
+            CodeIssueStatus.SendFailed => ServiceResult.Fail(SendFailedMessage),
             _ => ServiceResult.Ok(ConfirmationPendingMessage)
         };
     }
@@ -193,17 +195,11 @@ public class PasswordResetService : IPasswordResetService
     }
 
     private static Func<string, string> ConfirmationBody(string nombre) =>
-        plainCode =>
-            $"""
-            Hola {nombre},
-
-            Se creó su cuenta en SIPITEX. Para poder iniciar sesión, confirme su correo con este código de un solo uso:
-
-            {plainCode}
-
-            El código vence en 15 minutos.
-            Si usted no esperaba este mensaje, ignorelo.
-            """;
+        plainCode => VerificationEmailTemplate.Build(
+            nombre,
+            plainCode,
+            "Se creó su cuenta en SIPITEX. Para poder iniciar sesión, confirme su correo con este código de un solo uso.",
+            "Si usted no esperaba este mensaje, ignorelo.");
 
     private async Task<CodeIssueStatus> IssueCodeAsync(
         User user,
@@ -227,6 +223,7 @@ public class PasswordResetService : IPasswordResetService
         }
 
         var unused = await _tokenRepository.GetUnusedByUserAsync(user.Id, purpose, cancellationToken);
+        var previousStates = unused.Select(token => (Token: token, UsedAtUtc: token.UsedAtUtc)).ToList();
         foreach (var previous in unused)
         {
             previous.UsedAtUtc = now;
@@ -248,12 +245,29 @@ public class PasswordResetService : IPasswordResetService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // El código solo viaja en el cuerpo del correo. No se registra en logs ni en ActivityLog.
-        await _emailSender.SendAsync(
-            user.Email,
-            user.Nombre,
-            subject,
-            bodyForCode(plainCode),
-            cancellationToken);
+        try
+        {
+            await _emailSender.SendAsync(
+                user.Email,
+                user.Nombre,
+                subject,
+                bodyForCode(plainCode),
+                cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // El detalle queda en el log del EmailSender. Aquí no se repite el código ni la clave.
+            foreach (var previous in previousStates)
+            {
+                previous.Token.UsedAtUtc = previous.UsedAtUtc;
+                _tokenRepository.Update(previous.Token);
+            }
+
+            // El código no salió: se revierte para que no sirva y no consuma el minuto ni el cupo.
+            _tokenRepository.Remove(entity);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return CodeIssueStatus.SendFailed;
+        }
 
         return CodeIssueStatus.Sent;
     }
@@ -340,6 +354,7 @@ public class PasswordResetService : IPasswordResetService
     {
         Sent,
         RateLimited,
-        Cooldown
+        Cooldown,
+        SendFailed
     }
 }

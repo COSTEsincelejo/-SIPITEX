@@ -126,7 +126,13 @@ public class AccountController : Controller
         if (!ModelState.IsValid) return View(model);
 
         TempData["ResetEmail"] = model.Email.Trim();
-        await _passwordResetService.RequestResetAsync(model.Email, cancellationToken);
+        var result = await _passwordResetService.RequestResetAsync(model.Email, cancellationToken);
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, result.Message ?? PasswordResetService.SendFailedMessage);
+            return View(model);
+        }
+
         return RedirectToAction(nameof(ForgotPasswordConfirmation));
     }
 

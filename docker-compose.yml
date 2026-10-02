@@ -27,8 +27,12 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB:-sipitex};Username=${POSTGRES_USER:-sipitex};Password=${POSTGRES_PASSWORD:-sipitex}"
       Email__Enabled: "true"
-      Email__User: "${EMAIL_SMTP_USER}"
-      Email__Password: "${EMAIL_SMTP_PASSWORD}"
+      Email__Provider: "${EMAIL_PROVIDER:-Resend}"
+      Email__ApiKey: "${EMAIL_API_KEY:-}"
+      Email__FromAddress: "${EMAIL_FROM_ADDRESS:-}"
+      Email__FromName: "${EMAIL_FROM_NAME:-SIPITEX}"
+      Email__User: "${EMAIL_SMTP_USER:-}"
+      Email__Password: "${EMAIL_SMTP_PASSWORD:-}"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
       interval: 30s

@@ -6,8 +6,8 @@ namespace Sipitex.Application.Interfaces.Services;
 // Códigos de 6 dígitos: recuperar contraseña y confirmar el correo al crear la cuenta
 public interface IPasswordResetService
 {
-    // No revela si el correo existe. El correo lleva solo el código, sin enlace.
-    Task RequestResetAsync(string email, CancellationToken cancellationToken = default);
+    // No revela si el correo existe. Si el envío falla, el resultado lo dice y no deja un código vigente.
+    Task<ServiceResult> RequestResetAsync(string email, CancellationToken cancellationToken = default);
 
     Task<ServiceResult> ResetPasswordAsync(string email, string code, string newPassword, CancellationToken cancellationToken = default);
 

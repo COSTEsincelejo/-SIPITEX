@@ -19,6 +19,7 @@ public class PasswordResetServiceTests
     private readonly Mock<IEmailSender> _email = new();
     private readonly List<PasswordResetToken> _store = [];
     private string? _lastEmailBody;
+    private string? _lastSubject;
 
     private PasswordResetService CreateSut()
     {
@@ -53,10 +54,16 @@ public class PasswordResetServiceTests
                     .FirstOrDefault());
 
         _tokens.Setup(t => t.Update(It.IsAny<PasswordResetToken>()));
+        _tokens.Setup(t => t.Remove(It.IsAny<PasswordResetToken>()))
+            .Callback<PasswordResetToken>(token => _store.Remove(token));
 
         _email.Setup(e => e.SendAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string, string, CancellationToken>((_, _, _, body, _) => _lastEmailBody = body)
+            .Callback<string, string, string, string, CancellationToken>((_, _, subject, body, _) =>
+            {
+                _lastSubject = subject;
+                _lastEmailBody = body;
+            })
             .Returns(Task.CompletedTask);
 
         return new PasswordResetService(_users.Object, _tokens.Object, _uow.Object, _email.Object);
@@ -480,5 +487,89 @@ public class PasswordResetServiceTests
         var confirmed = await sut.ConfirmEmailAsync(user.Email, confirmCode);
         Assert.True(confirmed.Success);
         Assert.True(user.EmailConfirmed);
+    }
+
+    [Fact]
+    public async Task SendEmailConfirmation_UsesSpanishSipitexTemplate()
+    {
+        var user = ActiveUser(emailConfirmed: false);
+        StubUser(user);
+        var sut = CreateSut();
+
+        var sent = await sut.SendEmailConfirmationAsync(user);
+
+        Assert.True(sent.Success);
+        var code = ExtractCodeFromEmail();
+        Assert.Equal(VerificationEmailTemplate.ConfirmationSubject, _lastSubject);
+        Assert.Contains("#1F3864", _lastEmailBody);
+        Assert.Contains("#DCE6F1", _lastEmailBody);
+        Assert.Contains("15 minutos", _lastEmailBody);
+        Assert.DoesNotContain("http", _lastEmailBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(code, sent.Message ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task ResendEmailConfirmation_WhenSendFails_DoesNotConsumeCooldown_AndInvalidatesCode()
+    {
+        var user = ActiveUser(emailConfirmed: false);
+        StubUser(user);
+        var sut = CreateSut();
+        var calls = 0;
+        string? firstBody = null;
+        _email.Setup(e => e.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, string, string, CancellationToken>((_, _, _, body, _) =>
+            {
+                calls++;
+                if (calls == 1)
+                    firstBody = body;
+                _lastEmailBody = body;
+            })
+            .Returns(() => calls == 1
+                ? throw new InvalidOperationException("provider down")
+                : Task.CompletedTask);
+
+        var failed = await sut.ResendEmailConfirmationAsync(user.Email);
+
+        Assert.False(failed.Success);
+        Assert.Equal(PasswordResetService.SendFailedMessage, failed.Message);
+        Assert.Empty(_store);
+        var failedCode = Regex.Match(firstBody ?? string.Empty, @"(?m)^\s*(\d{6})\s*$").Groups[1].Value;
+        var burned = await sut.ConfirmEmailAsync(user.Email, failedCode);
+        Assert.False(burned.Success);
+        Assert.Equal(PasswordResetService.InvalidCodeMessage, burned.Message);
+
+        var retry = await sut.ResendEmailConfirmationAsync(user.Email);
+
+        Assert.True(retry.Success);
+        Assert.Equal(PasswordResetService.ConfirmationPendingMessage, retry.Message);
+        Assert.Single(_store);
+        var code = ExtractCodeFromEmail();
+        Assert.NotEqual(failedCode, code);
+        Assert.True((await sut.ConfirmEmailAsync(user.Email, code)).Success);
+        Assert.True(user.EmailConfirmed);
+    }
+
+    [Fact]
+    public async Task RequestReset_WhenSendFails_DoesNotLeaveUsableCode()
+    {
+        var user = ActiveUser();
+        StubUser(user);
+        var sut = CreateSut();
+        string? body = null;
+        _email.Setup(e => e.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, string, string, CancellationToken>((_, _, _, text, _) => body = text)
+            .ThrowsAsync(new InvalidOperationException("provider down"));
+
+        var result = await sut.RequestResetAsync(user.Email);
+
+        Assert.False(result.Success);
+        Assert.Equal(PasswordResetService.SendFailedMessage, result.Message);
+        Assert.Empty(_store);
+        var code = Regex.Match(body ?? string.Empty, @"(?m)^\s*(\d{6})\s*$").Groups[1].Value;
+        var reset = await sut.ResetPasswordAsync(user.Email, code, "NuevaClave99!");
+        Assert.False(reset.Success);
+        Assert.Equal(PasswordResetService.InvalidCodeMessage, reset.Message);
     }
 }

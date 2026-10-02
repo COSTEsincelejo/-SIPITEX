@@ -14,4 +14,6 @@ public interface IPasswordResetTokenRepository
     // Busca por hash sin filtrar vencimiento ni uso, para distinguir código malo, usado o vencido
     Task<PasswordResetToken?> FindByHashAsync(int userId, string purpose, string tokenHash, CancellationToken cancellationToken = default);
     void Update(PasswordResetToken token);
+    // Quita un código que se guardó pero cuyo correo no salió.
+    void Remove(PasswordResetToken token);
 }

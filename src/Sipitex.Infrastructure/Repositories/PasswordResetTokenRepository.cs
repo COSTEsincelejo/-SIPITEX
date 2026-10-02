@@ -52,4 +52,6 @@ public class PasswordResetTokenRepository : IPasswordResetTokenRepository
             .FirstOrDefaultAsync(cancellationToken);
 
     public void Update(PasswordResetToken token) => _context.PasswordResetTokens.Update(token);
+
+    public void Remove(PasswordResetToken token) => _context.PasswordResetTokens.Remove(token);
 }

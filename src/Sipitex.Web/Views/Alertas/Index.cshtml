@@ -11,7 +11,7 @@
 <div class="page-header">
     <div>
         <h2>Alertas por correo</h2>
-        <div class="sub">Active las notificaciones de su rol. El envío SMTP se habilita con usuario y contraseña del servidor de correo.</div>
+        <div class="sub">Active las notificaciones de su rol. El envío real sale por la API HTTPS del proveedor configurado.</div>
     </div>
     <div class="row-actions">
         <a class="ghost small" asp-controller="Estadisticas" asp-action="Index"><i class="fas fa-chart-line"></i> Estadísticas</a>
@@ -26,18 +26,23 @@
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
-<div class="alert @(Model.SmtpConfigured ? "alert-success" : "alert-info")">
+<div class="alert @(Model.EmailReady ? "alert-success" : "alert-info")">
     <i class="fas fa-envelope"></i>
     <div>
-        @if (Model.SmtpConfigured)
+        @if (Model.EmailReady && Model.DeliveryChannel is "Resend" or "Brevo")
+        {
+            <strong>Correo por API (@Model.DeliveryChannel)</strong>
+            <span> — los mensajes salen por HTTPS (puerto 443).</span>
+        }
+        else if (Model.EmailReady && (Model.SmtpConfigured || Model.DeliveryChannel == "Smtp"))
         {
             <strong>SMTP activo</strong>
-            <span> — los correos salen por @Model.SmtpHost.</span>
+            <span> — los correos salen por @Model.SmtpHost. En Render gratis este canal suele no llegar; prefiera Resend.</span>
         }
         else
         {
-            <strong>Canal Outbox (demo)</strong>
-            <span> — configure <code>EMAIL_SMTP_USER</code> y <code>EMAIL_SMTP_PASSWORD</code> (o user-secrets) para habilitar el envío real. Mientras tanto los mensajes se guardan en la tabla <code>EmailOutboxMessages</code>.</span>
+            <strong>Correo sin proveedor</strong>
+            <span> — defina <code>Email__Provider</code>, <code>Email__ApiKey</code>, <code>Email__FromAddress</code> y <code>Email__FromName</code>. Sin eso el mensaje no se da por enviado.</span>
         }
         <form asp-action="Probar" method="post" class="inline-form" style="margin-top:8px;">
             @Html.AntiForgeryToken()
