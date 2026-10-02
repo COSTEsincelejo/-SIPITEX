@@ -12,7 +12,13 @@ La app se construye con el `Dockerfile` de la raíz (runtime Docker, no .NET nat
 - `RENDER_GIT_COMMIT` — la inyecta Render en build y en runtime. El footer muestra los primeros 7 caracteres. Sin valor, el texto es `local`.
 - `SEED_DEMO_DATA` — `true` solo en una demo. Si no está, manda `Seed:DemoUsers` (apagado en producción).
 - `ADMIN_SEED_PASSWORD` — admin inicial si la base no tiene administradores. No se escribe en el log.
-- `Email__Enabled`, `Email__User`, `Email__Password` — SMTP. Sin usuario, el correo queda en `EmailOutboxMessages`.
+- `Email__Enabled` — `true` para enviar. En `false` el envío falla con un error visible; no se simula una entrega.
+- `Email__Provider` — `Resend` (predeterminado, HTTPS puerto 443), `Brevo`, `Smtp` o `Outbox`.
+- `Email__ApiKey` — clave del proveedor API. No va en git.
+- `Email__FromAddress` — remitente verificado en Resend o Brevo.
+- `Email__FromName` — nombre que ve el destinatario (`SIPITEX`).
+- `Email__Host`, `Email__User`, `Email__Password` — solo si `Email__Provider=Smtp`. El plan gratis de Render bloquea los puertos 25, 465 y 587.
+- `Email__Provider=Outbox` guarda el mensaje en `EmailOutboxMessages` y no lo entrega.
 - `Costing__LaborHourRate` — tarifa de referencia.
 
 No guarde valores en git. El workflow de CI llama al Deploy Hook con el secret `RENDER_DEPLOY_HOOK_URL` en cada push a `main` que pase `build-and-test`. Si el secret no existe, el job se omite y el pipeline sigue en verde.

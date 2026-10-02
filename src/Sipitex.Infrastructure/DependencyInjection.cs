@@ -36,8 +36,12 @@ public static class DependencyInjection
                 .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>());
         });
 
-        // Opciones de correo desde la sección "Email" del appsettings
+        // Opciones de correo desde la sección "Email" (appsettings y variables Email__*).
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.AddHttpClient(EmailSender.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
         services.Configure<Sipitex.Application.CostingOptions>(
             configuration.GetSection(Sipitex.Application.CostingOptions.SectionName));
         services.AddScoped<IEmailSender, EmailSender>(); // Un EmailSender por request

@@ -108,13 +108,17 @@ public class AlertService : IAlertService
         if (user is null || !user.IsActive)
             return ServiceResult.Fail("Usuario no encontrado o inactivo.");
 
-        var channel = _emailSender.IsSmtpConfigured ? "SMTP" : "Outbox";
+        var channel = ChannelName();
         var subject = "SIPITEX · Correo de prueba";
-        var body = _emailSender.IsSmtpConfigured
-            ? "Las alertas por correo están habilitadas. Este mensaje confirma el canal SMTP."
-            : "SMTP aún no tiene usuario configurado. Este mensaje se guardó en la base (outbox) como prueba del canal.";
+        var body = channel switch
+        {
+            "Smtp" or "SMTP" => "Las alertas por correo están habilitadas. Este mensaje confirma el canal SMTP.",
+            "Outbox" => "SMTP aún no tiene usuario configurado. Este mensaje se guardó en la base (outbox) como prueba del canal.",
+            _ => $"Las alertas por correo están habilitadas. Este mensaje confirma el canal {channel}."
+        };
 
-        await _emailSender.SendAsync(user.Email, user.Nombre, subject, body, cancellationToken);
+        if (!await TrySendAsync(user.Email, user.Nombre, subject, body, cancellationToken))
+            return ServiceResult.Fail(EmailDeliveryException.UserMessage);
         await _alertRepository.AddDeliveryAsync(new AlertDelivery
         {
             UserId = user.Id,
@@ -173,12 +177,13 @@ public class AlertService : IAlertService
 
         var enabled = await _alertRepository.GetEnabledPreferencesAsync(type, cancellationToken);
         var enabledIds = enabled.Select(p => p.UserId).ToHashSet();
-        var channel = _emailSender.IsSmtpConfigured ? "SMTP" : "Outbox";
+        var channel = ChannelName();
         var sent = 0;
 
         foreach (var user in candidates.Where(u => enabledIds.Contains(u.Id)))
         {
-            await _emailSender.SendAsync(user.Email, user.Nombre, subject, body, cancellationToken);
+            if (!await TrySendAsync(user.Email, user.Nombre, subject, body, cancellationToken))
+                continue;
             await _alertRepository.AddDeliveryAsync(new AlertDelivery
             {
                 UserId = user.Id,
@@ -230,10 +235,12 @@ public class AlertService : IAlertService
                 // Usuarios inactivos no reciben nada
                 if (!user.IsActive) continue;
 
-                // Si no hay SMTP configurado igual guardo el envío como Outbox
-                var channel = _emailSender.IsSmtpConfigured ? "SMTP" : "Outbox";
-                // Mando el correo con asunto y cuerpo del evento
-                await _emailSender.SendAsync(user.Email, user.Nombre, evt.Subject, evt.Body, cancellationToken);
+                var channel = ChannelName();
+                if (!await TrySendAsync(user.Email, user.Nombre, evt.Subject, evt.Body, cancellationToken))
+                {
+                    details.Add($"{evt.Type} → {EmailAddressMask.Mask(user.Email)} no enviado ({channel})");
+                    continue;
+                }
                 // Registro el envío en historial
                 await _alertRepository.AddDeliveryAsync(new AlertDelivery
                 {
@@ -344,4 +351,31 @@ public class AlertService : IAlertService
 
     // DTO interno para pasar tipo + asunto + cuerpo del correo
     private sealed record AlertEvent(AlertType Type, string Subject, string Body);
+
+    // El doble de prueba no define DeliveryChannel: se conserva SMTP/Outbox.
+    private string ChannelName()
+    {
+        if (!string.IsNullOrWhiteSpace(_emailSender.DeliveryChannel))
+            return _emailSender.DeliveryChannel;
+
+        return _emailSender.IsSmtpConfigured ? "SMTP" : "Outbox";
+    }
+
+    private async Task<bool> TrySendAsync(
+        string email,
+        string name,
+        string subject,
+        string body,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _emailSender.SendAsync(email, name, subject, body, cancellationToken);
+            return true;
+        }
+        catch (EmailDeliveryException)
+        {
+            return false;
+        }
+    }
 }

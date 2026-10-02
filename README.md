@@ -91,7 +91,24 @@ Fotos de perfil, correos sin SMTP y claves de cookie viven en PostgreSQL. El res
 
 - **Actas:** conformidad con nombre, cargo, timestamp UTC y **firma gráfica** dibujada en pantalla (incluida en el PDF).
 - **Costeo:** tarifa de hora de mano de obra con valor de referencia `Costing:LaborHourRate` (6500 COP/h). El Administrador puede ajustarla en `/Costos` sin redesplegar.
-- **Alertas:** `Email:Enabled=true`. El envío SMTP real exige `Email:User` (variable `EMAIL_SMTP_USER`); si no hay usuario, los correos se guardan en la tabla `EmailOutboxMessages`.
+- **Correo:** el canal predeterminado es **Resend** por HTTPS (puerto 443). El plan gratis de Render bloquea SMTP (puertos 25, 465 y 587). SMTP queda como alternativa con `Email__Provider=Smtp`.
+
+### Variables de correo en Render
+
+Crearlas en el panel del Web Service. No pegue los valores en el repositorio.
+
+| Variable | Para qué sirve |
+|----------|----------------|
+| `Email__Enabled` | `true` para enviar. En `false` el envío falla con un mensaje visible y no se simula una entrega. |
+| `Email__Provider` | `Resend` (recomendado), `Brevo`, `Smtp` o `Outbox`. |
+| `Email__ApiKey` | Clave del proveedor API (Resend o Brevo). |
+| `Email__FromAddress` | Correo remitente verificado en ese proveedor. |
+| `Email__FromName` | Nombre que ve el destinatario, por ejemplo `SIPITEX`. |
+| `Email__Host` | Servidor SMTP. Solo si `Email__Provider=Smtp`. |
+| `Email__User` | Usuario SMTP. Solo si `Email__Provider=Smtp`. |
+| `Email__Password` | Contraseña SMTP. Solo si `Email__Provider=Smtp`. |
+
+Si faltan `Email__ApiKey` o `Email__FromAddress`, el arranque escribe un error en el log y la pantalla dice «No pudimos enviar el correo, intente de nuevo». Ese intento no deja el código vigente ni consume el minuto de reenvío. `Email__Provider=Outbox` guarda el mensaje en `EmailOutboxMessages` y no lo entrega.
 - **Login:** 5 intentos fallidos (correo + IP) bloquean 15 minutos. El mensaje no indica si el correo existe.
 
 ## Metodología cascada

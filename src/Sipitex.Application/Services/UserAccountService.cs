@@ -335,7 +335,10 @@ public class UserAccountService : IUserAccountService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "No se pudo enviar el código de confirmación de correo a {Email}", user.Email);
+            _logger.LogError(
+                ex,
+                "No se pudo enviar el código de confirmación. Destinatario={Recipient} Resultado=error",
+                EmailAddressMask.Mask(user.Email));
             return false;
         }
     }

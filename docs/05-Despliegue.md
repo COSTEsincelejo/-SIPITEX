@@ -64,20 +64,26 @@ Health check: `http://localhost:8080/health` (sin autenticación).
 | Variable de entorno | Config ASP.NET |
 |---------------------|----------------|
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Cadena `ConnectionStrings__DefaultConnection` |
-| `EMAIL_SMTP_USER` | `Email__User` → `Email:User` |
-| `EMAIL_SMTP_PASSWORD` | `Email__Password` → `Email:Password` |
+| `EMAIL_PROVIDER` | `Email__Provider` → `Email:Provider` (`Resend`, `Brevo`, `Smtp`, `Outbox`) |
+| `EMAIL_API_KEY` | `Email__ApiKey` → `Email:ApiKey` |
+| `EMAIL_FROM_ADDRESS` | `Email__FromAddress` → `Email:FromAddress` |
+| `EMAIL_FROM_NAME` | `Email__FromName` → `Email:FromName` |
+| `EMAIL_SMTP_USER` | `Email__User` → `Email:User` (solo si `Email:Provider=Smtp`) |
+| `EMAIL_SMTP_PASSWORD` | `Email__Password` → `Email:Password` (solo si `Email:Provider=Smtp`) |
 
 ## 5.6 Reportes y alertas
 
 - **Reportes** (`/Reportes`): PDF (QuestPDF) y Excel (ClosedXML) de Inventario, Órdenes, Calidad y Dashboard.
 - **Alertas** (`/Alertas`): cada actor activa/desactiva notificaciones (stock bajo, solicitudes pendientes, órdenes por vencer/atrasadas, reprocesos). Botón de correo de prueba.
-- Sin usuario SMTP (`Email:User` vacío) los correos se guardan en la tabla `EmailOutboxMessages` aunque `Email:Enabled=true`.
+- El canal predeterminado es **Resend** (HTTPS, puerto 443). Render en plan gratis bloquea SMTP en los puertos 25, 465 y 587.
+- Sin `Email:ApiKey` y `Email:FromAddress` el arranque registra un error y el envío no se da por exitoso. El código de confirmación se invalida y no se consume el minuto de espera.
+- `Email:Provider=Smtp` conserva MailKit. `Email:Provider=Outbox` guarda el mensaje en `EmailOutboxMessages` y no lo entrega.
 - **Trazabilidad** (`/Trazabilidad`): códigos únicos de prenda y QR.
 
 ### Credenciales SMTP — no guardarlas en appsettings
 
-`Email:User` y `Email:Password` **nunca** deben llenarse en `appsettings.json` ni en `appsettings.Development.json`.  
-Se configuran por variable de entorno o user-secrets. ASP.NET Core mapea `Email__Password` → `Email:Password` automáticamente hacia `EmailOptions`.
+`Email:ApiKey`, `Email:User` y `Email:Password` **nunca** deben llenarse en `appsettings.json` ni en `appsettings.Development.json`.  
+Se configuran por variable de entorno o user-secrets. ASP.NET Core mapea `Email__ApiKey` → `Email:ApiKey` automáticamente hacia `EmailOptions`.
 
 **Docker / producción:** use `.env` (ver `.env.example`) o variables del orquestador.
 
@@ -85,11 +91,13 @@ Se configuran por variable de entorno o user-secrets. ASP.NET Core mapea `Email_
 
 ```bash
 dotnet user-secrets init --project src/Sipitex.Web
-dotnet user-secrets set "Email:User" "tu-usuario@smtp" --project src/Sipitex.Web
-dotnet user-secrets set "Email:Password" "xxxx" --project src/Sipitex.Web
+dotnet user-secrets set "Email:Provider" "Resend" --project src/Sipitex.Web
+dotnet user-secrets set "Email:ApiKey" "re_..." --project src/Sipitex.Web
+dotnet user-secrets set "Email:FromAddress" "notificaciones@tudominio.com" --project src/Sipitex.Web
+dotnet user-secrets set "Email:FromName" "SIPITEX" --project src/Sipitex.Web
 ```
 
-Para activar el envío real, defina `EMAIL_SMTP_USER` y `EMAIL_SMTP_PASSWORD` (Compose o user-secrets). `Email:Enabled` queda en `true`; sin usuario SMTP el canal sigue siendo Outbox.
+Para volver a SMTP (no funciona en el plan gratis de Render): `Email:Provider=Smtp` más `Email:User` y `Email:Password`.
 
 ## 5.7 Base de datos y migraciones EF Core
 
@@ -143,8 +151,12 @@ Este agente **no crea** el servicio en la consola de Render. Hay que vincular el
 | `ASPNETCORE_ENVIRONMENT` | `Production` |
 | `Seed__DemoUsers` | `true` solo en demo; `false` en operación real |
 | `ADMIN_SEED_PASSWORD` | Contraseña del admin bootstrap (si no hay administradores) |
-| `Email__Enabled` | `false` hasta tener SMTP; `true` en producción con usuario SMTP |
-| `Email__Host` / `Email__From` / `Email__User` / `Email__Password` | Solo si hay SMTP |
+| `Email__Enabled` | `true` para enviar |
+| `Email__Provider` | `Resend` (recomendado), `Brevo`, `Smtp` o `Outbox` |
+| `Email__ApiKey` | Clave de Resend o Brevo. No va en git |
+| `Email__FromAddress` | Remitente verificado en el proveedor |
+| `Email__FromName` | `SIPITEX` |
+| `Email__Host` / `Email__User` / `Email__Password` | Solo si `Email__Provider=Smtp` |
 | `Costing__LaborHourRate` | `6500` (referencia; el admin puede cambiarla en `/Costos`) |
 
 4. El primer arranque ejecuta `MigrateAsync` y crea el esquema en la BD administrada.
@@ -166,9 +178,12 @@ Completar en el panel del Web Service (Environment). **No** pegue valores reales
 - [ ] `ConnectionStrings__DefaultConnection` — la genera Render al vincular `sipitex-db` (`fromDatabase.connectionString` en el Blueprint).
 - [ ] `SEED_DEMO_DATA` — `true` solo en una demo; en operación no la defina (o `false`).
 - [ ] `ADMIN_SEED_PASSWORD` — contraseña del administrador inicial (`admin@sipitex.local`) si la base no tiene administradores.
-- [ ] `Email__Enabled` — `true` cuando haya SMTP; `false` si aún no.
-- [ ] `Email__User` — usuario SMTP (vacío en `appsettings.json`; solo aquí).
-- [ ] `Email__Password` — contraseña o app password SMTP (vacío en `appsettings.json`; solo aquí).
+- [ ] `Email__Enabled` — `true` para enviar códigos y alertas.
+- [ ] `Email__Provider` — `Resend` en Render (HTTPS). `Smtp` solo si el plan permite salida 587.
+- [ ] `Email__ApiKey` — clave del proveedor. Vacía en el repositorio.
+- [ ] `Email__FromAddress` — correo remitente verificado en Resend o Brevo.
+- [ ] `Email__FromName` — `SIPITEX`.
+- [ ] `Email__User` / `Email__Password` — solo con `Email__Provider=Smtp`.
 - [ ] `Costing__LaborHourRate` — tarifa de hora de mano de obra (referencia de negocio: 6500 COP/hora; el admin puede cambiarla luego en `/Costos`).
 
-Sin `Email__User` / `Email__Password`, aunque `Email__Enabled=true`, los correos se guardan en `EmailOutboxMessages`. El primer arranque aplica `MigrateAsync` sobre la Postgres administrada. Las claves de Data Protection también quedan en esa base (`DataProtectionKeys`), así que las cookies sobreviven a un redeploy.
+Si faltan `Email__ApiKey` o `Email__FromAddress`, el arranque escribe un error y la pantalla de confirmación dice que no se pudo enviar el correo. El código no queda vigente y no se consume el minuto de reenvío. El primer arranque aplica `MigrateAsync` sobre la Postgres administrada. Las claves de Data Protection también quedan en esa base (`DataProtectionKeys`), así que las cookies sobreviven a un redeploy.
