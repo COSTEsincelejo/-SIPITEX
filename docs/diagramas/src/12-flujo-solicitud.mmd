@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f1fb', 'primaryTextColor': '#1a2b3c', 'primaryBorderColor': '#2c5282', 'lineColor': '#2c5282', 'fontFamily': 'Segoe UI, Arial, sans-serif'}}}%%
+flowchart TD
+  Start([Inicio]) --> Login{Usuario autenticado?}
+  Login -->|No| Auth[Iniciar sesión]
+  Auth --> Login
+  Login -->|Sí| Menu[Menú principal]
+  Menu --> Accion{Acción}
+
+  Accion -->|Solicitar material| SelOrden[Seleccionar orden de producción]
+  SelOrden --> SelMat[Seleccionar o crear material]
+  SelMat --> Cant[Indicar cantidad]
+  Cant --> Enviar[Enviar solicitud]
+  Enviar --> Pendiente[Estado: Pendiente]
+  Pendiente --> Bodega{Bodeguero revisa}
+  Bodega -->|Aprobar| Desc[Descontar stock]
+  Desc --> Aprobada[Estado: Aprobada]
+  Bodega -->|Rechazar| Motivo[Registrar motivo]
+  Motivo --> Rechazada[Estado: Rechazada]
+  Aprobada --> Fin([Fin])
+  Rechazada --> Fin
+
+  Accion -->|Registrar producción| SelFicha[Seleccionar ficha]
+  SelFicha --> Units[Registrar unidades y observaciones]
+  Units --> Avance[Actualizar avance de orden]
+  Avance --> Meta{¿Meta alcanzada?}
+  Meta -->|Sí| Finalizar[Finalizar orden]
+  Meta -->|No| Fin
+  Finalizar --> Fin
+
+  Accion -->|Calidad| Insp[Registrar inspección]
+  Insp --> Result{Resultado}
+  Result -->|Aprobado| OK[Guardar registro]
+  Result -->|Reproceso| Repro[Motivo y responsable]
+  Repro --> OK
+  OK --> Fin
