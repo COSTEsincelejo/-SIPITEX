@@ -8,6 +8,9 @@ public class EmailDeliveryException : Exception
 
     public int? StatusCode { get; }
 
+    // Texto ya saneado del proveedor (sin API key ni código de 6 dígitos). Solo para el log.
+    public string? ProviderDetail { get; init; }
+
     public EmailDeliveryException(string message, int? statusCode = null, Exception? innerException = null)
         : base(message, innerException)
     {

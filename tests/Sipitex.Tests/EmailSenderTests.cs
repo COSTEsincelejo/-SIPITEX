@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -199,6 +200,129 @@ public class EmailSenderTests
         Assert.Contains("Email__ApiKey", message);
         Assert.DoesNotContain("re_super_secret", message);
     }
+
+    [Fact]
+    public async Task SendAsync_Brevo201_EnviaSenderRecortado_YRegistraMessageId()
+    {
+        var handler = new StubHandler
+        {
+            Response = new HttpResponseMessage(HttpStatusCode.Created)
+            {
+                Content = new StringContent("{\"messageId\":\"brevo-msg-201\"}")
+            }
+        };
+        var logger = new ListLogger();
+        var sender = new EmailSender(
+            Options.Create(new EmailOptions
+            {
+                Enabled = true,
+                Provider = "Brevo",
+                ApiKey = "  xkeysib-secret\r\n",
+                FromAddress = "  SIPITEX <avisos@sipitex.test>  ",
+                FromName = "  SIPITEX  "
+            }),
+            logger,
+            httpClientFactory: new StubFactory(handler));
+
+        await sender.SendAsync(
+            "ana@gmail.com",
+            "Ana",
+            "Código de confirmación SIPITEX",
+            "<p>123456</p>");
+
+        Assert.Equal("https://api.brevo.com/v3/smtp/email", handler.LastRequest!.RequestUri!.ToString());
+        Assert.Equal(443, handler.LastRequest.RequestUri.Port);
+        Assert.True(handler.LastRequest.Headers.TryGetValues("api-key", out var keys));
+        Assert.Equal("xkeysib-secret", Assert.Single(keys));
+
+        using var doc = JsonDocument.Parse(handler.LastBody!);
+        var root = doc.RootElement;
+        Assert.Equal("avisos@sipitex.test", root.GetProperty("sender").GetProperty("email").GetString());
+        Assert.Equal("SIPITEX", root.GetProperty("sender").GetProperty("name").GetString());
+        Assert.Equal("ana@gmail.com", root.GetProperty("to")[0].GetProperty("email").GetString());
+        Assert.Equal("Código de confirmación SIPITEX", root.GetProperty("subject").GetString());
+        Assert.Contains("123456", root.GetProperty("htmlContent").GetString());
+        Assert.False(root.TryGetProperty("html", out _));
+
+        Assert.Contains(logger.Lines, line =>
+            line.Contains("Resultado=ok", StringComparison.Ordinal)
+            && line.Contains("HttpStatus=201", StringComparison.Ordinal)
+            && line.Contains("MessageId=brevo-msg-201", StringComparison.Ordinal)
+            && line.Contains("a***@gmail.com", StringComparison.Ordinal));
+        Assert.DoesNotContain(logger.Lines, line =>
+            line.Contains("xkeysib-secret", StringComparison.Ordinal)
+            || line.Contains("123456", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task SendAsync_Brevo400_LanzaYRegistraElCuerpoSinSecretos()
+    {
+        var handler = new StubHandler
+        {
+            Response = new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent(
+                    "{\"code\":\"invalid_parameter\",\"message\":\"email is not valid in sender. echo 123456 xkeysib-secret\"}")
+            }
+        };
+        var logger = new ListLogger();
+        var sender = BrevoSender(handler, logger);
+
+        var ex = await Assert.ThrowsAsync<EmailDeliveryException>(() =>
+            sender.SendAsync("ana@gmail.com", "Ana", "Asunto", "<p>123456</p>"));
+
+        Assert.Equal(400, ex.StatusCode);
+        Assert.Contains("email is not valid in sender", ex.ProviderDetail);
+        Assert.DoesNotContain("123456", ex.ProviderDetail);
+        Assert.DoesNotContain("xkeysib-secret", ex.ProviderDetail);
+        Assert.Contains(logger.Lines, line =>
+            line.Contains("Resultado=error", StringComparison.Ordinal)
+            && line.Contains("HttpStatus=400", StringComparison.Ordinal)
+            && line.Contains("email is not valid in sender", StringComparison.Ordinal));
+        Assert.DoesNotContain(logger.Lines, line =>
+            line.Contains("xkeysib-secret", StringComparison.Ordinal)
+            || line.Contains("123456", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task SendAsync_Brevo401_LanzaYRegistraElCuerpoSinLaClave()
+    {
+        var handler = new StubHandler
+        {
+            Response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+            {
+                Content = new StringContent("{\"code\":\"unauthorized\",\"message\":\"Key not found\"}")
+            }
+        };
+        var logger = new ListLogger();
+        var sender = BrevoSender(handler, logger);
+
+        var ex = await Assert.ThrowsAsync<EmailDeliveryException>(() =>
+            sender.SendAsync("ana@gmail.com", "Ana", "Asunto", "<p>654321</p>"));
+
+        Assert.Equal(401, ex.StatusCode);
+        Assert.Contains("Key not found", ex.ProviderDetail);
+        Assert.Contains(logger.Lines, line =>
+            line.Contains("HttpStatus=401", StringComparison.Ordinal)
+            && line.Contains("Key not found", StringComparison.Ordinal)
+            && line.Contains("ErrorBody=", StringComparison.Ordinal));
+        Assert.DoesNotContain(logger.Lines, line =>
+            line.Contains("xkeysib-secret", StringComparison.Ordinal)
+            || line.Contains("654321", StringComparison.Ordinal));
+    }
+
+    private static EmailSender BrevoSender(StubHandler handler, ListLogger logger) =>
+        new(
+            Options.Create(new EmailOptions
+            {
+                Enabled = true,
+                Provider = "Brevo",
+                ApiKey = "xkeysib-secret",
+                FromAddress = "avisos@sipitex.test",
+                FromName = "SIPITEX"
+            }),
+            logger,
+            httpClientFactory: new StubFactory(handler));
 
     private sealed class ListLogger : ILogger<EmailSender>
     {

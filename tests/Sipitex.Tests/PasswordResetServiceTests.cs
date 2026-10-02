@@ -572,4 +572,22 @@ public class PasswordResetServiceTests
         Assert.False(reset.Success);
         Assert.Equal(PasswordResetService.InvalidCodeMessage, reset.Message);
     }
+
+    [Fact]
+    public async Task ResendEmailConfirmation_WhenProviderRejects_ShowsSendFailedMessage()
+    {
+        var user = ActiveUser(emailConfirmed: false);
+        StubUser(user);
+        var sut = CreateSut();
+        _email.Setup(e => e.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new EmailDeliveryException("El proveedor Brevo respondió HTTP 400.", 400));
+
+        var result = await sut.ResendEmailConfirmationAsync(user.Email);
+
+        Assert.False(result.Success);
+        Assert.Contains("No pudimos enviar el correo", result.Message);
+        Assert.Equal(PasswordResetService.SendFailedMessage, result.Message);
+        Assert.Empty(_store);
+    }
 }
