@@ -1,5 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.EntityFrameworkCore;
@@ -71,14 +73,18 @@ public class EmailSender : IEmailSender
             {
                 case EmailConfiguration.Outbox:
                     await SendOutboxAsync(toEmail, toName, subject, body, cancellationToken);
-                    LogAttempt(toEmail, display, "outbox", null, null);
+                    LogAttempt(toEmail, display, "outbox", null, null, null);
                     return;
                 case EmailConfiguration.Resend:
-                    status = await SendResendAsync(toEmail, toName, subject, body, cancellationToken);
-                    break;
+                    var resend = await SendResendAsync(toEmail, toName, subject, body, cancellationToken);
+                    status = resend.Status;
+                    LogAttempt(toEmail, display, "ok", status, null, resend.MessageId);
+                    return;
                 case EmailConfiguration.Brevo:
-                    status = await SendBrevoAsync(toEmail, toName, subject, body, cancellationToken);
-                    break;
+                    var brevo = await SendBrevoAsync(toEmail, toName, subject, body, cancellationToken);
+                    status = brevo.Status;
+                    LogAttempt(toEmail, display, "ok", status, null, brevo.MessageId);
+                    return;
                 case EmailConfiguration.Smtp:
                     await SendSmtpAsync(toEmail, toName, subject, body, cancellationToken);
                     break;
@@ -87,11 +93,11 @@ public class EmailSender : IEmailSender
                         $"Proveedor de correo no reconocido ({_options.Provider}). Use Resend, Brevo, Smtp u Outbox.");
             }
 
-            LogAttempt(toEmail, display, "ok", status, null);
+            LogAttempt(toEmail, display, "ok", status, null, null);
         }
         catch (EmailDeliveryException ex)
         {
-            LogAttempt(toEmail, display, "error", ex.StatusCode ?? status, ex);
+            LogAttempt(toEmail, display, "error", ex.StatusCode ?? status, ex, ex.ProviderDetail);
             throw;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -100,12 +106,12 @@ public class EmailSender : IEmailSender
         }
         catch (Exception ex)
         {
-            LogAttempt(toEmail, display, "error", status, ex);
+            LogAttempt(toEmail, display, "error", status, ex, null);
             throw new EmailDeliveryException("No se pudo enviar el correo.", status, ex);
         }
     }
 
-    private async Task<int> SendResendAsync(
+    private async Task<ProviderCall> SendResendAsync(
         string toEmail,
         string toName,
         string subject,
@@ -128,15 +134,17 @@ public class EmailSender : IEmailSender
         else
             payload["text"] = body;
 
+        var apiKey = (_options.ApiKey ?? string.Empty).Trim();
         return await PostJsonAsync(
             "https://api.resend.com/emails",
             payload,
-            request => request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey.Trim()),
+            request => request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey),
             "Resend",
+            apiKey,
             cancellationToken);
     }
 
-    private async Task<int> SendBrevoAsync(
+    private async Task<ProviderCall> SendBrevoAsync(
         string toEmail,
         string toName,
         string subject,
@@ -144,21 +152,22 @@ public class EmailSender : IEmailSender
         CancellationToken cancellationToken)
     {
         EnsureApiReady(EmailConfiguration.Brevo);
-        var address = EmailConfiguration.PlainAddress(EmailConfiguration.ResolveFromAddress(_options));
+        var apiKey = (_options.ApiKey ?? string.Empty).Trim();
+        var senderEmail = EmailConfiguration.PlainAddress(EmailConfiguration.ResolveFromAddress(_options)).Trim();
         var senderName = string.IsNullOrWhiteSpace(_options.FromName) ? "SIPITEX" : _options.FromName.Trim();
         var payload = new Dictionary<string, object?>
         {
             ["sender"] = new Dictionary<string, string>
             {
                 ["name"] = senderName,
-                ["email"] = address
+                ["email"] = senderEmail
             },
             ["to"] = new[]
             {
                 new Dictionary<string, string>
                 {
-                    ["email"] = toEmail,
-                    ["name"] = string.IsNullOrWhiteSpace(toName) ? toEmail : toName
+                    ["email"] = toEmail.Trim(),
+                    ["name"] = string.IsNullOrWhiteSpace(toName) ? toEmail.Trim() : toName.Trim()
                 }
             },
             ["subject"] = subject
@@ -171,16 +180,27 @@ public class EmailSender : IEmailSender
         return await PostJsonAsync(
             "https://api.brevo.com/v3/smtp/email",
             payload,
-            request => request.Headers.TryAddWithoutValidation("api-key", _options.ApiKey.Trim()),
+            request =>
+            {
+                if (!request.Headers.TryAddWithoutValidation("api-key", apiKey))
+                {
+                    throw new EmailDeliveryException(
+                        "La clave de Brevo no pudo ir en el header api-key. Revise Email__ApiKey.");
+                }
+            },
             "Brevo",
+            apiKey,
             cancellationToken);
     }
 
-    private async Task<int> PostJsonAsync(
+    private readonly record struct ProviderCall(int Status, string? MessageId);
+
+    private async Task<ProviderCall> PostJsonAsync(
         string url,
         object payload,
         Action<HttpRequestMessage> configure,
         string providerName,
+        string secretToRedact,
         CancellationToken cancellationToken)
     {
         if (_httpClientFactory is null)
@@ -214,14 +234,21 @@ public class EmailSender : IEmailSender
         using (response)
         {
             var status = (int)response.StatusCode;
+            var rawBody = response.Content is null
+                ? string.Empty
+                : await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                var errorBody = SanitizeProviderText(rawBody, secretToRedact);
                 throw new EmailDeliveryException(
                     $"El proveedor {providerName} respondió HTTP {status}.",
-                    status);
+                    status)
+                {
+                    ProviderDetail = errorBody
+                };
             }
 
-            return status;
+            return new ProviderCall(status, ExtractMessageId(rawBody, secretToRedact));
         }
     }
 
@@ -298,17 +325,24 @@ public class EmailSender : IEmailSender
             cancellationToken);
     }
 
-    private void LogAttempt(string toEmail, string provider, string result, int? status, Exception? exception)
+    private void LogAttempt(
+        string toEmail,
+        string provider,
+        string result,
+        int? status,
+        Exception? exception,
+        string? detail)
     {
         var recipient = EmailAddressMask.Mask(toEmail);
         if (exception is null && string.Equals(result, "ok", StringComparison.Ordinal))
         {
             _logger.LogInformation(
-                "Envío de correo. Destinatario={Recipient} Proveedor={Provider} Resultado={Result} HttpStatus={Status}",
+                "Envío de correo. Destinatario={Recipient} Proveedor={Provider} Resultado={Result} HttpStatus={Status} MessageId={MessageId}",
                 recipient,
                 provider,
                 result,
-                status);
+                status,
+                detail ?? string.Empty);
             return;
         }
 
@@ -325,12 +359,58 @@ public class EmailSender : IEmailSender
 
         _logger.LogError(
             exception,
-            "Envío de correo. Destinatario={Recipient} Proveedor={Provider} Resultado={Result} HttpStatus={Status}",
+            "Envío de correo. Destinatario={Recipient} Proveedor={Provider} Resultado={Result} HttpStatus={Status} ErrorBody={ErrorBody}",
             recipient,
             provider,
             result,
-            status);
+            status,
+            detail ?? string.Empty);
     }
+
+    // Quita la API key y cualquier código de 6 dígitos antes de escribir el log.
+    private static string SanitizeProviderText(string? text, string? secret)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var clean = text.Trim();
+        if (!string.IsNullOrWhiteSpace(secret))
+            clean = clean.Replace(secret, "[redacted]", StringComparison.Ordinal);
+
+        clean = SixDigitCode.Replace(clean, "[codigo]");
+        if (clean.Length > 500)
+            clean = clean[..500];
+
+        return clean;
+    }
+
+    private static string? ExtractMessageId(string rawBody, string secret)
+    {
+        if (string.IsNullOrWhiteSpace(rawBody))
+            return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(rawBody);
+            foreach (var name in new[] { "messageId", "id" })
+            {
+                if (doc.RootElement.TryGetProperty(name, out var value)
+                    && value.ValueKind == JsonValueKind.String)
+                {
+                    var id = SanitizeProviderText(value.GetString(), secret);
+                    return string.IsNullOrWhiteSpace(id) ? null : id;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    private static readonly Regex SixDigitCode = new(@"\b\d{6}\b", RegexOptions.Compiled);
 
     private static bool IsHtml(string body) =>
         body.Contains("<div", StringComparison.OrdinalIgnoreCase)
