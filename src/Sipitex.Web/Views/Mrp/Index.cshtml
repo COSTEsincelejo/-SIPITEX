@@ -128,7 +128,11 @@
                         {
                             <td class="row-actions">
                                 <a class="small ghost" asp-action="Edit" asp-route-id="@p.Id"><i class="fas fa-pen"></i> Editar</a>
-                                <form asp-action="Delete" method="post" style="display:inline;" onsubmit="return confirm('¿Eliminar la ficha técnica de «@p.ProductName»? Quedará sin BOM.');">
+                                <form asp-action="Delete" method="post" style="display:inline;"
+                                      data-confirm="¿Eliminar la ficha técnica de «@p.ProductName»? Quedará sin BOM."
+                                      data-confirm-title="Eliminar ficha técnica"
+                                      data-confirm-variant="danger"
+                                      data-confirm-ok="Eliminar">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@p.Id" />
                                     <button type="submit" class="small ghost danger"><i class="fas fa-trash"></i> Eliminar</button>
