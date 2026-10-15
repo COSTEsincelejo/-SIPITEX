@@ -26,7 +26,7 @@
     <form asp-action="Consultar" method="get" class="form-row">
         <div class="field" style="min-width:240px;flex:1;">
             <label class="field-label" for="plantaInventarioId">Seleccione una planta</label>
-            <select id="plantaInventarioId" name="plantaInventarioId" onchange="this.form.submit()">
+            <select id="plantaInventarioId" name="plantaInventarioId" data-auto-submit>
                 <option value="">Todas las plantas</option>
                 @foreach (var p in Model.Plantas)
                 {

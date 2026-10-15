@@ -388,4 +388,11 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 .switch input:checked + .switch-ui::after{transform:translateX(16px);}
 .inline-form{display:inline;}
 .text-end{text-align:right;}
+.site-footer a{color:var(--accent);}
+.auth-foot a{color:#fff;}
+.sesion-aviso{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(10,37,64,.45);padding:24px;}
+.sesion-aviso[hidden]{display:none;}
+.sesion-aviso-card{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:24px;max-width:440px;width:100%;}
+.sesion-aviso-card h3{color:var(--navy);margin:0 0 8px;font-size:18px;}
+.sesion-aviso-acciones{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
 

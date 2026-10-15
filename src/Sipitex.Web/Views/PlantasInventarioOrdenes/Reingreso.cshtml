@@ -23,7 +23,7 @@
     <form method="get" asp-action="Reingreso" class="form-row" style="margin-bottom:1rem;">
         <div class="field" style="min-width:220px;">
             <label class="field-label">Orden de producción</label>
-            <select name="orderId" onchange="this.form.submit()">
+            <select name="orderId" data-auto-submit>
                 <option value="">Seleccione orden…</option>
                 @foreach (var o in Model.Orders)
                 {
@@ -69,12 +69,12 @@
                 <label class="field-label">Tipo de reingreso</label>
                 <label style="display:flex;gap:8px;align-items:center;margin-top:6px;">
                     <input type="radio" name="Form.EsProductoTerminado" value="false" checked
-                           onchange="document.getElementById('materialField').hidden=false;" />
+                           data-toggle-hidden="materialField" data-toggle-show="true" />
                     Material de planta de inventario
                 </label>
                 <label style="display:flex;gap:8px;align-items:center;margin-top:4px;">
                     <input type="radio" name="Form.EsProductoTerminado" value="true"
-                           onchange="document.getElementById('materialField').hidden=true;" />
+                           data-toggle-hidden="materialField" data-toggle-show="false" />
                     Producto terminado (orden)
                 </label>
             </div>

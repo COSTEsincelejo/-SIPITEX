@@ -27,6 +27,10 @@
         <button type="submit" class="primary auth-submit"><i class="fas fa-sign-in-alt"></i> Entrar</button>
     </form>
     @* Mensaje de éxito tras reset de contraseña u otra acción *@
+    @if (ViewBag.InfoMessage is string info && !string.IsNullOrWhiteSpace(info))
+    {
+        <div class="alert alert-warning" style="margin-top:1rem;">@info</div>
+    }
     @if (ViewBag.SuccessMessage is string success && !string.IsNullOrWhiteSpace(success))
     {
         <div class="alert alert-success" style="margin-top:1rem;">@success</div>

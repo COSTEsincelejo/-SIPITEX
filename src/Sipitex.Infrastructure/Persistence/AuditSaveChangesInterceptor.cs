@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Application.Seguridad;
 using Sipitex.Domain.Entities;
 
 namespace Sipitex.Infrastructure.Persistence;
@@ -99,7 +100,7 @@ public sealed class AuditSaveChangesInterceptor : SaveChangesInterceptor
         {
             var before = new Dictionary<string, object?>();
             var after = new Dictionary<string, object?>();
-            foreach (var p in entry.Properties.Where(p => p.IsModified && p.Metadata.Name != "Id"))
+            foreach (var p in entry.Properties.Where(p => p.IsModified && p.Metadata.Name != "Id" && !EsSensible(p.Metadata.Name)))
             {
                 before[p.Metadata.Name] = p.OriginalValue;
                 after[p.Metadata.Name] = p.CurrentValue;
@@ -110,11 +111,14 @@ public sealed class AuditSaveChangesInterceptor : SaveChangesInterceptor
         else if (entry.State == EntityState.Added)
         {
             payload["after"] = entry.Properties
-                .Where(p => p.Metadata.Name != "Id")
+                .Where(p => p.Metadata.Name != "Id" && !EsSensible(p.Metadata.Name))
                 .ToDictionary(p => p.Metadata.Name, p => p.CurrentValue);
         }
 
         var json = JsonSerializer.Serialize(payload, JsonOptions);
         return json.Length > 2000 ? json[..2000] : json;
     }
+
+    private static bool EsSensible(string nombre) =>
+        RedactorDatosSensibles.EsPropiedadSensible(nombre);
 }

@@ -80,6 +80,10 @@ public class ProfileViewModel
     public string? ConfirmPassword { get; set; }
 
     public bool RemovePhoto { get; set; } // checkbox para borrar la foto
+
+    public string? PoliticaVersion { get; set; }
+
+    public DateTime? PoliticaAceptadaEnUtc { get; set; }
 }
 
 // Paso 1 de recuperar contraseña: solo pide el correo
@@ -124,4 +128,7 @@ public class ConfirmEmailViewModel
     [RegularExpression(@"^\d{6}$", ErrorMessage = "Ingrese el código de 6 dígitos.")]
     [Display(Name = "Código")]
     public string Code { get; set; } = string.Empty;
+
+    [Range(typeof(bool), "true", "true", ErrorMessage = "Debe aceptar la política de tratamiento de datos personales.")]
+    public bool AceptaPolitica { get; set; }
 }

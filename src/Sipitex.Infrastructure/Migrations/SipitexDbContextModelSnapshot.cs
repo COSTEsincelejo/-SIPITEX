@@ -43,6 +43,36 @@ namespace Sipitex.Infrastructure.Migrations
                     b.ToTable("DataProtectionKeys", (string)null);
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.AceptacionTratamiento", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AceptadaEnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DireccionIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("VersionPolitica")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "VersionPolitica");
+
+                    b.ToTable("AceptacionesTratamiento");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimiento", b =>
                 {
                     b.Property<int>("Id")
@@ -1965,6 +1995,17 @@ namespace Sipitex.Infrastructure.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("UserProfilePhotos");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.AceptacionTratamiento", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimiento", b =>

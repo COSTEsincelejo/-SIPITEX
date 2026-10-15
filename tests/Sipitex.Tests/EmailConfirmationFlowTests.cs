@@ -158,7 +158,8 @@ public class EmailConfirmationFlowTests : IDisposable
             Mock.Of<IActivityLogService>(),
             Mock.Of<IPlantaInventarioService>(),
             Mock.Of<IWebHostEnvironment>(),
-            guard.Object)
+            guard.Object,
+            Mock.Of<IAceptacionTratamientoService>())
         {
             ControllerContext = new ControllerContext
             {

@@ -211,7 +211,8 @@ public class AccountActivityLogInstrumentationTests
             _activity.Object,
             _plantas.Object,
             _env.Object,
-            Mock.Of<ILoginAttemptGuard>())
+            Mock.Of<ILoginAttemptGuard>(),
+            Mock.Of<IAceptacionTratamientoService>())
         {
             ControllerContext = new ControllerContext
             {

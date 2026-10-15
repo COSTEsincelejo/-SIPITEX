@@ -1,0 +1,18 @@
+@model AceptarPoliticaViewModel
+@{
+    ViewData["Title"] = "Aceptar política de datos";
+    ViewData["Breadcrumb"] = "SIPITEX / Privacidad";
+}
+<div class="card" style="max-width:640px;">
+    <div class="card-title"><i class="fas fa-shield-halved"></i> Antes de continuar</div>
+    <p>Para usar SIPITEX debe aceptar la política de tratamiento de datos personales vigente. Puede leerla completa antes de marcar la casilla.</p>
+    <form asp-action="Aceptar" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <label style="display:flex;gap:.5rem;align-items:flex-start;margin:1rem 0;">
+            <input asp-for="AceptaPolitica" />
+            <span>He leído y acepto la <a asp-action="Index" target="_blank" rel="noopener">política de tratamiento de datos personales</a>.</span>
+        </label>
+        <span asp-validation-for="AceptaPolitica" class="field-error"></span>
+        <button type="submit" class="primary">Continuar</button>
+    </form>
+</div>

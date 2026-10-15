@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore; // Para registrar el DbContext
 using Microsoft.Extensions.Configuration; // Leo appsettings (connection string, email...)
 using Microsoft.Extensions.DependencyInjection; // Contenedor DI de ASP.NET
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Sipitex.Application.Seguridad;
 using Sipitex.Application.Services; // NullAuditActorAccessor (seed / tests sin HTTP)
 using Sipitex.Application.Interfaces; // IUnitOfWork
 using Sipitex.Application.Interfaces.Repositories; // Interfaces de los repos
@@ -38,6 +39,8 @@ public static class DependencyInjection
 
         // Opciones de correo desde la sección "Email" (appsettings y variables Email__*).
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<PrivacidadOptions>(configuration.GetSection(PrivacidadOptions.Seccion));
+        services.AddScoped<IAceptacionTratamientoService, AceptacionTratamientoService>();
         services.AddHttpClient(EmailSender.HttpClientName, client =>
         {
             client.Timeout = TimeSpan.FromSeconds(20);

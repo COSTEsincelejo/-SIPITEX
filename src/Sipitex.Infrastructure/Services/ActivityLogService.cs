@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Application.Seguridad;
 using Sipitex.Domain.Entities;
 using Sipitex.Infrastructure.Persistence;
 
@@ -47,7 +48,7 @@ public class ActivityLogService : IActivityLogService
             Entity = entity.Trim(),
             EntityId = string.IsNullOrWhiteSpace(entityId) ? null : entityId.Trim(),
             Timestamp = DateTime.UtcNow,
-            Details = string.IsNullOrWhiteSpace(details) ? null : details.Trim()
+            Details = string.IsNullOrWhiteSpace(details) ? null : RedactorDatosSensibles.Limpiar(details.Trim())
         });
 
         await _db.SaveChangesAsync(cancellationToken);
