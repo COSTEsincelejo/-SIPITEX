@@ -1,4 +1,5 @@
 ﻿@using System.Security.Claims
+@using Sipitex.Application.Ayuda
 @using Sipitex.Application.Search
 @{
     // Sacamos controller y action de la ruta actual para marcar el menú activo
@@ -38,6 +39,7 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="~/css/sipitex.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ayuda.css" asp-append-version="true" />
 </head>
 <body>
 <div class="shell">
@@ -123,6 +125,7 @@
             {
                 <a class="@(IsAccountAction("Profile") ? "nav-item active" : "nav-item")"
                    asp-controller="Account" asp-action="Profile"><i class="fas fa-user"></i> Mi perfil</a>
+                <a class="@NavClass("Ayuda")" asp-controller="Ayuda" asp-action="Index"><i class="fas fa-circle-question"></i> Ayuda</a>
             }
         </nav>
         </div>
@@ -144,6 +147,24 @@
                     <h2>@title</h2>
                     <div class="breadcrumb">@breadcrumb</div>
                 </div>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    var temaAyuda = AyudaCatalogo.ParaRuta(controller, action, User);
+                    if (temaAyuda is not null)
+                    {
+                        <button type="button"
+                                class="icon-btn ayuda-contextual"
+                                id="ayudaContextual"
+                                data-ayuda-id="@temaAyuda.Id"
+                                title="Ayuda de esta pantalla"
+                                aria-label="Ayuda de esta pantalla"
+                                aria-haspopup="dialog"
+                                aria-controls="ayudaPanel"
+                                aria-expanded="false">
+                            <i class="fas fa-circle-question" aria-hidden="true"></i>
+                        </button>
+                    }
+                }
             </div>
             @if (User.Identity?.IsAuthenticated == true)
             {
@@ -175,10 +196,10 @@
             <div class="topbar-right">
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <a class="icon-btn" asp-controller="Alertas" asp-action="Index" title="Alertas" aria-label="Alertas">
+                    <a class="icon-btn" id="topbarAlertas" asp-controller="Alertas" asp-action="Index" title="Alertas" aria-label="Alertas">
                         <i class="fas fa-bell"></i>
                     </a>
-                    <a class="role-chip role-chip-link" asp-controller="Account" asp-action="Profile" title="Mi perfil" aria-label="Ir a mi perfil">
+                    <a class="role-chip role-chip-link" id="topbarPerfil" asp-controller="Account" asp-action="Profile" title="Mi perfil" aria-label="Ir a mi perfil">
                         @* Avatar con foto o inicial del nombre *@
                         @if (!string.IsNullOrWhiteSpace(photo))
                         {
@@ -216,9 +237,27 @@
 @if (User.Identity?.IsAuthenticated == true)
 {
     <script type="application/json" id="buscador-catalogo">@Html.Raw(BuscadorCatalogo.JsonVisibles(User))</script>
+    <script type="application/json" id="ayuda-temas">@Html.Raw(AyudaCatalogo.JsonTemas(User))</script>
+    <div id="ayudaPanel" class="ayuda-panel" role="dialog" aria-modal="true" aria-labelledby="ayudaPanelTitulo" hidden>
+        <div class="ayuda-panel-fondo" data-ayuda-cerrar></div>
+        <div class="ayuda-panel-card">
+            <div class="ayuda-panel-top">
+                <span class="hint">Ayuda de esta pantalla</span>
+                <button type="button" class="icon-btn" data-ayuda-cerrar aria-label="Cerrar ayuda">
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <h3 id="ayudaPanelTitulo">Ayuda</h3>
+            <div id="ayudaPanelCuerpo"></div>
+        </div>
+    </div>
 }
 <script src="~/js/site.js" asp-append-version="true"></script>
 <script src="~/js/buscador-global.js" asp-append-version="true"></script>
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <script src="~/js/ayuda.js" asp-append-version="true"></script>
+}
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

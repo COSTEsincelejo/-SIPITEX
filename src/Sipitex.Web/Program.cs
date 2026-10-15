@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Logging;
+using Sipitex.Application.Ayuda;
 using Sipitex.Application.Interfaces.Services;
 using Microsoft.Extensions.Options;
 using Sipitex.Infrastructure;
@@ -73,6 +74,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 // MVC: controladores + vistas (lo típico en este proyecto)
 builder.Services.AddControllersWithViews();
+builder.Services.Configure<SoporteOptions>(builder.Configuration.GetSection(SoporteOptions.Seccion));
 // Servicios de negocio de la capa Application (inventario, MRP, usuarios, etc.)
 builder.Services.AddApplicationServices();
 // BD, repositorios y cosas de infraestructura
