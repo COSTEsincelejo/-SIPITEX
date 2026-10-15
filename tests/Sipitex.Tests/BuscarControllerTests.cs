@@ -17,6 +17,21 @@ namespace Sipitex.Tests;
 public class BuscarControllerTests
 {
     [Fact]
+    public async Task Sugerencias_IncluyeAccionesDelCatalogoSegunRol()
+    {
+        var buscador = new Mock<IBuscadorSugerenciasService>();
+        buscador
+            .Setup(b => b.SugerirAsync(It.IsAny<string>(), It.IsAny<AlcanceBusqueda>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SugerenciasBusquedaDto.Vacias());
+
+        var admin = await Json(Controller(buscador.Object, NullCurrentPlantaInventarioAccessor.Instance, UserRoles.Administrador), "crear planta");
+        Assert.Equal("/PlantasInventario#Nombre", admin.Acciones[0].Url);
+
+        var instructor = await Json(Controller(buscador.Object, NullCurrentPlantaInventarioAccessor.Instance, UserRoles.Instructor), "crear planta");
+        Assert.DoesNotContain(instructor.Acciones, a => a.Url.Contains("#Nombre", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Sugerencias_MenosDeDosCaracteres_DevuelveVacio()
     {
         var buscador = new Mock<IBuscadorSugerenciasService>();

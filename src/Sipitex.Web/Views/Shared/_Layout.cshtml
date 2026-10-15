@@ -1,4 +1,5 @@
 ﻿@using System.Security.Claims
+@using Sipitex.Application.Search
 @{
     // Sacamos controller y action de la ruta actual para marcar el menú activo
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
@@ -160,8 +161,9 @@
                                aria-controls="globalSearchResults"
                                aria-expanded="false"
                                aria-haspopup="listbox"
-                               aria-keyshortcuts="Control+K"
+                               aria-keyshortcuts="Control+K Slash"
                                aria-busy="false" />
+                        <kbd class="search-kbd" aria-hidden="true">Ctrl K</kbd>
                         <span class="search-loading" hidden>
                             <span class="search-spinner" aria-hidden="true"></span>
                             <span class="visually-hidden">Buscando</span>
@@ -211,7 +213,12 @@
     </div>
 </div>
 <div id="toastHost" class="toast-host" aria-live="polite"></div>
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <script type="application/json" id="buscador-catalogo">@Html.Raw(BuscadorCatalogo.JsonVisibles(User))</script>
+}
 <script src="~/js/site.js" asp-append-version="true"></script>
+<script src="~/js/buscador-global.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
