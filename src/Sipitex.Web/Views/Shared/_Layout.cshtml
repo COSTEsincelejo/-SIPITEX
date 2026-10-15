@@ -1,6 +1,9 @@
 ﻿@using System.Security.Claims
 @using Sipitex.Application.Ayuda
 @using Sipitex.Application.Search
+@using Sipitex.Application.Seguridad
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject Microsoft.Extensions.Options.IOptions<SeguridadOptions> SeguridadOpciones
 @{
     // Sacamos controller y action de la ruta actual para marcar el menú activo
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
@@ -34,6 +37,11 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <meta name="csrf-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
+        <meta name="sesion-minutos" content="@SeguridadOpciones.Value.MinutosEfectivos()" />
+    }
     <title>SIPITEX · @title</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -229,7 +237,7 @@
                 <div data-toast data-toast-type="@(toastSuccess == false ? "danger" : "success")" class="visually-hidden" style="position:absolute;left:-9999px;">@toastMessage</div>
             }
             @RenderBody()
-            <footer class="site-footer">SIPITEX v1.0 · build @DisplayHelper.BuildLabel() — Sistema Integrado de Aprendizaje Producción e Inventario Textil · CMTC · SENA ADSO</footer>
+            <footer class="site-footer">SIPITEX v1.0 · build @DisplayHelper.BuildLabel() — Sistema Integrado de Aprendizaje Producción e Inventario Textil · CMTC · SENA ADSO · <a asp-controller="Privacidad" asp-action="Index">Política de privacidad</a></footer>
         </main>
     </div>
 </div>
@@ -252,11 +260,29 @@
         </div>
     </div>
 }
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <div id="sesionAviso" class="sesion-aviso" role="dialog" aria-modal="true" aria-labelledby="sesionAvisoTitulo" hidden>
+        <div class="sesion-aviso-card">
+            <h3 id="sesionAvisoTitulo">Tu sesión está a punto de cerrarse por inactividad</h3>
+            <p>Si no hace nada, se cerrará en <span id="sesionCuenta">60</span> segundos.</p>
+            <div class="sesion-aviso-acciones">
+                <button type="button" class="primary" id="sesionSeguir">Seguir conectado</button>
+                <button type="button" class="ghost" id="sesionSalir">Cerrar sesión</button>
+            </div>
+        </div>
+    </div>
+    <form id="sesionCerrar" asp-controller="Account" asp-action="Logout" method="post" hidden>
+        <input type="hidden" name="inactividad" value="1" />
+    </form>
+}
+<script src="~/js/antiforgery.js" asp-append-version="true"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 <script src="~/js/buscador-global.js" asp-append-version="true"></script>
 @if (User.Identity?.IsAuthenticated == true)
 {
     <script src="~/js/ayuda.js" asp-append-version="true"></script>
+    <script src="~/js/sesion-inactividad.js" asp-append-version="true"></script>
 }
 @await RenderSectionAsync("Scripts", required: false)
 </body>

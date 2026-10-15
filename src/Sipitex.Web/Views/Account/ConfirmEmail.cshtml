@@ -22,6 +22,11 @@
             <label class="field-label" asp-for="Code">Código</label>
             <input asp-for="Code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required />
         </div>
+        <label class="permission-item" style="display:flex;gap:.5rem;align-items:flex-start;margin:1rem 0;">
+            <input asp-for="AceptaPolitica" />
+            <span>He leído y acepto la <a asp-controller="Privacidad" asp-action="Index" target="_blank" rel="noopener">política de tratamiento de datos personales</a>.</span>
+        </label>
+        <span asp-validation-for="AceptaPolitica" class="field-error"></span>
         <button type="submit" class="primary auth-submit">Confirmar correo</button>
     </form>
     <form asp-action="ResendEmailConfirmation" method="post" style="margin-top:1rem;">

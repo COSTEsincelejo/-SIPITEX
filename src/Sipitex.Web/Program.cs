@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
+using Sipitex.Application.Seguridad;
 using Microsoft.Extensions.Logging;
 using Sipitex.Application.Ayuda;
 using Sipitex.Application.Interfaces.Services;
@@ -20,6 +22,9 @@ RenderListen.Apply();
 
 // Punto de entrada de la web. Acá registro servicios y armo el pipeline HTTP.
 var builder = WebApplication.CreateBuilder(args);
+
+// Kestrel no anuncia el producto en la cabecera Server.
+builder.WebHost.ConfigureKestrel(kestrel => kestrel.AddServerHeader = false);
 
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 var connectionStringsEnv = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
@@ -72,9 +77,19 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// MVC: controladores + vistas (lo típico en este proyecto)
-builder.Services.AddControllersWithViews();
+// MVC: controladores + vistas. El filtro global exige antiforgery en POST/PUT/PATCH/DELETE.
+builder.Services.AddControllersWithViews(mvc =>
+{
+    mvc.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+});
 builder.Services.Configure<SoporteOptions>(builder.Configuration.GetSection(SoporteOptions.Seccion));
+builder.Services.Configure<SeguridadOptions>(builder.Configuration.GetSection(SeguridadOptions.Seccion));
+
+var seguridad = new SeguridadOptions();
+builder.Configuration.GetSection(SeguridadOptions.Seccion).Bind(seguridad);
+var cookieSegura = builder.Environment.IsDevelopment() || RunningUnderTestHost()
+    ? CookieSecurePolicy.SameAsRequest
+    : CookieSecurePolicy.Always;
 // Servicios de negocio de la capa Application (inventario, MRP, usuarios, etc.)
 builder.Services.AddApplicationServices();
 // BD, repositorios y cosas de infraestructura
@@ -85,14 +100,46 @@ builder.Services.AddDataProtection()
     .SetApplicationName("SIPITEX")
     .PersistKeysToDbContext<SipitexDbContext>();
 
-// Login con cookies, no JWT ni nada raro
+// Login con cookies, no JWT ni nada raro.
+// En el host de pruebas (HTTP) SameAsRequest aunque el entorno diga Production: si no, el cliente no devuelve la cookie.
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Account/Login";           // si no está logueado, manda acá
-        options.AccessDeniedPath = "/Account/AccessDenied"; // sin permiso para la acción
-        options.ExpireTimeSpan = TimeSpan.FromHours(8); // sesión de 8h
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(seguridad.MinutosEfectivos());
+        options.SlidingExpiration = true;
+        options.Cookie.Name = "sipitex.auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = cookieSegura;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (SesionAutenticada.PideJson(context.Request))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
     });
+
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "RequestVerificationToken";
+    options.Cookie.Name = "sipitex.antiforgery";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = cookieSegura;
+});
+
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+});
 
 // Políticas de permisos (quién puede hacer qué)
 builder.Services.AddAuthorization(options => options.AddSipitexPolicies());
@@ -158,14 +205,17 @@ for (var attempt = 1; attempt <= dbInitAttempts && !dbReady; attempt++)
     }
 }
 
+// Render pone el esquema real en X-Forwarded-Proto. Tiene que ir antes de HSTS y la redirección.
+app.UseForwardedHeaders();
+
 // En producción no mostramos el stack trace feo al usuario
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error"); // página genérica de error
-    app.UseHsts(); // fuerza HTTPS en el navegador
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
 }
 
-app.UseForwardedHeaders();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 // Las páginas HTML no deben cachearse: un deploy nuevo tiene que verse sin hard-refresh.
 app.Use(async (context, next) =>
@@ -200,6 +250,7 @@ app.UseStaticFiles(); // CSS, JS, imágenes de wwwroot
 app.UseRouting(); // resuelve rutas antes de auth
 app.UseAuthentication(); // tiene que ir antes de Authorization
 app.UseAuthorization(); // revisa roles y políticas
+app.UseMiddleware<AceptacionPoliticaMiddleware>();
 
 app.MapGet("/healthz", () => Results.Text("ok", "text/plain")).AllowAnonymous();
 app.MapGet("/version", (IWebHostEnvironment env) =>

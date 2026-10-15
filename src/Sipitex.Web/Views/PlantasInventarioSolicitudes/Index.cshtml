@@ -22,7 +22,7 @@
     <form method="get" class="form-row" style="margin-bottom:14px;">
         <div class="field">
             <label class="field-label">Filtro</label>
-            <select name="estado" onchange="this.form.submit()" aria-label="Filtro de estado">
+            <select name="estado" data-auto-submit aria-label="Filtro de estado">
                 @if (Model.SoloPendientes)
                 {
                     <option value="pendientes" selected>Solo pendientes</option>

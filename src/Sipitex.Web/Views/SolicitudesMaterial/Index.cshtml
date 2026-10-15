@@ -47,7 +47,7 @@
                 <tbody>
                 @foreach (var s in Model.Solicitudes)
                 {
-                    <tr class="clickable-row" onclick="location.href='@Url.Action("Detail", "SolicitudesMaterial", new { id = s.Id })'">
+                    <tr class="clickable-row" data-href="@Url.Action("Detail", "SolicitudesMaterial", new { id = s.Id })">
                         <td><strong>@s.Codigo</strong></td>
                         <td><span class="badge @DisplayHelper.BadgeClass(s.Tipo)">@DisplayHelper.StatusText(s.Tipo)</span></td>
                         <td>@s.NumeroGrupo</td>

@@ -96,6 +96,39 @@
     </form>
 </div>
 
+<div class="card">
+    <div class="card-title"><i class="fas fa-shield-halved"></i> Mis datos</div>
+    @if (string.IsNullOrWhiteSpace(Model.PoliticaVersion))
+    {
+        <p>Todavía no hay una aceptación registrada de la política de tratamiento de datos.</p>
+    }
+    else
+    {
+        var cuando = Model.PoliticaAceptadaEnUtc is DateTime aceptada
+            ? " el " + aceptada.ToString("yyyy-MM-dd HH:mm") + " UTC"
+            : "";
+        <p>Aceptó la política versión <strong>@Model.PoliticaVersion</strong>@cuando.
+            <a asp-controller="Privacidad" asp-action="Index">Ver la política</a></p>
+    }
+    <p class="hint">Puede pedir que actualicemos o eliminemos sus datos. La solicitud queda en la auditoría y, si hay correo de contacto, se avisa al responsable.</p>
+    <form asp-controller="Privacidad" asp-action="Solicitar" method="post">
+        <div class="field">
+            <label class="field-label" for="tipoSolicitud">Qué solicita</label>
+            <select id="tipoSolicitud" name="Tipo">
+                <option value="actualizacion">Actualizar o rectificar mis datos</option>
+                <option value="supresion">Suprimir mis datos</option>
+            </select>
+        </div>
+        <div class="field">
+            <label class="field-label" for="mensajeSolicitud">Detalle</label>
+            <textarea id="mensajeSolicitud" name="Mensaje" rows="3" maxlength="800" required placeholder="Indique qué dato hay que corregir o por qué pide la eliminación."></textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="ghost">Enviar solicitud</button>
+        </div>
+    </form>
+</div>
+
 @section Scripts {
 <script>
 (() => {

@@ -49,6 +49,7 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<FunctionalRequirement> FunctionalRequirements => Set<FunctionalRequirement>(); // RF del proyecto
     public DbSet<NonFunctionalRequirement> NonFunctionalRequirements => Set<NonFunctionalRequirement>(); // RNF del proyecto
     public DbSet<User> Users => Set<User>(); // Usuarios del sistema con roles
+    public DbSet<AceptacionTratamiento> AceptacionesTratamiento => Set<AceptacionTratamiento>();
     public DbSet<ProductionSession> ProductionSessions => Set<ProductionSession>(); // Registro diario de producción
     public DbSet<AlertPreference> AlertPreferences => Set<AlertPreference>(); // Qué alertas quiere cada usuario
     public DbSet<AlertDelivery> AlertDeliveries => Set<AlertDelivery>(); // Historial de alertas enviadas
@@ -397,6 +398,19 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
                 .WithMany()
                 .HasForeignKey(u => u.FichaAsignadaId)
                 .OnDelete(DeleteBehavior.SetNull); // Si borran la ficha, el usuario sigue
+        });
+
+        // Aceptación de la política. No se rellena para cuentas viejas: la fila nace cuando la persona acepta.
+        modelBuilder.Entity<AceptacionTratamiento>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.VersionPolitica).HasMaxLength(20).IsRequired();
+            e.Property(a => a.DireccionIp).HasMaxLength(64);
+            e.HasIndex(a => new { a.UserId, a.VersionPolitica });
+            e.HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<UserProfilePhoto>(e =>

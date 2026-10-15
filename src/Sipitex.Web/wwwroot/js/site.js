@@ -130,6 +130,43 @@
       node.remove();
     });
 
+    // Filtros que antes hacían onchange="this.form.submit()".
+    document.querySelectorAll('[data-auto-submit]').forEach((el) => {
+      el.addEventListener('change', () => {
+        const form = el.form || el.closest('form');
+        form?.submit();
+      });
+    });
+
+    document.querySelectorAll('[data-href]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const href = el.getAttribute('data-href');
+        if (href) window.location.href = href;
+      });
+    });
+
+    document.querySelectorAll('[data-print]').forEach((el) => {
+      el.addEventListener('click', () => window.print());
+    });
+
+    document.querySelectorAll('[data-go]').forEach((el) => {
+      el.addEventListener('change', () => {
+        const base = el.getAttribute('data-go') || '';
+        if (!base) return;
+        const sep = base.includes('?') ? '&' : '?';
+        window.location.href = base + sep + 'orderId=' + encodeURIComponent(el.value);
+      });
+    });
+
+    document.querySelectorAll('[data-toggle-hidden]').forEach((el) => {
+      el.addEventListener('change', () => {
+        const id = el.getAttribute('data-toggle-hidden');
+        const target = id ? document.getElementById(id) : null;
+        if (!target) return;
+        target.hidden = el.getAttribute('data-toggle-show') !== 'true';
+      });
+    });
+
     // Confirm destructive / sensitive actions
     document.querySelectorAll('form[data-confirm]').forEach((form) => {
       form.addEventListener('submit', (e) => {

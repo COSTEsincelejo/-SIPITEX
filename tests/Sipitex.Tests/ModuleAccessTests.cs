@@ -215,7 +215,23 @@ public class ModuleAccessTests
         }));
 
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
+        await AceptarPoliticaSiHaceFaltaAsync(client);
         return client;
+    }
+
+    private static async Task AceptarPoliticaSiHaceFaltaAsync(HttpClient client)
+    {
+        var pagina = await client.GetAsync("/Privacidad/Aceptar");
+        if (pagina.StatusCode != HttpStatusCode.OK)
+            return;
+
+        var token = ExtractAntiforgery(await pagina.Content.ReadAsStringAsync());
+        var acepta = await client.PostAsync("/Privacidad/Aceptar", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["AceptaPolitica"] = "true",
+            ["__RequestVerificationToken"] = token
+        }));
+        Assert.Equal(HttpStatusCode.Redirect, acepta.StatusCode);
     }
 
     private static string ExtractAntiforgery(string html)

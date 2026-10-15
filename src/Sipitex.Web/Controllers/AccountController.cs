@@ -10,6 +10,7 @@ using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Web.Models;
+using Sipitex.Web.Security;
 
 namespace Sipitex.Web.Controllers;
 
@@ -18,7 +19,7 @@ namespace Sipitex.Web.Controllers;
 public class AccountController : Controller
 {
     // Lo uso en los claims para saber qué foto mostrar en el layout
-    public const string PhotoClaimType = "photo";
+    public const string PhotoClaimType = SesionAutenticada.PhotoClaimType;
 
     // Extensiones que aceptamos para la foto de perfil
     private static readonly HashSet<string> AllowedPhotoExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -35,6 +36,7 @@ public class AccountController : Controller
     private readonly IPlantaInventarioService _plantaService;
     private readonly IWebHostEnvironment _environment;
     private readonly ILoginAttemptGuard _loginAttemptGuard;
+    private readonly IAceptacionTratamientoService _aceptaciones;
 
     // Inyecto los servicios que usa todo el controller
     public AccountController(
@@ -44,7 +46,8 @@ public class AccountController : Controller
         IActivityLogService activityLog,
         IPlantaInventarioService plantaService,
         IWebHostEnvironment environment,
-        ILoginAttemptGuard loginAttemptGuard)
+        ILoginAttemptGuard loginAttemptGuard,
+        IAceptacionTratamientoService aceptaciones)
     {
         _userAccountService = userAccountService;
         _passwordResetService = passwordResetService;
@@ -53,6 +56,7 @@ public class AccountController : Controller
         _plantaService = plantaService;
         _environment = environment;
         _loginAttemptGuard = loginAttemptGuard;
+        _aceptaciones = aceptaciones;
     }
 
     // Pantalla de login (GET)
@@ -62,7 +66,9 @@ public class AccountController : Controller
     {
         // Si venían de reset password exitoso, mostramos el mensaje verde
         ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;
-        // ViewModel vacío para email y contraseña
+        ViewBag.InfoMessage = TempData["InfoMessage"] as string;
+        if (string.Equals(Request.Query["inactividad"], "1", StringComparison.Ordinal))
+            ViewBag.InfoMessage = "Tu sesión se cerró por inactividad";
         return View(new LoginViewModel());
     }
 
@@ -104,8 +110,7 @@ public class AccountController : Controller
             return RedirectToAction(nameof(ConfirmEmail), new { email = user.Email });
         }
 
-        // Cookie lista con rol, foto y permisos
-        await SignInUserAsync(user);
+        await SignInUserAsync(user, cancellationToken);
         // Instructor no opera el inventario de planta; Admin y Encargado entran por sus plantas.
         if (string.Equals(user.Rol, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase))
             return RedirectToAction("Index", "Ordenes");
@@ -203,6 +208,7 @@ public class AccountController : Controller
             return View(model);
         }
 
+        await _aceptaciones.RegistrarPorCorreoAsync(model.Email, IpCliente(), cancellationToken);
         TempData["SuccessMessage"] = result.Message ?? "Correo confirmado. Ya puede iniciar sesión.";
         return RedirectToAction(nameof(Login));
     }
@@ -233,10 +239,25 @@ public class AccountController : Controller
     // Cierra sesión y borra la cookie
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Logout()
+    public async Task<IActionResult> Logout(string? inactividad)
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        if (inactividad == "1")
+            TempData["InfoMessage"] = "Tu sesión se cerró por inactividad";
         return RedirectToAction(nameof(Login));
+    }
+
+    // Vuelve a emitir la cookie. El deslizamiento normal solo la renueva pasada la mitad del plazo,
+    // y el aviso del navegador necesita que la actividad (o el botón) la extienda de inmediato.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> KeepAlive()
+    {
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            User,
+            new AuthenticationProperties { IsPersistent = true });
+        return NoContent();
     }
 
     // Muestra el perfil del usuario logueado
@@ -247,7 +268,14 @@ public class AccountController : Controller
         // Si no hay usuario en BD, que ASP.NET pida login otra vez
         if (user is null) return Challenge();
 
-        return View(ToProfileViewModel(user));
+        var modelo = ToProfileViewModel(user);
+        var aceptacion = await _aceptaciones.UltimaAsync(user.Id, cancellationToken);
+        if (aceptacion is not null)
+        {
+            modelo.PoliticaVersion = aceptacion.VersionPolitica;
+            modelo.PoliticaAceptadaEnUtc = aceptacion.AceptadaEnUtc;
+        }
+        return View(modelo);
     }
 
     // Actualiza datos del perfil y opcionalmente la foto
@@ -316,7 +344,7 @@ public class AccountController : Controller
         // Refresco la cookie porque el nombre/foto/permisos pueden haber cambiado
         var refreshed = await _userAccountService.GetUserByIdAsync(user.Id, cancellationToken);
         if (refreshed is not null)
-            await SignInUserAsync(refreshed);
+            await SignInUserAsync(refreshed, cancellationToken);
 
         TempData["Message"] = result.Message;
         return RedirectToAction(nameof(Profile));
@@ -535,36 +563,13 @@ public class AccountController : Controller
         int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId) && userId > 0;
 
     // Armo la cookie de autenticación con rol, foto y permisos extendidos
-    private async Task SignInUserAsync(User user)
+    private async Task SignInUserAsync(User user, CancellationToken cancellationToken)
     {
-        // Claims básicos que usa el layout y la autorización
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.Nombre),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Role, user.Rol)
-        };
-
-        if (!string.IsNullOrWhiteSpace(user.PhotoPath))
-            claims.Add(new Claim(PhotoClaimType, user.PhotoPath));
-
-        if (string.Equals(user.Rol, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase))
-        {
-            foreach (var plantaInventarioId in user.GetAssignedPlantaInventarioIds())
-                claims.Add(new Claim(PlantaInventarioClaimTypes.PlantaInventarioId, plantaInventarioId.ToString()));
-        }
-
-        // Cada permiso extra va como claim aparte
-        foreach (var permiso in ExtendedPermissions.Parse(user.PermisosExtendidos))
-            claims.Add(new Claim(ExtendedPermissions.ClaimType, permiso));
-
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(identity),
-            new AuthenticationProperties { IsPersistent = true });
+        var version = await _aceptaciones.VersionVigenteAsync(user.Id, cancellationToken);
+        await SesionAutenticada.IniciarAsync(HttpContext, user, version);
     }
+
+    private string? IpCliente() => HttpContext.Connection.RemoteIpAddress?.ToString();
 
     // Pasa entidad User al modelo de la vista de perfil
     private static ProfileViewModel ToProfileViewModel(User user) => new()

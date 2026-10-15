@@ -7,6 +7,9 @@ public static class ActivityLogActions
     public const string UpdateUser = "UpdateUser";
     public const string ToggleUserStatus = "ToggleUserStatus";
     public const string DeleteUser = "DeleteUser";
+    public const string AceptarPoliticaDatos = "AceptarPoliticaDatos";
+    public const string SolicitarActualizacionDatos = "SolicitarActualizacionDatos";
+    public const string SolicitarSupresionDatos = "SolicitarSupresionDatos";
 
     public const string CreatePlantaInventario = "CreatePlantaInventario";
     public const string UpdatePlantaInventario = "UpdatePlantaInventario";
