@@ -291,7 +291,32 @@ public class UserAccountServiceTests
     }
 
     [Fact]
-    public async Task CreateUserAsync_InstructorConPlantaInventarioId_IgnoraYDejaVacio()
+    public async Task CreateUserAsync_InstructorSinPlanta_GuardaVacio()
+    {
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("inst@sipitex.test", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        User? saved = null;
+        _userRepository
+            .Setup(r => r.Add(It.IsAny<User>()))
+            .Callback<User>(u => saved = u);
+
+        var result = await CreateSut().CreateUserAsync(
+            "Instructor",
+            "inst@sipitex.test",
+            "Clave123!",
+            UserRoles.Instructor,
+            fichaAsignadaId: null,
+            plantaInventarioIds: [],
+            []);
+
+        Assert.True(result.Success, result.Message);
+        Assert.NotNull(saved);
+        Assert.Empty(saved!.UserPlantasInventario);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_InstructorConPlanta_LaConservaPorqueEsOpcional()
     {
         _userRepository
             .Setup(r => r.EmailExistsAsync("inst@sipitex.test", null, It.IsAny<CancellationToken>()))
@@ -311,12 +336,11 @@ public class UserAccountServiceTests
             []);
 
         Assert.True(result.Success, result.Message);
-        Assert.NotNull(saved);
-        Assert.Empty(saved!.UserPlantasInventario);
+        Assert.Equal([2], saved!.GetAssignedPlantaInventarioIds());
     }
 
     [Fact]
-    public async Task CreateUserAsync_AdministradorConPlantaInventarioId_IgnoraYDejaVacio()
+    public async Task CreateUserAsync_AdministradorSinPlanta_GuardaVacio()
     {
         _userRepository
             .Setup(r => r.EmailExistsAsync("admin2@sipitex.test", null, It.IsAny<CancellationToken>()))
@@ -332,7 +356,7 @@ public class UserAccountServiceTests
             "Clave123!",
             UserRoles.Administrador,
             fichaAsignadaId: null,
-            plantaInventarioIds: [1],
+            plantaInventarioIds: null,
             []);
 
         Assert.True(result.Success, result.Message);
@@ -352,8 +376,88 @@ public class UserAccountServiceTests
             []);
 
         Assert.False(result.Success);
-        Assert.Contains("al menos una planta de inventario", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(UserAccountService.MensajePlantaObligatoria, result.Message);
         _userRepository.Verify(r => r.Add(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_AlDejarDeSerEncargado_ConservaLasPlantasMarcadas()
+    {
+        var user = CreateUser("bodega@sipitex.test", "Clave123!", rol: UserRoles.EncargadoDeBodega);
+        user.Id = 20;
+        user.UserPlantasInventario.Add(new UserPlantaInventario { UserId = 20, PlantaInventarioId = 1 });
+        _userRepository.Setup(r => r.GetByIdAsync(20, It.IsAny<CancellationToken>())).ReturnsAsync(user);
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("bodega@sipitex.test", 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _unitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().UpdateUserAsync(
+            20,
+            "Ahora Instructor",
+            "bodega@sipitex.test",
+            password: "",
+            UserRoles.Instructor,
+            fichaAsignadaId: null,
+            plantaInventarioIds: [1],
+            [],
+            isActive: true);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(UserRoles.Instructor, user.Rol);
+        Assert.Equal([1], user.GetAssignedPlantaInventarioIds());
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_AlDejarDeSerEncargado_LimpiaSiNoQuedanPlantasMarcadas()
+    {
+        var user = CreateUser("bodega@sipitex.test", "Clave123!", rol: UserRoles.EncargadoDeBodega);
+        user.Id = 21;
+        user.UserPlantasInventario.Add(new UserPlantaInventario { UserId = 21, PlantaInventarioId = 1 });
+        _userRepository.Setup(r => r.GetByIdAsync(21, It.IsAny<CancellationToken>())).ReturnsAsync(user);
+        _userRepository
+            .Setup(r => r.EmailExistsAsync("bodega@sipitex.test", 21, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _unitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().UpdateUserAsync(
+            21,
+            "Ahora Instructor",
+            "bodega@sipitex.test",
+            password: "",
+            UserRoles.Instructor,
+            fichaAsignadaId: null,
+            plantaInventarioIds: [],
+            [],
+            isActive: true);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(UserRoles.Instructor, user.Rol);
+        Assert.Empty(user.UserPlantasInventario);
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_AlPasarAEncargadoSinPlanta_Falla()
+    {
+        var user = CreateUser("inst@sipitex.test", "Clave123!");
+        user.Id = 22;
+        _userRepository.Setup(r => r.GetByIdAsync(22, It.IsAny<CancellationToken>())).ReturnsAsync(user);
+
+        var result = await CreateSut().UpdateUserAsync(
+            22,
+            "Pasa a bodega",
+            "inst@sipitex.test",
+            password: "",
+            UserRoles.EncargadoDeBodega,
+            fichaAsignadaId: null,
+            plantaInventarioIds: [],
+            [],
+            isActive: true);
+
+        Assert.False(result.Success);
+        Assert.Equal(UserAccountService.MensajePlantaObligatoria, result.Message);
+        Assert.Equal(UserRoles.Instructor, user.Rol);
+        _userRepository.Verify(r => r.Update(It.IsAny<User>()), Times.Never);
     }
 
     [Fact]

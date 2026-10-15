@@ -1,0 +1,27 @@
+@* Muestra la ficha solo al instructor y marca las plantas como obligatorias solo para el encargado. *@
+<script>
+(function () {
+    const rolEncargado = '@UserRoles.EncargadoDeBodega';
+    const rol = document.querySelector('[name="Rol"]');
+    const ficha = document.querySelector('[data-role-field="instructor"]');
+    const select = document.querySelector('[data-plantas-select]');
+    const marca = document.querySelector('[data-plantas-marca]');
+    const opcional = document.querySelector('[data-plantas-opcional]');
+
+    function sync() {
+        const value = rol ? rol.value : '';
+        if (ficha) ficha.hidden = value !== 'Instructor';
+        const obligatorio = value === rolEncargado;
+        if (marca) marca.hidden = !obligatorio;
+        if (opcional) opcional.hidden = obligatorio;
+        if (select) {
+            if (obligatorio) select.setAttribute('required', 'required');
+            else select.removeAttribute('required');
+            select.setAttribute('aria-required', obligatorio ? 'true' : 'false');
+        }
+    }
+
+    if (rol) rol.addEventListener('change', sync);
+    sync();
+})();
+</script>

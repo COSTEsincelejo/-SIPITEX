@@ -24,7 +24,7 @@ public class User
     // Navegación a esa ficha (EF Core la llena si hago Include)
     public Ficha? FichaAsignada { get; set; }
 
-    // Asignaciones M2M a plantasInventario (solo aplica a Rol == EncargadoDeBodega; vacío en el resto)
+    // Plantas asignadas. Obligatorias para Encargado de bodega; en los demás roles pueden ir vacías.
     public ICollection<UserPlantaInventario> UserPlantasInventario { get; set; } = [];
 
     public IReadOnlyList<int> GetAssignedPlantaInventarioIds() =>

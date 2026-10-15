@@ -363,7 +363,7 @@ public class AccountController : Controller
         var result = await _userAccountService.CreateUserAsync(
             model.Nombre, model.Email, model.Password ?? string.Empty, model.Rol, model.FichaAsignadaId, model.PlantaInventarioIds, permisos, cancellationToken);
         // Si falló (correo duplicado, rol inválido, etc.) me quedo en el form
-        if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
+        if (!result.Success) { AddUserSaveError(result.Message); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
         if (TryGetActorUserId(out var actorId))
         {
@@ -425,7 +425,7 @@ public class AccountController : Controller
         var result = await _userAccountService.UpdateUserAsync(
             model.Id, model.Nombre, model.Email, model.Password ?? string.Empty, model.Rol, model.FichaAsignadaId, model.PlantaInventarioIds, permisos, model.IsActive, cancellationToken);
         // Error de negocio (ej. no bajar rol al admin principal)
-        if (!result.Success) { ModelState.AddModelError(string.Empty, result.Message ?? "Error"); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
+        if (!result.Success) { AddUserSaveError(result.Message); await PopulateUserFormLookupsAsync(cancellationToken); return View(model); }
 
         if (TryGetActorUserId(out var actorId))
         {
@@ -616,6 +616,15 @@ public class AccountController : Controller
         var physicalPath = Path.Combine(_environment.WebRootPath, normalized.Replace('/', Path.DirectorySeparatorChar));
         if (System.IO.File.Exists(physicalPath))
             System.IO.File.Delete(physicalPath);
+    }
+
+    // El error de plantas queda junto al selector; el resto sigue en el resumen del formulario.
+    private void AddUserSaveError(string? message)
+    {
+        if (message is UserAccountService.MensajePlantaObligatoria or UserAccountService.MensajePlantaInvalida)
+            ModelState.AddModelError(nameof(UserEditViewModel.PlantaInventarioIds), message);
+        else
+            ModelState.AddModelError(string.Empty, message ?? "Error");
     }
 
     private static string FormatPlantaInventarioIds(IReadOnlyList<int>? ids) =>

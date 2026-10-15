@@ -58,15 +58,32 @@
                 }
             </select>
         </div>
-        <div class="field" data-role-field="encargadoDeBodega" hidden>
-            <label class="field-label">Plantas de inventario asignadas</label>
-            <select asp-for="PlantaInventarioIds" multiple size="4">
+        <div class="field" data-role-field="plantas">
+            @{
+                var plantasObligatorias = string.Equals(Model.Rol, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase);
+            }
+            <label class="field-label" for="PlantaInventarioIds">
+                Plantas de inventario
+                <span data-plantas-marca class="field-req" @(plantasObligatorias ? null : "hidden")>*</span>
+                <span data-plantas-opcional class="field-optional" @(plantasObligatorias ? "hidden" : null)>(opcional)</span>
+            </label>
+            <select name="PlantaInventarioIds" id="PlantaInventarioIds" multiple size="4" data-plantas-select
+                    aria-required="@(plantasObligatorias ? "true" : "false")"
+                    @(plantasObligatorias ? "required" : null)>
                 @foreach (var plantaInventario in plantasInventario)
                 {
-                    <option value="@plantaInventario.Id">@plantaInventario.Nombre</option>
+                    if ((Model.PlantaInventarioIds ?? []).Contains(plantaInventario.Id))
+                    {
+                        <option value="@plantaInventario.Id" selected>@plantaInventario.Nombre</option>
+                    }
+                    else
+                    {
+                        <option value="@plantaInventario.Id">@plantaInventario.Nombre</option>
+                    }
                 }
             </select>
-            <p class="hint" style="margin-top:.35rem;">Obligatorio para Encargado de bodega: seleccione una o varias. Sin ninguna planta de inventario no podrá ver la cola de solicitudes. Mantenga Ctrl (o Cmd) para marcar varias.</p>
+            <span asp-validation-for="PlantaInventarioIds" class="field-error"></span>
+            <p class="hint" style="margin-top:.35rem;">Mantenga Ctrl (o Cmd) para marcar varias. El encargado de bodega necesita al menos una.</p>
         </div>
         <div class="field">
             <label class="field-label">Permisos extendidos</label>
@@ -89,18 +106,5 @@
 
 @section Scripts {
 <partial name="_ValidationScriptsPartial" />
-<script>
-(function () {
-    const rol = document.querySelector('[name="Rol"]');
-    const ficha = document.querySelector('[data-role-field="instructor"]');
-    const plantaInventario = document.querySelector('[data-role-field="encargadoDeBodega"]');
-    function sync() {
-        const value = rol?.value || '';
-        if (ficha) ficha.hidden = value !== 'Instructor';
-        if (plantaInventario) plantaInventario.hidden = value !== 'Encargado de bodega';
-    }
-    rol?.addEventListener('change', sync);
-    sync();
-})();
-</script>
+<partial name="_UserRolCamposScript" />
 }

@@ -207,7 +207,8 @@ public class PlantasInventarioController : Controller
 
         var materials = await _inventory.GetMaterialsByPlantaAsync(plantaInventarioId, cancellationToken);
         var movements = await _stockMovements.GetHistoryAsync(desde, hasta, materialId, cancellationToken);
-        if (plantaInventarioId is int)
+        // El encargado solo ve movimientos de sus plantas. Sin plantas, la lista queda vacía.
+        if (!User.IsInRole(UserRoles.Administrador) || plantaInventarioId is int)
         {
             var ids = materials.Select(m => m.Id).ToHashSet();
             movements = movements.Where(m => ids.Contains(m.MaterialId)).ToList();

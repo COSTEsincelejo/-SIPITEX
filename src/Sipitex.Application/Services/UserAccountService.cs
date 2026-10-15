@@ -11,6 +11,10 @@ namespace Sipitex.Application.Services;
 // Login, CRUD de usuarios y perfil
 public class UserAccountService : IUserAccountService
 {
+    public const string MensajePlantaObligatoria =
+        "Debes asignar al menos una planta de inventario al encargado de bodega";
+
+    public const string MensajePlantaInvalida = "Planta de inventario no válida.";
     private readonly IUserRepository _userRepository;
     private readonly IFichaRepository _fichaRepository;
     private readonly IPlantaInventarioRepository _plantaInventarioRepository;
@@ -373,26 +377,29 @@ public class UserAccountService : IUserAccountService
         return null;
     }
 
-    // EncargadoDeBodega exige ≥1 plantaInventario existente; otros roles ignoran el valor y quedan sin asignaciones.
+    // Una sola regla para crear y editar: el encargado de bodega necesita al menos una planta.
+    // Los demás roles pueden quedar sin ninguna, o conservar las que el formulario envíe.
     private async Task<(bool Success, string? Message, IReadOnlyList<int> PlantaInventarioIds)> ResolvePlantaInventarioIdsAsync(
         string rol,
         IReadOnlyList<int>? plantaInventarioIds,
         CancellationToken cancellationToken)
     {
-        if (!string.Equals(rol, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase))
-            return (true, null, []);
-
         var requested = (plantaInventarioIds ?? [])
             .Where(id => id > 0)
             .Distinct()
             .ToList();
+        var esEncargado = string.Equals(rol, UserRoles.EncargadoDeBodega, StringComparison.OrdinalIgnoreCase);
         if (requested.Count == 0)
-            return (false, "Debe asignar al menos una planta de inventario al encargado de bodega.", []);
+        {
+            return esEncargado
+                ? (false, MensajePlantaObligatoria, [])
+                : (true, null, []);
+        }
 
         var catalog = await _plantaInventarioRepository.GetAllAsync(cancellationToken);
         var validIds = catalog.Select(b => b.Id).ToHashSet();
         if (requested.Any(id => !validIds.Contains(id)))
-            return (false, "Planta de inventario no válida.", []);
+            return (false, MensajePlantaInvalida, []);
 
         return (true, null, requested);
     }
