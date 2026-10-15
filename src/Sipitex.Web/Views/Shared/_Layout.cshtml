@@ -49,7 +49,7 @@
     <link rel="stylesheet" href="~/css/sipitex.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ayuda.css" asp-append-version="true" />
 </head>
-<body>
+<body data-usuario-id="@User.FindFirstValue(ClaimTypes.NameIdentifier)">
 <div class="shell">
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
