@@ -191,58 +191,192 @@
     { sel: '#topbarAlertas', titulo: 'Alertas', texto: 'La campana abre los avisos de stock y las notificaciones de su rol.' },
     { sel: '#topbarPerfil', titulo: 'Perfil', texto: 'Su nombre abre Mi perfil: foto, funciones y contraseña. Al final del menú también está Ayuda.' }
   ];
+  const MARGEN = 16;
+  const HUECO = 12;
+
+  function claveTour() {
+    const id = (doc.body && doc.body.getAttribute('data-usuario-id')) || '0';
+    return CLAVE_TOUR + ':' + id;
+  }
+
+  function yaVisto() {
+    try { return win.localStorage.getItem(claveTour()) === '1'; }
+    catch (e) { return true; }
+  }
+
+  // El nodo existe, se pinta y entra en el viewport. Un menú cerrado o un control de otro rol no cuenta.
+  function elementoVisible(sel) {
+    const el = doc.querySelector(sel);
+    if (!el || el.hidden) return null;
+    const estilo = win.getComputedStyle(el);
+    if (estilo.display === 'none' || estilo.visibility === 'hidden' || Number(estilo.opacity) === 0) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return null;
+    if (r.right <= 0 || r.bottom <= 0 || r.left >= win.innerWidth || r.top >= win.innerHeight) return null;
+    return el;
+  }
+
+  function pasosVisibles() {
+    return PASOS_TOUR.filter((paso) => elementoVisible(paso.sel));
+  }
 
   function iniciarTour() {
     const reducido = win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const pasos = PASOS_TOUR.filter((p) => doc.querySelector(p.sel));
-    if (!pasos.length) return;
-
-    const marco = doc.createElement('div');
-    marco.className = 'ayuda-tour-marco';
-    marco.hidden = true;
-    const tarjeta = doc.createElement('div');
-    tarjeta.className = 'ayuda-tour-card';
-    tarjeta.hidden = true;
-    tarjeta.setAttribute('role', 'dialog');
-    tarjeta.setAttribute('aria-modal', 'true');
-    tarjeta.setAttribute('aria-labelledby', 'ayudaTourTitulo');
-    tarjeta.innerHTML =
-      '<p class="ayuda-tour-paso" id="ayudaTourPaso"></p>' +
-      '<h3 id="ayudaTourTitulo"></h3>' +
-      '<p id="ayudaTourTexto"></p>' +
-      '<div class="ayuda-tour-acciones">' +
-      '<button type="button" class="ghost small" data-tour="omitir">Omitir</button>' +
-      '<button type="button" class="ghost small" data-tour="anterior">Anterior</button>' +
-      '<button type="button" class="primary small" data-tour="siguiente">Siguiente</button>' +
-      '</div>';
-    doc.body.append(marco, tarjeta);
-
+    let fondo = null;
+    let marco = null;
+    let tarjeta = null;
+    let activo = false;
     let indice = 0;
+    let selector = '';
+    let origenFoco = null;
+    let escuchas = false;
+    let generacion = 0;
+
     function marcarVisto() {
-      try { win.localStorage.setItem(CLAVE_TOUR, '1'); } catch (e) { /* sin almacenamiento */ }
+      try { win.localStorage.setItem(claveTour(), '1'); } catch (e) { /* sin almacenamiento */ }
     }
+
+    function quitarCapa() {
+      if (fondo) fondo.remove();
+      if (marco) marco.remove();
+      if (tarjeta) tarjeta.remove();
+      fondo = null;
+      marco = null;
+      tarjeta = null;
+      activo = false;
+    }
+
     function cerrar() {
-      marco.hidden = true;
-      tarjeta.hidden = true;
-      marcarVisto();
+      const volver = origenFoco;
+      try {
+        marcarVisto();
+        quitarCapa();
+        if (volver && doc.contains(volver) && typeof volver.focus === 'function') volver.focus();
+      } catch (e) {
+        quitarCapa();
+      }
     }
-    function ubicar() {
-      const paso = pasos[indice];
-      const el = doc.querySelector(paso.sel);
-      if (!el) return;
+
+    function focos() {
+      if (!tarjeta) return [];
+      return [...tarjeta.querySelectorAll('button:not([disabled])')];
+    }
+
+    function crear() {
+      fondo = doc.createElement('div');
+      fondo.className = 'ayuda-tour-fondo';
+      marco = doc.createElement('div');
+      marco.className = 'ayuda-tour-marco';
+      marco.setAttribute('aria-hidden', 'true');
+      tarjeta = doc.createElement('div');
+      tarjeta.className = 'ayuda-tour-card';
+      tarjeta.setAttribute('role', 'dialog');
+      tarjeta.setAttribute('aria-modal', 'true');
+      tarjeta.setAttribute('aria-labelledby', 'ayudaTourTitulo');
+      tarjeta.setAttribute('aria-describedby', 'ayudaTourTexto');
+      tarjeta.tabIndex = -1;
+      tarjeta.innerHTML =
+        '<p class="ayuda-tour-paso" id="ayudaTourPaso"></p>' +
+        '<h3 id="ayudaTourTitulo"></h3>' +
+        '<p id="ayudaTourTexto"></p>' +
+        '<div class="ayuda-tour-acciones">' +
+        '<button type="button" class="ghost small" data-tour="omitir">Omitir</button>' +
+        '<button type="button" class="ghost small" data-tour="anterior">Anterior</button>' +
+        '<button type="button" class="primary small" data-tour="siguiente">Siguiente</button>' +
+        '</div>';
+      doc.body.append(fondo, marco, tarjeta);
+      fondo.addEventListener('click', cerrar);
+      tarjeta.querySelector('[data-tour="omitir"]').addEventListener('click', cerrar);
+      tarjeta.querySelector('[data-tour="anterior"]').addEventListener('click', () => mover(-1));
+      tarjeta.querySelector('[data-tour="siguiente"]').addEventListener('click', () => {
+        const pasos = pasosVisibles();
+        if (indice >= pasos.length - 1) cerrar();
+        else mover(1);
+      });
+    }
+
+    function pintarMarco(el) {
       const r = el.getBoundingClientRect();
-      const m = 6;
-      marco.hidden = false;
-      marco.style.top = Math.max(8, r.top - m) + 'px';
-      marco.style.left = Math.max(8, r.left - m) + 'px';
-      marco.style.width = r.width + m * 2 + 'px';
-      marco.style.height = r.height + m * 2 + 'px';
-      tarjeta.hidden = false;
-      const abajo = r.bottom + 16 + 180 < win.innerHeight;
-      tarjeta.style.top = (abajo ? r.bottom + 12 : Math.max(12, r.top - 12)) + 'px';
-      tarjeta.style.left = Math.min(Math.max(12, r.left), win.innerWidth - 340) + 'px';
-      if (!abajo) tarjeta.style.transform = 'translateY(-100%)';
-      else tarjeta.style.transform = '';
+      const top = Math.max(0, r.top);
+      const left = Math.max(0, r.left);
+      const right = Math.min(win.innerWidth, r.right);
+      const bottom = Math.min(win.innerHeight, r.bottom);
+      marco.style.top = top + 'px';
+      marco.style.left = left + 'px';
+      marco.style.width = Math.max(0, right - left) + 'px';
+      marco.style.height = Math.max(0, bottom - top) + 'px';
+    }
+
+    function cabe(top, left, ancho, alto) {
+      return top >= MARGEN
+        && left >= MARGEN
+        && top + alto <= win.innerHeight - MARGEN
+        && left + ancho <= win.innerWidth - MARGEN;
+    }
+
+    function colocarTarjeta(el) {
+      const angosta = win.innerWidth < 768;
+      tarjeta.classList.toggle('ayuda-tour-abajo', angosta);
+      tarjeta.style.transform = 'none';
+      if (angosta) {
+        tarjeta.style.top = 'auto';
+        tarjeta.style.left = MARGEN + 'px';
+        tarjeta.style.right = MARGEN + 'px';
+        tarjeta.style.bottom = MARGEN + 'px';
+        return;
+      }
+
+      tarjeta.style.right = 'auto';
+      tarjeta.style.bottom = 'auto';
+      tarjeta.style.visibility = 'hidden';
+      tarjeta.style.top = MARGEN + 'px';
+      tarjeta.style.left = MARGEN + 'px';
+      const ancho = tarjeta.offsetWidth;
+      const alto = tarjeta.offsetHeight;
+      tarjeta.style.visibility = '';
+
+      const r = el.getBoundingClientRect();
+      const candidatos = [
+        { top: Math.max(MARGEN, Math.min(r.top, win.innerHeight - MARGEN - alto)), left: r.right + HUECO },
+        { top: r.bottom + HUECO, left: Math.max(MARGEN, Math.min(r.left, win.innerWidth - MARGEN - ancho)) },
+        { top: r.top - HUECO - alto, left: Math.max(MARGEN, Math.min(r.left, win.innerWidth - MARGEN - ancho)) },
+        { top: Math.max(MARGEN, Math.min(r.top, win.innerHeight - MARGEN - alto)), left: r.left - HUECO - ancho }
+      ];
+      let puesto = candidatos.find((c) => cabe(c.top, c.left, ancho, alto));
+      if (!puesto) {
+        puesto = {
+          top: Math.max(MARGEN, (win.innerHeight - alto) / 2),
+          left: Math.max(MARGEN, (win.innerWidth - ancho) / 2)
+        };
+      }
+      puesto.top = Math.max(MARGEN, Math.min(puesto.top, win.innerHeight - MARGEN - alto));
+      puesto.left = Math.max(MARGEN, Math.min(puesto.left, win.innerWidth - MARGEN - ancho));
+      tarjeta.style.top = puesto.top + 'px';
+      tarjeta.style.left = puesto.left + 'px';
+    }
+
+    function ubicarIndice(pasos) {
+      const exacto = pasos.findIndex((paso) => paso.sel === selector);
+      if (exacto >= 0) return exacto;
+      const orden = PASOS_TOUR.findIndex((paso) => paso.sel === selector);
+      const siguiente = pasos.findIndex((paso) => PASOS_TOUR.findIndex((item) => item.sel === paso.sel) > orden);
+      return siguiente >= 0 ? siguiente : 0;
+    }
+
+    function mostrar(enfocarTarjeta) {
+      const pasos = pasosVisibles();
+      if (!pasos.length) {
+        cerrar();
+        return;
+      }
+      indice = ubicarIndice(pasos);
+      const paso = pasos[indice];
+      selector = paso.sel;
+      const el = elementoVisible(paso.sel);
+      if (!el) {
+        cerrar();
+        return;
+      }
       tarjeta.querySelector('#ayudaTourPaso').textContent = 'Paso ' + (indice + 1) + ' de ' + pasos.length;
       tarjeta.querySelector('#ayudaTourTitulo').textContent = paso.titulo;
       tarjeta.querySelector('#ayudaTourTexto').textContent = paso.texto;
@@ -250,45 +384,98 @@
       anterior.disabled = indice === 0;
       const siguiente = tarjeta.querySelector('[data-tour="siguiente"]');
       siguiente.textContent = indice === pasos.length - 1 ? 'Listo' : 'Siguiente';
-    }
-    function ir(delta) {
-      indice = Math.min(pasos.length - 1, Math.max(0, indice + delta));
-      ubicar();
-      if (delta > 0) tarjeta.querySelector('[data-tour="siguiente"]').focus();
+      pintarMarco(el);
+      colocarTarjeta(el);
+      if (enfocarTarjeta) tarjeta.focus();
     }
 
-    tarjeta.querySelector('[data-tour="siguiente"]').addEventListener('click', () => {
-      if (indice >= pasos.length - 1) cerrar();
-      else ir(1);
-    });
-    tarjeta.querySelector('[data-tour="anterior"]').addEventListener('click', () => ir(-1));
-    tarjeta.querySelector('[data-tour="omitir"]').addEventListener('click', cerrar);
-    doc.addEventListener('keydown', (e) => {
-      if (tarjeta.hidden) return;
+    function mover(delta) {
+      const pasos = pasosVisibles();
+      const actual = pasos.findIndex((paso) => paso.sel === selector);
+      const siguiente = (actual < 0 ? 0 : actual) + delta;
+      if (siguiente < 0 || siguiente >= pasos.length) return;
+      selector = pasos[siguiente].sel;
+      indice = siguiente;
+      try { mostrar(false); }
+      catch (e) { cerrar(); }
+    }
+
+    function alMover() {
+      if (!activo) return;
+      try { mostrar(false); }
+      catch (e) { cerrar(); }
+    }
+
+    function alTecla(e) {
+      if (!activo || !tarjeta) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         cerrar();
+        return;
       }
-    });
-    win.addEventListener('resize', () => { if (!tarjeta.hidden) ubicar(); });
+      if (e.key !== 'Tab') return;
+      const lista = focos();
+      if (!lista.length) return;
+      const primero = lista[0];
+      const ultimo = lista[lista.length - 1];
+      if (e.shiftKey && (doc.activeElement === primero || doc.activeElement === tarjeta)) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && doc.activeElement === ultimo) {
+        e.preventDefault();
+        primero.focus();
+      }
+    }
+
+    function escuchar() {
+      if (escuchas) return;
+      escuchas = true;
+      win.addEventListener('resize', alMover);
+      win.addEventListener('scroll', alMover, true);
+      doc.addEventListener('keydown', alTecla);
+    }
 
     function empezar() {
-      indice = 0;
-      ubicar();
-      tarjeta.querySelector('[data-tour="siguiente"]').focus();
+      const ticket = ++generacion;
+      try {
+        if (doc.readyState !== 'complete') {
+          win.addEventListener('load', empezar, { once: true });
+          return;
+        }
+        const lanzar = () => {
+          try {
+            if (ticket !== generacion) return;
+            const pasos = pasosVisibles();
+            if (!pasos.length) return;
+            const foco = doc.activeElement;
+            if (!tarjeta || !tarjeta.contains(foco)) origenFoco = foco;
+            if (tarjeta) quitarCapa();
+            crear();
+            activo = true;
+            selector = pasos[0].sel;
+            indice = 0;
+            escuchar();
+            mostrar(true);
+          } catch (e) {
+            cerrar();
+          }
+        };
+        if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(lanzar).catch(lanzar);
+        else lanzar();
+      } catch (e) {
+        cerrar();
+      }
     }
 
     const repetir = doc.getElementById('repetirTour');
-    if (repetir) {
-      repetir.addEventListener('click', () => {
-        try { win.localStorage.removeItem(CLAVE_TOUR); } catch (e) { /* sigue el recorrido */ }
-        empezar();
-      });
-    }
+    if (repetir) repetir.addEventListener('click', empezar);
 
-    let visto = false;
-    try { visto = win.localStorage.getItem(CLAVE_TOUR) === '1'; } catch (e) { visto = true; }
-    if (!visto && !reducido) win.setTimeout(empezar, 700);
+    // La pantalla que pide aceptar la política tapa el resto de la app. El recorrido espera a la primera pantalla real.
+    const enAceptarPolitica = /\/Privacidad\/Aceptar$/i.test(win.location.pathname);
+    if (!yaVisto() && !reducido && !enAceptarPolitica) {
+      if (doc.readyState === 'complete') empezar();
+      else win.addEventListener('load', empezar, { once: true });
+    }
   }
 
   function arrancar() {

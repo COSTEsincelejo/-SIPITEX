@@ -1,6 +1,10 @@
 /* Centro de ayuda, panel contextual y recorrido guiado. */
 .ayuda-buscador{margin-bottom:18px;}
-.ayuda-search-field{margin-top:8px;}
+.ayuda-search-field{margin-top:8px;width:100%;max-width:none;}
+.ayuda-search-field input[type="search"]{
+  width:100%;max-width:none;min-width:0;flex:1 1 auto;box-sizing:border-box;
+  padding:10px 12px 10px 36px;-webkit-appearance:none;appearance:none;
+}
 .ayuda-estado{min-height:1.2em;}
 .ayuda-categorias{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:22px;}
 .ayuda-cat{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--navy-2);text-decoration:none;font-weight:700;box-shadow:var(--shadow-sm);}
@@ -36,11 +40,21 @@
 .ayuda-panel-card h3{font-size:20px;margin:8px 0 12px;}
 .ayuda-panel-top{display:flex;justify-content:space-between;align-items:center;}
 
-.ayuda-tour-marco{position:fixed;z-index:80;border:2px solid var(--accent);border-radius:12px;box-shadow:0 0 0 9999px rgba(10,37,64,.55);pointer-events:none;}
-.ayuda-tour-card{position:fixed;z-index:81;width:min(320px,calc(100vw - 24px));background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:14px 16px;border:1px solid var(--border);}
+.ayuda-tour-fondo{position:fixed;inset:0;z-index:80;background:transparent;}
+.ayuda-tour-marco{position:fixed;z-index:81;border:2px solid var(--accent);border-radius:12px;box-shadow:0 0 0 9999px rgba(10,37,64,.55);pointer-events:none;}
+.ayuda-tour-card{
+  position:fixed;z-index:82;box-sizing:border-box;
+  width:min(360px,calc(100vw - 32px));max-width:min(360px,calc(100vw - 32px));
+  max-height:calc(100vh - 32px);overflow:auto;
+  background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-md);
+  padding:14px 16px;border:1px solid var(--border);
+}
+.ayuda-tour-card.ayuda-tour-abajo{
+  top:auto;left:16px;right:16px;bottom:16px;width:auto;max-width:none;
+}
 .ayuda-tour-paso{font-size:12px;color:var(--text-mut);}
 .ayuda-tour-card h3{margin:2px 0 6px;}
-.ayuda-tour-acciones{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+.ayuda-tour-acciones{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:12px;}
 
 @media (max-width:720px){
   .ayuda-tema-head{flex-direction:column;}
