@@ -39,7 +39,7 @@ public class UserEditViewModel
 
     public int? FichaAsignadaId { get; set; } // opcional, solo para instructores
 
-    // Solo aplica si Rol == EncargadoDeBodega; el servicio lo ignora (deja vacío) en otros roles
+    // Obligatorio solo si Rol es Encargado de bodega. En los demás roles puede ir vacío.
     public int[] PlantaInventarioIds { get; set; } = [];
 
     // Permisos extra aparte del rol (claves de ExtendedPermissions)
