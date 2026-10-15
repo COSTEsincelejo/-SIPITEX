@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Sipitex.Application.Authorization;
+using Sipitex.Application.Ayuda;
 using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Search;
@@ -85,6 +86,9 @@ public static class BuscadorCatalogo
 
     private static readonly AccionCatalogo[] Catalogo = Construir();
     private static readonly AccionPreparada[] Preparadas = Catalogo.Select(Preparar).ToArray();
+    // Temas de /Ayuda. Se puntúan con el mismo criterio, pero no desplazan la pantalla del menú.
+    private static readonly AccionPreparada[] AyudaPreparadas =
+        AyudaCatalogo.AccionesBusquedaSinFiltro().Select(Preparar).ToArray();
 
     public static IReadOnlyList<AccionCatalogo> Visibles(ClaimsPrincipal user) =>
         Catalogo.Where(a => Permitida(a, user)).ToArray();
@@ -119,18 +123,55 @@ public static class BuscadorCatalogo
             hallazgos.Add(ADto(preparada.Accion, puntaje));
         }
 
-        return hallazgos
+        var pantallas = hallazgos
             .OrderByDescending(a => a.Puntaje)
             .ThenBy(a => PrioridadOrden(a.Titulo))
             .ThenBy(a => a.Titulo, StringComparer.Ordinal)
             .Take(maximo)
-            .ToArray();
+            .ToList();
+
+        return ReservarTemaDeAyuda(pantallas, lectura, user, maximo);
+    }
+
+    // El mejor tema de ayuda entra en el segundo puesto (o en el primero si no hay pantalla).
+    private static IReadOnlyList<AccionSugeridaDto> ReservarTemaDeAyuda(
+        List<AccionSugeridaDto> pantallas,
+        Lectura lectura,
+        ClaimsPrincipal user,
+        int maximo)
+    {
+        AccionSugeridaDto? mejor = null;
+        foreach (var preparada in AyudaPreparadas)
+        {
+            if (!preparada.Accion.RolesPermitidos.Any(user.IsInRole))
+                continue;
+
+            var puntaje = Puntuar(lectura, preparada);
+            if (puntaje < Umbral)
+                continue;
+            if (mejor is not null && (puntaje < mejor.Puntaje
+                || (puntaje == mejor.Puntaje && string.Compare(preparada.Accion.Titulo, mejor.Titulo, StringComparison.Ordinal) >= 0)))
+                continue;
+
+            mejor = ADto(preparada.Accion, puntaje);
+        }
+
+        if (mejor is null || pantallas.Any(p => p.Url == mejor.Url))
+            return pantallas;
+
+        var indice = pantallas.Count == 0 ? 0 : 1;
+        pantallas.Insert(indice, mejor);
+        if (pantallas.Count > maximo)
+            pantallas.RemoveAt(pantallas.Count - 1);
+        return pantallas;
     }
 
     // JSON ya recortado al rol, para incrustarlo en el layout y puntuar en el navegador.
     public static string JsonVisibles(ClaimsPrincipal user)
     {
-        var lista = Visibles(user).Select(a => new
+        var lista = Visibles(user)
+            .Concat(AyudaCatalogo.AccionesBusquedaSinFiltro().Where(a => a.RolesPermitidos.Any(user.IsInRole)))
+            .Select(a => new
         {
             a.Titulo,
             a.Descripcion,
@@ -139,7 +180,8 @@ public static class BuscadorCatalogo
             a.Categoria,
             Intencion = a.Intencion ?? "",
             Palabras = a.PalabrasClave.Concat(a.Sinonimos).Append(a.Titulo).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
-            a.Prioridad
+            a.Prioridad,
+            EsAyuda = a.Categoria == "Ayuda"
         });
         var json = JsonSerializer.Serialize(lista, JsonOpciones);
         return json.Replace("<", "\\u003c", StringComparison.Ordinal);

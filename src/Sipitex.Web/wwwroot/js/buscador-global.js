@@ -177,19 +177,36 @@
     return accion.prioridad > 0 ? accion.prioridad : 1000;
   }
 
+  function esTemaAyuda(item) {
+    return !!(item && (item.esAyuda || item.categoria === 'Ayuda'));
+  }
+
   function buscarEnCatalogo(catalogo, consulta, maximo) {
     const lectura = leer(consulta);
     if (!lectura) return [];
     const limite = maximo || MAXIMO;
-    return (catalogo || [])
+    const ranked = (catalogo || [])
       .map(preparar)
       .map((item) => ({ item: item.accion, puntaje: puntuar(lectura, item) }))
       .filter((fila) => fila.puntaje >= UMBRAL)
       .sort((a, b) => b.puntaje - a.puntaje
         || prioridadDe(a.item) - prioridadDe(b.item)
-        || String(a.item.titulo).localeCompare(String(b.item.titulo)))
-      .slice(0, limite)
-      .map((fila) => fila.item);
+        || String(a.item.titulo).localeCompare(String(b.item.titulo)));
+
+    const pantallas = [];
+    const ayudas = [];
+    ranked.forEach((fila) => {
+      if (esTemaAyuda(fila.item)) ayudas.push(fila.item);
+      else pantallas.push(fila.item);
+    });
+
+    const salida = pantallas.slice(0, limite);
+    const mejor = ayudas[0];
+    if (mejor && !salida.some((a) => a.url === mejor.url)) {
+      salida.splice(salida.length === 0 ? 0 : 1, 0, mejor);
+      if (salida.length > limite) salida.pop();
+    }
+    return salida;
   }
 
   function frecuentesDe(catalogo, maximo) {

@@ -1,0 +1,161 @@
+@model AyudaIndexViewModel
+@using Sipitex.Application.Ayuda
+@{
+    var grupos = AyudaCatalogo.OrdenCategorias
+        .Select(categoria => new
+        {
+            Categoria = categoria,
+            Temas = Model.Temas.Where(t => t.Categoria == categoria).ToArray()
+        })
+        .Where(g => g.Temas.Length > 0)
+        .ToArray();
+}
+
+<div class="ayuda">
+    <div class="page-header">
+        <div>
+            <h2>Ayuda</h2>
+            <div class="sub">Guías de las pantallas que usted puede usar, con los mismos botones del sistema. No hace falta pedir el paso a paso.</div>
+        </div>
+        <button type="button" class="ghost" id="repetirTour">
+            <i class="fas fa-route" aria-hidden="true"></i> Repetir recorrido
+        </button>
+    </div>
+
+    <div class="card ayuda-buscador">
+        <label class="field-label" for="ayudaBuscar">Buscar en la ayuda</label>
+        <div class="search-field ayuda-search-field">
+            <i class="fas fa-magnifying-glass search-icon" aria-hidden="true"></i>
+            <input type="search"
+                   id="ayudaBuscar"
+                   placeholder="Ej. crear orden, planta, solicitar materiales"
+                   autocomplete="off"
+                   aria-controls="ayudaResultados"
+                   aria-describedby="ayudaBuscarEstado" />
+        </div>
+        <p id="ayudaBuscarEstado" class="hint ayuda-estado" role="status"></p>
+    </div>
+
+    <div class="ayuda-categorias" id="ayudaCategorias">
+        @foreach (var grupo in grupos)
+        {
+            <a class="ayuda-cat" href="#@grupo.Temas[0].Id">
+                <i class="fas @grupo.Temas[0].Icono" aria-hidden="true"></i>
+                <span>@grupo.Categoria</span>
+                <small>@grupo.Temas.Length</small>
+            </a>
+        }
+        <a class="ayuda-cat" href="#glosario"><i class="fas fa-book" aria-hidden="true"></i><span>Glosario</span></a>
+        <a class="ayuda-cat" href="#soporte"><i class="fas fa-life-ring" aria-hidden="true"></i><span>Contacto</span></a>
+    </div>
+
+    <div id="ayudaResultados">
+        @foreach (var grupo in grupos)
+        {
+            <section class="ayuda-grupo" data-ayuda-grupo>
+                <h3>@grupo.Categoria</h3>
+                @foreach (var tema in grupo.Temas)
+                {
+                    var busca = string.Join(" ", new[] { tema.Titulo, tema.Categoria, tema.Resumen, tema.QueEs, tema.ParaQueSirve }.Concat(tema.PalabrasClave).Concat(tema.Pasos).Concat(tema.Cambios));
+                    <article class="card ayuda-tema" id="@tema.Id" data-ayuda-id="@tema.Id" data-busca="@busca">
+                        <header class="ayuda-tema-head">
+                            <div>
+                                <h4><i class="fas @tema.Icono" aria-hidden="true"></i> @tema.Titulo</h4>
+                                <p>@tema.Resumen</p>
+                            </div>
+                            <p class="ayuda-roles">
+                                @foreach (var rol in tema.RolesPermitidos)
+                                {
+                                    <span class="badge badge-info">@rol</span>
+                                }
+                            </p>
+                        </header>
+
+                        <p><strong>Qué es.</strong> @tema.QueEs</p>
+                        <p><strong>Para qué sirve.</strong> @tema.ParaQueSirve</p>
+
+                        <details open>
+                            <summary>Paso a paso</summary>
+                            <ol>
+                                @foreach (var paso in tema.Pasos)
+                                {
+                                    <li>@paso</li>
+                                }
+                            </ol>
+                        </details>
+                        <details>
+                            <summary>Cómo realizar cambios</summary>
+                            <ul>
+                                @foreach (var cambio in tema.Cambios)
+                                {
+                                    <li>@cambio</li>
+                                }
+                            </ul>
+                            @if (tema.Advertencias.Length > 0)
+                            {
+                                <div class="alert alert-warning ayuda-aviso">
+                                    <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                                    <div>
+                                        @foreach (var aviso in tema.Advertencias)
+                                        {
+                                            <p>@aviso</p>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </details>
+                        @if (!string.IsNullOrWhiteSpace(tema.UrlRelacionada))
+                        {
+                            <p class="ayuda-ir"><a href="@tema.UrlRelacionada">Abrir la pantalla</a></p>
+                        }
+                    </article>
+                }
+            </section>
+        }
+        <p class="card ayuda-vacio" id="ayudaVacio" hidden>No encontré temas para esa búsqueda. Pruebe con una palabra de la pantalla, por ejemplo orden, planta o usuario.</p>
+    </div>
+
+    <section class="card" id="glosario" data-ayuda-grupo>
+        <div class="card-title"><i class="fas fa-book"></i> Glosario</div>
+        <dl class="ayuda-glosario">
+            @foreach (var termino in Model.Glosario)
+            {
+                <div data-glosario data-busca="@termino.Termino @termino.Definicion">
+                    <dt>@termino.Termino</dt>
+                    <dd>@termino.Definicion</dd>
+                </div>
+            }
+        </dl>
+    </section>
+
+    <section class="card" id="soporte">
+        <div class="card-title"><i class="fas fa-life-ring"></i> Contacto / Soporte</div>
+        <p>Si la guía no alcanza, escriba a quien administra SIPITEX en el CMTC.</p>
+        <p><strong>Responsable:</strong> @Model.Responsable</p>
+        @if (!string.IsNullOrWhiteSpace(Model.Correo))
+        {
+            <p><strong>Correo:</strong> <a href="mailto:@Model.Correo">@Model.Correo</a></p>
+        }
+        else
+        {
+            <p class="hint">El correo de soporte se configura en appsettings, sección Soporte:Correo. Mientras esté vacío, esta página no muestra un enlace.</p>
+        }
+    </section>
+
+    <section class="card" id="manuales">
+        <div class="card-title"><i class="fas fa-file-pdf"></i> Manuales por rol</div>
+        @if (Model.Manuales.Count == 0)
+        {
+            <p class="hint">Cuando existan los PDF en la carpeta de manuales del sistema, el enlace de descarga aparecerá aquí. Hoy no hay archivos publicados, así que no se muestra un enlace vacío.</p>
+        }
+        else
+        {
+            <ul class="ayuda-manuales">
+                @foreach (var manual in Model.Manuales)
+                {
+                    <li><a href="@manual.Url" download>@manual.Titulo</a></li>
+                }
+            </ul>
+        }
+    </section>
+</div>

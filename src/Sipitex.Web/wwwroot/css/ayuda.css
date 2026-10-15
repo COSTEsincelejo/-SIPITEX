@@ -1,0 +1,49 @@
+/* Centro de ayuda, panel contextual y recorrido guiado. */
+.ayuda-buscador{margin-bottom:18px;}
+.ayuda-search-field{margin-top:8px;}
+.ayuda-estado{min-height:1.2em;}
+.ayuda-categorias{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:22px;}
+.ayuda-cat{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--navy-2);text-decoration:none;font-weight:700;box-shadow:var(--shadow-sm);}
+.ayuda-cat i{width:32px;height:32px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ayuda-cat small{margin-left:auto;color:var(--text-mut);font-weight:650;}
+.ayuda-cat:hover,.ayuda-cat:focus-visible{border-color:var(--accent);outline:none;}
+.ayuda-grupo{margin-bottom:8px;}
+.ayuda-grupo h3{font-size:15px;margin:18px 0 10px;color:var(--navy-2);}
+.ayuda-tema{margin-bottom:14px;}
+.ayuda-tema-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px;}
+.ayuda-tema h4{font-size:16px;display:flex;align-items:center;gap:8px;}
+.ayuda-tema h4 i{color:var(--accent);}
+.ayuda-tema-head p{color:var(--text-mut);margin-top:4px;}
+.ayuda-roles{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;}
+.ayuda-tema details{border-top:1px solid var(--border);margin-top:10px;padding-top:8px;}
+.ayuda-tema summary{cursor:pointer;font-weight:750;color:var(--navy-2);}
+.ayuda-tema summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+.ayuda-tema ol,.ayuda-tema ul{margin:8px 0 0 1.2rem;}
+.ayuda-tema li{margin:4px 0;}
+.ayuda-aviso{margin-top:10px;}
+.ayuda-aviso p+p{margin-top:4px;}
+.ayuda-ir{margin-top:10px;}
+.ayuda-vacio{margin-bottom:14px;}
+.ayuda-glosario{display:grid;gap:12px;}
+.ayuda-glosario dt{font-weight:750;color:var(--navy-2);}
+.ayuda-glosario dd{color:var(--text-mut);}
+.ayuda-manuales{margin-left:1.2rem;}
+
+.ayuda-panel[hidden]{display:none;}
+.ayuda-panel{position:fixed;inset:0;z-index:70;}
+.ayuda-panel-fondo{position:absolute;inset:0;background:rgba(10,37,64,.45);}
+.ayuda-panel-card{position:absolute;top:0;right:0;height:100%;width:min(420px,100%);background:var(--surface);box-shadow:var(--shadow-md);padding:22px 20px;overflow:auto;}
+.ayuda-panel-card h3{font-size:20px;margin:8px 0 12px;}
+.ayuda-panel-top{display:flex;justify-content:space-between;align-items:center;}
+
+.ayuda-tour-marco{position:fixed;z-index:80;border:2px solid var(--accent);border-radius:12px;box-shadow:0 0 0 9999px rgba(10,37,64,.55);pointer-events:none;}
+.ayuda-tour-card{position:fixed;z-index:81;width:min(320px,calc(100vw - 24px));background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:14px 16px;border:1px solid var(--border);}
+.ayuda-tour-paso{font-size:12px;color:var(--text-mut);}
+.ayuda-tour-card h3{margin:2px 0 6px;}
+.ayuda-tour-acciones{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+
+@media (max-width:720px){
+  .ayuda-tema-head{flex-direction:column;}
+  .ayuda-roles{justify-content:flex-start;}
+  .ayuda-panel-card{width:100%;}
+}
