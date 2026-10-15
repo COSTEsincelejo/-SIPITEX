@@ -17,6 +17,9 @@ Imágenes PNG generadas desde Mermaid para el documento IEEE 830.
 | `08-secuencia-reportes.png` | Exportación de reportes |
 | `09-secuencia-bom.png` | Alta de ítem BOM |
 | `10-entidad-relacion.png` | Diagrama ER |
+| `11-gantt.png` | Cronograma / Gantt |
+| `12-flujo-solicitud.png` | Diagrama de flujo |
+| `13-distribucion.png` | Diagrama de distribución |
 
 ## Regenerar
 
