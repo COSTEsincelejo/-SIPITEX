@@ -34,13 +34,17 @@ public class BuscarController : Controller
         try
         {
             var dto = await _buscador.SugerirAsync(consulta, AlcanceActual(), limite.Token);
-            return Json(dto);
+            return Json(ConAcciones(dto, consulta));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return Json(SugerenciasBusquedaDto.SinEntender());
+            // Si la base tarda, igual devolvemos las pantallas del catálogo (no tocan la BD).
+            return Json(ConAcciones(SugerenciasBusquedaDto.SinEntender(), consulta));
         }
     }
+
+    private SugerenciasBusquedaDto ConAcciones(SugerenciasBusquedaDto dto, string consulta) =>
+        dto with { Acciones = BuscadorCatalogo.Buscar(consulta, User) };
 
     private AlcanceBusqueda AlcanceActual()
     {
