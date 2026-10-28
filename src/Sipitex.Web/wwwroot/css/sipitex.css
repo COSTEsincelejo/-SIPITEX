@@ -404,6 +404,10 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 .gestion-dialog-head h3{margin:0 0 6px;font-size:20px;color:var(--navy);}
 .gestion-dialog .sub{margin:0;font-size:13.5px;color:var(--text-mut);max-width:62ch;}
 .gestion-dialog-body{padding:8px 20px 20px;overflow:auto;max-height:calc(100vh - 140px);}
+.mostrar-inactivas{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:14px;}
+.mostrar-inactivas input{width:16px;height:16px;margin:0;}
+#gestion-plantas tr.planta-inactiva{display:none;}
+#gestion-plantas.mostrar-inactivas-on tr.planta-inactiva{display:table-row;}
 .inventario-acciones{justify-content:flex-end;}
 #inventarioPlantaTable tfoot th,
 .card tfoot th{text-align:left;padding:12px 14px;font-size:12px;background:#F7F9FC;border-top:1px solid var(--border);}

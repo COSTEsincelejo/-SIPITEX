@@ -292,6 +292,32 @@ public class PlantasInventarioConsultarControllerTests
     }
 
     [Fact]
+    public async Task Consultar_Encargado_MaterialDePlantaNoVisible_NoEntraAlConsolidado()
+    {
+        SetupTwoPlantas();
+        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                Mat(1, "Tela", 20, 5, 1, "Planta 1"),
+                Mat(2, "Hilo", 2, 10, 2, "Planta 2"),
+                Mat(9, "Insumo ajeno", 0, 4, 3, "Planta 3")
+            ]);
+
+        var result = await CreateController(
+                Principal(UserRoles.EncargadoDeBodega),
+                new FixedCurrentPlantaInventarioAccessor([1, 2]))
+            .Index(CancellationToken.None);
+
+        var vm = Assert.IsType<InventarioPlantaViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.Equal([1, 2], vm.Plantas.Select(p => p.Id).OrderBy(id => id).ToArray());
+        Assert.Equal(2, vm.Consolidado.Insumos);
+        Assert.Equal(1, vm.Consolidado.Ok);
+        Assert.Equal(1, vm.Consolidado.Bajo);
+        Assert.Equal(0, vm.Consolidado.Critico);
+        Assert.DoesNotContain(vm.Materials, m => m.Name == "Insumo ajeno");
+    }
+
+    [Fact]
     public void Consultar_NoExponeMetodosDeMutacionAlInstructor()
     {
         var consultar = typeof(PlantasInventarioController).GetMethod(nameof(PlantasInventarioController.Consultar));
@@ -301,7 +327,7 @@ public class PlantasInventarioConsultarControllerTests
     }
 
     [Fact]
-    public void Consultar_Redirige301AlIndexConservandoPlantaYFiltros()
+    public void Consultar_Redirige302AlIndexConservandoPlantaYFiltros()
     {
         var result = CreateController(
                 Principal(UserRoles.Instructor),
@@ -309,7 +335,7 @@ public class PlantasInventarioConsultarControllerTests
             .Consultar(2, q: "hilo", nivel: "Critico");
 
         var redirect = Assert.IsType<RedirectToActionResult>(result);
-        Assert.True(redirect.Permanent);
+        Assert.False(redirect.Permanent);
         Assert.Equal(nameof(PlantasInventarioController.Index), redirect.ActionName);
         Assert.Equal(2, redirect.RouteValues!["plantaId"]);
         Assert.Equal("hilo", redirect.RouteValues["q"]);
@@ -325,10 +351,63 @@ public class PlantasInventarioConsultarControllerTests
             .Index(CancellationToken.None, plantaInventarioId: 1, q: "tela");
 
         var redirect = Assert.IsType<RedirectToActionResult>(result);
-        Assert.True(redirect.Permanent);
+        Assert.False(redirect.Permanent);
         Assert.Equal(1, redirect.RouteValues!["plantaId"]);
         Assert.Equal("tela", redirect.RouteValues["q"]);
         _inventory.Verify(s => s.GetMaterialsByPlantaAsync(It.IsAny<int?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Reactivar_Administrador_ActivaSinReasignarYAudita()
+    {
+        _plantas.Setup(s => s.ReactivateAsync(4, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Ok(
+                "Planta de inventario «Anexo» reactivada. No se reasignó stock ni dependencias."));
+
+        var controller = CreateController(
+            Principal(UserRoles.Administrador),
+            NullCurrentPlantaInventarioAccessor.Instance);
+        var result = await controller.Reactivar(4, CancellationToken.None);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(PlantasInventarioController.Index), redirect.ActionName);
+        Assert.Equal(true, controller.TempData["IsSuccess"]);
+        _plantas.Verify(s => s.ReactivateAsync(4, It.IsAny<CancellationToken>()), Times.Once);
+        _reassignment.Verify(
+            r => r.ReassignAndDeleteAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _activity.Verify(a => a.LogAsync(
+            1,
+            ActivityLogActions.ReactivatePlantaInventario,
+            "PlantaInventario",
+            "4",
+            It.Is<string?>(d => d != null && d.Contains("reactivada", StringComparison.OrdinalIgnoreCase)),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Reactivar_CuandoFalla_NoRegistraAuditoria()
+    {
+        _plantas.Setup(s => s.ReactivateAsync(4, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Fail("La planta de inventario ya está activa."));
+
+        var controller = CreateController(
+            Principal(UserRoles.Administrador),
+            NullCurrentPlantaInventarioAccessor.Instance);
+        var result = await controller.Reactivar(4, CancellationToken.None);
+
+        Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(false, controller.TempData["IsSuccess"]);
+        _activity.Verify(a => a.LogAsync(
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _reassignment.Verify(
+            r => r.ReassignAndDeleteAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

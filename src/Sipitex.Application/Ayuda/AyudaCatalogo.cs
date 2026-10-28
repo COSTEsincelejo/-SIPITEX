@@ -232,12 +232,13 @@ public static class AyudaCatalogo
             "plantas", "Administrar plantas", "Plantas de inventario", "fa-warehouse",
             "Cómo registrar una planta desde Inventario por planta, y por qué Planta de Inventario 1 no se elimina.",
             "Una planta de inventario es el lugar donde se guarda el stock (la bodega del taller). Cada material vive dentro de una planta.",
-            "Sirve para crear plantas nuevas, renombrarlas y desactivarlas cuando ya no se usan, sin perder el historial. Se hace en Inventario por planta, con el botón Administrar plantas.",
+            "Sirve para crear plantas nuevas, renombrarlas, desactivarlas cuando ya no se usan y reactivarlas después, sin perder el historial. Se hace en Inventario por planta, con el botón Administrar plantas.",
             [
                 "Abra Inventario por planta y pulse Administrar plantas (también dice Administrar catálogo). El encargado no ve ese botón: solo consulta las plantas que tiene asignadas.",
                 "Escriba el Nombre (por ejemplo Planta de Inventario 3) y pulse Crear.",
                 "En la tabla del panel, Operar inventario abre el detalle para entradas y ajustes.",
-                "Editar cambia el nombre. Desactivar abre la confirmación. Si hay stock u otras dependencias, elija la planta destino y pulse Reasignar y desactivar."
+                "Editar cambia el nombre. Desactivar abre la confirmación. Si hay stock u otras dependencias, elija la planta destino y pulse Reasignar y desactivar.",
+                "Marque Mostrar inactivas para ver las plantas desactivadas. Reactivar las vuelve a dejar activas y no reasigna stock ni dependencias."
             ],
             [
                 "Desactivar exige que no quede stock: si hay unidades, primero reasígnelas a otra planta.",
@@ -246,11 +247,11 @@ public static class AyudaCatalogo
                 "Si la planta tiene solicitudes u otros registros, el sistema pide reasignarlos antes de desactivarla."
             ],
             [
-                "Solo el administrador crea, edita y desactiva plantas.",
+                "Solo el administrador crea, edita, desactiva y reactiva plantas.",
                 "El instructor consulta Inventario por planta, pero no administra plantas."
             ],
             AdminEncargado,
-            ["planta", "plantas", "como registrar una planta", "registrar planta", "crear planta", "bodega", "eliminar planta", "administrar plantas"],
+            ["planta", "plantas", "como registrar una planta", "registrar planta", "crear planta", "bodega", "eliminar planta", "administrar plantas", "reactivar planta"],
             "/PlantasInventario#gestion-plantas",
             ["PlantasInventario/Create", "PlantasInventario/Edit", "PlantasInventario/Delete"]),
 
@@ -265,7 +266,7 @@ public static class AyudaCatalogo
                 "El resumen muestra Insumos, OK, Bajo, Crítico y Sin mínimo. Ver inventario deja esa planta seleccionada.",
                 "En el detalle filtre por nombre o por nivel. Los niveles son: OK (hay stock y llega al mínimo), Bajo (hay stock pero no llega al mínimo), Crítico (el mínimo está definido y no hay existencias) y Sin mínimo definido (el material no tiene mínimo; no es una falta).",
                 "Si su usuario no tiene plantas asignadas, la lista queda vacía: no es un error del sistema.",
-                "El administrador abre Administrar plantas o Administrar catálogo para crear, renombrar o desactivar. Operar inventario registra entradas y ajustes, según su permiso."
+                "El administrador abre Administrar plantas o Administrar catálogo para crear, renombrar, desactivar o reactivar. Operar inventario registra entradas y ajustes, según su permiso."
             ],
             [
                 "Crear o renombrar plantas se hace en Administrar plantas, en esta misma pantalla. Solo lo ve el administrador.",

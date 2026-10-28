@@ -98,6 +98,23 @@ public class PlantaInventarioService : IPlantaInventarioService
         return ServiceResult.Ok($"Planta de inventario «{plantaInventario.Nombre}» desactivada.");
     }
 
+    // Vuelve a dejar la planta activa. No mueve stock ni encargados: la baja fue solo lógica.
+    public async Task<ServiceResult> ReactivateAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var plantaInventario = await _plantas.GetByIdAsync(id, cancellationToken);
+        if (plantaInventario is null)
+            return ServiceResult.Fail("Planta de inventario no encontrada.");
+
+        if (plantaInventario.Activo)
+            return ServiceResult.Fail("La planta de inventario ya está activa.");
+
+        plantaInventario.Activo = true;
+        _plantas.Update(plantaInventario);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok(
+            $"Planta de inventario «{plantaInventario.Nombre}» reactivada. No se reasignó stock ni dependencias.");
+    }
+
     public Task<PlantaInventarioDependencias> GetDependenciasAsync(
         int id,
         CancellationToken cancellationToken = default) =>

@@ -4,7 +4,7 @@ using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Interfaces.Services;
 
-// Catálogo de plantasInventario: listar, crear, editar y borrar (solo Administrador)
+// Catálogo de plantasInventario: listar, crear, editar, desactivar y reactivar (solo Administrador)
 public interface IPlantaInventarioService
 {
     Task<IReadOnlyList<PlantaInventario>> GetAllAsync(CancellationToken cancellationToken = default);
@@ -12,5 +12,6 @@ public interface IPlantaInventarioService
     Task<ServiceResult> CreateAsync(string nombre, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateAsync(int id, string nombre, CancellationToken cancellationToken = default);
     Task<ServiceResult> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    Task<ServiceResult> ReactivateAsync(int id, CancellationToken cancellationToken = default);
     Task<PlantaInventarioDependencias> GetDependenciasAsync(int id, CancellationToken cancellationToken = default);
 }

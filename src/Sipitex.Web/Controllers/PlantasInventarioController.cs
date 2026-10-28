@@ -53,17 +53,17 @@ public class PlantasInventarioController : Controller
         int? plantaInventarioId = null)
     {
         if (plantaId is null && plantaInventarioId is int legacyId)
-            return RedirectToActionPermanent(nameof(Index), new { plantaId = legacyId, q, nivel });
+            return RedirectToAction(nameof(Index), new { plantaId = legacyId, q, nivel });
 
         var consulta = await _consulta.ConsultarAsync(plantaId, q, nivel, cancellationToken);
         return View(MapConsulta(consulta));
     }
 
-    // Ruta anterior de la consulta. Los marcadores con plantaInventarioId siguen abriendo la planta.
+    // Ruta anterior de la consulta. 302 para que el marcador siga la pantalla actual.
     [HttpGet]
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor},{UserRoles.EncargadoDeBodega}")]
     public IActionResult Consultar(int? plantaInventarioId, string? q = null, string? nivel = null) =>
-        RedirectToActionPermanent(nameof(Index), new { plantaId = plantaInventarioId, q, nivel });
+        RedirectToAction(nameof(Index), new { plantaId = plantaInventarioId, q, nivel });
 
     [HttpGet]
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
@@ -441,6 +441,30 @@ public class PlantasInventarioController : Controller
         TempData["Message"] = result.Message ?? (result.Success ? "Planta de inventario actualizada." : "No se pudo eliminar la planta de inventario.");
         TempData["IsSuccess"] = result.Success;
         return result.Success ? RedirectToAction(nameof(Index)) : RedirectToAction(nameof(Delete), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = UserRoles.Administrador)]
+    public async Task<IActionResult> Reactivar(int id, CancellationToken cancellationToken)
+    {
+        var result = await _plantas.ReactivateAsync(id, cancellationToken);
+        if (result.Success && TryGetActorUserId(out var actorId))
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.ReactivatePlantaInventario,
+                ActivityLogEntities.PlantaInventario,
+                entityId: id.ToString(),
+                details: result.Message,
+                cancellationToken);
+        }
+
+        TempData["Message"] = result.Message ?? (result.Success
+            ? "Planta de inventario reactivada."
+            : "No se pudo reactivar la planta de inventario.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index));
     }
 
     private async Task<(IActionResult? Error, PlantaInventario? Planta)> AutorizarPlantaAsync(

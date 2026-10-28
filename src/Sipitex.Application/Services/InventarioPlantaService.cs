@@ -33,7 +33,11 @@ public class InventarioPlantaService : IInventarioPlantaService
             plantaId = null;
 
         // Una sola lectura. El accessor ya limita al encargado; una planta ajena no se consulta.
-        var todos = await _inventory.GetMaterialsByPlantaAsync(null, cancellationToken);
+        // Si igual llega un material de una planta no visible, no entra al detalle ni al consolidado.
+        var permitidas = plantas.Select(p => p.Id).ToHashSet();
+        var todos = (await _inventory.GetMaterialsByPlantaAsync(null, cancellationToken))
+            .Where(m => permitidas.Contains(m.PlantaInventarioId))
+            .ToList();
         var resumen = plantas.Select(p => Resumir(p, todos)).ToList();
         var deLaPlanta = plantaId is int id
             ? todos.Where(m => m.PlantaInventarioId == id).ToList()
