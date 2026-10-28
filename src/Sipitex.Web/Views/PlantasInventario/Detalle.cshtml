@@ -2,7 +2,7 @@
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = $"Inventario de {Model.Nombre}";
-    ViewData["Breadcrumb"] = $"SIPITEX / Administración / Plantas de inventario / {Model.Nombre}";
+    ViewData["Breadcrumb"] = $"SIPITEX / Operación / Inventario por planta / {Model.Nombre}";
     Layout = "_Layout";
     var materialesSeleccionados = PlantaDetalleConsulta.EsMateriales(Model.Categoria);
     var insumosSeleccionados = PlantaDetalleConsulta.EsInsumos(Model.Categoria);
@@ -30,14 +30,7 @@
         {
             <a class="ghost" asp-action="Movimientos" asp-route-plantaInventarioId="@Model.Id"><i class="fas fa-clock-rotate-left"></i> Historial de movimientos</a>
         }
-        @if (Model.MostrarVolverAlCatalogo)
-        {
-            <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
-        }
-        else
-        {
-            <a class="ghost" asp-action="Consultar" asp-route-plantaInventarioId="@Model.Id"><i class="fas fa-arrow-left"></i> Volver</a>
-        }
+        <a class="ghost" asp-action="Index" asp-route-plantaId="@Model.Id"><i class="fas fa-arrow-left"></i> Volver</a>
     </div>
 </div>
 

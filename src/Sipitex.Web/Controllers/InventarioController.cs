@@ -157,11 +157,7 @@ public class InventarioController : Controller
         if (EsEncargadoDeUnaSolaPlanta(out var plantaId))
             return $"/PlantasInventario/Detalle/{plantaId}";
 
-        if (User.IsInRole(UserRoles.Administrador)
-            || User.IsInRole(UserRoles.EncargadoDeBodega))
-            return "/PlantasInventario";
-
-        return "/PlantasInventario/Consultar";
+        return "/PlantasInventario";
     }
 
     private bool EsEncargadoDeUnaSolaPlanta(out int plantaId)

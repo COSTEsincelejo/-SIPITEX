@@ -55,7 +55,7 @@ public class BuscadorSugerenciasService : IBuscadorSugerenciasService
             bolsa.Agregar("Materiales", await ItemsMaterialAsync(interp, plantasPedido, plantas, ilike, cancellationToken));
 
         if (alcance.PuedeVerInventario && interp.NumeroPlanta is not null && interp.NivelStock is null && interp.TextoRestante.Length == 0)
-            bolsa.Agregar("Plantas de inventario", ItemsPlanta(plantasPedido));
+            bolsa.Agregar("Inventario por planta", ItemsPlanta(plantasPedido));
 
         if (interp.FiltroSolicitud is not null || interp.NumeroSolicitud is not null)
             bolsa.Agregar("Solicitudes", await ItemsSolicitudAsync(interp, alcance, ilike, cancellationToken));

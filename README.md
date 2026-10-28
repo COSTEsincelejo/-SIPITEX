@@ -72,7 +72,7 @@ Fotos de perfil, correos sin SMTP y claves de cookie viven en PostgreSQL. El res
 | Órdenes | `/Ordenes` | Órdenes de producción, MES y avance |
 | MRP | `/Mrp` | BOM y simulación de requerimientos |
 | Fichas | `/Fichas` | Registro de producción por grupo SENA |
-| Plantas de inventario | `/PlantasInventario` | Catálogo de plantas |
+| Inventario por planta | `/PlantasInventario` | Stock por planta y catálogo (Administrar plantas) |
 | Solicitudes de planta | `/PlantasInventarioSolicitudes` | Cola de solicitudes de material |
 | Órdenes de planta | `/PlantasInventarioOrdenes` | Entrega / reingreso de materiales de orden |
 | Grupos de confección | `/GruposConfeccion` | Horas y prendas por grupo |

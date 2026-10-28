@@ -393,6 +393,27 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 .sesion-aviso{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(10,37,64,.45);padding:24px;}
 .sesion-aviso[hidden]{display:none;}
 .sesion-aviso-card{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:24px;max-width:440px;width:100%;}
+.gestion-dialog{
+  width:min(960px, calc(100vw - 24px));
+  max-height:min(860px, calc(100vh - 24px));
+  margin:auto;padding:0;border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--surface);color:var(--text);box-shadow:var(--shadow-md);
+}
+.gestion-dialog::backdrop{background:rgba(10,37,64,.45);}
+.gestion-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 0;}
+.gestion-dialog-head h3{margin:0 0 6px;font-size:20px;color:var(--navy);}
+.gestion-dialog .sub{margin:0;font-size:13.5px;color:var(--text-mut);max-width:62ch;}
+.gestion-dialog-body{padding:8px 20px 20px;overflow:auto;max-height:calc(100vh - 140px);}
+.inventario-acciones{justify-content:flex-end;}
+#inventarioPlantaTable tfoot th,
+.card tfoot th{text-align:left;padding:12px 14px;font-size:12px;background:#F7F9FC;border-top:1px solid var(--border);}
+@media (max-width:640px){
+  .gestion-dialog{width:calc(100vw - 12px);max-height:calc(100vh - 12px);}
+  .inventario-acciones{width:100%;justify-content:stretch;}
+  .inventario-acciones .btn,
+  .inventario-acciones a,
+  .inventario-acciones button{flex:1 1 auto;}
+}
 .sesion-aviso-card h3{color:var(--navy);margin:0 0 8px;font-size:18px;}
 .sesion-aviso-acciones{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
 

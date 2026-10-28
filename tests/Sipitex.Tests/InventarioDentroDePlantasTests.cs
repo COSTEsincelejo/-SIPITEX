@@ -44,15 +44,17 @@ public class InventarioDentroDePlantasTests
     }
 
     [Fact]
-    public async Task Index_EncargadoConUnaPlanta_EntraDirectoASuInventario()
+    public async Task Index_EncargadoConUnaPlanta_VeSoloEsaPlanta()
     {
         await using var scope = await Scope.CreateAsync(UserRoles.EncargadoDeBodega, new FixedCurrentPlantaInventarioAccessor([1]));
 
         var result = await scope.Controller.Index(CancellationToken.None);
 
-        var redirect = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal(nameof(PlantasInventarioController.Detalle), redirect.ActionName);
-        Assert.Equal(1, redirect.RouteValues!["id"]);
+        var vm = Assert.IsType<InventarioPlantaViewModel>(Assert.IsType<ViewResult>(result).Model);
+        var planta = Assert.Single(vm.Plantas);
+        Assert.Equal(1, planta.Id);
+        Assert.False(vm.PuedeAdministrarPlantas);
+        Assert.DoesNotContain(vm.Resumen, r => r.Id != 1);
     }
 
     [Fact]
@@ -63,8 +65,9 @@ public class InventarioDentroDePlantasTests
         var result = await scope.Controller.Index(CancellationToken.None);
 
         var view = Assert.IsType<ViewResult>(result);
-        var vm = Assert.IsType<PlantasInventarioIndexViewModel>(view.Model);
-        Assert.Equal([1, 2], vm.PlantasInventario.Select(p => p.Id).OrderBy(id => id).ToArray());
+        var vm = Assert.IsType<InventarioPlantaViewModel>(view.Model);
+        Assert.Equal([1, 2], vm.Plantas.Select(p => p.Id).OrderBy(id => id).ToArray());
+        Assert.Equal(vm.Resumen.Sum(r => r.Insumos), vm.Consolidado.Insumos);
     }
 
     [Fact]

@@ -16,7 +16,7 @@ public static class AyudaCatalogo
         "Órdenes de producción",
         "MRP / Materiales",
         "Plantas de inventario",
-        "Inventario por bodega",
+        "Inventario por planta",
         "Solicitudes de materiales",
         "Reingreso desde etapas",
         "Movimientos de stock",
@@ -229,46 +229,46 @@ public static class AyudaCatalogo
             ["Mrp/*", "Fichas/*", "GruposConfeccion/*", "Consumos/*", "Calidad/*"]),
 
         Tema(
-            "plantas", "Plantas de inventario", "Plantas de inventario", "fa-warehouse",
-            "Cómo registrar una planta y por qué Planta de Inventario 1 no se elimina.",
+            "plantas", "Administrar plantas", "Plantas de inventario", "fa-warehouse",
+            "Cómo registrar una planta desde Inventario por planta, y por qué Planta de Inventario 1 no se elimina.",
             "Una planta de inventario es el lugar donde se guarda el stock (la bodega del taller). Cada material vive dentro de una planta.",
-            "Sirve para crear plantas nuevas, renombrarlas y desactivarlas cuando ya no se usan, sin perder el historial.",
+            "Sirve para crear plantas nuevas, renombrarlas y desactivarlas cuando ya no se usan, sin perder el historial. Se hace en Inventario por planta, con el botón Administrar plantas.",
             [
-                "Abra Plantas de inventario. El administrador ve el formulario Nueva planta de inventario; el encargado ve el catálogo de las plantas que tiene asignadas.",
+                "Abra Inventario por planta y pulse Administrar plantas (también dice Administrar catálogo). El encargado no ve ese botón: solo consulta las plantas que tiene asignadas.",
                 "Escriba el Nombre (por ejemplo Planta de Inventario 3) y pulse Crear.",
-                "En la tabla, Consultar inventario abre el detalle de esa planta.",
-                "Editar cambia el nombre. Eliminar abre la confirmación de borrado."
+                "En la tabla del panel, Operar inventario abre el detalle para entradas y ajustes.",
+                "Editar cambia el nombre. Desactivar abre la confirmación. Si hay stock u otras dependencias, elija la planta destino y pulse Reasignar y desactivar."
             ],
             [
-                "Desactivar o eliminar exige que no quede stock: si hay unidades, primero reasígnelas a otra planta.",
+                "Desactivar exige que no quede stock: si hay unidades, primero reasígnelas a otra planta.",
                 "Planta de Inventario 1 no se puede eliminar: el sistema la usa como planta por defecto al crear solicitudes de insumos libres.",
                 "Tampoco se puede eliminar la última planta activa.",
-                "Si la planta tiene solicitudes, órdenes u otros registros, el sistema nombra qué la bloquea y pide desactivarla en lugar de borrarla."
+                "Si la planta tiene solicitudes u otros registros, el sistema pide reasignarlos antes de desactivarla."
             ],
             [
-                "Solo el administrador crea, edita y elimina plantas.",
-                "El instructor no tiene esta pantalla en el menú."
+                "Solo el administrador crea, edita y desactiva plantas.",
+                "El instructor consulta Inventario por planta, pero no administra plantas."
             ],
             AdminEncargado,
-            ["planta", "plantas", "como registrar una planta", "registrar planta", "crear planta", "bodega", "eliminar planta"],
-            "/PlantasInventario",
-            ["PlantasInventario/Index", "PlantasInventario/Create", "PlantasInventario/Edit", "PlantasInventario/Delete", "PlantasInventario/Detalle"]),
+            ["planta", "plantas", "como registrar una planta", "registrar planta", "crear planta", "bodega", "eliminar planta", "administrar plantas"],
+            "/PlantasInventario#gestion-plantas",
+            ["PlantasInventario/Create", "PlantasInventario/Edit", "PlantasInventario/Delete"]),
 
         Tema(
-            "inventario", "Inventario por bodega", "Inventario por bodega", "fa-clipboard-list",
+            "inventario", "Inventario por planta", "Inventario por planta", "fa-warehouse",
             "Consultar el stock de una planta y leer los niveles Bajo y Crítico.",
-            "Inventario por bodega lista los insumos y las cantidades de las plantas que usted puede ver.",
-            "Sirve para saber si hay material, filtrar por planta y por nivel, y entrar al detalle sin modificar el catálogo.",
+            "Inventario por planta lista los insumos y las cantidades de las plantas que usted puede ver, junto con el resumen por planta.",
+            "Sirve para saber si hay material, filtrar por planta y por nivel, y ver el detalle sin cambiar de pantalla.",
             [
-                "Abra Inventario por bodega.",
-                "En Seleccione una planta elija una planta o deje Todas las plantas. El listado se actualiza al cambiar el selector.",
-                "Filtre por nombre o por nivel si la pantalla lo ofrece.",
-                "Los niveles son: OK (hay stock y llega al mínimo), Bajo (hay stock pero no llega al mínimo), Crítico (el mínimo está definido y no hay existencias) y Sin mínimo definido (el material no tiene mínimo; no es una falta).",
+                "Abra Inventario por planta.",
+                "En Seleccione una planta elija una planta o deje Todas las plantas, y pulse Ver. Los enlaces Todas y el nombre de cada planta hacen lo mismo.",
+                "El resumen muestra Insumos, OK, Bajo, Crítico y Sin mínimo. Ver inventario deja esa planta seleccionada.",
+                "En el detalle filtre por nombre o por nivel. Los niveles son: OK (hay stock y llega al mínimo), Bajo (hay stock pero no llega al mínimo), Crítico (el mínimo está definido y no hay existencias) y Sin mínimo definido (el material no tiene mínimo; no es una falta).",
                 "Si su usuario no tiene plantas asignadas, la lista queda vacía: no es un error del sistema.",
-                "El administrador puede pasar a Administrar catálogo. Desde el detalle de una planta se registran entradas y ajustes, según su permiso."
+                "El administrador abre Administrar plantas o Administrar catálogo para crear, renombrar o desactivar. Operar inventario registra entradas y ajustes, según su permiso."
             ],
             [
-                "Esta pantalla consulta. Crear o renombrar plantas se hace en Plantas de inventario.",
+                "Crear o renombrar plantas se hace en Administrar plantas, en esta misma pantalla. Solo lo ve el administrador.",
                 "No borre un material que esté en una ficha técnica: el sistema pide quitarlo de esas recetas antes.",
                 "Un ajuste de stock queda en Movimientos de stock; no se deshace borrando la fila."
             ],
@@ -277,9 +277,9 @@ public static class AyudaCatalogo
                 "El instructor consulta el inventario, pero no administra el catálogo de plantas."
             ],
             Todos,
-            ["inventario", "stock", "bodega", "stock bajo", "stock critico", "consultar inventario"],
-            "/PlantasInventario/Consultar",
-            ["PlantasInventario/Consultar", "Inventario/*", "Actas/*", "Trazabilidad/*"]),
+            ["inventario", "stock", "bodega", "stock bajo", "stock critico", "consultar inventario", "inventario por planta"],
+            "/PlantasInventario",
+            ["PlantasInventario/Index", "PlantasInventario/Consultar", "PlantasInventario/Detalle", "Inventario/*", "Actas/*", "Trazabilidad/*"]),
 
         Tema(
             "solicitudes", "Solicitudes de materiales", "Solicitudes de materiales", "fa-truck-ramp-box",
@@ -347,7 +347,7 @@ public static class AyudaCatalogo
                 "Esta pantalla no edita ni elimina movimientos.",
                 "Para corregir una cantidad use el ajuste en el inventario de la planta; el historial conserva las dos líneas."
             ],
-            ["El instructor no tiene esta pantalla. Consulta el stock en Inventario por bodega."],
+            ["El instructor no tiene esta pantalla. Consulta el stock en Inventario por planta."],
             AdminEncargado,
             ["movimientos", "movimiento de stock", "historial", "entradas", "salidas", "ajustes"],
             "/PlantasInventario/Movimientos",
@@ -474,7 +474,7 @@ public static class AyudaCatalogo
     private static IReadOnlyList<TerminoGlosario> ConstruirGlosario() =>
     [
         new("Planta de inventario", "Lugar donde se guarda el stock. Planta de Inventario 1 es la planta por defecto y no se puede eliminar."),
-        new("Bodega", "En SIPITEX es la misma planta de inventario. Inventario por bodega consulta el stock de esas plantas."),
+        new("Bodega", "En SIPITEX es la misma planta de inventario. Inventario por planta consulta el stock de esas plantas."),
         new("Orden de producción", "Pedido para fabricar una cantidad de un producto que ya tiene ficha técnica, con fecha límite."),
         new("MRP", "Cálculo de materiales necesarios a partir de la ficha técnica y de la cantidad a fabricar."),
         new("BOM o ficha técnica", "Lista de materiales y cantidades que lleva un producto. En el menú también existe Fichas & producción, que es la ficha de grupo y proceso del instructor."),

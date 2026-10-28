@@ -204,7 +204,7 @@ public class PlantaInventarioServiceTests
     }
 
     [Fact]
-    public void PlantasInventarioController_CrudSoloAdministrador_ConsultarIncluyeInstructorYEncargado()
+    public void PlantasInventarioController_CrudSoloAdministrador_IndexYConsultarIncluyenLosTresRoles()
     {
         var classAttr = typeof(PlantasInventarioController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(classAttr);
@@ -232,7 +232,7 @@ public class PlantaInventarioServiceTests
         Assert.NotNull(indexRoles);
         Assert.Contains(UserRoles.Administrador, indexRoles, StringComparison.Ordinal);
         Assert.Contains(UserRoles.EncargadoDeBodega, indexRoles, StringComparison.Ordinal);
-        Assert.DoesNotContain(UserRoles.Instructor, indexRoles, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.Instructor, indexRoles, StringComparison.Ordinal);
 
         var consultar = typeof(PlantasInventarioController)
             .GetMethod(nameof(PlantasInventarioController.Consultar));

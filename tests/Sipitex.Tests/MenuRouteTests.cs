@@ -25,9 +25,11 @@ public class MenuRouteTests
 
         Assert.Contains("asp-controller=\"PlantasInventarioSolicitudes\"", layout, StringComparison.Ordinal);
         Assert.Contains("asp-controller=\"PlantasInventarioOrdenes\"", layout, StringComparison.Ordinal);
-        Assert.Contains("Inventario por bodega", layout, StringComparison.Ordinal);
-        Assert.Contains("asp-action=\"Consultar\"", layout, StringComparison.Ordinal);
-        Assert.Contains("Plantas de inventario", layout, StringComparison.Ordinal);
+        Assert.Contains("Inventario por planta", layout, StringComparison.Ordinal);
+        Assert.Contains("asp-controller=\"PlantasInventario\" asp-action=\"Index\"", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("Inventario por bodega", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("Plantas de inventario", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("asp-action=\"Consultar\"", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("asp-controller=\"Inventario\"", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("asp-controller=\"PlantaInventarioSolicitudes\"", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("asp-controller=\"PlantaInventarioOrdenes\"", layout, StringComparison.Ordinal);
