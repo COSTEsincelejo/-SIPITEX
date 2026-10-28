@@ -204,10 +204,16 @@ public class PlantaInventarioServiceTests
     }
 
     [Fact]
-    public async Task ReactivateAsync_Inactiva_LaActivaSinReasignar()
+    public async Task ReactivateAsync_SinOtraActivaConElMismoNombre_LaActivaSinReasignar()
     {
         var plantaInventario = new PlantaInventario { Id = 4, Nombre = "Anexo", Activo = false };
         _plantas.Setup(r => r.GetByIdAsync(4, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
+        _plantas.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            plantaInventario,
+            new PlantaInventario { Id = 8, Nombre = "  ANEXO  ", Activo = false },
+            new PlantaInventario { Id = 6, Nombre = "Bodega norte", Activo = true }
+        ]);
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var result = await CreateSut().ReactivateAsync(4);
@@ -219,6 +225,31 @@ public class PlantaInventarioServiceTests
         _plantas.Verify(r => r.Update(plantaInventario), Times.Once);
         _plantas.Verify(r => r.CountDependenciasAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Anexo", "  ANEXO  ")]
+    [InlineData("Anexo   Norte", "anexo norte")]
+    public async Task ReactivateAsync_OtraActivaConElMismoNombre_NoReactiva(string inactiva, string activa)
+    {
+        var plantaInventario = new PlantaInventario { Id = 4, Nombre = inactiva, Activo = false };
+        _plantas.Setup(r => r.GetByIdAsync(4, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
+        _plantas.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            plantaInventario,
+            new PlantaInventario { Id = 2, Nombre = activa, Activo = true }
+        ]);
+
+        var result = await CreateSut().ReactivateAsync(4);
+
+        Assert.False(result.Success);
+        Assert.False(plantaInventario.Activo);
+        Assert.Equal(
+            "Ya existe una planta activa con ese nombre. Renombra una de las dos antes de reactivar.",
+            result.Message);
+        _plantas.Verify(r => r.Update(It.IsAny<PlantaInventario>()), Times.Never);
+        _plantas.Verify(r => r.CountDependenciasAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

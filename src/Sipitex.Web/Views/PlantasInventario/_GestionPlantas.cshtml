@@ -11,6 +11,13 @@
         </button>
     </div>
     <div class="gestion-dialog-body">
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <p id="gestion-mensaje"
+               class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")"
+               role="alert"
+               data-mostrar-inactivas="@(Model.IsSuccess ? "false" : "true")">@Model.Message</p>
+        }
         <div class="card">
             <div class="card-title teal"><i class="fas fa-plus"></i> Nueva planta de inventario</div>
             <form asp-action="Create" method="post">
@@ -105,11 +112,17 @@
 
         const filtro = document.getElementById('mostrar-inactivas');
         const aviso = document.getElementById('sin-plantas-activas');
+        const mensaje = document.getElementById('gestion-mensaje');
         if (filtro) {
             filtro.addEventListener('change', function () {
                 dialog.classList.toggle('mostrar-inactivas-on', filtro.checked);
                 if (aviso) aviso.hidden = filtro.checked;
             });
+            if (mensaje && mensaje.getAttribute('data-mostrar-inactivas') === 'true') {
+                filtro.checked = true;
+                dialog.classList.add('mostrar-inactivas-on');
+                if (aviso) aviso.hidden = true;
+            }
         }
 
         if (typeof dialog.showModal !== 'function') return;
@@ -130,6 +143,6 @@
             el.addEventListener('click', function () { dialog.close(); });
         });
 
-        if (location.hash === '#Nombre' || location.hash === '#gestion-plantas') open();
+        if (mensaje || location.hash === '#Nombre' || location.hash === '#gestion-plantas') open();
     })();
 </script>
