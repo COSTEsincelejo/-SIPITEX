@@ -204,7 +204,83 @@ public class PlantaInventarioServiceTests
     }
 
     [Fact]
-    public void PlantasInventarioController_CrudSoloAdministrador_ConsultarIncluyeInstructorYEncargado()
+    public async Task ReactivateAsync_SinOtraActivaConElMismoNombre_LaActivaSinReasignar()
+    {
+        var plantaInventario = new PlantaInventario { Id = 4, Nombre = "Anexo", Activo = false };
+        _plantas.Setup(r => r.GetByIdAsync(4, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
+        _plantas.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            plantaInventario,
+            new PlantaInventario { Id = 8, Nombre = "  ANEXO  ", Activo = false },
+            new PlantaInventario { Id = 6, Nombre = "Bodega norte", Activo = true }
+        ]);
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().ReactivateAsync(4);
+
+        Assert.True(result.Success, result.Message);
+        Assert.True(plantaInventario.Activo);
+        Assert.Contains("reactivada", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("No se reasignó", result.Message, StringComparison.OrdinalIgnoreCase);
+        _plantas.Verify(r => r.Update(plantaInventario), Times.Once);
+        _plantas.Verify(r => r.CountDependenciasAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Anexo", "  ANEXO  ")]
+    [InlineData("Anexo   Norte", "anexo norte")]
+    public async Task ReactivateAsync_OtraActivaConElMismoNombre_NoReactiva(string inactiva, string activa)
+    {
+        var plantaInventario = new PlantaInventario { Id = 4, Nombre = inactiva, Activo = false };
+        _plantas.Setup(r => r.GetByIdAsync(4, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
+        _plantas.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            plantaInventario,
+            new PlantaInventario { Id = 2, Nombre = activa, Activo = true }
+        ]);
+
+        var result = await CreateSut().ReactivateAsync(4);
+
+        Assert.False(result.Success);
+        Assert.False(plantaInventario.Activo);
+        Assert.Equal(
+            "Ya existe una planta activa con ese nombre. Renombra una de las dos antes de reactivar.",
+            result.Message);
+        _plantas.Verify(r => r.Update(It.IsAny<PlantaInventario>()), Times.Never);
+        _plantas.Verify(r => r.CountDependenciasAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReactivateAsync_YaActiva_FallaSinActualizar()
+    {
+        var plantaInventario = new PlantaInventario { Id = 2, Nombre = "PlantaInventario 2", Activo = true };
+        _plantas.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(plantaInventario);
+
+        var result = await CreateSut().ReactivateAsync(2);
+
+        Assert.False(result.Success);
+        Assert.Contains("ya está activa", result.Message, StringComparison.OrdinalIgnoreCase);
+        _plantas.Verify(r => r.Update(It.IsAny<PlantaInventario>()), Times.Never);
+        _plantas.Verify(r => r.CountDependenciasAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReactivateAsync_Inexistente_Falla()
+    {
+        _plantas.Setup(r => r.GetByIdAsync(99, It.IsAny<CancellationToken>())).ReturnsAsync((PlantaInventario?)null);
+
+        var result = await CreateSut().ReactivateAsync(99);
+
+        Assert.False(result.Success);
+        Assert.Contains("no encontrada", result.Message, StringComparison.OrdinalIgnoreCase);
+        _plantas.Verify(r => r.Update(It.IsAny<PlantaInventario>()), Times.Never);
+    }
+
+    [Fact]
+    public void PlantasInventarioController_CrudSoloAdministrador_IndexYConsultarIncluyenLosTresRoles()
     {
         var classAttr = typeof(PlantasInventarioController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(classAttr);
@@ -214,7 +290,8 @@ public class PlantaInventarioServiceTests
                      .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
                      .Where(m => m.Name is nameof(PlantasInventarioController.Create)
                          or nameof(PlantasInventarioController.Edit)
-                         or nameof(PlantasInventarioController.Delete)))
+                         or nameof(PlantasInventarioController.Delete)
+                         or nameof(PlantasInventarioController.Reactivar)))
         {
             var methodAttr = method.GetCustomAttributes<AuthorizeAttribute>()
                 .FirstOrDefault(a => !string.IsNullOrEmpty(a.Roles));
@@ -232,7 +309,7 @@ public class PlantaInventarioServiceTests
         Assert.NotNull(indexRoles);
         Assert.Contains(UserRoles.Administrador, indexRoles, StringComparison.Ordinal);
         Assert.Contains(UserRoles.EncargadoDeBodega, indexRoles, StringComparison.Ordinal);
-        Assert.DoesNotContain(UserRoles.Instructor, indexRoles, StringComparison.Ordinal);
+        Assert.Contains(UserRoles.Instructor, indexRoles, StringComparison.Ordinal);
 
         var consultar = typeof(PlantasInventarioController)
             .GetMethod(nameof(PlantasInventarioController.Consultar));

@@ -44,15 +44,17 @@ public class InventarioDentroDePlantasTests
     }
 
     [Fact]
-    public async Task Index_EncargadoConUnaPlanta_EntraDirectoASuInventario()
+    public async Task Index_EncargadoConUnaPlanta_VeSoloEsaPlanta()
     {
         await using var scope = await Scope.CreateAsync(UserRoles.EncargadoDeBodega, new FixedCurrentPlantaInventarioAccessor([1]));
 
         var result = await scope.Controller.Index(CancellationToken.None);
 
-        var redirect = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal(nameof(PlantasInventarioController.Detalle), redirect.ActionName);
-        Assert.Equal(1, redirect.RouteValues!["id"]);
+        var vm = Assert.IsType<InventarioPlantaViewModel>(Assert.IsType<ViewResult>(result).Model);
+        var planta = Assert.Single(vm.Plantas);
+        Assert.Equal(1, planta.Id);
+        Assert.False(vm.PuedeAdministrarPlantas);
+        Assert.DoesNotContain(vm.Resumen, r => r.Id != 1);
     }
 
     [Fact]
@@ -63,8 +65,85 @@ public class InventarioDentroDePlantasTests
         var result = await scope.Controller.Index(CancellationToken.None);
 
         var view = Assert.IsType<ViewResult>(result);
-        var vm = Assert.IsType<PlantasInventarioIndexViewModel>(view.Model);
-        Assert.Equal([1, 2], vm.PlantasInventario.Select(p => p.Id).OrderBy(id => id).ToArray());
+        var vm = Assert.IsType<InventarioPlantaViewModel>(view.Model);
+        Assert.Equal([1, 2], vm.Plantas.Select(p => p.Id).OrderBy(id => id).ToArray());
+        Assert.Equal(vm.Resumen.Sum(r => r.Insumos), vm.Consolidado.Insumos);
+    }
+
+    [Fact]
+    public async Task Index_EncargadoConDosFilasUserPlantasInventario_SumaSoloEsasYIgnoraPlantaAjena()
+    {
+        var asignadas = new[] { 1, 2 };
+        await using var scope = await Scope.CreateAsync(
+            UserRoles.EncargadoDeBodega,
+            new FixedCurrentPlantaInventarioAccessor(asignadas));
+
+        var userId = await scope.Db.Users.Select(u => u.Id).FirstAsync();
+        scope.Db.UserPlantasInventario.AddRange(asignadas.Select(id => new UserPlantaInventario
+        {
+            UserId = userId,
+            PlantaInventarioId = id
+        }));
+        var ajena = new PlantaInventario { Nombre = "Planta ajena", Activo = true };
+        scope.Db.PlantasInventario.Add(ajena);
+        await scope.Db.SaveChangesAsync();
+
+        scope.Db.Materials.AddRange(
+            new Material
+            {
+                Code = "mat-propia-ok",
+                Name = "Tela propia",
+                Unit = MaterialUnit.Metros,
+                Stock = 20,
+                MinStock = 5,
+                PlantaInventarioId = 1
+            },
+            new Material
+            {
+                Code = "mat-propia-bajo",
+                Name = "Hilo propio",
+                Unit = MaterialUnit.Metros,
+                Stock = 2,
+                MinStock = 10,
+                PlantaInventarioId = 2
+            },
+            new Material
+            {
+                Code = "mat-ajeno",
+                Name = "Insumo ajeno",
+                Unit = MaterialUnit.Unidades,
+                Stock = 0,
+                MinStock = 4,
+                PlantaInventarioId = ajena.Id
+            });
+        await scope.Db.SaveChangesAsync();
+
+        var filas = await scope.Db.UserPlantasInventario
+            .Where(x => x.UserId == userId)
+            .Select(x => x.PlantaInventarioId)
+            .OrderBy(id => id)
+            .ToArrayAsync();
+        Assert.Equal(asignadas, filas);
+
+        var todas = Assert.IsType<InventarioPlantaViewModel>(
+            Assert.IsType<ViewResult>(await scope.Controller.Index(CancellationToken.None)).Model);
+        Assert.Null(todas.PlantaId);
+        Assert.Equal(filas, todas.Plantas.Select(p => p.Id).OrderBy(id => id).ToArray());
+        Assert.Equal(2, todas.Consolidado.Insumos);
+        Assert.Equal(1, todas.Consolidado.Ok);
+        Assert.Equal(1, todas.Consolidado.Bajo);
+        Assert.Equal(0, todas.Consolidado.Critico);
+        Assert.Equal(2, todas.Materials.Count);
+        Assert.DoesNotContain(todas.Materials, m => m.Name == "Insumo ajeno");
+        Assert.Contains("Insumo ajeno", await scope.Db.Materials.IgnoreQueryFilters().Select(m => m.Name).ToListAsync());
+
+        var pedidoAjeno = Assert.IsType<InventarioPlantaViewModel>(
+            Assert.IsType<ViewResult>(await scope.Controller.Index(CancellationToken.None, plantaId: ajena.Id)).Model);
+        Assert.Null(pedidoAjeno.PlantaId);
+        Assert.Equal(filas, pedidoAjeno.Plantas.Select(p => p.Id).OrderBy(id => id).ToArray());
+        Assert.Equal(2, pedidoAjeno.Consolidado.Insumos);
+        Assert.DoesNotContain(pedidoAjeno.Materials, m => m.PlantaInventarioId == ajena.Id);
+        Assert.DoesNotContain(pedidoAjeno.Materials, m => m.Name == "Insumo ajeno");
     }
 
     [Fact]

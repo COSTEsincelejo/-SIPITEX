@@ -98,6 +98,40 @@ public class PlantaInventarioService : IPlantaInventarioService
         return ServiceResult.Ok($"Planta de inventario «{plantaInventario.Nombre}» desactivada.");
     }
 
+    // Vuelve a dejar la planta activa. No mueve stock ni encargados: la baja fue solo lógica.
+    // Otra planta activa con el mismo nombre (sin distinguir mayúsculas ni espacios sobrantes) lo impide.
+    public async Task<ServiceResult> ReactivateAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var plantaInventario = await _plantas.GetByIdAsync(id, cancellationToken);
+        if (plantaInventario is null)
+            return ServiceResult.Fail("Planta de inventario no encontrada.");
+
+        if (plantaInventario.Activo)
+            return ServiceResult.Fail("La planta de inventario ya está activa.");
+
+        var nombre = NormalizarNombre(plantaInventario.Nombre);
+        var catalogo = await _plantas.GetAllAsync(cancellationToken);
+        if (catalogo.Any(p => p.Id != id && p.Activo && NormalizarNombre(p.Nombre) == nombre))
+            return ServiceResult.Fail(
+                "Ya existe una planta activa con ese nombre. Renombra una de las dos antes de reactivar.");
+
+        plantaInventario.Activo = true;
+        _plantas.Update(plantaInventario);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Ok(
+            $"Planta de inventario «{plantaInventario.Nombre}» reactivada. No se reasignó stock ni dependencias.");
+    }
+
+    // Trim, un solo espacio entre palabras y minúsculas. "  ANEXO   Norte " y "anexo norte" coinciden.
+    private static string NormalizarNombre(string? nombre)
+    {
+        if (string.IsNullOrWhiteSpace(nombre))
+            return "";
+
+        return string.Join(' ', nombre.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+            .ToLowerInvariant();
+    }
+
     public Task<PlantaInventarioDependencias> GetDependenciasAsync(
         int id,
         CancellationToken cancellationToken = default) =>

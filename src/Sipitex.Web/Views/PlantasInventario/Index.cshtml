@@ -1,25 +1,26 @@
-@model PlantasInventarioIndexViewModel
+@model InventarioPlantaViewModel
 @{
-    ViewData["Title"] = "Plantas de inventario";
-    ViewData["Breadcrumb"] = "SIPITEX / Administración / Plantas de inventario";
+    ViewData["Title"] = "Inventario por planta";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Inventario por planta";
     Layout = "_Layout";
 }
 
 <div class="page-header">
     <div>
-        <h2>Plantas de inventario</h2>
-        @if (User.IsInRole(UserRoles.Administrador))
-        {
-            <div class="sub">Cree, renombre o desactive plantas de inventario. Planta de Inventario 1 no se puede eliminar (es la planta por defecto). Si hay stock, hay que reasignarlo a otra planta antes de desactivar.</div>
-        }
-        else
-        {
-            <div class="sub">Elija una planta para consultar y operar su inventario.</div>
-        }
+        <h2>Inventario por planta</h2>
+        <div class="sub">Consulte los insumos y el stock de cada planta de inventario a su alcance.</div>
     </div>
-    <div>
-        <a class="ghost" asp-action="Consultar"><i class="fas fa-clipboard-list"></i> Consultar inventario por planta</a>
-    </div>
+    @if (Model.PuedeAdministrarPlantas)
+    {
+        <div class="row-actions inventario-acciones">
+            <button type="button" class="btn primary" data-open-gestion>
+                <i class="fas fa-warehouse"></i> Administrar plantas
+            </button>
+            <a class="btn ghost" href="#gestion-plantas" data-open-gestion>
+                <i class="fas fa-pen-to-square"></i> Administrar catálogo
+            </a>
+        </div>
+    }
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
@@ -27,77 +28,44 @@
     <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
 }
 
-@if (User.IsInRole(UserRoles.Administrador))
-{
-    <div class="card" style="max-width:560px;">
-        <div class="card-title teal"><i class="fas fa-plus"></i> Nueva planta de inventario</div>
-        <form asp-action="Create" method="post">
-            @Html.AntiForgeryToken()
-            <div class="form-row">
-                <div class="field" style="flex:1;">
-                    <label class="field-label">Nombre</label>
-                    <input type="text" id="Nombre" name="Form.Nombre" value="@Model.Form.Nombre" maxlength="80" required
-                           placeholder="Ej. Planta de Inventario 3" />
-                </div>
-                <div class="field" style="align-self:flex-end;">
-                    <button type="submit" class="primary">Crear</button>
-                </div>
-            </div>
-        </form>
-    </div>
-}
-
 <div class="card">
-    <div class="card-title"><i class="fas fa-warehouse"></i> Catálogo</div>
-    @if (!Model.PlantasInventario.Any())
-    {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-warehouse", Title = "Sin plantas de inventario", Text = User.IsInRole(UserRoles.Administrador) ? "No hay plantas de inventario registradas." : "Su usuario no tiene plantas de inventario asignadas.", ActionText = null }' />
-    }
-    else
-    {
-        <div class="table-wrap table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Id</th>
-                        <th>Nombre</th>
-                        <th>Estado</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var b in Model.PlantasInventario)
+    <div class="card-title"><i class="fas fa-warehouse"></i> Planta de inventario</div>
+    <form asp-action="Index" method="get" class="form-row">
+        <div class="field" style="min-width:240px;flex:1;">
+            <label class="field-label" for="plantaId">Seleccione una planta</label>
+            <select id="plantaId" name="plantaId" data-auto-submit>
+                <option value="">Todas las plantas</option>
+                @foreach (var p in Model.Plantas)
                 {
-                    <tr>
-                        <td>@b.Id</td>
-                        <td><strong>@b.Nombre</strong></td>
-                        <td>
-                            @if (b.Activo)
-                            {
-                                <span class="badge badge-success">Activa</span>
-                            }
-                            else
-                            {
-                                <span class="badge badge-warning">Inactiva</span>
-                            }
-                        </td>
-                        <td>
-                            <div class="row-actions">
-                                <a asp-action="Detalle" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-eye"></i> Consultar inventario</a>
-                                @if (User.IsInRole(UserRoles.Administrador))
-                                {
-                                    <a asp-action="Edit" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-pen"></i> Editar</a>
-                                    @if (b.Activo)
-                                    {
-                                        <a asp-action="Delete" asp-route-id="@b.Id" class="btn small danger"><i class="fas fa-trash"></i> Eliminar</a>
-                                    }
-                                }
-                            </div>
-                        </td>
-                    </tr>
+                    if (Model.PlantaId == p.Id)
+                    {
+                        <option value="@p.Id" selected>@p.Nombre</option>
+                    }
+                    else
+                    {
+                        <option value="@p.Id">@p.Nombre</option>
+                    }
                 }
-                </tbody>
-            </table>
+            </select>
         </div>
-    }
+        <div class="field" style="align-self:flex-end;">
+            <button type="submit" class="btn primary"><i class="fas fa-filter"></i> Ver</button>
+        </div>
+    </form>
+    <div class="row-actions" style="flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:flex-start;">
+        <a class="btn small @(Model.PlantaId is null ? "primary" : "ghost")" asp-action="Index">Todas</a>
+        @foreach (var p in Model.Plantas)
+        {
+            <a class="btn small @(Model.PlantaId == p.Id ? "primary" : "ghost")"
+               asp-action="Index" asp-route-plantaId="@p.Id">@p.Nombre</a>
+        }
+    </div>
 </div>
+
+<partial name="_ResumenPlantas" model="Model" />
+<partial name="_DetalleInventario" model="Model" />
+
+@if (Model.PuedeAdministrarPlantas)
+{
+    <partial name="_GestionPlantas" model="Model" />
+}

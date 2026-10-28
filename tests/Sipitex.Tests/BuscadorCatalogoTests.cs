@@ -8,15 +8,15 @@ public class BuscadorCatalogoTests
 {
     [Theory]
     [InlineData("crear planta", UserRoles.Administrador, "/PlantasInventario#Nombre")]
-    [InlineData("ver stock", UserRoles.Administrador, "/PlantasInventario/Consultar")]
-    [InlineData("quiero ver el stock de la bodega", UserRoles.EncargadoDeBodega, "/PlantasInventario/Consultar")]
+    [InlineData("ver stock", UserRoles.Administrador, "/PlantasInventario")]
+    [InlineData("quiero ver el stock de la bodega", UserRoles.EncargadoDeBodega, "/PlantasInventario")]
     [InlineData("materiales de una orden", UserRoles.Instructor, "/PlantasInventarioOrdenes")]
     [InlineData("nueva solicitud de materiales", UserRoles.Instructor, "/SolicitudesMaterial/SolicitarInsumos")]
     [InlineData("nueva solicitud de materiales", UserRoles.EncargadoDeBodega, "/PlantasInventarioSolicitudes")]
     [InlineData("reingreso", UserRoles.EncargadoDeBodega, "/PlantasInventarioOrdenes/Reingreso")]
     [InlineData("reingeso", UserRoles.EncargadoDeBodega, "/PlantasInventarioOrdenes/Reingreso")]
     [InlineData("movimientos", UserRoles.Administrador, "/PlantasInventario/Movimientos")]
-    [InlineData("inventario bodega", UserRoles.Instructor, "/PlantasInventario/Consultar")]
+    [InlineData("inventario bodega", UserRoles.Instructor, "/PlantasInventario")]
     [InlineData("crear orden", UserRoles.Administrador, "/Ordenes#CreateOrder_ProductName")]
     public void Buscar_LlevaALaPantallaDelMenu(string consulta, string rol, string url)
     {
@@ -40,7 +40,8 @@ public class BuscadorCatalogoTests
         Assert.DoesNotContain(BuscadorCatalogo.Buscar("movimientos", instructor), a => a.Url.Contains("Movimientos", StringComparison.Ordinal));
         Assert.DoesNotContain(BuscadorCatalogo.Buscar("crear orden", instructor), a => a.Url.Contains("CreateOrder", StringComparison.Ordinal));
         Assert.DoesNotContain(BuscadorCatalogo.JsonVisibles(instructor), "/PlantasInventario#Nombre", StringComparison.Ordinal);
-        Assert.Contains("/PlantasInventario/Consultar", BuscadorCatalogo.JsonVisibles(instructor), StringComparison.Ordinal);
+        Assert.Contains("\"/PlantasInventario\"", BuscadorCatalogo.JsonVisibles(instructor), StringComparison.Ordinal);
+        Assert.DoesNotContain("/PlantasInventario/Consultar", BuscadorCatalogo.JsonVisibles(instructor), StringComparison.Ordinal);
 
         Assert.True(BuscadorCatalogo.Buscar("material", Principal(UserRoles.Administrador)).Count <= 6);
         Assert.InRange(BuscadorCatalogo.Frecuentes(Principal(UserRoles.Administrador)).Count, 1, 6);

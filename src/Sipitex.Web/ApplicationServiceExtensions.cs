@@ -52,6 +52,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IUserAccountService, UserAccountService>();
         services.AddScoped<IPlantaInventarioService, PlantaInventarioService>();
         services.AddScoped<IPlantaInventarioReassignmentService, PlantaInventarioReassignmentService>();
+        services.AddScoped<IInventarioPlantaService, InventarioPlantaService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
 
         // Alertas por correo y evaluación programada

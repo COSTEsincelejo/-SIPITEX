@@ -1,0 +1,148 @@
+@model InventarioPlantaViewModel
+
+<dialog id="gestion-plantas" class="gestion-dialog" aria-labelledby="gestion-plantas-titulo">
+    <div class="gestion-dialog-head">
+        <div>
+            <h3 id="gestion-plantas-titulo">Administrar plantas</h3>
+            <p class="sub">Cree, renombre, desactive o reactive plantas de inventario. Planta de Inventario 1 no se puede eliminar. Si hay stock, hay que reasignarlo a otra planta antes de desactivar. Reactivar no reasigna stock ni dependencias.</p>
+        </div>
+        <button type="button" class="icon-btn" data-close-gestion aria-label="Cerrar">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+        </button>
+    </div>
+    <div class="gestion-dialog-body">
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <p id="gestion-mensaje"
+               class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")"
+               role="alert"
+               data-mostrar-inactivas="@(Model.IsSuccess ? "false" : "true")">@Model.Message</p>
+        }
+        <div class="card">
+            <div class="card-title teal"><i class="fas fa-plus"></i> Nueva planta de inventario</div>
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="form-row">
+                    <div class="field" style="flex:1;">
+                        <label class="field-label" for="Nombre">Nombre</label>
+                        <input type="text" id="Nombre" name="Form.Nombre" maxlength="80" required
+                               placeholder="Ej. Planta de Inventario 3" />
+                    </div>
+                    <div class="field" style="align-self:flex-end;">
+                        <button type="submit" class="btn primary">Crear</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-title"><i class="fas fa-warehouse"></i> Catálogo</div>
+            @if (!Model.Plantas.Any())
+            {
+                <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-warehouse", Title = "Sin plantas de inventario", Text = "No hay plantas de inventario registradas.", ActionText = null }' />
+            }
+            else
+            {
+                <label class="mostrar-inactivas" for="mostrar-inactivas">
+                    <input type="checkbox" id="mostrar-inactivas" />
+                    Mostrar inactivas
+                </label>
+                @if (!Model.Plantas.Any(p => p.Activo))
+                {
+                    <p id="sin-plantas-activas" class="sub">No hay plantas activas. Marque Mostrar inactivas para verlas y reactivarlas.</p>
+                }
+                <div class="table-wrap table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Id</th>
+                                <th>Nombre</th>
+                                <th>Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var b in Model.Plantas)
+                        {
+                            <tr class="@(b.Activo ? null : "planta-inactiva")" data-activa="@(b.Activo ? "true" : "false")">
+                                <td>@b.Id</td>
+                                <td><strong>@b.Nombre</strong></td>
+                                <td>
+                                    @if (b.Activo)
+                                    {
+                                        <span class="badge badge-success">Activa</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-warning">Inactiva</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="row-actions">
+                                        @if (b.Activo)
+                                        {
+                                            <a asp-action="Detalle" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-eye"></i> Operar inventario</a>
+                                            <a asp-action="Edit" asp-route-id="@b.Id" class="btn small ghost"><i class="fas fa-pen"></i> Editar</a>
+                                            <a asp-action="Delete" asp-route-id="@b.Id" class="btn small danger"><i class="fas fa-trash"></i> Desactivar</a>
+                                        }
+                                        else
+                                        {
+                                            <form asp-action="Reactivar" asp-route-id="@b.Id" method="post"
+                                                  data-confirm="¿Reactivar «@b.Nombre»? La planta vuelve a estar activa. No se reasigna stock ni dependencias.">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn small primary">Reactivar</button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</dialog>
+
+<script>
+    (function () {
+        const dialog = document.getElementById('gestion-plantas');
+        if (!dialog) return;
+
+        const filtro = document.getElementById('mostrar-inactivas');
+        const aviso = document.getElementById('sin-plantas-activas');
+        const mensaje = document.getElementById('gestion-mensaje');
+        if (filtro) {
+            filtro.addEventListener('change', function () {
+                dialog.classList.toggle('mostrar-inactivas-on', filtro.checked);
+                if (aviso) aviso.hidden = filtro.checked;
+            });
+            if (mensaje && mensaje.getAttribute('data-mostrar-inactivas') === 'true') {
+                filtro.checked = true;
+                dialog.classList.add('mostrar-inactivas-on');
+                if (aviso) aviso.hidden = true;
+            }
+        }
+
+        if (typeof dialog.showModal !== 'function') return;
+
+        function open() {
+            if (!dialog.open) dialog.showModal();
+            const nombre = document.getElementById('Nombre');
+            if (location.hash === '#Nombre' && nombre) nombre.focus();
+        }
+
+        document.querySelectorAll('[data-open-gestion]').forEach(function (el) {
+            el.addEventListener('click', function (event) {
+                event.preventDefault();
+                open();
+            });
+        });
+        dialog.querySelectorAll('[data-close-gestion]').forEach(function (el) {
+            el.addEventListener('click', function () { dialog.close(); });
+        });
+
+        if (mensaje || location.hash === '#Nombre' || location.hash === '#gestion-plantas') open();
+    })();
+</script>

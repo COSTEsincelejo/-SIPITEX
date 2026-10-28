@@ -99,14 +99,20 @@ public class PlantasInventarioConsultarControllerTests
         var result = await CreateController(
                 Principal(UserRoles.Administrador),
                 NullCurrentPlantaInventarioAccessor.Instance)
-            .Consultar(null, cancellationToken: CancellationToken.None);
+            .Index(CancellationToken.None);
 
         var view = Assert.IsType<ViewResult>(result);
-        var vm = Assert.IsType<ConsultarPlantasInventarioViewModel>(view.Model);
-        Assert.Null(vm.PlantaInventarioId);
+        var vm = Assert.IsType<InventarioPlantaViewModel>(view.Model);
+        Assert.Null(vm.PlantaId);
         Assert.Equal(2, vm.Plantas.Count);
         Assert.Equal(2, vm.Resumen.Count);
         Assert.Equal(1, vm.Resumen.Single(r => r.Id == 2).Critico);
+        Assert.Equal(2, vm.Consolidado.Insumos);
+        Assert.Equal(vm.Resumen.Sum(r => r.Insumos), vm.Consolidado.Insumos);
+        Assert.Equal(vm.Resumen.Sum(r => r.Ok), vm.Consolidado.Ok);
+        Assert.Equal(vm.Resumen.Sum(r => r.Critico), vm.Consolidado.Critico);
+        Assert.Equal(2, vm.Materials.Count);
+        Assert.True(vm.PuedeAdministrarPlantas);
     }
 
     [Fact]
@@ -124,11 +130,11 @@ public class PlantasInventarioConsultarControllerTests
         _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(materials);
 
-        var vm = Assert.IsType<ConsultarPlantasInventarioViewModel>(
+        var vm = Assert.IsType<InventarioPlantaViewModel>(
             Assert.IsType<ViewResult>(await CreateController(
                     Principal(UserRoles.Administrador),
                     NullCurrentPlantaInventarioAccessor.Instance)
-                .Consultar(null, cancellationToken: CancellationToken.None)).Model);
+                .Index(CancellationToken.None)).Model);
 
         var planta1 = vm.Resumen.Single(r => r.Id == 1);
         var esperado = StockNivelHelper.Contar(materials.Where(m => m.PlantaInventarioId == 1).Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock)));
@@ -140,23 +146,26 @@ public class PlantasInventarioConsultarControllerTests
         Assert.Equal(1, planta1.Bajo);
         Assert.Equal(1, planta1.Critico);
         Assert.Equal(1, planta1.SinMinimo);
-        Assert.Equal(planta1.Materiales, planta1.Ok + planta1.Bajo + planta1.Critico + planta1.SinMinimo);
-        Assert.Equal(esperado.Total, planta1.Materiales);
+        Assert.Equal(planta1.Insumos, planta1.Ok + planta1.Bajo + planta1.Critico + planta1.SinMinimo);
+        Assert.Equal(esperado.Total, planta1.Insumos);
+        var todos = StockNivelHelper.Contar(materials.Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock)));
+        Assert.Equal(todos.Total, vm.Consolidado.Insumos);
+        Assert.Equal(todos.Ok, vm.Consolidado.Ok);
+        Assert.Equal(todos.Bajo, vm.Consolidado.Bajo);
+        Assert.Equal(todos.Critico, vm.Consolidado.Critico);
+        Assert.Equal(todos.SinMinimo, vm.Consolidado.SinMinimo);
+        Assert.Equal(vm.Resumen.Sum(r => r.Insumos), vm.Consolidado.Insumos);
     }
 
     [Fact]
     public async Task Consultar_AdminCambiaDePlanta_SoloMaterialesDeEsaPlanta()
     {
         SetupTwoPlantas();
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(1, It.IsAny<CancellationToken>()))
+        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
                 Mat(1, "Tela", 20, 5, 1, "Planta 1"),
-                Mat(3, "Botón", 4, 10, 1, "Planta 1")
-            ]);
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(2, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-            [
+                Mat(3, "Botón", 4, 10, 1, "Planta 1"),
                 Mat(2, "Hilo", 8, 10, 2, "Planta 2")
             ]);
 
@@ -164,16 +173,16 @@ public class PlantasInventarioConsultarControllerTests
             Principal(UserRoles.Administrador),
             NullCurrentPlantaInventarioAccessor.Instance);
 
-        var planta1 = Assert.IsType<ConsultarPlantasInventarioViewModel>(
-            Assert.IsType<ViewResult>(await controller.Consultar(1, cancellationToken: CancellationToken.None)).Model);
-        Assert.Equal(1, planta1.PlantaInventarioId);
+        var planta1 = Assert.IsType<InventarioPlantaViewModel>(
+            Assert.IsType<ViewResult>(await controller.Index(CancellationToken.None, plantaId: 1)).Model);
+        Assert.Equal(1, planta1.PlantaId);
         Assert.Equal(2, planta1.Materials.Count);
         Assert.All(planta1.Materials, m => Assert.Equal(1, m.PlantaInventarioId));
         Assert.DoesNotContain(planta1.Materials, m => m.Name == "Hilo");
 
-        var planta2 = Assert.IsType<ConsultarPlantasInventarioViewModel>(
-            Assert.IsType<ViewResult>(await controller.Consultar(2, cancellationToken: CancellationToken.None)).Model);
-        Assert.Equal(2, planta2.PlantaInventarioId);
+        var planta2 = Assert.IsType<InventarioPlantaViewModel>(
+            Assert.IsType<ViewResult>(await controller.Index(CancellationToken.None, plantaId: 2)).Model);
+        Assert.Equal(2, planta2.PlantaId);
         Assert.Single(planta2.Materials);
         Assert.Equal("Hilo", planta2.Materials[0].Name);
     }
@@ -182,27 +191,27 @@ public class PlantasInventarioConsultarControllerTests
     public async Task Consultar_AdminPlantaSinInsumos_ListaVacia()
     {
         SetupTwoPlantas();
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(2, It.IsAny<CancellationToken>()))
+        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         var result = await CreateController(
                 Principal(UserRoles.Administrador),
                 NullCurrentPlantaInventarioAccessor.Instance)
-            .Consultar(2, cancellationToken: CancellationToken.None);
+            .Index(CancellationToken.None, plantaId: 2);
 
-        var vm = Assert.IsType<ConsultarPlantasInventarioViewModel>(
+        var vm = Assert.IsType<InventarioPlantaViewModel>(
             Assert.IsType<ViewResult>(result).Model);
-        Assert.Equal(2, vm.PlantaInventarioId);
+        Assert.Equal(2, vm.PlantaId);
         Assert.Empty(vm.Materials);
         Assert.Equal(0, vm.TotalSinFiltro);
-        Assert.Empty(vm.Resumen);
+        Assert.Equal(0, vm.Resumen.Single(r => r.Id == 2).Insumos);
     }
 
     [Fact]
     public async Task Consultar_FiltroPorNivelFaltantes_SoloBajoYCritico()
     {
         SetupTwoPlantas();
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(1, It.IsAny<CancellationToken>()))
+        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
                 Mat(1, "Tela", 20, 5, 1, "Planta 1"),
@@ -213,9 +222,9 @@ public class PlantasInventarioConsultarControllerTests
         var result = await CreateController(
                 Principal(UserRoles.Administrador),
                 NullCurrentPlantaInventarioAccessor.Instance)
-            .Consultar(1, nivel: InventarioConsultaFilter.Faltantes, cancellationToken: CancellationToken.None);
+            .Index(CancellationToken.None, plantaId: 1, nivel: InventarioConsultaFilter.Faltantes);
 
-        var vm = Assert.IsType<ConsultarPlantasInventarioViewModel>(
+        var vm = Assert.IsType<InventarioPlantaViewModel>(
             Assert.IsType<ViewResult>(result).Model);
         Assert.Equal(3, vm.TotalSinFiltro);
         Assert.Equal(2, vm.Materials.Count);
@@ -231,7 +240,7 @@ public class PlantasInventarioConsultarControllerTests
     public async Task Consultar_FiltroPorNombre_SoloCoincidentes()
     {
         SetupTwoPlantas();
-        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(1, It.IsAny<CancellationToken>()))
+        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
                 Mat(1, "Tela Jersey", 20, 5, 1, "Planta 1"),
@@ -241,9 +250,9 @@ public class PlantasInventarioConsultarControllerTests
         var result = await CreateController(
                 Principal(UserRoles.Administrador),
                 NullCurrentPlantaInventarioAccessor.Instance)
-            .Consultar(1, q: "hilo", cancellationToken: CancellationToken.None);
+            .Index(CancellationToken.None, plantaId: 1, q: "hilo");
 
-        var vm = Assert.IsType<ConsultarPlantasInventarioViewModel>(
+        var vm = Assert.IsType<InventarioPlantaViewModel>(
             Assert.IsType<ViewResult>(result).Model);
         Assert.Single(vm.Materials);
         Assert.Equal("Hilo Poliéster", vm.Materials[0].Name);
@@ -268,11 +277,12 @@ public class PlantasInventarioConsultarControllerTests
         var result = await CreateController(
                 Principal(UserRoles.EncargadoDeBodega),
                 new FixedCurrentPlantaInventarioAccessor([1]))
-            .Consultar(2, cancellationToken: CancellationToken.None);
+            .Index(CancellationToken.None, plantaId: 2);
 
         var view = Assert.IsType<ViewResult>(result);
-        var vm = Assert.IsType<ConsultarPlantasInventarioViewModel>(view.Model);
-        Assert.Null(vm.PlantaInventarioId);
+        var vm = Assert.IsType<InventarioPlantaViewModel>(view.Model);
+        Assert.Null(vm.PlantaId);
+        Assert.False(vm.PuedeAdministrarPlantas);
         Assert.Single(vm.Plantas);
         Assert.Equal(1, vm.Plantas[0].Id);
         Assert.DoesNotContain(vm.Plantas, p => p.Id == 2);
@@ -282,11 +292,138 @@ public class PlantasInventarioConsultarControllerTests
     }
 
     [Fact]
+    public async Task Consultar_Encargado_MaterialDePlantaNoVisible_NoEntraAlConsolidado()
+    {
+        SetupTwoPlantas();
+        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                Mat(1, "Tela", 20, 5, 1, "Planta 1"),
+                Mat(2, "Hilo", 2, 10, 2, "Planta 2"),
+                Mat(9, "Insumo ajeno", 0, 4, 3, "Planta 3")
+            ]);
+
+        var result = await CreateController(
+                Principal(UserRoles.EncargadoDeBodega),
+                new FixedCurrentPlantaInventarioAccessor([1, 2]))
+            .Index(CancellationToken.None);
+
+        var vm = Assert.IsType<InventarioPlantaViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.Equal([1, 2], vm.Plantas.Select(p => p.Id).OrderBy(id => id).ToArray());
+        Assert.Equal(2, vm.Consolidado.Insumos);
+        Assert.Equal(1, vm.Consolidado.Ok);
+        Assert.Equal(1, vm.Consolidado.Bajo);
+        Assert.Equal(0, vm.Consolidado.Critico);
+        Assert.DoesNotContain(vm.Materials, m => m.Name == "Insumo ajeno");
+    }
+
+    [Fact]
     public void Consultar_NoExponeMetodosDeMutacionAlInstructor()
     {
         var consultar = typeof(PlantasInventarioController).GetMethod(nameof(PlantasInventarioController.Consultar));
         Assert.NotNull(consultar);
         Assert.Equal(typeof(HttpGetAttribute), consultar!.GetCustomAttribute<HttpGetAttribute>()?.GetType() ?? typeof(HttpGetAttribute));
         Assert.Null(consultar.GetCustomAttribute<HttpPostAttribute>());
+    }
+
+    [Fact]
+    public void Consultar_Redirige302AlIndexConservandoPlantaYFiltros()
+    {
+        var result = CreateController(
+                Principal(UserRoles.Instructor),
+                NullCurrentPlantaInventarioAccessor.Instance)
+            .Consultar(2, q: "hilo", nivel: "Critico");
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.False(redirect.Permanent);
+        Assert.Equal(nameof(PlantasInventarioController.Index), redirect.ActionName);
+        Assert.Equal(2, redirect.RouteValues!["plantaId"]);
+        Assert.Equal("hilo", redirect.RouteValues["q"]);
+        Assert.Equal("Critico", redirect.RouteValues["nivel"]);
+    }
+
+    [Fact]
+    public async Task Index_QueryAntiguaPlantaInventarioId_RedirigeAPlantaId()
+    {
+        var result = await CreateController(
+                Principal(UserRoles.Administrador),
+                NullCurrentPlantaInventarioAccessor.Instance)
+            .Index(CancellationToken.None, plantaInventarioId: 1, q: "tela");
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.False(redirect.Permanent);
+        Assert.Equal(1, redirect.RouteValues!["plantaId"]);
+        Assert.Equal("tela", redirect.RouteValues["q"]);
+        _inventory.Verify(s => s.GetMaterialsByPlantaAsync(It.IsAny<int?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Reactivar_Administrador_ActivaSinReasignarYAudita()
+    {
+        _plantas.Setup(s => s.ReactivateAsync(4, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Ok(
+                "Planta de inventario «Anexo» reactivada. No se reasignó stock ni dependencias."));
+
+        var controller = CreateController(
+            Principal(UserRoles.Administrador),
+            NullCurrentPlantaInventarioAccessor.Instance);
+        var result = await controller.Reactivar(4, CancellationToken.None);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(PlantasInventarioController.Index), redirect.ActionName);
+        Assert.Equal(true, controller.TempData["IsSuccess"]);
+        _plantas.Verify(s => s.ReactivateAsync(4, It.IsAny<CancellationToken>()), Times.Once);
+        _reassignment.Verify(
+            r => r.ReassignAndDeleteAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _activity.Verify(a => a.LogAsync(
+            1,
+            ActivityLogActions.ReactivatePlantaInventario,
+            "PlantaInventario",
+            "4",
+            It.Is<string?>(d => d != null && d.Contains("reactivada", StringComparison.OrdinalIgnoreCase)),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Reactivar_CuandoFalla_NoRegistraAuditoria()
+    {
+        _plantas.Setup(s => s.ReactivateAsync(4, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Fail("La planta de inventario ya está activa."));
+
+        var controller = CreateController(
+            Principal(UserRoles.Administrador),
+            NullCurrentPlantaInventarioAccessor.Instance);
+        var result = await controller.Reactivar(4, CancellationToken.None);
+
+        Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(false, controller.TempData["IsSuccess"]);
+        _activity.Verify(a => a.LogAsync(
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _reassignment.Verify(
+            r => r.ReassignAndDeleteAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Index_Instructor_ConsultaSinAdministrarPlantas()
+    {
+        SetupTwoPlantas();
+        _inventory.Setup(s => s.GetMaterialsByPlantaAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Mat(1, "Tela", 20, 5, 1, "Planta 1")]);
+
+        var vm = Assert.IsType<InventarioPlantaViewModel>(
+            Assert.IsType<ViewResult>(await CreateController(
+                    Principal(UserRoles.Instructor),
+                    NullCurrentPlantaInventarioAccessor.Instance)
+                .Index(CancellationToken.None)).Model);
+
+        Assert.Equal(2, vm.Plantas.Count);
+        Assert.False(vm.PuedeAdministrarPlantas);
     }
 }

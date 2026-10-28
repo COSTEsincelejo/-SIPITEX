@@ -393,15 +393,6 @@ public class EmptyStateModel
     public string? ActionHref { get; set; } // link del botón (opcional)
 }
 
-// Catálogo de plantasInventario (admin): listado + alta
-public class PlantasInventarioIndexViewModel
-{
-    public IReadOnlyList<PlantaInventario> PlantasInventario { get; set; } = [];
-    public CreatePlantaInventarioForm Form { get; set; } = new();
-    public string? Message { get; set; }
-    public bool IsSuccess { get; set; }
-}
-
 public class CreatePlantaInventarioForm
 {
     public string Nombre { get; set; } = string.Empty;
@@ -430,26 +421,20 @@ public class DeletePlantaInventarioViewModel
     public string? Message { get; set; }
 }
 
-public class ConsultarPlantasInventarioViewModel
+// Pantalla única Inventario por planta: selector, resumen, detalle y datos del panel de gestión.
+public class InventarioPlantaViewModel
 {
-    public int? PlantaInventarioId { get; set; }
+    public int? PlantaId { get; set; }
     public IReadOnlyList<PlantaInventario> Plantas { get; set; } = [];
     public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
-    public IReadOnlyList<PlantaInventarioResumenItem> Resumen { get; set; } = [];
+    public IReadOnlyList<InventarioPlantaResumenDto> Resumen { get; set; } = [];
+    public InventarioPlantaResumenDto Consolidado { get; set; } = new();
     public string? Q { get; set; }
     public string? Nivel { get; set; }
     public int TotalSinFiltro { get; set; }
-}
-
-public class PlantaInventarioResumenItem
-{
-    public int Id { get; set; }
-    public string Nombre { get; set; } = string.Empty;
-    public int Materiales { get; set; }
-    public int Ok { get; set; }
-    public int Bajo { get; set; }
-    public int Critico { get; set; }
-    public int SinMinimo { get; set; }
+    public bool PuedeAdministrarPlantas { get; set; }
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
 }
 
 // Detalle de una planta: catálogo de materiales e insumos de esa planta.

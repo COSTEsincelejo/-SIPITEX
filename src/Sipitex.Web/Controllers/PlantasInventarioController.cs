@@ -5,6 +5,7 @@ using Sipitex.Application.Authorization;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 using Sipitex.Web.Models;
@@ -21,6 +22,7 @@ public class PlantasInventarioController : Controller
     private readonly IInventoryService _inventory;
     private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
     private readonly IStockMovementService? _stockMovements;
+    private readonly IInventarioPlantaService _consulta;
 
     public PlantasInventarioController(
         IPlantaInventarioService plantasInventario,
@@ -28,7 +30,8 @@ public class PlantasInventarioController : Controller
         IActivityLogService activityLog,
         IInventoryService inventory,
         ICurrentPlantaInventarioAccessor plantaAccessor,
-        IStockMovementService? stockMovements = null)
+        IStockMovementService? stockMovements = null,
+        IInventarioPlantaService? inventarioPlanta = null)
     {
         _plantas = plantasInventario;
         _reassignment = reassignment;
@@ -36,83 +39,31 @@ public class PlantasInventarioController : Controller
         _inventory = inventory;
         _plantaAccessor = plantaAccessor;
         _stockMovements = stockMovements;
+        _consulta = inventarioPlanta ?? new InventarioPlantaService(plantasInventario, inventory, plantaAccessor);
     }
 
-    [HttpGet]
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
-    {
-        var plantas = await _plantas.GetAllAsync(cancellationToken);
-        if (!User.IsInRole(UserRoles.Administrador))
-        {
-            var visibles = VisiblePlantas(plantas);
-            if (visibles.Count == 1)
-                return RedirectToAction(nameof(Detalle), new { id = visibles[0].Id });
-
-            return View(new PlantasInventarioIndexViewModel
-            {
-                PlantasInventario = visibles,
-                Message = TempData["Message"] as string,
-                IsSuccess = TempData["IsSuccess"] as bool? ?? false
-            });
-        }
-
-        return View(new PlantasInventarioIndexViewModel
-        {
-            PlantasInventario = plantas,
-            Message = TempData["Message"] as string,
-            IsSuccess = TempData["IsSuccess"] as bool? ?? false
-        });
-    }
-
+    // Pantalla única. plantaId elige una planta; sin él se ve el consolidado de todas las visibles.
     [HttpGet]
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor},{UserRoles.EncargadoDeBodega}")]
-    public async Task<IActionResult> Consultar(
-        int? plantaInventarioId,
+    public async Task<IActionResult> Index(
+        CancellationToken cancellationToken,
+        int? plantaId = null,
         string? q = null,
         string? nivel = null,
-        CancellationToken cancellationToken = default)
+        int? plantaInventarioId = null)
     {
-        var plantas = VisiblePlantas(await _plantas.GetAllAsync(cancellationToken));
-        if (plantaInventarioId is int requested && plantas.All(p => p.Id != requested))
-            plantaInventarioId = null;
+        if (plantaId is null && plantaInventarioId is int legacyId)
+            return RedirectToAction(nameof(Index), new { plantaId = legacyId, q, nivel });
 
-        var materials = await _inventory.GetMaterialsByPlantaAsync(plantaInventarioId, cancellationToken);
-        var totalSinFiltro = materials.Count;
-
-        IReadOnlyList<PlantaInventarioResumenItem> resumen = [];
-        if (plantaInventarioId is null)
-        {
-            resumen = plantas.Select(p =>
-            {
-                var mats = materials.Where(m => m.PlantaInventarioId == p.Id).ToList();
-                var conteos = StockNivelHelper.Contar(mats.Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock)));
-                return new PlantaInventarioResumenItem
-                {
-                    Id = p.Id,
-                    Nombre = p.Nombre,
-                    Materiales = conteos.Total,
-                    Ok = conteos.Ok,
-                    Bajo = conteos.Bajo,
-                    Critico = conteos.Critico,
-                    SinMinimo = conteos.SinMinimo
-                };
-            }).ToList();
-        }
-
-        materials = InventarioConsultaFilter.Apply(materials, q, nivel);
-
-        return View(new ConsultarPlantasInventarioViewModel
-        {
-            PlantaInventarioId = plantaInventarioId,
-            Plantas = plantas,
-            Materials = materials,
-            Resumen = resumen,
-            Q = q,
-            Nivel = nivel,
-            TotalSinFiltro = totalSinFiltro
-        });
+        var consulta = await _consulta.ConsultarAsync(plantaId, q, nivel, cancellationToken);
+        return View(MapConsulta(consulta));
     }
+
+    // Ruta anterior de la consulta. 302 para que el marcador siga la pantalla actual.
+    [HttpGet]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor},{UserRoles.EncargadoDeBodega}")]
+    public IActionResult Consultar(int? plantaInventarioId, string? q = null, string? nivel = null) =>
+        RedirectToAction(nameof(Index), new { plantaId = plantaInventarioId, q, nivel });
 
     [HttpGet]
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
@@ -492,6 +443,30 @@ public class PlantasInventarioController : Controller
         return result.Success ? RedirectToAction(nameof(Index)) : RedirectToAction(nameof(Delete), new { id });
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = UserRoles.Administrador)]
+    public async Task<IActionResult> Reactivar(int id, CancellationToken cancellationToken)
+    {
+        var result = await _plantas.ReactivateAsync(id, cancellationToken);
+        if (result.Success && TryGetActorUserId(out var actorId))
+        {
+            await _activityLog.LogAsync(
+                actorId,
+                ActivityLogActions.ReactivatePlantaInventario,
+                ActivityLogEntities.PlantaInventario,
+                entityId: id.ToString(),
+                details: result.Message,
+                cancellationToken);
+        }
+
+        TempData["Message"] = result.Message ?? (result.Success
+            ? "Planta de inventario reactivada."
+            : "No se pudo reactivar la planta de inventario.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Index));
+    }
+
     private async Task<(IActionResult? Error, PlantaInventario? Planta)> AutorizarPlantaAsync(
         int id,
         CancellationToken cancellationToken)
@@ -531,12 +506,19 @@ public class PlantasInventarioController : Controller
         return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId) && userId > 0;
     }
 
-    private IReadOnlyList<PlantaInventario> VisiblePlantas(IReadOnlyList<PlantaInventario> plantas)
-    {
-        var allowed = _plantaAccessor.PlantaInventarioIds;
-        if (allowed is null)
-            return plantas;
-
-        return plantas.Where(p => allowed.Contains(p.Id)).ToList();
-    }
+    private InventarioPlantaViewModel MapConsulta(InventarioPlantaConsultaDto consulta) =>
+        new()
+        {
+            PlantaId = consulta.PlantaId,
+            Plantas = consulta.Plantas,
+            Materials = consulta.Materiales,
+            Resumen = consulta.Resumen,
+            Consolidado = consulta.Consolidado,
+            Q = consulta.Q,
+            Nivel = consulta.Nivel,
+            TotalSinFiltro = consulta.TotalSinFiltro,
+            PuedeAdministrarPlantas = User.IsInRole(UserRoles.Administrador),
+            Message = TempData["Message"] as string,
+            IsSuccess = TempData["IsSuccess"] as bool? ?? false
+        };
 }

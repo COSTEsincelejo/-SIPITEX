@@ -1,0 +1,135 @@
+@model InventarioPlantaViewModel
+@{
+    var selected = Model.Plantas.FirstOrDefault(p => p.Id == Model.PlantaId);
+    var nivelActual = Model.Nivel ?? "";
+    var titulo = Model.PlantaId is null
+        ? "Detalle de inventario · Todas"
+        : selected is null ? "Detalle de inventario" : $"Detalle de inventario · {selected.Nombre}";
+    var puedeOperar = (User.IsInRole(UserRoles.Administrador) || User.IsInRole(UserRoles.EncargadoDeBodega))
+        && Model.PlantaId is int;
+    var vacioTitulo = Model.PlantaId is null ? "Sin insumos" : "Sin insumos en esta planta";
+    var vacioTexto = Model.PlantaId is null
+        ? "No hay insumos en las plantas de su alcance."
+        : "Esta planta no tiene insumos registrados.";
+}
+
+<div class="card" id="inventarioPlantaCard">
+    <div class="card-title">
+        <i class="fas fa-boxes-stacked"></i> @titulo
+    </div>
+    @if (puedeOperar)
+    {
+        <div class="row-actions" style="justify-content:flex-start;margin:-8px 0 14px;">
+            <a class="btn small ghost" asp-action="Detalle" asp-route-id="@Model.PlantaId">
+                <i class="fas fa-eye"></i> Operar inventario
+            </a>
+        </div>
+    }
+    @if (Model.TotalSinFiltro == 0)
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-boxes-stacked", Title = vacioTitulo, Text = vacioTexto, ActionText = null }' />
+    }
+    else
+    {
+        <form asp-action="Index" method="get" class="form-row" id="inventarioFiltrosForm">
+            @if (Model.PlantaId is int plantaId)
+            {
+                <input type="hidden" name="plantaId" value="@plantaId" />
+            }
+            <div class="field" style="min-width:220px;flex:1;">
+                <label class="field-label" for="inventarioQ">Buscar insumo</label>
+                <input id="inventarioQ" name="q" type="search" value="@Model.Q" placeholder="Nombre del insumo" autocomplete="off" />
+            </div>
+            <div class="field" style="min-width:220px;">
+                <span class="field-label">Nivel de stock</span>
+                <div class="row-actions" style="justify-content:flex-start;gap:6px;">
+                    <button type="submit" name="nivel" value="" class="btn small @(string.IsNullOrEmpty(nivelActual) ? "primary" : "ghost")" data-nivel="">Todos</button>
+                    <button type="submit" name="nivel" value="@nameof(StockNivel.Bajo)" class="btn small @(string.Equals(nivelActual, nameof(StockNivel.Bajo), StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@nameof(StockNivel.Bajo)">Bajo</button>
+                    <button type="submit" name="nivel" value="@nameof(StockNivel.Critico)" class="btn small @(string.Equals(nivelActual, nameof(StockNivel.Critico), StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@nameof(StockNivel.Critico)">Crítico</button>
+                    <button type="submit" name="nivel" value="@nameof(StockNivel.SinMinimo)" class="btn small @(string.Equals(nivelActual, nameof(StockNivel.SinMinimo), StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@nameof(StockNivel.SinMinimo)">Sin mínimo</button>
+                    <button type="submit" name="nivel" value="@InventarioConsultaFilter.Faltantes" class="btn small @(string.Equals(nivelActual, InventarioConsultaFilter.Faltantes, StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@InventarioConsultaFilter.Faltantes">Bajo y crítico</button>
+                </div>
+            </div>
+        </form>
+        <div class="table-wrap table-responsive">
+            <table id="inventarioPlantaTable">
+                <thead>
+                    <tr>
+                        <th>Insumo</th>
+                        @if (Model.PlantaId is null)
+                        {
+                            <th>Planta</th>
+                        }
+                        <th>Unidad</th>
+                        <th>Stock</th>
+                        <th>Mínimo</th>
+                        <th>Estado</th>
+                        <th>Costo promedio ponderado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var mat in Model.Materials)
+                {
+                    var nivel = StockNivelHelper.Classify(mat.Stock, mat.MinStock);
+                    <tr data-name="@mat.Name" data-nivel="@nivel">
+                        <td><strong>@mat.Name</strong></td>
+                        @if (Model.PlantaId is null)
+                        {
+                            <td>@mat.PlantaInventarioNombre</td>
+                        }
+                        <td>@mat.UnitDisplay</td>
+                        <td>@mat.Stock.ToString("0.0")</td>
+                        <td>@mat.MinStock.ToString("0.0")</td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(nivel)">@DisplayHelper.StatusText(nivel)</span></td>
+                        <td>@mat.CostoPromedioPonderado.ToString("0.####")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div id="inventarioFiltroVacio" class="empty-state" hidden>
+            <div class="empty-icon"><i class="fas fa-filter"></i></div>
+            <h3>Sin coincidencias</h3>
+            <p>Ningún insumo coincide con el nombre o el nivel de stock seleccionados.</p>
+        </div>
+    }
+</div>
+
+@if (Model.TotalSinFiltro > 0)
+{
+    <script>
+        (function () {
+            const input = document.getElementById('inventarioQ');
+            const table = document.getElementById('inventarioPlantaTable');
+            const empty = document.getElementById('inventarioFiltroVacio');
+            if (!input || !table) return;
+
+            const nivelFiltro = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(nivelActual));
+
+            function matchesNivel(actual) {
+                if (!nivelFiltro) return true;
+                if (nivelFiltro.toLowerCase() === 'faltantes') return actual === 'Bajo' || actual === 'Critico';
+                return actual.toLowerCase() === nivelFiltro.toLowerCase();
+            }
+
+            function apply() {
+                const term = (input.value || '').trim().toLowerCase();
+                const rows = table.tBodies[0]?.rows || [];
+                let visible = 0;
+                for (const row of rows) {
+                    const name = (row.getAttribute('data-name') || '').toLowerCase();
+                    const rowNivel = row.getAttribute('data-nivel') || '';
+                    const show = name.includes(term) && matchesNivel(rowNivel);
+                    row.hidden = !show;
+                    if (show) visible++;
+                }
+                const wrap = table.closest('.table-wrap');
+                if (wrap) wrap.hidden = visible === 0;
+                if (empty) empty.hidden = visible !== 0;
+            }
+
+            input.addEventListener('input', apply);
+            apply();
+        })();
+    </script>
+}
