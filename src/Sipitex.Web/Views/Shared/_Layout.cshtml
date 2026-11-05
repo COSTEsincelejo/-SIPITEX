@@ -72,6 +72,11 @@
                 <a class="@(EsCatalogoPlantas() ? "nav-item active" : "nav-item")"
                    asp-controller="PlantasInventario" asp-action="Index"><i class="fas fa-warehouse"></i> Inventario por planta</a>
             }
+            @if (User.IsInRole("Administrador"))
+            {
+                <a class="@(controller.Equals("Inventario", StringComparison.OrdinalIgnoreCase) && action.Equals("Importar", StringComparison.OrdinalIgnoreCase) ? "nav-item active" : "nav-item")"
+                   asp-controller="Inventario" asp-action="Importar"><i class="fas fa-file-import"></i> Importar inventario</a>
+            }
             @* Cola de solicitudes y materiales de órdenes: Admin (todo), Encargado (su planta), Instructor (sus grupos/órdenes). *@
             @if (User.IsInRole("Administrador") || User.IsInRole("Instructor") || User.IsInRole("Encargado de bodega"))
             {

@@ -12,6 +12,7 @@ using Sipitex.Infrastructure.Persistence; // SipitexDbContext
 using Sipitex.Infrastructure.Reporting; // ReportService
 using Sipitex.Infrastructure.Repositories; // Todos los repositorios
 using Sipitex.Infrastructure.Search; // BusquedaService
+using Sipitex.Infrastructure.Import; // Importación de inventario desde Excel
 using Sipitex.Infrastructure.Services; // ActivityLogService (auditoría global)
 
 namespace Sipitex.Infrastructure;
@@ -81,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<IOrderChangeLogRepository, OrderChangeLogRepository>(); // Auditoría ediciones de orden
         services.AddScoped<IOrderChangeLogRepository, OrderChangeLogRepository>(); // Auditoría ediciones de orden
         services.AddScoped<IActivityLogService, ActivityLogService>(); // Auditoría global transversal
+        services.AddScoped<IInventarioImportService, InventarioImportService>();
 
         return services; // Devuelvo la colección ya configurada
     }
