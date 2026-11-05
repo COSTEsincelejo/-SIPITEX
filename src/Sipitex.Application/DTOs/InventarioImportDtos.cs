@@ -12,6 +12,11 @@ public static class InventarioImportTextos
     public const string SinUnidad = "Sin unidad";
     public const string Omitido =
         "Ya existe un material con el mismo código, nombre y planta. Se omite.";
+    public const string PorFlujoOrdenes =
+        "Se registran por el flujo de órdenes y trazabilidad.";
+
+    public static string DuplicadoEnArchivo(int fila, int filaPrimera) =>
+        $"La fila {fila} repite la fila {filaPrimera} (mismo código, nombre y planta). Se omite.";
 }
 
 public sealed class InventarioImportResult

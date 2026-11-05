@@ -28,6 +28,14 @@ public static class MaterialUnitImportParser
             "pano" => (MaterialUnit?)MaterialUnit.Pano,
             "gruesa" => (MaterialUnit?)MaterialUnit.Gruesa,
             "dm" or "decimetro" => (MaterialUnit?)MaterialUnit.Decimetro,
+            "caja" => (MaterialUnit?)MaterialUnit.Caja,
+            "libra" => (MaterialUnit?)MaterialUnit.Libra,
+            "rollo" => (MaterialUnit?)MaterialUnit.Rollo,
+            "par" => (MaterialUnit?)MaterialUnit.Par,
+            "cono" => (MaterialUnit?)MaterialUnit.Cono,
+            "bolsa" => (MaterialUnit?)MaterialUnit.Bolsa,
+            "bulto" => (MaterialUnit?)MaterialUnit.Bulto,
+            "juego" => (MaterialUnit?)MaterialUnit.Juego,
             _ => null
         };
         if (alias is MaterialUnit porAlias)
