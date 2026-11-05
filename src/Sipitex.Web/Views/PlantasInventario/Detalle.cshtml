@@ -277,6 +277,14 @@
                     {
                         <option value="@InventarioConsultaFilter.Faltantes">Bajo y crítico</option>
                     }
+                    @if (InventarioConsultaFilter.EsSinCosto(nivelActual))
+                    {
+                        <option value="@InventarioConsultaFilter.SinCosto" selected>Sin costo</option>
+                    }
+                    else
+                    {
+                        <option value="@InventarioConsultaFilter.SinCosto">Sin costo</option>
+                    }
                 </select>
             </div>
             <div class="field" style="align-self:flex-end;">
@@ -326,6 +334,10 @@
                             <td>@(string.IsNullOrWhiteSpace(item.CodigoAlmacen) ? "—" : item.CodigoAlmacen)</td>
                             <td>
                                 <strong>@item.Nombre</strong>
+                                @if (InventarioConsultaFilter.MaterialSinCosto(item.CostoPromedioPonderado))
+                                {
+                                    <span class="badge badge-warning">Sin costo</span>
+                                }
                                 @if (!string.IsNullOrWhiteSpace(item.Descripcion))
                                 {
                                     <div class="hint">@item.Descripcion</div>
@@ -341,7 +353,16 @@
                             <td>@item.UnidadMedida</td>
                             <td>@item.StockActual.ToString("0.0")</td>
                             <td><span class="badge @DisplayHelper.BadgeClass(item.NivelStock)">@DisplayHelper.StatusText(item.NivelStock)</span></td>
-                            <td>@item.CostoPromedioPonderado.ToString("0.####")</td>
+                            <td>
+                                @if (InventarioConsultaFilter.MaterialSinCosto(item.CostoPromedioPonderado))
+                                {
+                                    <span class="badge badge-warning">Sin costo</span>
+                                }
+                                else
+                                {
+                                    @item.CostoPromedioPonderado.ToString("0.####")
+                                }
+                            </td>
                             <td>
                                 @if (canManageStock)
                                 {

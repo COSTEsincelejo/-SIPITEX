@@ -97,6 +97,7 @@
                     <button type="submit" name="nivel" value="@nameof(StockNivel.Critico)" class="btn small @(string.Equals(nivelActual, nameof(StockNivel.Critico), StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@nameof(StockNivel.Critico)">Crítico</button>
                     <button type="submit" name="nivel" value="@nameof(StockNivel.SinMinimo)" class="btn small @(string.Equals(nivelActual, nameof(StockNivel.SinMinimo), StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@nameof(StockNivel.SinMinimo)">Sin mínimo</button>
                     <button type="submit" name="nivel" value="@InventarioConsultaFilter.Faltantes" class="btn small @(string.Equals(nivelActual, InventarioConsultaFilter.Faltantes, StringComparison.OrdinalIgnoreCase) ? "primary" : "ghost")" data-nivel="@InventarioConsultaFilter.Faltantes">Bajo y crítico</button>
+                    <button type="submit" name="nivel" value="@InventarioConsultaFilter.SinCosto" class="btn small @(InventarioConsultaFilter.EsSinCosto(nivelActual) ? "primary" : "ghost")" data-nivel="@InventarioConsultaFilter.SinCosto">Sin costo</button>
                 </div>
             </div>
         </form>
@@ -123,9 +124,14 @@
                 @foreach (var mat in Model.Materials)
                 {
                     var nivel = StockNivelHelper.Classify(mat.Stock, mat.MinStock);
-                    <tr data-name="@mat.Name" data-nivel="@nivel" data-categoria="@mat.Categoria" data-tipo="@mat.TipoElemento">
+                    var sinCosto = InventarioConsultaFilter.MaterialSinCosto(mat.CostoPromedioPonderado);
+                    <tr data-name="@mat.Name" data-nivel="@nivel" data-sin-costo="@(sinCosto ? "1" : "0")" data-categoria="@mat.Categoria" data-tipo="@mat.TipoElemento">
                         <td>
                             <strong>@mat.Name</strong>
+                            @if (sinCosto)
+                            {
+                                <span class="badge badge-warning">Sin costo</span>
+                            }
                             @if (!string.IsNullOrWhiteSpace(mat.Referencia) || !string.IsNullOrWhiteSpace(mat.Descripcion))
                             {
                                 <div class="hint">
@@ -155,7 +161,16 @@
                         <td>@mat.Stock.ToString("0.0")</td>
                         <td>@mat.MinStock.ToString("0.0")</td>
                         <td><span class="badge @DisplayHelper.BadgeClass(nivel)">@DisplayHelper.StatusText(nivel)</span></td>
-                        <td>@mat.CostoPromedioPonderado.ToString("0.####")</td>
+                        <td>
+                            @if (sinCosto)
+                            {
+                                <span class="badge badge-warning">Sin costo</span>
+                            }
+                            else
+                            {
+                                @mat.CostoPromedioPonderado.ToString("0.####")
+                            }
+                        </td>
                     </tr>
                 }
                 </tbody>
@@ -180,8 +195,11 @@
 
             const nivelFiltro = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(nivelActual));
 
-            function matchesNivel(actual) {
+            function matchesNivel(row) {
                 if (!nivelFiltro) return true;
+                if (nivelFiltro.toLowerCase() === 'sincosto')
+                    return (row.getAttribute('data-sin-costo') || '') === '1';
+                const actual = row.getAttribute('data-nivel') || '';
                 if (nivelFiltro.toLowerCase() === 'faltantes') return actual === 'Bajo' || actual === 'Critico';
                 return actual.toLowerCase() === nivelFiltro.toLowerCase();
             }
@@ -192,8 +210,7 @@
                 let visible = 0;
                 for (const row of rows) {
                     const name = (row.getAttribute('data-name') || '').toLowerCase();
-                    const rowNivel = row.getAttribute('data-nivel') || '';
-                    const show = name.includes(term) && matchesNivel(rowNivel);
+                    const show = name.includes(term) && matchesNivel(row);
                     row.hidden = !show;
                     if (show) visible++;
                 }

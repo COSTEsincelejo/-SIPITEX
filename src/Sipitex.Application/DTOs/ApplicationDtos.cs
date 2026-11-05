@@ -712,7 +712,8 @@ public record GarmentCostDto(
     decimal CostoManoObra,
     decimal Total,
     string Formula,
-    bool TarifaConfigurada);
+    bool TarifaConfigurada,
+    bool CostoIncompleto = false);
 
 public record GrupoConfeccionDto(
     int Id,

@@ -194,7 +194,11 @@ public class InventoryService : IInventoryService
                 return ServiceResult.Fail("El precio unitario de compra no puede ser negativo.");
         }
 
-        // Recalcular el promedio con el stock previo a la entrada, luego sumar la compra.
+        // Las salidas consumen primero las unidades importadas sin costo.
+        if (!isIncrease)
+            material.DescontarUnidadesSinCosto(previous - newStock);
+
+        // Recalcular el promedio solo con unidades que ya tienen costo, luego sumar la compra.
         if (isCompra)
             _insumoCosto.RegistrarCompra(material, delta, dto.PrecioUnitario!.Value);
 
@@ -353,7 +357,8 @@ public class InventoryService : IInventoryService
         if (request.Material.Stock < request.Quantity)
             return ServiceResult.Fail("Stock insuficiente para aprobar solicitud.");
 
-        // Esto descuenta del inventario
+        // Esto descuenta del inventario. Primero las unidades que entraron sin costo.
+        request.Material.DescontarUnidadesSinCosto(request.Quantity);
         request.Material.Stock -= request.Quantity;
         request.Status = RequestStatus.Aprobada;
         _materialRepository.Update(request.Material);

@@ -119,6 +119,7 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
             // Precision 18,2 porque stock puede tener decimales (metros de tela, etc.)
             e.Property(m => m.Stock).HasPrecision(18, 2);
             e.Property(m => m.MinStock).HasPrecision(18, 2);
+            e.Property(m => m.StockSinCosto).HasPrecision(18, 2);
             e.Property(m => m.CostoAdquisicion).HasPrecision(18, 4);
             e.Property(m => m.CostoPromedioPonderado).HasPrecision(18, 4);
             e.HasOne(m => m.PlantaInventario)

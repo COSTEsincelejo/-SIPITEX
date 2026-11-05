@@ -74,6 +74,7 @@ public class MaterialConsumptionService : IMaterialConsumptionService
 
         await _unitOfWork.ExecuteInTransactionAsync(async ct =>
         {
+            material.DescontarUnidadesSinCosto(dto.Cantidad);
             material.Stock -= dto.Cantidad;
             _materials.Update(material);
 

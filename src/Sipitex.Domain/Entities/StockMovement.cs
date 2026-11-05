@@ -31,4 +31,7 @@ public class StockMovement
 
     // Precio unitario de la entrada. Obligatorio en ingresos de origen Compra; también se copia en salidas de consumo.
     public decimal? CostoUnitario { get; set; }
+
+    // Entrada de importación inicial sin costo. Esas unidades no entran al costo promedio ponderado.
+    public bool SinCosto { get; set; }
 }

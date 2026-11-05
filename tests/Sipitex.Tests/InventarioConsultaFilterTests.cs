@@ -83,6 +83,19 @@ public class InventarioConsultaFilterTests
     }
 
     [Fact]
+    public void Apply_SinCosto_SoloMaterialesSinPromedio()
+    {
+        var conCosto = Mat(5, "Tela con costo", 10, 1) with { CostoPromedioPonderado = 12.5m };
+        var items = Sample.Append(conCosto).ToList();
+
+        var result = InventarioConsultaFilter.Apply(items, null, InventarioConsultaFilter.SinCosto);
+
+        Assert.Equal(4, result.Count);
+        Assert.DoesNotContain(result, m => m.Name == "Tela con costo");
+        Assert.All(result, m => Assert.True(InventarioConsultaFilter.MaterialSinCosto(m.CostoPromedioPonderado)));
+    }
+
+    [Fact]
     public void Apply_ListaVacia_NoFalla()
     {
         Assert.Empty(InventarioConsultaFilter.Apply([], "tela", nameof(StockNivel.Bajo)));

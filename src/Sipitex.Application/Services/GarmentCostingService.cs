@@ -11,24 +11,29 @@ namespace Sipitex.Application.Services;
 // Mano de obra y overhead quedan fuera del total.
 public class GarmentCostingService : IGarmentCostingService
 {
+    public const string AvisoCostoIncompleto = "costo incompleto";
+
     private readonly IConsumoMaterialRepository _consumos;
     private readonly IGrupoConfeccionRepository _grupos;
     private readonly IProductionOrderRepository _orders;
     private readonly ICostingSettingsService _costingSettings;
     private readonly ILogger<GarmentCostingService> _logger;
+    private readonly IProductionOrderBomSnapshotRepository? _fichas;
 
     public GarmentCostingService(
         IConsumoMaterialRepository consumos,
         IGrupoConfeccionRepository grupos,
         IProductionOrderRepository orders,
         ICostingSettingsService costingSettings,
-        ILogger<GarmentCostingService> logger)
+        ILogger<GarmentCostingService> logger,
+        IProductionOrderBomSnapshotRepository? fichas = null)
     {
         _consumos = consumos;
         _grupos = grupos;
         _orders = orders;
         _costingSettings = costingSettings;
         _logger = logger;
+        _fichas = fichas;
     }
 
     public async Task<GarmentCostDto> CalcularAsync(
@@ -56,6 +61,7 @@ public class GarmentCostingService : IGarmentCostingService
 
         var grupos = await _grupos.GetByOrderIdAsync(productionOrderId, cancellationToken);
         var horas = grupos.Sum(Horas);
+        var incompleto = await CostoIncompletoAsync(productionOrderId, consumos, cancellationToken);
 
         var dto = new GarmentCostDto(
             order.Id,
@@ -68,7 +74,8 @@ public class GarmentCostingService : IGarmentCostingService
             0,
             costoFinal,
             Formula(),
-            tarifaOk);
+            tarifaOk,
+            incompleto);
 
         _logger.LogInformation(
             "Costeo de orden {OrderId} ({OrderNumber}): volumen={Volumen}, materiales/ud={Unitario}, total={Total} (mano de obra excluida)",
@@ -82,6 +89,22 @@ public class GarmentCostingService : IGarmentCostingService
 
     private static GarmentCostDto Empty(int productionOrderId, decimal tarifa, bool tarifaOk) =>
         new(productionOrderId, string.Empty, 0, 0, 0, 0, tarifa, 0, 0, Formula(), tarifaOk);
+
+    private async Task<bool> CostoIncompletoAsync(
+        int productionOrderId,
+        IReadOnlyList<Domain.Entities.ConsumoMaterial> consumos,
+        CancellationToken cancellationToken)
+    {
+        if (consumos.Any(c => c.Cantidad > 0 && c.CostoUnitarioAlMomento <= 0))
+            return true;
+        if (_fichas is null)
+            return false;
+
+        var ficha = await _fichas.GetByOrderIdAsync(productionOrderId, cancellationToken);
+        return ficha.Any(l =>
+            l.QuantityPerUnit > 0
+            && (l.Material is null || l.Material.CostoPromedioPonderado <= 0));
+    }
 
     private static decimal Horas(Domain.Entities.GrupoConfeccion g)
     {

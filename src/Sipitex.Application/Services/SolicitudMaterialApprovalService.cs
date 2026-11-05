@@ -298,6 +298,7 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
         if (cantidadAprobada > detalle.Material!.Stock)
             return ("Stock insuficiente para aprobar la cantidad indicada.", null);
 
+        detalle.Material.DescontarUnidadesSinCosto(cantidadAprobada);
         detalle.Material.Stock -= cantidadAprobada;
         detalle.CantidadAprobada = cantidadAprobada;
         detalle.EstadoItem = cantidadAprobada == detalle.CantidadSolicitada

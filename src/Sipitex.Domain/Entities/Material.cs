@@ -57,8 +57,20 @@ public class Material
     // Último precio unitario de compra (catálogo). No se usa para costear prendas ya producidas.
     public decimal CostoAdquisicion { get; set; }
 
-    // Costo promedio ponderado vigente. Se recalcula al registrar una compra con el stock previo a la entrada.
+    // Costo promedio ponderado vigente. Se recalcula al registrar una compra con el stock que ya tiene costo.
+    // Las unidades de una importación inicial sin costo (StockSinCosto) no entran al promedio.
     public decimal CostoPromedioPonderado { get; set; }
+
+    // Unidades físicas que entraron sin costo (importación inicial). No diluyen el promedio.
+    // Las salidas las consumen primero, vía DescontarUnidadesSinCosto.
+    public decimal StockSinCosto { get; set; }
+
+    public void DescontarUnidadesSinCosto(decimal cantidad)
+    {
+        if (cantidad <= 0 || StockSinCosto <= 0)
+            return;
+        StockSinCosto = cantidad >= StockSinCosto ? 0 : StockSinCosto - cantidad;
+    }
 
     // FK obligatoria a la plantaInventario dueña de este material (default 1 = PlantaInventario 1, alineado al backfill)
     public int PlantaInventarioId { get; set; } = 1;

@@ -282,6 +282,7 @@ public class OrderMaterialService : IOrderMaterialService
                         throw new InvalidOperationException(
                             $"No se puede entregar {qty:0.##} de «{line.Material?.Name}». Máximo: {maxDeliver:0.##}.");
 
+                    line.Material.DescontarUnidadesSinCosto(qty);
                     line.Material.Stock -= qty;
                     if (line.Material.Stock < 0)
                         throw new InvalidOperationException("El inventario no puede quedar negativo.");

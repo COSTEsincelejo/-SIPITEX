@@ -1153,6 +1153,10 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<decimal>("StockSinCosto")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<string>("Subcategoria")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
@@ -1970,6 +1974,9 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Property<string>("Referencia")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
+
+                    b.Property<bool>("SinCosto")
+                        .HasColumnType("boolean");
 
                     b.Property<decimal>("StockResultante")
                         .HasPrecision(18, 2)
