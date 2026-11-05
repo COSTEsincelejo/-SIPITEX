@@ -1,0 +1,210 @@
+@model InventarioImportarViewModel
+@{
+    ViewData["Title"] = "Importar inventario";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Importar inventario";
+    Layout = "_Layout";
+    var resultado = Model.Resultado;
+    var puedeConfirmar = resultado is not null
+        && resultado.ArchivoValido
+        && resultado.Validas.Count > 0
+        && !string.IsNullOrEmpty(Model.Token);
+}
+
+<div class="page-header">
+    <div>
+        <h2>Importar inventario</h2>
+        <div class="sub">Carga la hoja Inventario_Materiales. Primero se simula; nada se guarda hasta confirmar.</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+    @if (Model.IsSuccess)
+    {
+        <div class="alert alert-success"><i class="fas fa-circle-check"></i> @Model.Message</div>
+    }
+    else
+    {
+        <div class="alert alert-danger"><i class="fas fa-circle-exclamation"></i> @Model.Message</div>
+    }
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-file-import"></i> Archivo Excel</div>
+    <form asp-action="Importar" method="post" enctype="multipart/form-data" class="form-row">
+        @Html.AntiForgeryToken()
+        <div class="field" style="flex:2;min-width:240px;">
+            <label class="field-label" for="archivo">Archivo .xlsx</label>
+            <input id="archivo" name="archivo" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+            <p class="hint">Máximo 5 MB. Se lee la hoja Inventario_Materiales por el nombre de cada columna. La columna de stock calculado se ignora.</p>
+        </div>
+        <div class="field" style="align-self:flex-end;">
+            <button type="submit" class="primary"><i class="fas fa-magnifying-glass"></i> Simular</button>
+        </div>
+    </form>
+</div>
+
+@if (resultado is not null && resultado.ArchivoValido)
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-list-check"></i> Simulación</div>
+        <p class="hint">
+            Válidas: @resultado.Validas.Count
+            · Con error: @resultado.Errores.Count
+            · Advertencias: @resultado.Advertencias.Count
+            · Se omiten: @resultado.Omitidas.Count
+        </p>
+
+        @if (resultado.Validas.Any(f => f.PlantaNueva))
+        {
+            <div class="alert alert-info">
+                Al confirmar se crean las plantas que todavía no existen:
+                @string.Join(", ", resultado.Validas.Where(f => f.PlantaNueva).Select(f => f.Planta).Distinct())
+            </div>
+        }
+
+        <h3>Filas válidas</h3>
+        @if (resultado.Validas.Count == 0)
+        {
+            <p class="hint">No hay filas listas para importar.</p>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fila</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Referencia</th>
+                        <th>Cantidad</th>
+                        <th>Unidad</th>
+                        <th>Mínimo</th>
+                        <th>Fecha</th>
+                        <th>Planta</th>
+                        <th>Tipo</th>
+                        <th>Avisos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var fila in resultado.Validas)
+                    {
+                        <tr>
+                            <td>@fila.Fila</td>
+                            <td>@(string.IsNullOrEmpty(fila.CodigoAlmacen) ? "—" : fila.CodigoAlmacen)</td>
+                            <td>@fila.Nombre</td>
+                            <td>@fila.Categoria</td>
+                            <td>@fila.Referencia</td>
+                            <td>@fila.Stock</td>
+                            <td>@UnitHelper.ToDisplay(fila.Unidad)</td>
+                            <td>@fila.MinStock</td>
+                            <td>@fila.FechaIngreso.ToString("dd/MM/yyyy")</td>
+                            <td>@fila.Planta</td>
+                            <td>@fila.TipoElemento</td>
+                            <td>@(fila.Advertencias.Count == 0 ? "—" : string.Join(", ", fila.Advertencias))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <h3>Errores por fila</h3>
+        @if (resultado.Errores.Count == 0)
+        {
+            <p class="hint">Ninguna fila tiene error.</p>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fila</th>
+                        <th>Nombre</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var fila in resultado.Errores)
+                    {
+                        <tr>
+                            <td>@fila.Fila</td>
+                            <td>@(fila.Nombre ?? "—")</td>
+                            <td>@fila.Mensaje</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <h3>Advertencias</h3>
+        @if (resultado.Advertencias.Count == 0)
+        {
+            <p class="hint">Sin advertencias.</p>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fila</th>
+                        <th>Nombre</th>
+                        <th>Advertencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var aviso in resultado.Advertencias)
+                    {
+                        <tr>
+                            <td>@aviso.Fila</td>
+                            <td>@(aviso.Nombre ?? "—")</td>
+                            <td>@aviso.Mensaje</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <h3>Se omiten</h3>
+        @if (resultado.Omitidas.Count == 0)
+        {
+            <p class="hint">No hay duplicados para omitir.</p>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fila</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Planta</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var fila in resultado.Omitidas)
+                    {
+                        <tr>
+                            <td>@fila.Fila</td>
+                            <td>@(fila.CodigoAlmacen ?? "—")</td>
+                            <td>@fila.Nombre</td>
+                            <td>@fila.Planta</td>
+                            <td>@fila.Mensaje</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @if (puedeConfirmar)
+        {
+            <form asp-action="Confirmar" method="post" data-confirm="¿Importar las filas válidas? Se guardan todas en una sola operación." style="margin-top:16px;">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="token" value="@Model.Token" />
+                <button type="submit" class="primary"><i class="fas fa-check"></i> Confirmar</button>
+            </form>
+        }
+    </div>
+}

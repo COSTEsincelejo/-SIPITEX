@@ -36,6 +36,8 @@ public static class ActivityLogActions
     public const string Create = "Create";
     public const string Update = "Update";
     public const string Delete = "Delete";
+
+    public const string ImportInventario = "ImportInventario";
 }
 
 public static class ActivityLogEntities
