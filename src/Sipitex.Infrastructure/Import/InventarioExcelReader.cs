@@ -63,42 +63,48 @@ internal readonly record struct CeldaLeida(bool Vacia, string? Texto, double? Nu
     public static CeldaLeida DeFecha(DateTime fecha) => new(false, null, null, fecha);
 }
 
-// Lee Inventario_Materiales por nombre de encabezado. Ignora la columna stock y las de fórmula.
+// Lee Inventario_Materiales por nombre de encabezado. La columna stock no se lee nunca.
 internal static class InventarioExcelReader
 {
-    private static readonly Dictionary<string, InventarioColumna> Encabezados = new(StringComparer.Ordinal)
-    {
-        ["codigo"] = InventarioColumna.Codigo,
-        ["codigo almacen"] = InventarioColumna.Codigo,
-        ["codigo de almacen"] = InventarioColumna.Codigo,
-        ["categoria"] = InventarioColumna.Categoria,
-        ["subcategoria"] = InventarioColumna.Subcategoria,
-        ["sub categoria"] = InventarioColumna.Subcategoria,
-        ["nombre"] = InventarioColumna.Nombre,
-        ["no material"] = InventarioColumna.Referencia,
-        ["no de material"] = InventarioColumna.Referencia,
-        ["n material"] = InventarioColumna.Referencia,
-        ["n de material"] = InventarioColumna.Referencia,
-        ["numero material"] = InventarioColumna.Referencia,
-        ["numero de material"] = InventarioColumna.Referencia,
-        ["nro material"] = InventarioColumna.Referencia,
-        ["nro de material"] = InventarioColumna.Referencia,
-        ["referencia"] = InventarioColumna.Referencia,
-        ["no material referencia"] = InventarioColumna.Referencia,
-        ["material referencia"] = InventarioColumna.Referencia,
-        ["cantidad"] = InventarioColumna.Cantidad,
-        ["unidad"] = InventarioColumna.Unidad,
-        ["descripcion"] = InventarioColumna.Descripcion,
-        ["fecha de ingreso"] = InventarioColumna.Fecha,
-        ["fecha ingreso"] = InventarioColumna.Fecha,
-        ["proveedor"] = InventarioColumna.Proveedor,
-        ["ubicacion"] = InventarioColumna.Ubicacion,
-        ["stock minimo"] = InventarioColumna.MinStock,
-        ["stock min"] = InventarioColumna.MinStock,
-        ["minimo"] = InventarioColumna.MinStock,
-        ["tipo de elemento"] = InventarioColumna.Tipo,
-        ["tipo elemento"] = InventarioColumna.Tipo
-    };
+    private readonly record struct AliasEncabezado(string Alias, InventarioColumna Columna);
+
+    // El match es igualdad o "empieza con" el alias. Los más largos ganan.
+    private static readonly AliasEncabezado[] Aliases =
+    [
+        new("codigo de almacen", InventarioColumna.Codigo),
+        new("codigo almacen", InventarioColumna.Codigo),
+        new("codigo", InventarioColumna.Codigo),
+        new("subcategoria", InventarioColumna.Subcategoria),
+        new("sub categoria", InventarioColumna.Subcategoria),
+        new("categoria", InventarioColumna.Categoria),
+        new("nombre del material", InventarioColumna.Nombre),
+        new("nombre de material", InventarioColumna.Nombre),
+        new("nombre material", InventarioColumna.Nombre),
+        new("nombre", InventarioColumna.Nombre),
+        new("no material referencia", InventarioColumna.Referencia),
+        new("numero de material", InventarioColumna.Referencia),
+        new("numero material", InventarioColumna.Referencia),
+        new("no de material", InventarioColumna.Referencia),
+        new("no material", InventarioColumna.Referencia),
+        new("nro de material", InventarioColumna.Referencia),
+        new("nro material", InventarioColumna.Referencia),
+        new("n de material", InventarioColumna.Referencia),
+        new("n material", InventarioColumna.Referencia),
+        new("referencia", InventarioColumna.Referencia),
+        new("unidad de medida", InventarioColumna.Unidad),
+        new("unidad", InventarioColumna.Unidad),
+        new("cantidad", InventarioColumna.Cantidad),
+        new("descripcion", InventarioColumna.Descripcion),
+        new("fecha de ingreso", InventarioColumna.Fecha),
+        new("fecha ingreso", InventarioColumna.Fecha),
+        new("proveedor", InventarioColumna.Proveedor),
+        new("ubicacion tipo de bodega", InventarioColumna.Ubicacion),
+        new("ubicacion", InventarioColumna.Ubicacion),
+        new("stock minimo", InventarioColumna.MinStock),
+        new("stock min", InventarioColumna.MinStock),
+        new("tipo de elemento", InventarioColumna.Tipo),
+        new("tipo elemento", InventarioColumna.Tipo)
+    ];
 
     public static InventarioExcelLectura Leer(Stream contenido)
     {
@@ -124,28 +130,29 @@ internal static class InventarioExcelReader
             var headerRow = BuscarEncabezado(sheet, lastRow, lastCol);
             if (headerRow is null)
                 return InventarioExcelLectura.Fallo(
-                    $"La hoja {InventarioImportTextos.Hoja} no tiene la columna Nombre.");
+                    "No se encontró la fila de encabezados (se espera la columna de nombre del material). " +
+                    $"Encabezados encontrados: {ListarCeldas(sheet, 1, lastCol)}.");
 
+            var encontrados = TextosDeFila(sheet, headerRow.Value, lastCol);
             var columnas = MapearColumnas(sheet, headerRow.Value, lastCol);
-            if (!columnas.ContainsKey(InventarioColumna.Nombre))
+            var faltan = Faltantes(columnas);
+            if (faltan.Count > 0)
                 return InventarioExcelLectura.Fallo(
-                    $"La hoja {InventarioImportTextos.Hoja} no tiene la columna Nombre.");
+                    $"Faltan encabezados obligatorios ({string.Join(", ", faltan)}). " +
+                    $"Encabezados encontrados: {string.Join(" | ", encontrados)}.");
 
             var filas = new List<InventarioExcelFila>();
             for (var row = headerRow.Value + 1; row <= lastRow; row++)
             {
-                var fila = new InventarioExcelFila { Fila = row };
-                var alguna = false;
-                foreach (var (columna, index) in columnas)
-                {
-                    var celda = LeerCelda(sheet.Cell(row, index));
-                    if (!celda.Vacia)
-                        alguna = true;
-                    Asignar(fila, columna, celda);
-                }
+                var nombre = LeerCelda(sheet.Cell(row, columnas[InventarioColumna.Nombre]));
+                if (string.IsNullOrWhiteSpace(Texto(nombre)))
+                    continue;
 
-                if (alguna)
-                    filas.Add(fila);
+                var fila = new InventarioExcelFila { Fila = row };
+                foreach (var (columna, index) in columnas)
+                    Asignar(fila, columna, LeerCelda(sheet.Cell(row, index)));
+
+                filas.Add(fila);
             }
 
             return new InventarioExcelLectura { Filas = filas };
@@ -166,7 +173,8 @@ internal static class InventarioExcelReader
                 var cell = sheet.Cell(row, col);
                 if (cell.HasFormula)
                     continue;
-                if (TextoNormalizado.Clave(cell.GetString()) == "nombre")
+                if (TryMatch(TextoNormalizado.Encabezado(cell.GetString()), out var columna, out _)
+                    && columna == InventarioColumna.Nombre)
                     return row;
             }
         }
@@ -177,34 +185,82 @@ internal static class InventarioExcelReader
     private static Dictionary<InventarioColumna, int> MapearColumnas(IXLWorksheet sheet, int headerRow, int lastCol)
     {
         var map = new Dictionary<InventarioColumna, int>();
+        var puntaje = new Dictionary<InventarioColumna, int>();
         for (var col = 1; col <= lastCol; col++)
         {
             var cell = sheet.Cell(headerRow, col);
             if (cell.HasFormula)
                 continue;
 
-            var key = TextoNormalizado.Clave(cell.GetString());
-            if (key.Length == 0 || key == "stock" || key == "estado")
+            var key = TextoNormalizado.Encabezado(cell.GetString());
+            if (!TryMatch(key, out var columna, out var score))
+                continue;
+            if (puntaje.TryGetValue(columna, out var previo) && previo >= score)
                 continue;
 
-            if (!TryColumna(key, out var columna))
-                continue;
-
-            map.TryAdd(columna, col);
+            map[columna] = col;
+            puntaje[columna] = score;
         }
 
         return map;
     }
 
-    private static bool TryColumna(string key, out InventarioColumna columna)
+    private static bool TryMatch(string key, out InventarioColumna columna, out int score)
     {
-        if (key.Contains("stock", StringComparison.Ordinal) && key.Contains("min", StringComparison.Ordinal))
+        columna = default;
+        score = -1;
+        if (key.Length == 0 || key is "stock" or "estado" or "id")
+            return false;
+
+        foreach (var alias in Aliases)
         {
-            columna = InventarioColumna.MinStock;
-            return true;
+            var exacto = key == alias.Alias;
+            var prefijo = key.StartsWith(alias.Alias + " ", StringComparison.Ordinal);
+            if (!exacto && !prefijo)
+                continue;
+
+            var candidato = alias.Alias.Length + (exacto ? 1000 : 0);
+            if (candidato <= score)
+                continue;
+
+            score = candidato;
+            columna = alias.Columna;
         }
 
-        return Encabezados.TryGetValue(key, out columna);
+        return score >= 0;
+    }
+
+    private static List<string> Faltantes(Dictionary<InventarioColumna, int> columnas)
+    {
+        var faltan = new List<string>();
+        if (!columnas.ContainsKey(InventarioColumna.Nombre))
+            faltan.Add("nombre");
+        if (!columnas.ContainsKey(InventarioColumna.Cantidad))
+            faltan.Add("cantidad");
+        if (!columnas.ContainsKey(InventarioColumna.Unidad))
+            faltan.Add("unidad");
+        if (!columnas.ContainsKey(InventarioColumna.Ubicacion))
+            faltan.Add("ubicación");
+        return faltan;
+    }
+
+    private static string ListarCeldas(IXLWorksheet sheet, int row, int lastCol) =>
+        string.Join(" | ", TextosDeFila(sheet, row, lastCol));
+
+    private static List<string> TextosDeFila(IXLWorksheet sheet, int row, int lastCol)
+    {
+        var textos = new List<string>();
+        for (var col = 1; col <= lastCol; col++)
+        {
+            var cell = sheet.Cell(row, col);
+            if (cell.HasFormula)
+                continue;
+            var texto = cell.GetString().Trim();
+            if (texto.Length > 0)
+                textos.Add(texto);
+        }
+
+        return textos.Count == 0 ? ["(ninguno)"] : textos;
     }
 
     private static CeldaLeida LeerCelda(IXLCell cell)

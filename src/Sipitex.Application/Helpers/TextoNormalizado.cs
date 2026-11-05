@@ -32,4 +32,38 @@ public static class TextoNormalizado
 
         return sb.ToString();
     }
+
+    // Encabezado de la plantilla: sin el texto entre paréntesis, sin tildes y con espacios colapsados.
+    public static string Encabezado(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        return Clave(QuitarParentesis(value));
+    }
+
+    private static string QuitarParentesis(string value)
+    {
+        var sb = new StringBuilder(value.Length);
+        var depth = 0;
+        foreach (var c in value)
+        {
+            if (c == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (c == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0)
+                sb.Append(c);
+        }
+
+        return sb.ToString();
+    }
 }

@@ -220,6 +220,8 @@ public sealed class InventarioImportService : IInventarioImportService
         var conteoCodigos = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var fila in filas)
         {
+            if (string.IsNullOrWhiteSpace(fila.Nombre) || EsCategoriaDeFlujo(fila.Categoria))
+                continue;
             var codigo = (fila.Codigo ?? string.Empty).Trim().ToLowerInvariant();
             if (codigo.Length == 0)
                 continue;
@@ -227,11 +229,29 @@ public sealed class InventarioImportService : IInventarioImportService
         }
 
         var plan = new Plan();
-        var clavesLote = new HashSet<string>(StringComparer.Ordinal);
+        var primeraFila = new Dictionary<string, int>(StringComparer.Ordinal);
         var plantasNuevas = new Dictionary<string, string>(StringComparer.Ordinal);
 
         foreach (var fila in filas)
         {
+            if (string.IsNullOrWhiteSpace(fila.Nombre))
+                continue;
+
+            if (EsCategoriaDeFlujo(fila.Categoria))
+            {
+                var avisoFlujo = InventarioImportTextos.PorFlujoOrdenes;
+                plan.Advertencias.Add(Aviso(fila.Fila, avisoFlujo, fila.Nombre));
+                plan.Omitidas.Add(new InventarioImportOmitida
+                {
+                    Fila = fila.Fila,
+                    CodigoAlmacen = string.IsNullOrWhiteSpace(fila.Codigo) ? null : fila.Codigo.Trim(),
+                    Nombre = fila.Nombre.Trim(),
+                    Planta = fila.Ubicacion?.Trim() ?? string.Empty,
+                    Mensaje = avisoFlujo
+                });
+                continue;
+            }
+
             if (EsVacia(fila))
                 continue;
 
@@ -307,20 +327,25 @@ public sealed class InventarioImportService : IInventarioImportService
             var claveLote = ClaveMaterial(codigoClave, nombre, clavePlanta);
             var enBd = plantaId is int id
                 && clavesBd.Contains(ClaveMaterial(codigoClave, nombre, id.ToString(CultureInfo.InvariantCulture)));
-            var enLote = !clavesLote.Add(claveLote);
+            var enLote = primeraFila.TryGetValue(claveLote, out var filaPrimera);
             if (enBd || enLote)
             {
+                var mensaje = enLote
+                    ? InventarioImportTextos.DuplicadoEnArchivo(fila.Fila, filaPrimera)
+                    : InventarioImportTextos.Omitido;
                 plan.Omitidas.Add(new InventarioImportOmitida
                 {
                     Fila = fila.Fila,
                     CodigoAlmacen = codigo,
                     Nombre = nombre,
-                    Planta = nombrePlanta
+                    Planta = nombrePlanta,
+                    Mensaje = mensaje
                 });
-                foreach (var aviso in avisos)
-                    plan.Advertencias.Add(Aviso(fila.Fila, aviso, nombre));
+                plan.Advertencias.Add(Aviso(fila.Fila, mensaje, nombre));
                 continue;
             }
+
+            primeraFila[claveLote] = fila.Fila;
 
             plan.Validas.Add(new Candidato(
                 fila.Fila,
@@ -493,16 +518,22 @@ public sealed class InventarioImportService : IInventarioImportService
         var key = TextoNormalizado.Clave(raw);
         if (key.Length == 0)
             return TipoElemento.Consumible;
-        if (key == "consumible")
+        if (key is "consumible" or "consumibles")
             return TipoElemento.Consumible;
-        if (key == "devolutivo")
+        if (key is "devolutivo" or "devolutivos")
             return TipoElemento.Devolutivo;
 
         errores.Add("El tipo de elemento no es válido. Use Consumible o Devolutivo.");
         return null;
     }
 
-    private static string ClaveNombre(string nombre) => nombre.Trim().ToLowerInvariant();
+    private static string ClaveNombre(string nombre) => TextoNormalizado.Clave(nombre);
+
+    private static bool EsCategoriaDeFlujo(string? categoria)
+    {
+        var key = TextoNormalizado.Clave(categoria);
+        return key is "material en proceso" or "producto terminado";
+    }
 
     private static string ClaveMaterial(string codigo, string nombre, string planta) =>
         $"{codigo}|{nombre.Trim().ToLowerInvariant()}|{planta}";
