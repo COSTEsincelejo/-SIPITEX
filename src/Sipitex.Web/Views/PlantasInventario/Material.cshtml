@@ -1,7 +1,7 @@
 @model MaterialFichaViewModel
 @{
     ViewData["Title"] = $"Ficha técnica de {Model.Nombre}";
-    ViewData["Breadcrumb"] = $"SIPITEX / Operación / Inventario por planta / {Model.Nombre}";
+    ViewData["Breadcrumb"] = $"SIPITEX / Operación / Plantas de inventario / {Model.Nombre}";
     Layout = "_Layout";
 }
 
@@ -35,6 +35,10 @@
         · Código @Model.Codigo
         · Almacén @(string.IsNullOrWhiteSpace(Model.CodigoAlmacen) ? "—" : Model.CodigoAlmacen)
         · Referencia @(string.IsNullOrWhiteSpace(Model.Referencia) ? "—" : Model.Referencia)
+        · Categoría @(string.IsNullOrWhiteSpace(Model.Categoria) ? "—" : Model.Categoria)
+        · Subcategoría @(string.IsNullOrWhiteSpace(Model.Subcategoria) ? "—" : Model.Subcategoria)
+        · Tipo @Model.TipoElemento
+        · Proveedor @(string.IsNullOrWhiteSpace(Model.Proveedor) ? "—" : Model.Proveedor)
         · @Model.Unidad
         · @Model.Planta
     </p>

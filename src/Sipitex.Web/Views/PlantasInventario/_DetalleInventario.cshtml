@@ -39,7 +39,7 @@
             }
             <div class="field" style="min-width:220px;flex:1;">
                 <label class="field-label" for="inventarioQ">Buscar insumo</label>
-                <input id="inventarioQ" name="q" type="search" value="@Model.Q" placeholder="Nombre del insumo" autocomplete="off" />
+                <input id="inventarioQ" name="q" type="search" value="@Model.Q" placeholder="Nombre, código de almacén o referencia" autocomplete="off" />
             </div>
             <div class="field" style="min-width:180px;">
                 <label class="field-label" for="inventarioCategoria">Categoría</label>
@@ -125,7 +125,7 @@
                 {
                     var nivel = StockNivelHelper.Classify(mat.Stock, mat.MinStock);
                     var sinCosto = InventarioConsultaFilter.MaterialSinCosto(mat.CostoPromedioPonderado);
-                    <tr data-name="@mat.Name" data-nivel="@nivel" data-sin-costo="@(sinCosto ? "1" : "0")" data-categoria="@mat.Categoria" data-tipo="@mat.TipoElemento">
+                    <tr data-name="@mat.Name" data-codigo="@mat.CodigoAlmacen" data-referencia="@mat.Referencia" data-nivel="@nivel" data-sin-costo="@(sinCosto ? "1" : "0")" data-categoria="@mat.Categoria" data-tipo="@mat.TipoElemento">
                         <td>
                             <strong>@mat.Name</strong>
                             @if (sinCosto)
@@ -209,8 +209,13 @@
                 const rows = table.tBodies[0]?.rows || [];
                 let visible = 0;
                 for (const row of rows) {
-                    const name = (row.getAttribute('data-name') || '').toLowerCase();
-                    const show = name.includes(term) && matchesNivel(row);
+                    const texto = [
+                        row.getAttribute('data-name') || '',
+                        row.getAttribute('data-codigo') || '',
+                        row.getAttribute('data-referencia') || '',
+                        row.getAttribute('data-categoria') || ''
+                    ].join(' ').toLowerCase();
+                    const show = texto.includes(term) && matchesNivel(row);
                     row.hidden = !show;
                     if (show) visible++;
                 }

@@ -32,7 +32,8 @@ public static class InventarioConsultaFilter
             query = query.Where(m =>
                 m.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
                 || Contains(m.CodigoAlmacen, term)
-                || Contains(m.Referencia, term));
+                || Contains(m.Referencia, term)
+                || Contains(m.Categoria, term));
         }
 
         if (!string.IsNullOrWhiteSpace(nivel))

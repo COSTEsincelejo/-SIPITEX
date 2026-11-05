@@ -253,7 +253,7 @@
                                                     <option value="">— Seleccione —</option>
                                                     @foreach (var mat in Model.Materials)
                                                     {
-                                                        <option value="@mat.Id">@mat.Name (@mat.UnitDisplay)</option>
+                                                        <option value="@mat.Id">@DisplayHelper.MaterialOpcion(mat.Name, mat.CodigoAlmacen, mat.Referencia, mat.Categoria, mat.TipoElemento, mat.UnitDisplay)</option>
                                                     }
                                                 </select>
                                             </div>
@@ -278,7 +278,7 @@
                                                     <option value="">— Seleccione —</option>
                                                     @foreach (var mat in Model.Materials)
                                                     {
-                                                        <option value="@mat.Id">@mat.Name (@mat.UnitDisplay)</option>
+                                                        <option value="@mat.Id">@DisplayHelper.MaterialOpcion(mat.Name, mat.CodigoAlmacen, mat.Referencia, mat.Categoria, mat.TipoElemento, mat.UnitDisplay)</option>
                                                     }
                                                 </select>
                                             </div>

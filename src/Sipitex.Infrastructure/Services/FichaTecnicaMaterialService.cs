@@ -42,6 +42,10 @@ public sealed class FichaTecnicaMaterialService : IFichaTecnicaMaterialService
             CodigoAlmacen = material.CodigoAlmacen,
             Nombre = material.Name,
             Referencia = material.Referencia,
+            Categoria = material.Categoria,
+            Subcategoria = material.Subcategoria,
+            Proveedor = material.Proveedor,
+            TipoElemento = material.TipoElemento,
             Unidad = UnitHelper.ToDisplay(material.Unit),
             TieneFicha = ficha is not null,
             Ficha = new FichaTecnicaMaterialDatos

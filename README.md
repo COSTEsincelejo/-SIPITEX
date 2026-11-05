@@ -36,7 +36,7 @@ cd src/Sipitex.Web
 dotnet run
 ```
 
-Abrir `https://localhost:5xxx` (el puerto se muestra en consola). La ruta por defecto es **Inventario** (requiere autenticación).
+Abrir `https://localhost:5xxx` (el puerto se muestra en consola). La raíz abre el panel de inicio (requiere autenticación). El stock se consulta en **Plantas de inventario**.
 
 Motor de datos: **PostgreSQL 16** (`ConnectionStrings:DefaultConnection`), creado al iniciar con migraciones EF Core (`MigrateAsync`). Para desarrollo local: `docker compose up db` o un Postgres en `localhost:5432` (usuario/clave/base `sipitex`).
 
@@ -52,7 +52,24 @@ Los usuarios, materiales, órdenes y fichas de demostración se siembran solo si
 
 Si un entorno de producción arranca **sin ningún Administrador** y `ADMIN_SEED_PASSWORD` tiene al menos 6 caracteres, se crea `admin@sipitex.local`. La contraseña no se escribe en el log. Si la variable falta, no se crea la cuenta.
 
-Para el demo público (p. ej. Render) puede reactivarse el seed con `SEED_DEMO_DATA=true`.
+Para el demo público puede reactivarse el seed con `SEED_DEMO_DATA=true`. En la operación real de Render esa variable no se define.
+
+### Producción (Render)
+
+El blueprint `render.yaml` deja estos valores. Los secretos siguen en `sync: false`: se escriben en el panel y no van en git.
+
+| Variable | Valor en producción |
+|----------|---------------------|
+| `ASPNETCORE_ENVIRONMENT` | `Production` |
+| `Seed__DemoUsers` | `false` (igual que `Seed:DemoUsers` en `appsettings.json`). No defina `SEED_DEMO_DATA`. |
+| `ADMIN_SEED_PASSWORD` | Obligatoria en el panel, 6 caracteres o más. Crea `admin@sipitex.local` solo si todavía no hay un administrador. |
+| `Email__Enabled` | `true` |
+| `Email__Provider` | `Brevo` (`appsettings.json` también trae Brevo; Development sigue en Resend) |
+| `Email__ApiKey` | Clave de la API de Brevo. Obligatoria en el panel. |
+| `Email__FromAddress` | Remitente verificado en Brevo. Obligatoria en el panel. |
+| `Email__FromName` | `SIPITEX` |
+
+Si faltan la clave o el remitente, el arranque registra que el proveedor Brevo está incompleto y el envío responde «No pudimos enviar el correo, intente de nuevo». `Resend`, `Smtp` y `Outbox` siguen aceptados si se cambia `Email__Provider`.
 
 ## Docker Compose
 
@@ -68,16 +85,16 @@ Fotos de perfil, correos sin SMTP y claves de cookie viven en PostgreSQL. El res
 
 | Módulo | Ruta | Descripción |
 |--------|------|-------------|
-| Inventario | `/Inventario` | Materiales, stock, movimientos |
 | Órdenes | `/Ordenes` | Órdenes de producción, MES y avance |
-| MRP | `/Mrp` | BOM y simulación de requerimientos |
+| MRP | `/Mrp` | BOM de la prenda y simulación de requerimientos |
 | Fichas | `/Fichas` | Registro de producción por grupo SENA |
-| Inventario por planta | `/PlantasInventario` | Stock por planta y catálogo (Administrar plantas) |
+| Plantas de inventario | `/PlantasInventario` | Stock, filtros, ficha técnica del material y catálogo |
+| Importar inventario | `/Inventario/Importar` | Carga Excel del inventario inicial (solo administrador). `/Inventario` redirige a Plantas de inventario |
 | Solicitudes de planta | `/PlantasInventarioSolicitudes` | Cola de solicitudes de material |
 | Órdenes de planta | `/PlantasInventarioOrdenes` | Entrega / reingreso de materiales de orden |
 | Grupos de confección | `/GruposConfeccion` | Horas y prendas por grupo |
 | Consumos | `/Consumos` | Consumo real de materiales por orden |
-| Costeo | `/Costos` | Costo estimado de prenda (materiales + mano de obra) |
+| Costeo | `/Costos` | Costo de materiales de la prenda. Si falta un costo, muestra «costo incompleto». La mano de obra no entra en el total |
 | Actas | `/Actas` | Actas de ingreso/egreso con firma gráfica |
 | Trazabilidad | `/Trazabilidad` | Código único de prenda y línea de tiempo |
 | Calidad | `/Calidad` | Inspecciones de calidad |
@@ -90,8 +107,8 @@ Fotos de perfil, correos sin SMTP y claves de cookie viven en PostgreSQL. El res
 ## Políticas de negocio documentadas
 
 - **Actas:** conformidad con nombre, cargo, timestamp UTC y **firma gráfica** dibujada en pantalla (incluida en el PDF).
-- **Costeo:** tarifa de hora de mano de obra con valor de referencia `Costing:LaborHourRate` (6500 COP/h). El Administrador puede ajustarla en `/Costos` sin redesplegar.
-- **Correo:** el canal predeterminado es **Resend** por HTTPS (puerto 443). El plan gratis de Render bloquea SMTP (puertos 25, 465 y 587). SMTP queda como alternativa con `Email__Provider=Smtp`.
+- **Costeo:** tarifa de hora de mano de obra con valor de referencia `Costing:LaborHourRate` (6500 COP/h). El Administrador puede ajustarla en `/Costos`. Esa tarifa no se suma al costo de la prenda. Si un material o un consumo no tiene costo, la pantalla muestra «costo incompleto» en lugar del total.
+- **Correo:** en producción el canal es **Brevo** por HTTPS (puerto 443). El plan gratis de Render bloquea SMTP (puertos 25, 465 y 587). `Resend` sigue disponible cambiando `Email__Provider`. SMTP queda como alternativa con `Email__Provider=Smtp`.
 
 ### Variables de correo en Render
 
@@ -100,8 +117,8 @@ Crearlas en el panel del Web Service. No pegue los valores en el repositorio.
 | Variable | Para qué sirve |
 |----------|----------------|
 | `Email__Enabled` | `true` para enviar. En `false` el envío falla con un mensaje visible y no se simula una entrega. |
-| `Email__Provider` | `Resend` (recomendado), `Brevo`, `Smtp` o `Outbox`. |
-| `Email__ApiKey` | Clave del proveedor API (Resend o Brevo). |
+| `Email__Provider` | En producción `Brevo`. También `Resend`, `Smtp` o `Outbox`. |
+| `Email__ApiKey` | Clave del proveedor API. En producción, la de Brevo. |
 | `Email__FromAddress` | Correo remitente verificado en ese proveedor. |
 | `Email__FromName` | Nombre que ve el destinatario, por ejemplo `SIPITEX`. |
 | `Email__Host` | Servidor SMTP. Solo si `Email__Provider=Smtp`. |

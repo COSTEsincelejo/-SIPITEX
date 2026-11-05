@@ -66,7 +66,7 @@ Además del alcance original RF01–RF20, el código incluye:
 
 | Módulo | Controller | Uso |
 |--------|------------|-----|
-| Inventario por planta | `PlantasInventarioController` | Stock, resumen y catálogo de plantas (alta, edición y reasignación) |
+| Plantas de inventario | `PlantasInventarioController` | Stock, resumen, ficha técnica del material y catálogo de plantas |
 | Solicitudes de planta | `PlantasInventarioSolicitudesController` | Cola de `SolicitudMaterial` por planta y rol |
 | Órdenes de planta | `PlantasInventarioOrdenesController` | Entrega y reingreso de materiales de orden |
 | Grupos de confección | `GruposConfeccionController` | Horas y prendas para costeo de mano de obra |

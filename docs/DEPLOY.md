@@ -13,7 +13,7 @@ La app se construye con el `Dockerfile` de la raíz (runtime Docker, no .NET nat
 - `SEED_DEMO_DATA` — `true` solo en una demo. Si no está, manda `Seed:DemoUsers` (apagado en producción).
 - `ADMIN_SEED_PASSWORD` — admin inicial si la base no tiene administradores. No se escribe en el log.
 - `Email__Enabled` — `true` para enviar. En `false` el envío falla con un error visible; no se simula una entrega.
-- `Email__Provider` — `Resend` (predeterminado, HTTPS puerto 443), `Brevo`, `Smtp` o `Outbox`.
+- `Email__Provider` — en producción `Brevo` (HTTPS, puerto 443). También se aceptan `Resend`, `Smtp` y `Outbox`.
 - `Email__ApiKey` — clave del proveedor API. No va en git.
 - `Email__FromAddress` — remitente verificado en Resend o Brevo.
 - `Email__FromName` — nombre que ve el destinatario (`SIPITEX`).

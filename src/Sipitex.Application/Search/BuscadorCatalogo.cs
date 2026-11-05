@@ -447,7 +447,7 @@ public static class BuscadorCatalogo
             ["simular mrp", "simulacion", "requerimiento neto"],
             ["calcular materiales", "explosion"],
             Consultar, PermisoSimularMrp),
-        A("Inventario por planta", "Consultar insumos, stock y el resumen de cada planta",
+        A("Plantas de inventario", "Consultar insumos, stock y el resumen de cada planta",
             "/PlantasInventario", "fa-warehouse", "Operación", TresRoles,
             ["inventario por planta", "inventario", "stock", "bodega", "plantas de inventario"],
             ["almacen", "existencias", "ver stock", "inventario bodega", "insumos", "inventario por bodega", "planta", "catalogo de plantas"],

@@ -319,7 +319,11 @@ public record ConsumoMaterialDto(
     int ResponsableUserId,
     string ResponsableNombre,
     decimal CostoUnitario,
-    decimal CostoTotal);
+    decimal CostoTotal,
+    string? CodigoAlmacen = null,
+    string? Referencia = null,
+    string? Categoria = null,
+    TipoElemento? TipoElemento = null);
 
 public record RegisterConsumoMaterialDto(
     int ProductionOrderId,
@@ -496,7 +500,11 @@ public record DetalleSolicitudMaterialDto(
     string UnitDisplay,
     decimal CantidadSolicitada,
     decimal? CantidadAprobada,
-    DetalleSolicitudEstado EstadoItem);
+    DetalleSolicitudEstado EstadoItem,
+    string? CodigoAlmacen = null,
+    string? Referencia = null,
+    string? Categoria = null,
+    TipoElemento? TipoElemento = null);
 
 // Detalle completo (cabecera + líneas)
 public record SolicitudMaterialDetailDto(
@@ -521,7 +529,11 @@ public record DetalleResolucionDto(
     decimal CantidadSolicitada,
     decimal StockDisponible,
     decimal? CantidadAprobada,
-    DetalleSolicitudEstado EstadoItem);
+    DetalleSolicitudEstado EstadoItem,
+    string? CodigoAlmacen = null,
+    string? Referencia = null,
+    string? Categoria = null,
+    TipoElemento? TipoElemento = null);
 
 // Detalle para EncargadoDeBodega (resolución)
 public record SolicitudMaterialResolucionDto(
@@ -581,7 +593,11 @@ public record OrderMaterialLineDto(
     MaterialUnit Unit,
     string? Observations,
     MaterialStockAvailability Availability,
-    bool IsFullyDelivered);
+    bool IsFullyDelivered,
+    string? CodigoAlmacen = null,
+    string? Referencia = null,
+    string? Categoria = null,
+    TipoElemento? TipoElemento = null);
 
 public record OrderMaterialsDetailDto(
     int OrderId,

@@ -2,8 +2,8 @@
 @{
     ViewData["Title"] = "Historial de movimientos";
     ViewData["Breadcrumb"] = string.IsNullOrWhiteSpace(Model.PlantaNombre)
-        ? "SIPITEX / Operación / Inventario por planta / Movimientos"
-        : $"SIPITEX / Operación / Inventario por planta / {Model.PlantaNombre} / Movimientos";
+        ? "SIPITEX / Operación / Plantas de inventario / Movimientos"
+        : $"SIPITEX / Operación / Plantas de inventario / {Model.PlantaNombre} / Movimientos";
     Layout = "_Layout";
 }
 
@@ -46,11 +46,11 @@
                 {
                     if (Model.MaterialId == m.Id)
                     {
-                        <option value="@m.Id" selected>@m.Name</option>
+                        <option value="@m.Id" selected>@DisplayHelper.MaterialOpcion(m.Name, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento)</option>
                     }
                     else
                     {
-                        <option value="@m.Id">@m.Name</option>
+                        <option value="@m.Id">@DisplayHelper.MaterialOpcion(m.Name, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento)</option>
                     }
                 }
             </select>

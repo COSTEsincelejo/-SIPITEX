@@ -399,7 +399,11 @@ public class OrderMaterialService : IOrderMaterialService
             line.Unit,
             line.Observations,
             availability,
-            line.IsFullyDelivered);
+            line.IsFullyDelivered,
+            line.Material?.CodigoAlmacen,
+            line.Material?.Referencia,
+            line.Material?.Categoria,
+            line.Material?.TipoElemento);
     }
 
     private static MaterialStockAvailability ResolveAvailability(

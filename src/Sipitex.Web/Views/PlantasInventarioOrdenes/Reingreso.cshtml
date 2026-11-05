@@ -1,7 +1,7 @@
 @model PlantaInventarioReingresoViewModel
 @{
     ViewData["Title"] = "Reingreso desde etapas";
-    ViewData["Breadcrumb"] = "SIPITEX / Operación / PlantaInventario · Órdenes / Reingreso";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Plantas de inventario · Órdenes / Reingreso";
     Layout = "_Layout";
 }
 
@@ -85,7 +85,7 @@
                     <option value="0">Seleccione material…</option>
                     @foreach (var m in Model.Materials)
                     {
-                        <option value="@m.Id">@m.Name (stock @m.Stock.ToString("0.##"))</option>
+                        <option value="@m.Id">@DisplayHelper.MaterialOpcion(m.Name, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento, stock: m.Stock)</option>
                     }
                 </select>
             </div>

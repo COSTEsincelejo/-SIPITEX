@@ -1,7 +1,7 @@
 @model PlantaInventarioOrdenDetailViewModel
 @{
     ViewData["Title"] = $"Entrega {Model.Detail.OrderNumber}";
-    ViewData["Breadcrumb"] = "SIPITEX / Operación / PlantaInventario · Órdenes / Detalle";
+    ViewData["Breadcrumb"] = "SIPITEX / Operación / Plantas de inventario · Órdenes / Detalle";
     Layout = "_Layout";
     var d = Model.Detail;
     var puedeEntregar = Model.CanEntregar
@@ -62,7 +62,13 @@
                 @foreach (var line in d.Lines)
                 {
                     <tr>
-                        <td>@line.MaterialName</td>
+                        <td>
+                            @line.MaterialName
+                            @if (DisplayHelper.DetalleMaterial(line.CodigoAlmacen, line.Referencia, line.Categoria, line.TipoElemento) is string extraLinea)
+                            {
+                                <div class="hint">@extraLinea</div>
+                            }
+                        </td>
                         <td>@line.QuantityRequired.ToString("0.##") @line.UnitDisplay</td>
                         <td>@line.QuantityDelivered.ToString("0.##")</td>
                         <td>@line.QuantityPending.ToString("0.##")</td>
@@ -101,6 +107,10 @@
                         <tr class="@(stockBajo ? "stock-warn-row" : null)">
                             <td>
                                 <strong>@line.MaterialName</strong>
+                                @if (DisplayHelper.DetalleMaterial(line.CodigoAlmacen, line.Referencia, line.Categoria, line.TipoElemento) is string extraEntrega)
+                                {
+                                    <div class="hint">@extraEntrega</div>
+                                }
                                 @if (line.IsFullyDelivered)
                                 {
                                     <div class="hint">Completo</div>

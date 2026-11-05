@@ -8,6 +8,31 @@ Use la cadena que entrega el panel de Neon (o `DATABASE_URL` en Render). En los 
 
 Neon exige TLS. `pg_dump` y `psql` recientes aceptan la URL `postgresql://…?sslmode=require`.
 
+## Antes de importar inventario
+
+Importar inventario (solo el administrador, menú Operación) escribe plantas, materiales, stock y, si el archivo trae la hoja, fichas técnicas. La confirmación es una sola operación y la pantalla no tiene deshacer.
+
+1. Justo antes de pulsar confirmar, exporte la base con el comando de [Exportar](#exportar) o cree una [rama de Neon](#ramas-de-neon).
+2. Guarde el archivo fuera del repositorio y anote la hora UTC del volcado.
+3. Simule el Excel. Confirme solo cuando las filas válidas, omitidas y las advertencias cuadren con lo esperado.
+
+### Si la importación quedó mal
+
+1. No confirme otro archivo encima de esa base.
+2. Restaure el volcado en una base o rama nueva, no en la que está sirviendo tráfico:
+
+```bash
+pg_restore --no-owner --no-acl --dbname "$DATABASE_URL_DESTINO" sipitex.dump
+```
+
+Si el respaldo fue SQL plano: `psql "$DATABASE_URL_DESTINO" -f sipitex.sql`.
+
+3. Compruebe conteos de `"Materials"` y `"StockMovements"` contra lo que había antes de importar.
+4. En Render, apunte la cadena de conexión del servicio a esa base y redeploye.
+5. Si prefiere el historial de Neon, use [Restauración a un punto en el tiempo](#restauración-a-un-punto-en-el-tiempo) con una hora UTC anterior a la confirmación.
+
+La aplicación no hace este respaldo sola.
+
 ## Exportar
 
 Desde una máquina con el cliente de PostgreSQL 16:

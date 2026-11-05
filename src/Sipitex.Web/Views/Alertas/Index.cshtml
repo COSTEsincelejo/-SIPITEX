@@ -37,7 +37,7 @@
         else if (Model.EmailReady && (Model.SmtpConfigured || Model.DeliveryChannel == "Smtp"))
         {
             <strong>SMTP activo</strong>
-            <span> — los correos salen por @Model.SmtpHost. En Render gratis este canal suele no llegar; prefiera Resend.</span>
+            <span> — los correos salen por @Model.SmtpHost. En producción el canal es Brevo (Email__Provider=Brevo).</span>
         }
         else
         {

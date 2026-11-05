@@ -281,7 +281,7 @@ public class AlertService : IAlertService
         if (low.Count > 0)
         {
             var lines = string.Join("\n", low.Select(x =>
-                $"- {x.Material.Name}: {x.Material.Stock:0.##}/{x.Material.MinStock:0.##} · {StockNivelHelper.Etiqueta(x.Nivel)}"));
+                $"- {EtiquetaMaterial(x.Material)}: {x.Material.Stock:0.##}/{x.Material.MinStock:0.##} · {StockNivelHelper.Etiqueta(x.Nivel)}"));
             events.Add(new AlertEvent(
                 AlertType.StockBajo,
                 $"SIPITEX · {low.Count} material(es) bajo mínimo",
@@ -359,6 +359,19 @@ public class AlertService : IAlertService
             return _emailSender.DeliveryChannel;
 
         return _emailSender.IsSmtpConfigured ? "SMTP" : "Outbox";
+    }
+
+    private static string EtiquetaMaterial(Material material)
+    {
+        var extras = new List<string>();
+        if (!string.IsNullOrWhiteSpace(material.CodigoAlmacen))
+            extras.Add(material.CodigoAlmacen.Trim());
+        if (!string.IsNullOrWhiteSpace(material.Referencia))
+            extras.Add("ref. " + material.Referencia.Trim());
+        if (!string.IsNullOrWhiteSpace(material.Categoria))
+            extras.Add(material.Categoria.Trim());
+        extras.Add(material.TipoElemento.ToString());
+        return $"{material.Name} ({string.Join(", ", extras)})";
     }
 
     private async Task<bool> TrySendAsync(

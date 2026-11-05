@@ -75,7 +75,7 @@ Health check: `http://localhost:8080/health` (sin autenticación).
 
 - **Reportes** (`/Reportes`): PDF (QuestPDF) y Excel (ClosedXML) de Inventario, Órdenes, Calidad y Dashboard.
 - **Alertas** (`/Alertas`): cada actor activa/desactiva notificaciones (stock bajo, solicitudes pendientes, órdenes por vencer/atrasadas, reprocesos). Botón de correo de prueba.
-- El canal predeterminado es **Resend** (HTTPS, puerto 443). Render en plan gratis bloquea SMTP en los puertos 25, 465 y 587.
+- En producción el canal es **Brevo** (HTTPS, puerto 443). Render en plan gratis bloquea SMTP en los puertos 25, 465 y 587.
 - Sin `Email:ApiKey` y `Email:FromAddress` el arranque registra un error y el envío no se da por exitoso. El código de confirmación se invalida y no se consume el minuto de espera.
 - `Email:Provider=Smtp` conserva MailKit. `Email:Provider=Outbox` guarda el mensaje en `EmailOutboxMessages` y no lo entrega.
 - **Trazabilidad** (`/Trazabilidad`): códigos únicos de prenda y QR.
@@ -152,7 +152,7 @@ Este agente **no crea** el servicio en la consola de Render. Hay que vincular el
 | `Seed__DemoUsers` | `true` solo en demo; `false` en operación real |
 | `ADMIN_SEED_PASSWORD` | Contraseña del admin bootstrap (si no hay administradores) |
 | `Email__Enabled` | `true` para enviar |
-| `Email__Provider` | `Resend` (recomendado), `Brevo`, `Smtp` o `Outbox` |
+| `Email__Provider` | `Brevo` en producción. También `Resend`, `Smtp` o `Outbox` |
 | `Email__ApiKey` | Clave de Resend o Brevo. No va en git |
 | `Email__FromAddress` | Remitente verificado en el proveedor |
 | `Email__FromName` | `SIPITEX` |
@@ -179,7 +179,7 @@ Completar en el panel del Web Service (Environment). **No** pegue valores reales
 - [ ] `SEED_DEMO_DATA` — `true` solo en una demo; en operación no la defina (o `false`).
 - [ ] `ADMIN_SEED_PASSWORD` — contraseña del administrador inicial (`admin@sipitex.local`) si la base no tiene administradores.
 - [ ] `Email__Enabled` — `true` para enviar códigos y alertas.
-- [ ] `Email__Provider` — `Resend` en Render (HTTPS). `Smtp` solo si el plan permite salida 587.
+- [ ] `Email__Provider` — `Brevo` en Render (HTTPS). `Smtp` solo si el plan permite salida 587.
 - [ ] `Email__ApiKey` — clave del proveedor. Vacía en el repositorio.
 - [ ] `Email__FromAddress` — correo remitente verificado en Resend o Brevo.
 - [ ] `Email__FromName` — `SIPITEX`.

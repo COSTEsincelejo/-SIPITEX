@@ -61,7 +61,13 @@
             {
                 <tr>
                     @if (s.Tipo == SolicitudMaterialTipo.InsumosLibres) { <td>@(d.DescripcionItem ?? "—")</td> }
-                    <td><strong>@d.MaterialName</strong></td>
+                    <td>
+                        <strong>@d.MaterialName</strong>
+                        @if (DisplayHelper.DetalleMaterial(d.CodigoAlmacen, d.Referencia, d.Categoria, d.TipoElemento) is string extraMaterial)
+                        {
+                            <div class="hint">@extraMaterial</div>
+                        }
+                    </td>
                     <td>@d.UnitDisplay</td>
                     <td>@d.CantidadSolicitada.ToString("0.##")</td>
                     <td>@(d.CantidadAprobada?.ToString("0.##") ?? "—")</td>

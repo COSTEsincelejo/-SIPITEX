@@ -33,7 +33,33 @@ public class BusquedaServiceTests
         var result = await sut.SearchAsync("denim");
 
         Assert.Contains(result, r => r.Categoria == "Materiales" && r.Texto.Contains("denim", StringComparison.OrdinalIgnoreCase));
-        Assert.All(result.Where(r => r.Categoria == "Materiales"), r => Assert.Equal("/PlantasInventario/Detalle/1", r.Url));
+        Assert.All(result.Where(r => r.Categoria == "Materiales"), r =>
+            Assert.Equal("/PlantasInventario/Detalle/1?busqueda=denim", r.Url));
+    }
+
+    [Fact]
+    public async Task SearchAsync_EncuentraMaterialPorCodigoAlmacen()
+    {
+        await using var db = await CreateDbAsync();
+        db.Materials.Add(new Material
+        {
+            Name = "Tela denim",
+            Code = "mat-denim",
+            CodigoAlmacen = "ALM-77",
+            Referencia = "REF-9",
+            Categoria = "Telas",
+            Unit = MaterialUnit.Metros,
+            Stock = 10,
+            MinStock = 2,
+            PlantaInventarioId = 1
+        });
+        await db.SaveChangesAsync();
+
+        var sut = new BusquedaService(db);
+        var result = await sut.SearchAsync("ALM-77");
+
+        Assert.Contains(result, r => r.Texto.Contains("ALM-77", StringComparison.Ordinal));
+        Assert.Contains(result, r => r.Url.Contains("busqueda=ALM-77", StringComparison.Ordinal));
     }
 
     [Fact]

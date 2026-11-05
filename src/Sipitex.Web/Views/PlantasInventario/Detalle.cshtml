@@ -2,7 +2,7 @@
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = $"Inventario de {Model.Nombre}";
-    ViewData["Breadcrumb"] = $"SIPITEX / Operación / Inventario por planta / {Model.Nombre}";
+    ViewData["Breadcrumb"] = $"SIPITEX / Operación / Plantas de inventario / {Model.Nombre}";
     Layout = "_Layout";
     var materialesSeleccionados = PlantaDetalleConsulta.EsMateriales(Model.Categoria);
     var insumosSeleccionados = PlantaDetalleConsulta.EsInsumos(Model.Categoria);
@@ -147,7 +147,7 @@
         <form asp-action="Detalle" asp-route-id="@Model.Id" method="get" class="form-row">
             <div class="field" style="min-width:220px;flex:1;">
                 <label class="field-label" for="busqueda">Buscar</label>
-                <input id="busqueda" name="busqueda" type="search" value="@Model.Busqueda" placeholder="Nombre o código" autocomplete="off" />
+                <input id="busqueda" name="busqueda" type="search" value="@Model.Busqueda" placeholder="Nombre, código de almacén o referencia" autocomplete="off" />
             </div>
             <div class="field" style="min-width:180px;">
                 <label class="field-label" for="categoria">Clase</label>

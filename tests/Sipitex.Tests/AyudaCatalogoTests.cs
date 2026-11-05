@@ -22,6 +22,8 @@ public class AyudaCatalogoTests
         Assert.Contains("costeo", ids);
         Assert.Contains("usuarios", ids);
         Assert.Contains("perfil", ids);
+        Assert.Contains("importar-excel", ids);
+        Assert.Contains("ficha-tecnica-material", ids);
     }
 
     [Fact]
@@ -38,6 +40,8 @@ public class AyudaCatalogoTests
         Assert.DoesNotContain("plantas", ids);
         Assert.DoesNotContain("reingreso", ids);
         Assert.DoesNotContain("movimientos", ids);
+        Assert.DoesNotContain("importar-excel", ids);
+        Assert.DoesNotContain("ficha-tecnica-material", ids);
     }
 
     [Fact]
@@ -53,6 +57,8 @@ public class AyudaCatalogoTests
         Assert.Contains("perfil", ids);
         Assert.DoesNotContain("usuarios", ids);
         Assert.DoesNotContain("costeo", ids);
+        Assert.Contains("ficha-tecnica-material", ids);
+        Assert.DoesNotContain("importar-excel", ids);
     }
 
     [Theory]

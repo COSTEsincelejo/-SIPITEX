@@ -1,3 +1,5 @@
+using Sipitex.Domain.Enums;
+
 namespace Sipitex.Application.DTOs;
 
 public sealed class FichaTecnicaMaterialDetalle
@@ -9,6 +11,10 @@ public sealed class FichaTecnicaMaterialDetalle
     public string? CodigoAlmacen { get; init; }
     public string Nombre { get; init; } = string.Empty;
     public string? Referencia { get; init; }
+    public string? Categoria { get; init; }
+    public string? Subcategoria { get; init; }
+    public string? Proveedor { get; init; }
+    public TipoElemento TipoElemento { get; init; }
     public string Unidad { get; init; } = string.Empty;
     public bool TieneFicha { get; init; }
     public FichaTecnicaMaterialDatos Ficha { get; init; } = new();
