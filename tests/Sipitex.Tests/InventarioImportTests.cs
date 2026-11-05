@@ -234,6 +234,112 @@ public class InventarioImportTests
         Assert.All(posts, metodo => Assert.NotNull(metodo.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>()));
     }
 
+    [Fact]
+    public async Task PlantillaCmtc_EncabezadosLargos_FilasVacias_Decimal_YDuplicado()
+    {
+        Assert.Equal(5, (int)MaterialUnit.Caja);
+        Assert.Equal(11, (int)MaterialUnit.Libra);
+
+        await using var db = await CreateDbAsync();
+        db.PlantasInventario.Add(new PlantaInventario { Nombre = "Centro logístico CMTC", Activo = true });
+        var user = new User
+        {
+            Nombre = "Admin CMTC",
+            Email = $"cmtc-{Guid.NewGuid():N}@test.local",
+            PasswordHash = "x",
+            Rol = UserRoles.Administrador,
+            EmailConfirmed = true
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        var plantasAntes = await db.PlantasInventario.CountAsync();
+        var service = new InventarioImportService(db, new UnitOfWork(db));
+
+        await using var archivo = LibroPlantillaReal();
+        var sim = await service.SimularAsync(archivo);
+
+        Assert.True(sim.ArchivoValido, sim.ErrorArchivo);
+        Assert.False(sim.Persistido);
+        Assert.Equal(2, sim.Validas.Count);
+        Assert.Equal(3, sim.Omitidas.Count);
+        Assert.Equal(4, sim.Advertencias.Count);
+        Assert.Empty(sim.Errores);
+        Assert.Equal(0, await db.Materials.CountAsync());
+        Assert.Equal(plantasAntes, await db.PlantasInventario.CountAsync());
+
+        var tela = Unica(sim, "Tela decimal");
+        Assert.Equal(65.4m, tela.Stock);
+        Assert.Equal(0m, tela.MinStock);
+        Assert.Equal(MaterialUnit.Caja, tela.Unidad);
+        Assert.Equal(TipoElemento.Consumible, tela.TipoElemento);
+        Assert.Equal("ALM-65", tela.CodigoAlmacen);
+        Assert.Equal("REF-65", tela.Referencia);
+        Assert.Equal("Centro logístico CMTC", tela.Planta);
+        Assert.False(tela.PlantaNueva);
+        Assert.Contains(InventarioImportTextos.CodigoRepetido, tela.Advertencias);
+
+        var hilo = Unica(sim, "Hilo libra");
+        Assert.Equal(MaterialUnit.Libra, hilo.Unidad);
+        Assert.Equal(4m, hilo.MinStock);
+        Assert.Equal(TipoElemento.Devolutivo, hilo.TipoElemento);
+        Assert.Equal("Centro logístico CMTC", hilo.Planta);
+
+        var duplicado = Assert.Single(sim.Advertencias, a => a.Mensaje.Contains("repite", StringComparison.Ordinal));
+        Assert.Contains("fila 4", duplicado.Mensaje, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("fila 2", duplicado.Mensaje, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, sim.Advertencias.Count(a => a.Mensaje == InventarioImportTextos.PorFlujoOrdenes));
+        Assert.Contains(sim.Omitidas, o => o.Nombre == "Pieza en curso");
+        Assert.Contains(sim.Omitidas, o => o.Nombre == "Camisa lista");
+        Assert.DoesNotContain(sim.Validas, f => f.Planta == "Bodega de proceso");
+
+        archivo.Position = 0;
+        var confirmado = await service.ConfirmarAsync(archivo, user.Id);
+        Assert.Equal(2, confirmado.Importados);
+        Assert.Equal(3, confirmado.Omitidas.Count);
+
+        var guardada = Assert.Single(await db.Materials.ToListAsync(), m => m.Name == "Tela decimal");
+        Assert.Equal(65.4m, guardada.Stock);
+        Assert.Equal(0m, guardada.MinStock);
+        Assert.Equal(MaterialUnit.Caja, guardada.Unit);
+        var movimiento = Assert.Single(await db.StockMovements.Where(m => m.MaterialId == guardada.Id).ToListAsync());
+        Assert.Equal(65.4m, movimiento.Cantidad);
+        Assert.Equal(65.4m, movimiento.StockResultante);
+
+        var nombres = await db.PlantasInventario.Select(p => p.Nombre).ToListAsync();
+        Assert.Equal(plantasAntes, nombres.Count);
+        Assert.Contains("Centro logístico CMTC", nombres);
+        Assert.DoesNotContain(nombres, n => n.Contains("proceso", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(nombres, n => n.Contains("terminado", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task FaltanEncabezadosObligatorios_LaSimulacionSeDetiene()
+    {
+        await using var db = await CreateDbAsync();
+        var service = new InventarioImportService(db, new UnitOfWork(db));
+        await using var archivo = Libro(ws =>
+        {
+            ws.Cell(1, 1).Value = "id";
+            ws.Cell(1, 2).Value = "nombre del material";
+            ws.Cell(1, 3).Value = "stock";
+            ws.Cell(2, 1).Value = 1;
+            ws.Cell(2, 2).Value = "Tela suelta";
+            ws.Cell(2, 3).FormulaA1 = "=#REF!";
+        });
+
+        var resultado = await service.SimularAsync(archivo);
+
+        Assert.False(resultado.ArchivoValido);
+        Assert.Contains("cantidad", resultado.ErrorArchivo, StringComparison.Ordinal);
+        Assert.Contains("unidad", resultado.ErrorArchivo, StringComparison.Ordinal);
+        Assert.Contains("ubicación", resultado.ErrorArchivo, StringComparison.Ordinal);
+        Assert.Contains("nombre del material", resultado.ErrorArchivo, StringComparison.Ordinal);
+        Assert.Contains("id", resultado.ErrorArchivo, StringComparison.Ordinal);
+        Assert.Empty(resultado.Validas);
+        Assert.Empty(resultado.Errores);
+        Assert.Equal(0, await db.Materials.CountAsync());
+    }
+
     private static InventarioImportFilaValida Unica(InventarioImportResult resultado, string nombre) =>
         Assert.Single(resultado.Validas, f => f.Nombre == nombre);
 
@@ -383,6 +489,59 @@ public class InventarioImportTests
             ws.Cell(fila, Col("Proveedor")).Value = proveedor;
         if (tipo is not null)
             ws.Cell(fila, Col("Tipo de elemento")).Value = tipo;
+    }
+
+    private static MemoryStream LibroPlantillaReal()
+    {
+        return Libro(ws =>
+        {
+            string[] headers =
+            [
+                "id",
+                "código ( numero de referencia del almacen principal)",
+                "no. material / referencia ( se asigna en produccion)",
+                "nombre del material",
+                "unidad de medida",
+                "cantidad",
+                "ubicación / tipo de bodega",
+                "stock",
+                "stock mínimo",
+                "tipo de elemento",
+                "categoría",
+                "fecha de ingreso"
+            ];
+            for (var i = 0; i < headers.Length; i++)
+                ws.Cell(1, i + 1).Value = headers[i];
+
+            void Dato(int fila, int id, string? codigo, string? referencia, string? nombre, string? unidad,
+                string? cantidad, string? ubicacion, string? minimo, string? tipo, string? categoria)
+            {
+                ws.Cell(fila, 1).Value = id;
+                if (codigo is not null) ws.Cell(fila, 2).Value = codigo;
+                if (referencia is not null) ws.Cell(fila, 3).Value = referencia;
+                if (nombre is not null) ws.Cell(fila, 4).Value = nombre;
+                if (unidad is not null) ws.Cell(fila, 5).Value = unidad;
+                if (cantidad is not null) ws.Cell(fila, 6).Value = cantidad;
+                if (ubicacion is not null) ws.Cell(fila, 7).Value = ubicacion;
+                ws.Cell(fila, 8).FormulaA1 = "=#REF!";
+                if (minimo is not null) ws.Cell(fila, 9).Value = minimo;
+                if (tipo is not null) ws.Cell(fila, 10).Value = tipo;
+                if (categoria is not null) ws.Cell(fila, 11).Value = categoria;
+                ws.Cell(fila, 12).Value = "05/11/2026";
+            }
+
+            Dato(2, 1, "ALM-65", "REF-65", "Tela decimal", "caja", "65,4", "centro logistico CMTC", null, "consumibles", "Telas");
+            Dato(3, 2, "ALM-LIB", "REF-L", "Hilo libra", "libra", "2", "Centro logístico CMTC", "4", "devolutivos", "Hilos");
+            Dato(4, 3, "ALM-65", "REF-65", "Tela decimal", "caja", "10", "centro logistico CMTC", null, "consumibles", "Telas");
+            Dato(5, 4, "ALM-PROC", "REF-P", "Pieza en curso", "caja", "1", "Bodega de proceso", null, "consumible", "material en proceso");
+            Dato(6, 5, "ALM-TERM", "REF-T", "Camisa lista", "unidad", "1", "Bodega terminado", null, "devolutivo", "producto terminado");
+            for (var i = 0; i < 300; i++)
+            {
+                var fila = 7 + i;
+                ws.Cell(fila, 1).Value = 1000 + i;
+                ws.Cell(fila, 8).FormulaA1 = "=#REF!";
+            }
+        });
     }
 
     private static MemoryStream Libro(Action<IXLWorksheet> fill)
