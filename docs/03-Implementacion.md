@@ -12,7 +12,7 @@ Cada controlador de `src/Sipitex.Web/Controllers` y su función:
 | MRP | `/Mrp` | `MrpController` | `MrpService`, `BomCatalogService` | Ficha técnica y simulación de requerimientos |
 | Fichas | `/Fichas` | `FichasController` | `FichaService` | Grupos SENA, sesiones de producción |
 | Solicitudes (ficha) | `/SolicitudesMaterial` | `SolicitudesMaterialController` | `SolicitudMaterialService` | Solicitudes multi-ítem por ficha o insumos libres |
-| Inventario por planta | `/PlantasInventario` | `PlantasInventarioController` | `InventarioPlantaService`, `PlantaInventarioService` | Consulta de stock, resumen y catálogo de plantas |
+| Plantas de inventario | `/PlantasInventario` | `PlantasInventarioController` | `InventarioPlantaService`, `PlantaInventarioService` | Consulta de stock, resumen, ficha del material y catálogo de plantas |
 | Solicitudes de planta | `/PlantasInventarioSolicitudes` | `PlantasInventarioSolicitudesController` | `SolicitudMaterialService` | Cola de aprobación por planta / rol |
 | Órdenes de planta | `/PlantasInventarioOrdenes` | `PlantasInventarioOrdenesController` | `OrderMaterialService`, `ProductionFlowService` | Entrega de materiales y reingreso |
 | Grupos de confección | `/GruposConfeccion` | `GruposConfeccionController` | `GrupoConfeccionService` | Registro de horas y prendas por grupo |

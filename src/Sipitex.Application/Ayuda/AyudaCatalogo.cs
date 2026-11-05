@@ -16,7 +16,6 @@ public static class AyudaCatalogo
         "Órdenes de producción",
         "MRP / Materiales",
         "Plantas de inventario",
-        "Inventario por planta",
         "Solicitudes de materiales",
         "Reingreso desde etapas",
         "Movimientos de stock",
@@ -230,11 +229,11 @@ public static class AyudaCatalogo
 
         Tema(
             "plantas", "Administrar plantas", "Plantas de inventario", "fa-warehouse",
-            "Cómo registrar una planta desde Inventario por planta, y por qué Planta de Inventario 1 no se elimina.",
+            "Cómo registrar una planta desde Plantas de inventario, y por qué Planta de Inventario 1 no se elimina.",
             "Una planta de inventario es el lugar donde se guarda el stock (la bodega del taller). Cada material vive dentro de una planta.",
-            "Sirve para crear plantas nuevas, renombrarlas, desactivarlas cuando ya no se usan y reactivarlas después, sin perder el historial. Se hace en Inventario por planta, con el botón Administrar plantas.",
+            "Sirve para crear plantas nuevas, renombrarlas, desactivarlas cuando ya no se usan y reactivarlas después, sin perder el historial. Se hace en Plantas de inventario, con el botón Administrar plantas.",
             [
-                "Abra Inventario por planta y pulse Administrar plantas (también dice Administrar catálogo). El encargado no ve ese botón: solo consulta las plantas que tiene asignadas.",
+                "Abra Plantas de inventario y pulse Administrar plantas (también dice Administrar catálogo). El encargado no ve ese botón: solo consulta las plantas que tiene asignadas.",
                 "Escriba el Nombre (por ejemplo Planta de Inventario 3) y pulse Crear.",
                 "En la tabla del panel, Operar inventario abre el detalle para entradas y ajustes.",
                 "Editar cambia el nombre. Desactivar abre la confirmación. Si hay stock u otras dependencias, elija la planta destino y pulse Reasignar y desactivar.",
@@ -248,7 +247,7 @@ public static class AyudaCatalogo
             ],
             [
                 "Solo el administrador crea, edita, desactiva y reactiva plantas.",
-                "El instructor consulta Inventario por planta, pero no administra plantas."
+                "El instructor consulta Plantas de inventario, pero no administra plantas."
             ],
             AdminEncargado,
             ["planta", "plantas", "como registrar una planta", "registrar planta", "crear planta", "bodega", "eliminar planta", "administrar plantas", "reactivar planta"],
@@ -256,15 +255,16 @@ public static class AyudaCatalogo
             ["PlantasInventario/Create", "PlantasInventario/Edit", "PlantasInventario/Delete"]),
 
         Tema(
-            "inventario", "Inventario por planta", "Inventario por planta", "fa-warehouse",
+            "inventario", "Consultar stock", "Plantas de inventario", "fa-warehouse",
             "Consultar el stock de una planta y leer los niveles Bajo y Crítico.",
-            "Inventario por planta lista los insumos y las cantidades de las plantas que usted puede ver, junto con el resumen por planta.",
-            "Sirve para saber si hay material, filtrar por planta y por nivel, y ver el detalle sin cambiar de pantalla.",
+            "Plantas de inventario lista los insumos y las cantidades de las plantas que usted puede ver, junto con el resumen por planta. Cada fila muestra código de almacén, referencia, categoría y tipo de elemento.",
+            "Sirve para saber si hay material, filtrar por planta, categoría, tipo y nivel, y ver el detalle sin cambiar de pantalla.",
             [
-                "Abra Inventario por planta.",
+                "Abra Plantas de inventario.",
                 "En Seleccione una planta elija una planta o deje Todas las plantas, y pulse Ver. Los enlaces Todas y el nombre de cada planta hacen lo mismo.",
                 "El resumen muestra Insumos, OK, Bajo, Crítico y Sin mínimo. Ver inventario deja esa planta seleccionada.",
-                "En el detalle filtre por nombre o por nivel. Los niveles son: OK (hay stock y llega al mínimo), Bajo (hay stock pero no llega al mínimo), Crítico (el mínimo está definido y no hay existencias) y Sin mínimo definido (el material no tiene mínimo; no es una falta).",
+                "Busque por nombre, código de almacén o referencia. Filtre por categoría, por tipo de elemento (Consumible o Devolutivo) y por nivel. Los niveles son: OK (hay stock y llega al mínimo), Bajo (hay stock pero no llega al mínimo), Crítico (el mínimo está definido y no hay existencias) y Sin mínimo definido (el material no tiene mínimo; no es una falta). Sin costo deja solo los materiales cuyo promedio todavía es cero.",
+                "La tabla muestra código de almacén, referencia, categoría, subcategoría y tipo. El administrador y el encargado abren Ficha en la fila para la ficha técnica del material.",
                 "Si su usuario no tiene plantas asignadas, la lista queda vacía: no es un error del sistema.",
                 "El administrador abre Administrar plantas o Administrar catálogo para crear, renombrar, desactivar o reactivar. Operar inventario registra entradas y ajustes, según su permiso."
             ],
@@ -278,9 +278,57 @@ public static class AyudaCatalogo
                 "El instructor consulta el inventario, pero no administra el catálogo de plantas."
             ],
             Todos,
-            ["inventario", "stock", "bodega", "stock bajo", "stock critico", "consultar inventario", "inventario por planta"],
+            ["inventario", "stock", "bodega", "stock bajo", "stock critico", "consultar inventario", "inventario por planta", "codigo almacen", "categoria", "tipo de elemento", "sin costo"],
             "/PlantasInventario",
             ["PlantasInventario/Index", "PlantasInventario/Consultar", "PlantasInventario/Detalle", "Inventario/*", "Actas/*", "Trazabilidad/*"]),
+
+        Tema(
+            "importar-excel", "Cómo importar inventario desde Excel", "Plantas de inventario", "fa-file-import",
+            "Cargar el inventario inicial desde la plantilla de Excel, solo el administrador.",
+            "La importación lee la hoja Inventario_Materiales. Primero simula y, si usted confirma, graba plantas, materiales y el stock en una sola operación.",
+            "Sirve para dejar el inventario del almacén en SIPITEX sin digitar cada fila. Respalde la base antes de confirmar.",
+            [
+                "Respalde la base de datos antes de confirmar. El procedimiento está en docs/BACKUP.md, sección Antes de importar inventario.",
+                "Abra Importar inventario, en Operación. Solo lo ve el administrador.",
+                "Elija un archivo .xlsx de hasta 5 MB. La hoja de materiales debe llamarse Inventario_Materiales.",
+                "Las columnas obligatorias son nombre, cantidad, unidad y ubicación. También se leen, si vienen: código de almacén, referencia, categoría, subcategoría, descripción, proveedor, tipo de elemento, stock mínimo y costo unitario (también acepta precio o valor unitario).",
+                "Pulse simular y revise válidas, omitidas y advertencias. Material en proceso y producto terminado se omiten: se registran por el flujo de órdenes y trazabilidad. Un duplicado en el mismo archivo (mismo código, nombre y planta) se omite e indica las dos filas.",
+                "Tipo consumible o devolutivo; si viene vacío queda Consumible. Caja y libra se reconocen como unidades. La cantidad 65,4 se guarda como 65.4. El stock mínimo vacío queda en 0.",
+                "Confirme solo cuando la simulación cuadre. Si el costo unitario es mayor que cero, la entrada queda como compra con ese costo y el promedio no se diluye con stock anterior en cero. Si el costo viene vacío o en cero, el material queda marcado Sin costo.",
+                "La hoja opcional Fichas_Tecnicas se asocia solo cuando el código de almacén coincide con un único material. Si no, la advertencia dice: ficha sin material único: completar a mano."
+            ],
+            [
+                "Confirmar no se puede deshacer desde la pantalla. Si el archivo no era el correcto, restaure el respaldo tomado antes de importar.",
+                "No use la columna de fórmulas de stock del archivo de origen: el sistema no la lee.",
+                "El código interno del material lo genera SIPITEX. El código de almacén puede repetirse."
+            ],
+            ["El instructor y el encargado de bodega no importan. Consultan el resultado en Plantas de inventario."],
+            Admin,
+            ["importar", "importar inventario", "excel", "como importar inventario", "plantilla", "inventario materiales", "costo unitario"],
+            "/Inventario/Importar",
+            ["Inventario/Importar"]),
+
+        Tema(
+            "ficha-tecnica-material", "Ficha técnica de material", "Plantas de inventario", "fa-file-lines",
+            "Completar los datos técnicos del insumo, distintos de la receta de la prenda.",
+            "La ficha técnica de material guarda composición, gramaje, ancho, colores, acabados, uso, proceso, normas y el enlace al documento original. La receta de la prenda sigue en MRP.",
+            "Sirve para dejar por escrito cómo es el material importado o creado en la planta, y para completar a mano la ficha que el Excel no pudo asociar.",
+            [
+                "Abra Plantas de inventario y localice el material por nombre, código de almacén o referencia.",
+                "En la fila, pulse Ficha. La pantalla es del administrador y del encargado de bodega.",
+                "La cabecera muestra código interno, código de almacén, referencia, categoría, subcategoría, tipo de elemento, proveedor, unidad y planta. Esos datos se editan en el material, no en esta ficha.",
+                "Complete descripción técnica, tipo de material, composición, gramaje (g/m²), ancho (cm), colores, acabados, especificaciones de uso, proceso de fabricación, normas y el enlace a la ficha original.",
+                "Pulse Guardar. Si el Excel advirtió ficha sin material único: completar a mano, abra el material correcto y escriba aquí los datos."
+            ],
+            [
+                "Esta ficha no es el BOM de la prenda. Cambiarla no altera las cantidades de una orden.",
+                "Un material tiene una sola ficha técnica. Guardar de nuevo actualiza la misma."
+            ],
+            ["El instructor consulta el inventario, pero no abre ni edita esta ficha."],
+            AdminEncargado,
+            ["ficha tecnica de material", "ficha del material", "composicion", "gramaje", "como completar ficha", "fichas tecnicas"],
+            "/PlantasInventario",
+            ["PlantasInventario/Material"]),
 
         Tema(
             "solicitudes", "Solicitudes de materiales", "Solicitudes de materiales", "fa-truck-ramp-box",
@@ -290,7 +338,7 @@ public static class AyudaCatalogo
             [
                 "Para pedir: abra Solicitar insumos (también está en Mis solicitudes). El botón dice Solicitar insumos.",
                 "La Descripción general es opcional. Grupo SENA y Orden de producción también son opcionales.",
-                "Elija la PlantaInventario destino. En cada ítem escriba Descripción del ítem y Cantidad. Agregar ítem suma otra línea; Quitar la borra.",
+                "Elija la planta de inventario destino. En cada ítem escriba Descripción del ítem y Cantidad. Agregar ítem suma otra línea; Quitar la borra. En la cola, el material se elige por nombre, código de almacén, referencia, categoría y tipo.",
                 "Las Observaciones son opcionales. Pulse Enviar a planta de inventario.",
                 "La cola de la planta está en Solicitudes de materiales. Abra el detalle y use Confirmar resolución cuando haya marcado cada ítem.",
                 "En Materiales de órdenes revise la orden y entregue las cantidades pedidas. No se entregan materiales a una orden cerrada ni a una que siga pendiente de aprobación."
@@ -348,7 +396,7 @@ public static class AyudaCatalogo
                 "Esta pantalla no edita ni elimina movimientos.",
                 "Para corregir una cantidad use el ajuste en el inventario de la planta; el historial conserva las dos líneas."
             ],
-            ["El instructor no tiene esta pantalla. Consulta el stock en Inventario por planta."],
+            ["El instructor no tiene esta pantalla. Consulta el stock en Plantas de inventario."],
             AdminEncargado,
             ["movimientos", "movimiento de stock", "historial", "entradas", "salidas", "ajustes"],
             "/PlantasInventario/Movimientos",
@@ -362,6 +410,7 @@ public static class AyudaCatalogo
             [
                 "Abra Costeo de prendas.",
                 "Elija la Orden y pulse Calcular.",
+                "Si un consumo o un material de la receta no tiene costo, el costo por unidad y el total muestran costo incompleto en lugar de un número.",
                 "El administrador puede guardar la tarifa COP / hora con Guardar tarifa. Esa tarifa es de referencia del grupo de confección y no se suma al costo de la prenda."
             ],
             [
@@ -475,10 +524,11 @@ public static class AyudaCatalogo
     private static IReadOnlyList<TerminoGlosario> ConstruirGlosario() =>
     [
         new("Planta de inventario", "Lugar donde se guarda el stock. Planta de Inventario 1 es la planta por defecto y no se puede eliminar."),
-        new("Bodega", "En SIPITEX es la misma planta de inventario. Inventario por planta consulta el stock de esas plantas."),
+        new("Bodega", "En SIPITEX es la misma planta de inventario. El menú Plantas de inventario consulta el stock de esas plantas."),
         new("Orden de producción", "Pedido para fabricar una cantidad de un producto que ya tiene ficha técnica, con fecha límite."),
         new("MRP", "Cálculo de materiales necesarios a partir de la ficha técnica y de la cantidad a fabricar."),
-        new("BOM o ficha técnica", "Lista de materiales y cantidades que lleva un producto. En el menú también existe Fichas & producción, que es la ficha de grupo y proceso del instructor."),
+        new("BOM", "Receta de la prenda: materiales y cantidades por unidad. Se arma en MRP. No es la ficha técnica del material."),
+        new("Ficha técnica de material", "Datos del insumo (composición, gramaje, normas). Se abre con Ficha, en la fila del material. No cambia la receta de la prenda."),
         new("Stock OK", "Hay existencias y alcanzan el mínimo definido para ese material."),
         new("Stock Bajo", "Hay existencias, pero la cantidad es menor que el mínimo."),
         new("Stock Crítico", "El material tiene mínimo definido y la existencia está en cero."),

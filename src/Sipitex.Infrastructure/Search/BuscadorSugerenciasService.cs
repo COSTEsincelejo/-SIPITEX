@@ -55,7 +55,7 @@ public class BuscadorSugerenciasService : IBuscadorSugerenciasService
             bolsa.Agregar("Materiales", await ItemsMaterialAsync(interp, plantasPedido, plantas, ilike, cancellationToken));
 
         if (alcance.PuedeVerInventario && interp.NumeroPlanta is not null && interp.NivelStock is null && interp.TextoRestante.Length == 0)
-            bolsa.Agregar("Inventario por planta", ItemsPlanta(plantasPedido));
+            bolsa.Agregar("Plantas de inventario", ItemsPlanta(plantasPedido));
 
         if (interp.FiltroSolicitud is not null || interp.NumeroSolicitud is not null)
             bolsa.Agregar("Solicitudes", await ItemsSolicitudAsync(interp, alcance, ilike, cancellationToken));
@@ -231,7 +231,8 @@ public class BuscadorSugerenciasService : IBuscadorSugerenciasService
 
         var texto = interp.TextoRestante;
         if (texto.Length >= 2)
-            consulta = CoincidenciaTexto.DondeContiene(consulta, ilike, texto, m => m.Name, m => m.Code);
+            consulta = CoincidenciaTexto.DondeContiene(
+                consulta, ilike, texto, m => m.Name, m => m.Code, m => m.CodigoAlmacen, m => m.Referencia, m => m.Categoria);
 
         var materiales = await consulta.OrderBy(m => m.Name).Take(200).ToListAsync(ct);
         if (interp.NivelStock is StockNivel nivel)
@@ -256,8 +257,8 @@ public class BuscadorSugerenciasService : IBuscadorSugerenciasService
                 break;
             var planta = nombres.GetValueOrDefault(material.PlantaInventarioId) ?? "planta de inventario";
             items.Add(new ItemSugerenciaDto(
-                material.Name + " · " + planta,
-                UrlInventario(material.PlantaInventarioId, texto.Length >= 2 ? material.Name : null, interp.NivelStock),
+                EtiquetaMaterial(material, planta),
+                UrlInventario(material.PlantaInventarioId, texto.Length >= 2 ? texto : null, interp.NivelStock),
                 "Inventario de " + planta,
                 "fa-boxes-stacked"));
         }
@@ -434,7 +435,8 @@ public class BuscadorSugerenciasService : IBuscadorSugerenciasService
         IQueryable<Material> consulta = _db.Materials.AsNoTracking()
             .Where(m => ids.Contains(m.PlantaInventarioId));
 
-        var materiales = await CoincidenciaTexto.DondeContiene(consulta, ilike, interp.TextoRestante, m => m.Name, m => m.Code)
+        var materiales = await CoincidenciaTexto.DondeContiene(
+                consulta, ilike, interp.TextoRestante, m => m.Name, m => m.Code, m => m.CodigoAlmacen, m => m.Referencia, m => m.Categoria)
             .OrderBy(m => m.Name)
             .Take(MaxPorGrupo - 1)
             .ToListAsync(ct);
@@ -443,7 +445,7 @@ public class BuscadorSugerenciasService : IBuscadorSugerenciasService
         {
             var planta = nombres.GetValueOrDefault(material.PlantaInventarioId) ?? "planta de inventario";
             items.Add(new ItemSugerenciaDto(
-                "Movimientos de " + material.Name + " · " + planta,
+                "Movimientos de " + EtiquetaMaterial(material, planta),
                 "/PlantasInventario/Movimientos?plantaInventarioId=" + material.PlantaInventarioId + "&materialId=" + material.Id,
                 "Movimientos de stock",
                 "fa-clock-rotate-left"));
@@ -492,6 +494,19 @@ public class BuscadorSugerenciasService : IBuscadorSugerenciasService
         if (nivel is StockNivel n)
             partes.Add("nivel=" + n);
         return partes.Count == 0 ? url : url + "?" + string.Join('&', partes);
+    }
+
+    private static string EtiquetaMaterial(Material material, string planta)
+    {
+        var extras = new List<string>();
+        if (!string.IsNullOrWhiteSpace(material.CodigoAlmacen))
+            extras.Add(material.CodigoAlmacen.Trim());
+        if (!string.IsNullOrWhiteSpace(material.Referencia))
+            extras.Add(material.Referencia.Trim());
+        if (!string.IsNullOrWhiteSpace(material.Categoria))
+            extras.Add(material.Categoria.Trim());
+        extras.Add(planta);
+        return material.Name + " · " + string.Join(" · ", extras);
     }
 
     private static string EtiquetaNivel(ConsultaInterpretada interp) => interp.NivelStock switch

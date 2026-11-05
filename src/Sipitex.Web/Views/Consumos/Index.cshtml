@@ -30,7 +30,7 @@
             <select asp-for="Form.MaterialId">
                 @foreach (var m in Model.Materials)
                 {
-                    <option value="@m.Id">@m.Name (@m.UnitDisplay) · costo @m.CostoPromedioPonderado.ToString("0.####")</option>
+                    <option value="@m.Id">@DisplayHelper.MaterialOpcion(m.Name, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento, m.UnitDisplay) · costo @m.CostoPromedioPonderado.ToString("0.####")</option>
                 }
             </select>
         </div>
@@ -88,7 +88,17 @@
                 {
                     <tr>
                         <td>@c.FechaUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                        <td>@c.MaterialCode @c.MaterialName</td>
+                        <td>
+                            @c.MaterialName
+                            @if (DisplayHelper.DetalleMaterial(c.CodigoAlmacen, c.Referencia, c.Categoria, c.TipoElemento) is string extraConsumo)
+                            {
+                                <div class="hint">@extraConsumo</div>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(c.MaterialCode))
+                            {
+                                <div class="hint">@c.MaterialCode</div>
+                            }
+                        </td>
                         <td>@c.Cantidad.ToString("0.####") @c.UnitDisplay</td>
                         <td>@c.CostoUnitario.ToString("0.####")</td>
                         <td>@c.CostoTotal.ToString("0.####")</td>

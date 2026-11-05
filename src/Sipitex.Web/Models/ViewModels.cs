@@ -281,8 +281,8 @@ public class SolicitarInsumosViewModel
     // Catálogo seed AddPlantasInventario (PlantaInventario 1 / PlantaInventario 2); el form pasa Form.PlantaInventarioId al DTO.
     public IReadOnlyList<(int Id, string Label)> PlantasInventario { get; set; } =
     [
-        (1, "PlantaInventario 1"),
-        (2, "PlantaInventario 2")
+        (1, "Planta de inventario 1"),
+        (2, "Planta de inventario 2")
     ];
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }

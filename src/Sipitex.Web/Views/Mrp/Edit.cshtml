@@ -352,11 +352,11 @@
                                 {
                                     if (m.Id == Model.Form.Lines[i].MaterialId)
                                     {
-                                        <option value="@m.Id" selected>@m.Name (@m.UnitDisplay)</option>
+                                        <option value="@m.Id" selected>@DisplayHelper.MaterialOpcion(m.Name, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento, m.UnitDisplay)</option>
                                     }
                                     else
                                     {
-                                        <option value="@m.Id">@m.Name (@m.UnitDisplay)</option>
+                                        <option value="@m.Id">@DisplayHelper.MaterialOpcion(m.Name, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento, m.UnitDisplay)</option>
                                     }
                                 }
                             </select>
@@ -421,7 +421,7 @@
                 <option value="0">— Seleccionar / nuevo —</option>
                 @foreach (var m in Model.Materials)
                 {
-                    <option value="@m.Id">@m.Name (@m.UnitDisplay)</option>
+                    <option value="@m.Id">@DisplayHelper.MaterialOpcion(m.Name, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento, m.UnitDisplay)</option>
                 }
             </select>
         </td>

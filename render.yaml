@@ -25,19 +25,19 @@ services:
           name: sipitex-db
           property: connectionString
       - key: Seed__DemoUsers
-        sync: false
+        value: "false"
       - key: ADMIN_SEED_PASSWORD
         sync: false
       - key: Email__Enabled
-        sync: false
+        value: "true"
       - key: Email__Provider
-        sync: false
+        value: Brevo
       - key: Email__ApiKey
         sync: false
       - key: Email__FromAddress
         sync: false
       - key: Email__FromName
-        sync: false
+        value: SIPITEX
       - key: Email__Host
         sync: false
       - key: Email__User

@@ -24,12 +24,19 @@ public class BusquedaService : IBusquedaService
         var needle = q.ToLower();
         var materials = await _db.Materials
             .AsNoTracking()
-            .Where(m => m.Name.ToLower().Contains(needle) || m.Code.ToLower().Contains(needle))
+            .Where(m => m.Name.ToLower().Contains(needle)
+                || m.Code.ToLower().Contains(needle)
+                || (m.CodigoAlmacen != null && m.CodigoAlmacen.ToLower().Contains(needle))
+                || (m.Referencia != null && m.Referencia.ToLower().Contains(needle))
+                || (m.Categoria != null && m.Categoria.ToLower().Contains(needle)))
             .OrderBy(m => m.Name)
             .Take(MaxPerCategory)
             .Select(m => new BusquedaItemDto(
-                m.Name + " (" + m.Code + ")",
-                "/PlantasInventario/Detalle/" + m.PlantaInventarioId,
+                m.Name
+                    + (m.CodigoAlmacen == null || m.CodigoAlmacen == "" ? "" : " · " + m.CodigoAlmacen)
+                    + " (" + m.Code + ")",
+                "/PlantasInventario/Detalle/" + m.PlantaInventarioId
+                    + "?busqueda=" + Uri.EscapeDataString(q),
                 "Materiales"))
             .ToListAsync(cancellationToken);
 

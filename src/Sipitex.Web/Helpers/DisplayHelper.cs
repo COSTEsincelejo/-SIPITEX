@@ -6,6 +6,48 @@ namespace Sipitex.Web.Helpers;
 // Esta clase ayuda a mostrar etiquetas visuales en la interfaz, como colores de estado.
 public static class DisplayHelper
 {
+    public static string MaterialOpcion(
+        string nombre,
+        string? codigoAlmacen,
+        string? referencia,
+        string? categoria,
+        TipoElemento tipoElemento,
+        string? unidad = null,
+        decimal? stock = null)
+    {
+        var partes = new List<string> { nombre };
+        if (!string.IsNullOrWhiteSpace(codigoAlmacen))
+            partes.Add(codigoAlmacen.Trim());
+        if (!string.IsNullOrWhiteSpace(referencia))
+            partes.Add(referencia.Trim());
+        if (!string.IsNullOrWhiteSpace(categoria))
+            partes.Add(categoria.Trim());
+        partes.Add(tipoElemento.ToString());
+        if (!string.IsNullOrWhiteSpace(unidad))
+            partes.Add(unidad.Trim());
+        if (stock is decimal cantidad)
+            partes.Add("stock " + cantidad.ToString("0.##"));
+        return string.Join(" · ", partes);
+    }
+
+    public static string? DetalleMaterial(
+        string? codigoAlmacen,
+        string? referencia,
+        string? categoria,
+        TipoElemento? tipoElemento = null)
+    {
+        var partes = new List<string>();
+        if (!string.IsNullOrWhiteSpace(codigoAlmacen))
+            partes.Add(codigoAlmacen.Trim());
+        if (!string.IsNullOrWhiteSpace(referencia))
+            partes.Add("Ref. " + referencia.Trim());
+        if (!string.IsNullOrWhiteSpace(categoria))
+            partes.Add(categoria.Trim());
+        if (tipoElemento is TipoElemento tipo)
+            partes.Add(tipo.ToString());
+        return partes.Count == 0 ? null : string.Join(" · ", partes);
+    }
+
     // Hash corto del deploy. Render inyecta RENDER_GIT_COMMIT; en local queda "local".
     public static string BuildLabel(string? commit = null)
     {

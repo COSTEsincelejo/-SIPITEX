@@ -133,5 +133,9 @@ public class MaterialConsumptionService : IMaterialConsumptionService
         c.ResponsableUserId,
         c.Responsable?.Nombre ?? $"#{c.ResponsableUserId}",
         c.CostoUnitarioAlMomento,
-        c.Cantidad * c.CostoUnitarioAlMomento);
+        c.Cantidad * c.CostoUnitarioAlMomento,
+        c.Material?.CodigoAlmacen,
+        c.Material?.Referencia,
+        c.Material?.Categoria,
+        c.Material?.TipoElemento);
 }

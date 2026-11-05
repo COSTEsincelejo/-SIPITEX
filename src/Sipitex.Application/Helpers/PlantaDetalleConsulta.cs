@@ -38,7 +38,8 @@ public static class PlantaDetalleConsulta
                 m.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
                 || m.Code.Contains(term, StringComparison.OrdinalIgnoreCase)
                 || Contains(m.CodigoAlmacen, term)
-                || Contains(m.Referencia, term));
+                || Contains(m.Referencia, term)
+                || Contains(m.Categoria, term));
         }
 
         if (EsMateriales(categoria))

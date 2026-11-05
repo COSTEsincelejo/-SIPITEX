@@ -380,7 +380,11 @@ public class SolicitudMaterialService : ISolicitudMaterialService
                     d.CantidadSolicitada,
                     d.Material?.Stock ?? 0,
                     d.CantidadAprobada,
-                    d.EstadoItem))
+                    d.EstadoItem,
+                    d.Material?.CodigoAlmacen,
+                    d.Material?.Referencia,
+                    d.Material?.Categoria,
+                    d.Material?.TipoElemento))
                 .ToList());
     }
 
@@ -408,7 +412,11 @@ public class SolicitudMaterialService : ISolicitudMaterialService
                     d.Material is null ? "—" : UnitHelper.ToDisplay(d.Material.Unit),
                     d.CantidadSolicitada,
                     d.CantidadAprobada,
-                    d.EstadoItem))
+                    d.EstadoItem,
+                    d.Material?.CodigoAlmacen,
+                    d.Material?.Referencia,
+                    d.Material?.Categoria,
+                    d.Material?.TipoElemento))
                 .ToList());
 
     private static bool CanRequestOnFicha(

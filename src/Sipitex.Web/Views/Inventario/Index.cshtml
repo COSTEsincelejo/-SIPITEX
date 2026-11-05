@@ -270,7 +270,7 @@
                 <select asp-for="CreateRequest.MaterialId">
                     @foreach (var m in Model.Materials)
                     {
-                        <option value="@m.Id">@m.Name (stock: @m.Stock.ToString("0.0"))</option>
+                        <option value="@m.Id">@DisplayHelper.MaterialOpcion(m.Name, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento, stock: m.Stock)</option>
                     }
                 </select>
             </div>

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
 
 namespace Sipitex.Web.Models;
 
@@ -12,6 +13,10 @@ public class MaterialFichaViewModel
     public string? CodigoAlmacen { get; set; }
     public string Nombre { get; set; } = string.Empty;
     public string? Referencia { get; set; }
+    public string? Categoria { get; set; }
+    public string? Subcategoria { get; set; }
+    public string? Proveedor { get; set; }
+    public TipoElemento TipoElemento { get; set; }
     public string Unidad { get; set; } = string.Empty;
     public bool TieneFicha { get; set; }
 
