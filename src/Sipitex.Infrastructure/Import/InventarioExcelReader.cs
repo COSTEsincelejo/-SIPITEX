@@ -19,7 +19,8 @@ internal enum InventarioColumna
     Proveedor,
     Ubicacion,
     MinStock,
-    Tipo
+    Tipo,
+    Costo
 }
 
 internal sealed class InventarioExcelFila
@@ -45,6 +46,9 @@ internal sealed class InventarioExcelFila
     public double? MinStockNumero { get; set; }
     public string? MinStockTexto { get; set; }
     public string? TipoElemento { get; set; }
+    public bool CostoVacio { get; set; } = true;
+    public double? CostoNumero { get; set; }
+    public string? CostoTexto { get; set; }
 }
 
 internal sealed class InventarioExcelLectura
@@ -105,7 +109,10 @@ internal static class InventarioExcelReader
         new("stock minimo", InventarioColumna.MinStock),
         new("stock min", InventarioColumna.MinStock),
         new("tipo de elemento", InventarioColumna.Tipo),
-        new("tipo elemento", InventarioColumna.Tipo)
+        new("tipo elemento", InventarioColumna.Tipo),
+        new("costo unitario", InventarioColumna.Costo),
+        new("valor unitario", InventarioColumna.Costo),
+        new("precio", InventarioColumna.Costo)
     ];
 
     public static InventarioExcelLectura Leer(Stream contenido)
@@ -356,6 +363,11 @@ internal static class InventarioExcelReader
                 break;
             case InventarioColumna.Tipo:
                 fila.TipoElemento = Texto(celda);
+                break;
+            case InventarioColumna.Costo:
+                fila.CostoVacio = celda.Vacia;
+                fila.CostoNumero = celda.Numero;
+                fila.CostoTexto = celda.Texto;
                 break;
         }
     }

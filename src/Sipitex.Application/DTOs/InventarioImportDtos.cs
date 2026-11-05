@@ -63,6 +63,7 @@ public sealed class InventarioImportFilaValida
     public string Planta { get; init; } = string.Empty;
     public bool PlantaNueva { get; init; }
     public TipoElemento TipoElemento { get; init; }
+    public decimal? CostoUnitario { get; init; }
     public IReadOnlyList<string> Advertencias { get; init; } = [];
 }
 

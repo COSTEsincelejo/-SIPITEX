@@ -66,7 +66,9 @@ public class ProductionConsumptionService
         foreach (var item in recipe)
         {
             var material = (await _materialRepository.GetByIdAsync(item.MaterialId, cancellationToken))!;
-            material.Stock -= item.QuantityPerUnit * units;
+            var consumo = item.QuantityPerUnit * units;
+            material.DescontarUnidadesSinCosto(consumo);
+            material.Stock -= consumo;
             _materialRepository.Update(material);
         }
 

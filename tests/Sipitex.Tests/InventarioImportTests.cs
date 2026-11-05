@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 using Sipitex.Infrastructure.Import;
@@ -180,6 +181,8 @@ public class InventarioImportTests
         Assert.Equal(MaterialStatus.Bueno, nuevo.Status);
         Assert.Equal(new DateOnly(2024, 3, 15), nuevo.LastEntryDate);
         Assert.Equal(0m, nuevo.CostoAdquisicion);
+        Assert.Equal(0m, nuevo.CostoPromedioPonderado);
+        Assert.Equal(4m, nuevo.StockSinCosto);
         Assert.Matches(@"^mat\d+$", nuevo.Code);
         Assert.NotEqual(existente.Code, nuevo.Code);
 
@@ -195,6 +198,7 @@ public class InventarioImportTests
         Assert.Equal(4m, movimiento.Cantidad);
         Assert.Equal(4m, movimiento.StockResultante);
         Assert.Equal(0m, movimiento.CostoUnitario);
+        Assert.True(movimiento.SinCosto);
         Assert.Equal(InventarioImportTextos.ReferenciaMovimiento, movimiento.Referencia);
 
         var log = Assert.Single(await db.ActivityLogs.ToListAsync());
@@ -342,6 +346,159 @@ public class InventarioImportTests
 
     private static InventarioImportFilaValida Unica(InventarioImportResult resultado, string nombre) =>
         Assert.Single(resultado.Validas, f => f.Nombre == nombre);
+
+    [Fact]
+    public async Task Confirmar_CostoUnitarioOpcional_CompraOEntradaSinCosto_YLaPrimeraCompraNoSeDiluye()
+    {
+        await using var db = await CreateDbAsync();
+        var user = new User
+        {
+            Nombre = "Admin Costo",
+            Email = $"costo-{Guid.NewGuid():N}@test.local",
+            PasswordHash = "x",
+            Rol = UserRoles.Administrador,
+            EmailConfirmed = true
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        var importacion = new InventarioImportService(db, new UnitOfWork(db));
+
+        await using var archivo = Libro(ws =>
+        {
+            ws.Cell(1, 1).Value = "Nombre del material";
+            ws.Cell(1, 2).Value = "Cantidad";
+            ws.Cell(1, 3).Value = "Unidad de medida";
+            ws.Cell(1, 4).Value = "Ubicación";
+            ws.Cell(1, 5).Value = "Costo unitario";
+            ws.Cell(2, 1).Value = "Tela sin costo";
+            ws.Cell(2, 2).Value = 100;
+            ws.Cell(2, 3).Value = "metros";
+            ws.Cell(2, 4).Value = "Planta de Inventario 1";
+            ws.Cell(3, 1).Value = "Hilo con costo";
+            ws.Cell(3, 2).Value = 10;
+            ws.Cell(3, 3).Value = "metros";
+            ws.Cell(3, 4).Value = "Planta de Inventario 1";
+            ws.Cell(3, 5).Value = 10000;
+            ws.Cell(4, 1).Value = "Botón a cero";
+            ws.Cell(4, 2).Value = 5;
+            ws.Cell(4, 3).Value = "unidad";
+            ws.Cell(4, 4).Value = "Planta de Inventario 1";
+            ws.Cell(4, 5).Value = 0;
+        });
+
+        var simulado = await importacion.SimularAsync(archivo);
+        Assert.True(simulado.ArchivoValido, simulado.ErrorArchivo);
+        Assert.Null(Unica(simulado, "Tela sin costo").CostoUnitario);
+        Assert.Equal(10000m, Unica(simulado, "Hilo con costo").CostoUnitario);
+        Assert.Null(Unica(simulado, "Botón a cero").CostoUnitario);
+
+        archivo.Position = 0;
+        var confirmado = await importacion.ConfirmarAsync(archivo, user.Id);
+        Assert.True(confirmado.Persistido, confirmado.ErrorArchivo);
+        Assert.Equal(3, confirmado.Importados);
+
+        var tela = await db.Materials.SingleAsync(m => m.Name == "Tela sin costo");
+        var hilo = await db.Materials.SingleAsync(m => m.Name == "Hilo con costo");
+        var boton = await db.Materials.SingleAsync(m => m.Name == "Botón a cero");
+        Assert.Equal(0m, tela.CostoPromedioPonderado);
+        Assert.Equal(100m, tela.StockSinCosto);
+        Assert.Equal(10000m, hilo.CostoPromedioPonderado);
+        Assert.Equal(10000m, hilo.CostoAdquisicion);
+        Assert.Equal(0m, hilo.StockSinCosto);
+        Assert.Equal(0m, boton.CostoPromedioPonderado);
+        Assert.Equal(5m, boton.StockSinCosto);
+
+        var movimientos = await db.StockMovements.ToListAsync();
+        var movTela = Assert.Single(movimientos, m => m.MaterialId == tela.Id);
+        var movHilo = Assert.Single(movimientos, m => m.MaterialId == hilo.Id);
+        Assert.Equal(StockEntryOrigin.OtraFuenteAutorizada, movTela.Origen);
+        Assert.Equal(0m, movTela.CostoUnitario);
+        Assert.True(movTela.SinCosto);
+        Assert.Equal(InventarioImportTextos.ReferenciaMovimiento, movTela.Referencia);
+        Assert.Equal(StockEntryOrigin.Compra, movHilo.Origen);
+        Assert.Equal(10000m, movHilo.CostoUnitario);
+        Assert.False(movHilo.SinCosto);
+        Assert.Equal(InventarioImportTextos.ReferenciaMovimiento, movHilo.Referencia);
+
+        var inventario = new InventoryService(
+            new MaterialRepository(db),
+            new MaterialRequestRepository(db),
+            new ProductionOrderRepository(db),
+            new BomRepository(db),
+            new StockMovementRepository(db),
+            new UnitOfWork(db));
+        var compra = await inventario.AdjustStockAsync(
+            new AdjustStockDto(tela.Id, 110m, StockEntryOrigin.Compra, 10_000m),
+            user.Id);
+
+        Assert.True(compra.Success, compra.Message);
+        var actualizada = await db.Materials.SingleAsync(m => m.Id == tela.Id);
+        Assert.Equal(110m, actualizada.Stock);
+        Assert.Equal(100m, actualizada.StockSinCosto);
+        Assert.Equal(10_000m, actualizada.CostoPromedioPonderado);
+        Assert.NotEqual(909.0909m, actualizada.CostoPromedioPonderado);
+    }
+
+    [Theory]
+    [InlineData("Precio", 10000d, 10000)]
+    [InlineData("Valor unitario", 2500d, 2500)]
+    [InlineData("Costo unitario", 10.5d, 10.5)]
+    public async Task Simular_AliasDeCostoUnitario(string encabezado, double valor, decimal esperado)
+    {
+        await using var db = await CreateDbAsync();
+        var service = new InventarioImportService(db, new UnitOfWork(db));
+        await using var archivo = Libro(ws =>
+        {
+            ws.Cell(1, 1).Value = "Nombre del material";
+            ws.Cell(1, 2).Value = "Cantidad";
+            ws.Cell(1, 3).Value = "Unidad";
+            ws.Cell(1, 4).Value = "Ubicación";
+            ws.Cell(1, 5).Value = encabezado;
+            ws.Cell(2, 1).Value = "Avío";
+            ws.Cell(2, 2).Value = 2;
+            ws.Cell(2, 3).Value = "unidad";
+            ws.Cell(2, 4).Value = "Planta de Inventario 1";
+            ws.Cell(2, 5).Value = valor;
+        });
+
+        var resultado = await service.SimularAsync(archivo);
+
+        Assert.True(resultado.ArchivoValido, resultado.ErrorArchivo);
+        Assert.Equal(esperado, Assert.Single(resultado.Validas).CostoUnitario);
+    }
+
+    [Fact]
+    public async Task Simular_CostoConPuntoDeMiles_YCostoInvalido()
+    {
+        await using var db = await CreateDbAsync();
+        var service = new InventarioImportService(db, new UnitOfWork(db));
+        await using var archivo = Libro(ws =>
+        {
+            ws.Cell(1, 1).Value = "Nombre del material";
+            ws.Cell(1, 2).Value = "Cantidad";
+            ws.Cell(1, 3).Value = "Unidad";
+            ws.Cell(1, 4).Value = "Ubicación";
+            ws.Cell(1, 5).Value = "Precio";
+            ws.Cell(2, 1).Value = "Tela miles";
+            ws.Cell(2, 2).Value = "100";
+            ws.Cell(2, 3).Value = "metros";
+            ws.Cell(2, 4).Value = "Planta de Inventario 1";
+            ws.Cell(2, 5).Value = "10.000";
+            ws.Cell(3, 1).Value = "Tela mala";
+            ws.Cell(3, 2).Value = "1";
+            ws.Cell(3, 3).Value = "metros";
+            ws.Cell(3, 4).Value = "Planta de Inventario 1";
+            ws.Cell(3, 5).Value = "no-es-costo";
+        });
+
+        var resultado = await service.SimularAsync(archivo);
+
+        Assert.True(resultado.ArchivoValido, resultado.ErrorArchivo);
+        Assert.Equal(10000m, Unica(resultado, "Tela miles").CostoUnitario);
+        var error = Assert.Single(resultado.Errores);
+        Assert.Equal("Tela mala", error.Nombre);
+        Assert.Contains("costo unitario", error.Mensaje, StringComparison.OrdinalIgnoreCase);
+    }
 
     private static MemoryStream LibroSimulacion()
     {

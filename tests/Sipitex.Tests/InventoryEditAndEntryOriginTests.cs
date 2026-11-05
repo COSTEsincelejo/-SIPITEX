@@ -228,6 +228,7 @@ public class InventoryEditAndEntryOriginTests
         Assert.Equal(20m, created.Stock);
         Assert.Equal(20m, created.CostoPromedioPonderado);
         Assert.Equal(30m, created.CostoAdquisicion);
+        Assert.Equal(0m, created.StockSinCosto);
         _stockMovements.Verify(r => r.AddAsync(
             It.Is<StockMovement>(m =>
                 m.TipoMovimiento == StockMovementType.Ajuste
@@ -235,5 +236,33 @@ public class InventoryEditAndEntryOriginTests
                 && m.CostoUnitario == 30m
                 && m.Cantidad == 10m),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdjustStockAsync_PrimeraCompraTrasStockSinCosto_NoDiluyeElPromedio()
+    {
+        var material = new Material
+        {
+            Id = 4,
+            Name = "Tela",
+            Stock = 100m,
+            StockSinCosto = 100m,
+            CostoPromedioPonderado = 0
+        };
+        _materials.Setup(r => r.GetByIdAsync(4, It.IsAny<CancellationToken>())).ReturnsAsync(material);
+        _stockMovements
+            .Setup(r => r.AddAsync(It.IsAny<StockMovement>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var result = await CreateSut().AdjustStockAsync(
+            new AdjustStockDto(4, 110m, StockEntryOrigin.Compra, 10_000m),
+            actorUserId: 3);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(110m, material.Stock);
+        Assert.Equal(100m, material.StockSinCosto);
+        Assert.Equal(10_000m, material.CostoPromedioPonderado);
+        Assert.NotEqual(909.0909m, material.CostoPromedioPonderado);
     }
 }

@@ -13,6 +13,7 @@ public class ProductionOrderBomSnapshotRepository : IProductionOrderBomSnapshotR
 
     public async Task<IReadOnlyList<ProductionOrderBomSnapshot>> GetByOrderIdAsync(int productionOrderId, CancellationToken cancellationToken = default) =>
         await _context.ProductionOrderBomSnapshots
+            .Include(s => s.Material)
             .Where(s => s.ProductionOrderId == productionOrderId)
             .OrderBy(s => s.MaterialName)
             .ToListAsync(cancellationToken);

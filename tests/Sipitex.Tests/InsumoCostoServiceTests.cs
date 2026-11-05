@@ -64,6 +64,48 @@ public class InsumoCostoServiceTests
     }
 
     [Fact]
+    public void CalcularNuevoCostoPromedio_StockSinCosto_NoDiluyeLaPrimeraCompra()
+    {
+        // 100 m a $0 (sin costo) + 10 m a $10.000. El promedio usa solo las unidades con costo.
+        var promedio = _sut.CalcularNuevoCostoPromedio(
+            stockActual: 100,
+            costoPromedioActual: 0,
+            cantidadComprada: 10,
+            precioUnitarioCompra: 10_000m,
+            stockSinCosto: 100);
+
+        Assert.Equal(10_000m, promedio);
+        Assert.NotEqual(decimal.Round(10_000m * 10 / 110, 4, MidpointRounding.AwayFromZero), promedio);
+    }
+
+    [Fact]
+    public void RegistrarCompra_LuegoOtraCompra_SigueExcluyendoElStockSinCosto()
+    {
+        var material = new Material
+        {
+            Stock = 100,
+            StockSinCosto = 100,
+            CostoPromedioPonderado = 0
+        };
+
+        _sut.RegistrarCompra(material, 10, 10_000m);
+        material.Stock = 110;
+
+        Assert.Equal(10_000m, material.CostoPromedioPonderado);
+        Assert.Equal(100m, material.StockSinCosto);
+
+        material.DescontarUnidadesSinCosto(20);
+        material.Stock = 90;
+
+        _sut.RegistrarCompra(material, 10, 20_000m);
+
+        // Quedan 10 m con costo a 10.000 y entran 10 m a 20.000. Los 80 m sin costo no entran.
+        Assert.Equal(15_000m, material.CostoPromedioPonderado);
+        Assert.Equal(80m, material.StockSinCosto);
+        Assert.Equal(90m, material.Stock);
+    }
+
+    [Fact]
     public void RegistrarCompra_PrecioNegativo_Lanza()
     {
         var material = new Material { Stock = 4, CostoPromedioPonderado = 8 };

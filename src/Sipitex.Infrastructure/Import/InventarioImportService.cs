@@ -105,7 +105,7 @@ public sealed class InventarioImportService : IInventarioImportService
         if (plantasDeFila.Any(p => _db.Entry(p).State == EntityState.Added))
             await _uow.SaveChangesAsync(cancellationToken);
 
-        var creados = new List<(Material Material, string Planta)>();
+        var creados = new List<(Material Material, string Planta, decimal? CostoUnitario)>();
         for (var i = 0; i < plan.Validas.Count; i++)
         {
             var candidato = plan.Validas[i];
@@ -127,12 +127,13 @@ public sealed class InventarioImportService : IInventarioImportService
                 MinStock = candidato.MinStock,
                 Status = MaterialStatus.Bueno,
                 LastEntryDate = candidato.FechaIngreso,
-                CostoAdquisicion = 0,
-                CostoPromedioPonderado = 0,
+                CostoAdquisicion = candidato.CostoUnitario is > 0 ? candidato.CostoUnitario.Value : 0,
+                CostoPromedioPonderado = candidato.CostoUnitario is > 0 ? candidato.CostoUnitario.Value : 0,
+                StockSinCosto = candidato.CostoUnitario is > 0 ? 0 : candidato.Stock,
                 PlantaInventarioId = planta.Id
             };
             _db.Materials.Add(material);
-            creados.Add((material, planta.Nombre));
+            creados.Add((material, planta.Nombre, candidato.CostoUnitario));
         }
 
         await _uow.SaveChangesAsync(cancellationToken);
@@ -142,19 +143,21 @@ public sealed class InventarioImportService : IInventarioImportService
             userName = userName[..120];
         var ahora = DateTime.UtcNow;
 
-        foreach (var (material, planta) in creados)
+        foreach (var (material, planta, costo) in creados)
         {
+            var conCosto = costo is > 0;
             _db.StockMovements.Add(new StockMovement
             {
                 MaterialId = material.Id,
                 FechaUtc = ahora,
                 UsuarioId = user.Id,
                 TipoMovimiento = StockMovementType.Entrada,
-                Origen = StockEntryOrigin.OtraFuenteAutorizada,
+                Origen = conCosto ? StockEntryOrigin.Compra : StockEntryOrigin.OtraFuenteAutorizada,
                 Cantidad = material.Stock,
                 StockResultante = material.Stock,
                 Referencia = InventarioImportTextos.ReferenciaMovimiento,
-                CostoUnitario = 0
+                CostoUnitario = conCosto ? costo : 0,
+                SinCosto = !conCosto
             });
 
             var details = $"Importación inicial: {material.Name} ({material.Code}), planta {planta}.";
@@ -295,6 +298,7 @@ public sealed class InventarioImportService : IInventarioImportService
             var proveedor = Opcional(fila.Proveedor, Material.ProveedorMaxLength, "El proveedor", errores);
             var stock = LeerDecimal(fila.CantidadVacia, fila.CantidadNumero, fila.CantidadTexto, "La cantidad", errores);
             var minStock = LeerDecimal(fila.MinStockVacio, fila.MinStockNumero, fila.MinStockTexto, "El stock mínimo", errores);
+            var costo = LeerCosto(fila, errores);
             var fecha = LeerFecha(fila, errores);
             var tipo = LeerTipo(fila.TipoElemento, errores);
             var unidad = MaterialUnitImportParser.Parse(fila.Unidad);
@@ -392,6 +396,7 @@ public sealed class InventarioImportService : IInventarioImportService
                 nombrePlanta,
                 plantaNueva,
                 tipoElemento,
+                costo,
                 avisos));
             foreach (var aviso in avisos)
                 plan.Advertencias.Add(Aviso(fila.Fila, aviso, nombre));
@@ -413,7 +418,10 @@ public sealed class InventarioImportService : IInventarioImportService
         && string.IsNullOrWhiteSpace(fila.Proveedor)
         && string.IsNullOrWhiteSpace(fila.Ubicacion)
         && fila.MinStockVacio
-        && string.IsNullOrWhiteSpace(fila.TipoElemento);
+        && string.IsNullOrWhiteSpace(fila.TipoElemento)
+        && fila.CostoVacio
+        && fila.CostoNumero is null
+        && string.IsNullOrWhiteSpace(fila.CostoTexto);
 
     private static string? Obligatorio(string? value, int max, string etiqueta, string obligatorio, List<string> errores)
     {
@@ -445,7 +453,8 @@ public sealed class InventarioImportService : IInventarioImportService
         double? numero,
         string? texto,
         string etiqueta,
-        List<string> errores)
+        List<string> errores,
+        int decimales = 2)
     {
         if (vacio && numero is null && string.IsNullOrWhiteSpace(texto))
             return 0m;
@@ -460,7 +469,7 @@ public sealed class InventarioImportService : IInventarioImportService
 
             try
             {
-                return ValidarNoNegativo(decimal.Round((decimal)n, 2, MidpointRounding.AwayFromZero), etiqueta, errores);
+                return ValidarNoNegativo(decimal.Round((decimal)n, decimales, MidpointRounding.AwayFromZero), etiqueta, errores);
             }
             catch (OverflowException)
             {
@@ -481,7 +490,27 @@ public sealed class InventarioImportService : IInventarioImportService
             return null;
         }
 
-        return ValidarNoNegativo(decimal.Round(parsed, 2, MidpointRounding.AwayFromZero), etiqueta, errores);
+        return ValidarNoNegativo(decimal.Round(parsed, decimales, MidpointRounding.AwayFromZero), etiqueta, errores);
+    }
+
+    private static decimal? LeerCosto(InventarioExcelFila fila, List<string> errores)
+    {
+        if (fila.CostoVacio && fila.CostoNumero is null && string.IsNullOrWhiteSpace(fila.CostoTexto))
+            return null;
+
+        var texto = fila.CostoTexto;
+        if (!string.IsNullOrWhiteSpace(texto))
+        {
+            var compacto = texto.Trim().Replace(" ", "", StringComparison.Ordinal);
+            if (System.Text.RegularExpressions.Regex.IsMatch(compacto, @"^\d{1,3}(\.\d{3})+$"))
+                texto = compacto.Replace(".", "", StringComparison.Ordinal);
+        }
+
+        var antes = errores.Count;
+        var valor = LeerDecimal(false, fila.CostoNumero, texto, "El costo unitario", errores, 4);
+        if (errores.Count > antes || valor is not > 0)
+            return null;
+        return valor;
     }
 
     private static decimal? ValidarNoNegativo(decimal valor, string etiqueta, List<string> errores)
@@ -597,6 +626,7 @@ public sealed class InventarioImportService : IInventarioImportService
         string Planta,
         bool PlantaNueva,
         TipoElemento TipoElemento,
+        decimal? CostoUnitario,
         IReadOnlyList<string> Advertencias);
 
     private sealed class Plan
@@ -625,6 +655,7 @@ public sealed class InventarioImportService : IInventarioImportService
                 Planta = c.Planta,
                 PlantaNueva = c.PlantaNueva,
                 TipoElemento = c.TipoElemento,
+                CostoUnitario = c.CostoUnitario,
                 Advertencias = c.Advertencias
             }).ToList(),
             Errores = Errores,

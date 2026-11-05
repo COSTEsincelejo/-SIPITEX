@@ -70,6 +70,7 @@ public class GarmentCostingServiceTests
         Assert.Equal(4, result.CostoMaterialesPorUnidad);
         Assert.Equal(40, result.CostoMateriales);
         Assert.Equal(40, result.Total);
+        Assert.False(result.CostoIncompleto);
         Assert.Equal(0, result.CostoManoObra);
         Assert.Equal(2, result.HorasManoObra);
         Assert.Contains("costo unitario al momento", result.Formula, StringComparison.Ordinal);
@@ -209,5 +210,71 @@ public class GarmentCostingServiceTests
         Assert.Equal(0, result.CostoManoObra);
         Assert.Equal(2, result.HorasManoObra);
         Assert.Equal(0, result.Total);
+        Assert.False(result.CostoIncompleto);
+    }
+
+    [Fact]
+    public async Task CalcularAsync_ConsumoSinCosto_AdvierteCostoIncompleto()
+    {
+        SeedOrder(10);
+        _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ConsumoMaterial
+                {
+                    ProductionOrderId = 10,
+                    MaterialId = 3,
+                    Cantidad = 4,
+                    CostoUnitarioAlMomento = 0,
+                    Material = new Material { Id = 3, Name = "Tela", CostoPromedioPonderado = 0 }
+                }
+            ]);
+
+        var result = await CreateSut(5).CalcularAsync(10);
+
+        Assert.True(result.CostoIncompleto);
+        Assert.Equal(GarmentCostingService.AvisoCostoIncompleto, "costo incompleto");
+        Assert.Equal(0, result.CostoManoObra);
+        Assert.Contains("no incluida", result.Formula, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CalcularAsync_MaterialDeLaFichaSinCosto_AdvierteAunqueElConsumoTengaPrecio()
+    {
+        SeedOrder(10);
+        _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ConsumoMaterial
+                {
+                    ProductionOrderId = 10,
+                    MaterialId = 3,
+                    Cantidad = 4,
+                    CostoUnitarioAlMomento = 10
+                }
+            ]);
+        var fichas = new Mock<IProductionOrderBomSnapshotRepository>();
+        fichas.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ProductionOrderBomSnapshot
+                {
+                    ProductionOrderId = 10,
+                    MaterialId = 8,
+                    QuantityPerUnit = 1.5m,
+                    Material = new Material { Id = 8, Name = "Hilo", CostoPromedioPonderado = 0 }
+                }
+            ]);
+
+        var result = await new GarmentCostingService(
+            _consumos.Object,
+            _grupos.Object,
+            _orders.Object,
+            _rates.Object,
+            NullLogger<GarmentCostingService>.Instance,
+            fichas.Object).CalcularAsync(10);
+
+        Assert.True(result.CostoIncompleto);
+        Assert.Equal(0, result.CostoManoObra);
     }
 }

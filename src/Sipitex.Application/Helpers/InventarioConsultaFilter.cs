@@ -7,6 +7,13 @@ namespace Sipitex.Application.Helpers;
 public static class InventarioConsultaFilter
 {
     public const string Faltantes = "Faltantes";
+    public const string SinCosto = "SinCosto";
+
+    public static bool EsSinCosto(string? nivel) =>
+        string.Equals(nivel, SinCosto, StringComparison.OrdinalIgnoreCase);
+
+    public static bool MaterialSinCosto(decimal costoPromedioPonderado) =>
+        costoPromedioPonderado <= 0;
 
     public static IReadOnlyList<MaterialDto> Apply(
         IReadOnlyList<MaterialDto> materials,
@@ -53,6 +60,9 @@ public static class InventarioConsultaFilter
     {
         if (string.IsNullOrWhiteSpace(nivel))
             return true;
+
+        if (EsSinCosto(nivel))
+            return MaterialSinCosto(material.CostoPromedioPonderado);
 
         var actual = StockNivelHelper.Classify(material.Stock, material.MinStock);
         if (string.Equals(nivel, Faltantes, StringComparison.OrdinalIgnoreCase))

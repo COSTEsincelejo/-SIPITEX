@@ -661,6 +661,9 @@ public class PlantasInventarioController : Controller
 
     private static bool CoincideNivel(MaterialPlantaStockDto item, string nivel)
     {
+        if (InventarioConsultaFilter.EsSinCosto(nivel))
+            return InventarioConsultaFilter.MaterialSinCosto(item.CostoPromedioPonderado);
+
         var actual = StockNivelHelper.Classify(item.Stock, item.MinStock);
         if (string.Equals(nivel, InventarioConsultaFilter.Faltantes, StringComparison.OrdinalIgnoreCase))
             return actual is StockNivel.Bajo or StockNivel.Critico;

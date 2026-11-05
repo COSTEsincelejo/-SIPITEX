@@ -81,6 +81,7 @@
                         <th>Categoría</th>
                         <th>Referencia</th>
                         <th>Cantidad</th>
+                        <th>Costo unitario</th>
                         <th>Unidad</th>
                         <th>Mínimo</th>
                         <th>Fecha</th>
@@ -99,6 +100,7 @@
                             <td>@fila.Categoria</td>
                             <td>@fila.Referencia</td>
                             <td>@fila.Stock</td>
+                            <td>@(fila.CostoUnitario is > 0 ? fila.CostoUnitario.Value.ToString("0.####") : "—")</td>
                             <td>@UnitHelper.ToDisplay(fila.Unidad)</td>
                             <td>@fila.MinStock</td>
                             <td>@fila.FechaIngreso.ToString("dd/MM/yyyy")</td>
