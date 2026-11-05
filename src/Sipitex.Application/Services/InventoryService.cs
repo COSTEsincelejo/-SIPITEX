@@ -94,13 +94,16 @@ public class InventoryService : IInventoryService
         if (dto.CostoAdquisicion < 0)
             return ServiceResult.Fail("El precio unitario de compra no puede ser negativo.");
 
+        if (!Enum.IsDefined(dto.Unit))
+            return ServiceResult.Fail("Unidad no válida.");
+
         var precio = Math.Max(0, dto.CostoAdquisicion);
 
         // Armo la entidad con valores iniciales. Stock se asigna después de RegistrarCompra
         // para que el promedio ponderado use el stock previo (cero en el alta).
+        // El Code autogenerado no cambia: sigue siendo mat + ticks y no se toma de CodigoAlmacen.
         var material = new Material
         {
-            // Código único con ticks para no repetir
             Code = $"mat{DateTime.UtcNow.Ticks}",
             Name = dto.Name.Trim(),
             Unit = dto.Unit,
@@ -112,6 +115,18 @@ public class InventoryService : IInventoryService
             CostoPromedioPonderado = precio,
             PlantaInventarioId = dto.PlantaInventarioId > 0 ? dto.PlantaInventarioId : 1
         };
+
+        var plantilla = ApplyPlantilla(
+            material,
+            dto.CodigoAlmacen,
+            dto.Referencia,
+            dto.Categoria,
+            dto.Subcategoria,
+            dto.Descripcion,
+            dto.Proveedor,
+            dto.TipoElemento);
+        if (plantilla is not null)
+            return plantilla;
 
         if (dto.Origen == StockEntryOrigin.Compra)
             _insumoCosto.RegistrarCompra(material, dto.Stock, precio);
@@ -234,6 +249,19 @@ public class InventoryService : IInventoryService
                 return ServiceResult.Fail("El costo de adquisición no puede ser negativo.");
             material.CostoAdquisicion = costo;
         }
+
+        var plantilla = ApplyPlantilla(
+            material,
+            dto.CodigoAlmacen,
+            dto.Referencia,
+            dto.Categoria,
+            dto.Subcategoria,
+            dto.Descripcion,
+            dto.Proveedor,
+            dto.TipoElemento);
+        if (plantilla is not null)
+            return plantilla;
+
         _materialRepository.Update(material);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Ok($"Material «{material.Name}» actualizado.");
@@ -413,7 +441,67 @@ public class InventoryService : IInventoryService
         m.CostoAdquisicion,
         m.PlantaInventarioId,
         m.PlantaInventario?.Nombre ?? string.Empty,
-        m.CostoPromedioPonderado);
+        m.CostoPromedioPonderado,
+        m.CodigoAlmacen,
+        m.Referencia,
+        m.Categoria,
+        m.Subcategoria,
+        m.Descripcion,
+        m.Proveedor,
+        m.TipoElemento);
+
+    // Normaliza los campos de la plantilla CMTC. Cadena vacía queda en null. No toca Code.
+    private static ServiceResult? ApplyPlantilla(
+        Material material,
+        string? codigoAlmacen,
+        string? referencia,
+        string? categoria,
+        string? subcategoria,
+        string? descripcion,
+        string? proveedor,
+        TipoElemento tipoElemento)
+    {
+        if (!Enum.IsDefined(tipoElemento))
+            return ServiceResult.Fail("Tipo de elemento no válido.");
+
+        var codigo = NormalizeOptional(codigoAlmacen, Material.CodigoAlmacenMaxLength, "El código de almacén", out var error);
+        if (error is not null) return ServiceResult.Fail(error);
+        var referenciaLimpia = NormalizeOptional(referencia, Material.ReferenciaMaxLength, "La referencia", out error);
+        if (error is not null) return ServiceResult.Fail(error);
+        var categoriaLimpia = NormalizeOptional(categoria, Material.CategoriaMaxLength, "La categoría", out error);
+        if (error is not null) return ServiceResult.Fail(error);
+        var subcategoriaLimpia = NormalizeOptional(subcategoria, Material.SubcategoriaMaxLength, "La subcategoría", out error);
+        if (error is not null) return ServiceResult.Fail(error);
+        var descripcionLimpia = NormalizeOptional(descripcion, Material.DescripcionMaxLength, "La descripción", out error);
+        if (error is not null) return ServiceResult.Fail(error);
+        var proveedorLimpio = NormalizeOptional(proveedor, Material.ProveedorMaxLength, "El proveedor", out error);
+        if (error is not null) return ServiceResult.Fail(error);
+
+        material.CodigoAlmacen = codigo;
+        material.Referencia = referenciaLimpia;
+        material.Categoria = categoriaLimpia;
+        material.Subcategoria = subcategoriaLimpia;
+        material.Descripcion = descripcionLimpia;
+        material.Proveedor = proveedorLimpio;
+        material.TipoElemento = tipoElemento;
+        return null;
+    }
+
+    private static string? NormalizeOptional(string? value, int maxLength, string label, out string? error)
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var trimmed = value.Trim();
+        if (trimmed.Length > maxLength)
+        {
+            error = $"{label} no puede superar {maxLength} caracteres.";
+            return null;
+        }
+
+        return trimmed;
+    }
 
     private static bool IsAdmin(string? role) =>
         string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);

@@ -29,6 +29,32 @@ public class MaterialUnitCatalogTests
         Assert.Equal("kilogramo", UnitHelper.ToDisplay(MaterialUnit.Kg));
         Assert.Equal("galón", UnitHelper.ToDisplay(MaterialUnit.Galon));
         Assert.Equal("yarda", UnitHelper.ToDisplay(MaterialUnit.Yarda));
+        Assert.Equal(12, (int)MaterialUnit.Yarda);
+        Assert.Equal(13, (int)MaterialUnit.Rollo);
+        Assert.Equal(14, (int)MaterialUnit.Par);
+        Assert.Equal(15, (int)MaterialUnit.Paquete);
+        Assert.Equal(16, (int)MaterialUnit.Cono);
+        Assert.Equal(17, (int)MaterialUnit.Bolsa);
+        Assert.Equal(18, (int)MaterialUnit.Bulto);
+        Assert.Equal(19, (int)MaterialUnit.Juego);
+        Assert.Equal(20, (int)MaterialUnit.Pano);
+        Assert.Equal(21, (int)MaterialUnit.Gruesa);
+        Assert.Equal(22, (int)MaterialUnit.Decimetro);
+        Assert.Equal("rollo", UnitHelper.ToDisplay(MaterialUnit.Rollo));
+        Assert.Equal("paño", UnitHelper.ToDisplay(MaterialUnit.Pano));
+        Assert.Equal("decímetro", UnitHelper.ToDisplay(MaterialUnit.Decimetro));
+        Assert.Equal("gruesa", UnitHelper.ToDisplay(MaterialUnit.Gruesa));
+    }
+
+    [Fact]
+    public void ToDisplay_HasALabelForEveryCatalogEntry()
+    {
+        foreach (var unit in UnitHelper.Catalog)
+        {
+            var label = UnitHelper.ToDisplay(unit);
+            Assert.False(string.IsNullOrWhiteSpace(label));
+            Assert.NotEqual(unit.ToString(), label);
+        }
     }
 }
 

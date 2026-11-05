@@ -17,5 +17,15 @@ public enum MaterialUnit
     Decena = 9,
     Litro = 10,
     Libra = 11,
-    Yarda = 12
+    Yarda = 12,
+    Rollo = 13,
+    Par = 14,
+    Paquete = 15,
+    Cono = 16,
+    Bolsa = 17,
+    Bulto = 18,
+    Juego = 19,
+    Pano = 20,
+    Gruesa = 21,
+    Decimetro = 22
 }

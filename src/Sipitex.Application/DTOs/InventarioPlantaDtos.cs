@@ -1,4 +1,5 @@
 using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.DTOs;
 
@@ -12,6 +13,9 @@ public sealed class InventarioPlantaConsultaDto
     public InventarioPlantaResumenDto Consolidado { get; init; } = new();
     public string? Q { get; init; }
     public string? Nivel { get; init; }
+    public string? Categoria { get; init; }
+    public TipoElemento? TipoElemento { get; init; }
+    public IReadOnlyList<string> Categorias { get; init; } = [];
     public int TotalSinFiltro { get; init; }
 }
 

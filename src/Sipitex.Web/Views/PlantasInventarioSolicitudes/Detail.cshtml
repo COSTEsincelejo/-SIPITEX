@@ -107,9 +107,9 @@
                                            placeholder="Nombre nuevo" style="width:100%;margin-bottom:4px;" />
                                     <select name="Resolve.Items[@idx].NewMaterialUnit" aria-label="Unidad material nuevo">
                                         <option value="">Unidad…</option>
-                                        @foreach (MaterialUnit u in Enum.GetValues<MaterialUnit>())
+                                        @foreach (MaterialUnit u in UnitHelper.Catalog)
                                         {
-                                            <option value="@u">@u</option>
+                                            <option value="@u">@UnitHelper.ToDisplay(u)</option>
                                         }
                                     </select>
                                     <div class="hint">Stock inicial 0 — registre entrada si necesita aprobar &gt; 0</div>

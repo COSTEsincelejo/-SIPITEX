@@ -40,6 +40,54 @@
                 <label class="field-label" for="inventarioQ">Buscar insumo</label>
                 <input id="inventarioQ" name="q" type="search" value="@Model.Q" placeholder="Nombre del insumo" autocomplete="off" />
             </div>
+            <div class="field" style="min-width:180px;">
+                <label class="field-label" for="inventarioCategoria">Categoría</label>
+                <select id="inventarioCategoria" name="categoria">
+                    @if (string.IsNullOrWhiteSpace(Model.Categoria))
+                    {
+                        <option value="" selected>Todas</option>
+                    }
+                    else
+                    {
+                        <option value="">Todas</option>
+                    }
+                    @foreach (var cat in Model.Categorias)
+                    {
+                        if (string.Equals(cat, Model.Categoria, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <option value="@cat" selected>@cat</option>
+                        }
+                        else
+                        {
+                            <option value="@cat">@cat</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="field" style="min-width:170px;">
+                <label class="field-label" for="inventarioTipo">Tipo de elemento</label>
+                <select id="inventarioTipo" name="tipoElemento">
+                    @if (Model.TipoElemento is null)
+                    {
+                        <option value="" selected>Todos</option>
+                    }
+                    else
+                    {
+                        <option value="">Todos</option>
+                    }
+                    @foreach (TipoElemento tipo in Enum.GetValues<TipoElemento>())
+                    {
+                        if (Model.TipoElemento == tipo)
+                        {
+                            <option value="@tipo" selected>@tipo</option>
+                        }
+                        else
+                        {
+                            <option value="@tipo">@tipo</option>
+                        }
+                    }
+                </select>
+            </div>
             <div class="field" style="min-width:220px;">
                 <span class="field-label">Nivel de stock</span>
                 <div class="row-actions" style="justify-content:flex-start;gap:6px;">
@@ -56,6 +104,9 @@
                 <thead>
                     <tr>
                         <th>Insumo</th>
+                        <th>Cód. almacén</th>
+                        <th>Categoría</th>
+                        <th>Tipo</th>
                         @if (Model.PlantaId is null)
                         {
                             <th>Planta</th>
@@ -71,8 +122,26 @@
                 @foreach (var mat in Model.Materials)
                 {
                     var nivel = StockNivelHelper.Classify(mat.Stock, mat.MinStock);
-                    <tr data-name="@mat.Name" data-nivel="@nivel">
-                        <td><strong>@mat.Name</strong></td>
+                    <tr data-name="@mat.Name" data-nivel="@nivel" data-categoria="@mat.Categoria" data-tipo="@mat.TipoElemento">
+                        <td>
+                            <strong>@mat.Name</strong>
+                            @if (!string.IsNullOrWhiteSpace(mat.Referencia) || !string.IsNullOrWhiteSpace(mat.Descripcion))
+                            {
+                                <div class="hint">
+                                    @if (!string.IsNullOrWhiteSpace(mat.Referencia))
+                                    {
+                                        <span>Ref. @mat.Referencia</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(mat.Descripcion))
+                                    {
+                                        <span>@mat.Descripcion</span>
+                                    }
+                                </div>
+                            }
+                        </td>
+                        <td>@(string.IsNullOrWhiteSpace(mat.CodigoAlmacen) ? "—" : mat.CodigoAlmacen)</td>
+                        <td>@(string.IsNullOrWhiteSpace(mat.Categoria) ? "—" : mat.Categoria)@(string.IsNullOrWhiteSpace(mat.Subcategoria) ? "" : $" / {mat.Subcategoria}")</td>
+                        <td>@mat.TipoElemento</td>
                         @if (Model.PlantaId is null)
                         {
                             <td>@mat.PlantaInventarioNombre</td>
@@ -90,7 +159,7 @@
         <div id="inventarioFiltroVacio" class="empty-state" hidden>
             <div class="empty-icon"><i class="fas fa-filter"></i></div>
             <h3>Sin coincidencias</h3>
-            <p>Ningún insumo coincide con el nombre o el nivel de stock seleccionados.</p>
+            <p>Ningún insumo coincide con el nombre, la categoría, el tipo de elemento o el nivel de stock seleccionados.</p>
         </div>
     }
 </div>

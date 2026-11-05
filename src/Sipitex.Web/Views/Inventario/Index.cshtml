@@ -53,9 +53,47 @@
                 <label class="field-label">Stock inicial</label>
                 <input asp-for="CreateMaterial.Stock" type="number" step="0.1" min="0" required />
             </div>
-            <div class="field" style="width:120px;">
+            <div class="field" style="width:140px;">
                 <label class="field-label">Unidad</label>
-                <select asp-for="CreateMaterial.Unit" asp-items="Html.GetEnumSelectList<MaterialUnit>()"></select>
+                <select asp-for="CreateMaterial.Unit">
+                    @foreach (MaterialUnit u in UnitHelper.Catalog)
+                    {
+                        <option value="@((int)u)">@UnitHelper.ToDisplay(u)</option>
+                    }
+                </select>
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Código almacén</label>
+                <input asp-for="CreateMaterial.CodigoAlmacen" maxlength="@Material.CodigoAlmacenMaxLength" placeholder="Referencia de almacén" />
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Referencia</label>
+                <input asp-for="CreateMaterial.Referencia" maxlength="@Material.ReferenciaMaxLength" />
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Categoría</label>
+                <input asp-for="CreateMaterial.Categoria" maxlength="@Material.CategoriaMaxLength" placeholder="ej. Telas" />
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Subcategoría</label>
+                <input asp-for="CreateMaterial.Subcategoria" maxlength="@Material.SubcategoriaMaxLength" />
+            </div>
+            <div class="field" style="width:160px;">
+                <label class="field-label">Proveedor</label>
+                <input asp-for="CreateMaterial.Proveedor" maxlength="@Material.ProveedorMaxLength" />
+            </div>
+            <div class="field" style="width:150px;">
+                <label class="field-label">Tipo de elemento</label>
+                <select asp-for="CreateMaterial.TipoElemento">
+                    @foreach (TipoElemento tipo in Enum.GetValues<TipoElemento>())
+                    {
+                        <option value="@tipo">@tipo</option>
+                    }
+                </select>
+            </div>
+            <div class="field" style="flex:2;min-width:220px;">
+                <label class="field-label">Descripción</label>
+                <input asp-for="CreateMaterial.Descripcion" maxlength="@Material.DescripcionMaxLength" />
             </div>
             <div class="field" style="width:160px;">
                 <label class="field-label">Precio unitario (compra)</label>
@@ -80,12 +118,21 @@
     {
         <div class="table-wrap table-responsive">
             <table>
-                <thead><tr><th>Material</th><th>Unidad</th><th>Stock</th><th>Costo promedio</th><th>Estado</th><th>Última entrada</th><th>Mínimo</th><th></th></tr></thead>
+                <thead><tr><th>Material</th><th>Cód. almacén</th><th>Categoría</th><th>Tipo</th><th>Unidad</th><th>Stock</th><th>Costo promedio</th><th>Estado</th><th>Última entrada</th><th>Mínimo</th><th></th></tr></thead>
                 <tbody>
                 @foreach (var mat in Model.Materials)
                 {
                     <tr>
-                        <td><strong>@mat.Name</strong></td>
+                        <td>
+                            <strong>@mat.Name</strong>
+                            @if (!string.IsNullOrWhiteSpace(mat.Descripcion))
+                            {
+                                <div class="hint">@mat.Descripcion</div>
+                            }
+                        </td>
+                        <td>@(string.IsNullOrWhiteSpace(mat.CodigoAlmacen) ? "—" : mat.CodigoAlmacen)</td>
+                        <td>@(string.IsNullOrWhiteSpace(mat.Categoria) ? "—" : mat.Categoria)</td>
+                        <td>@mat.TipoElemento</td>
                         <td>@mat.UnitDisplay</td>
                         <td>@mat.Stock.ToString("0.0")</td>
                         <td>@mat.CostoPromedioPonderado.ToString("0.####")</td>
@@ -125,8 +172,27 @@
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="MaterialId" value="@mat.Id" />
                                     <input type="text" name="Name" value="@mat.Name" required style="width:140px" aria-label="Nombre" />
+                                    <input type="text" name="CodigoAlmacen" value="@mat.CodigoAlmacen" maxlength="@Material.CodigoAlmacenMaxLength" style="width:110px" aria-label="Código de almacén" placeholder="Cód. almacén" />
+                                    <input type="text" name="Referencia" value="@mat.Referencia" maxlength="@Material.ReferenciaMaxLength" style="width:110px" aria-label="Referencia" placeholder="Referencia" />
+                                    <input type="text" name="Categoria" value="@mat.Categoria" maxlength="@Material.CategoriaMaxLength" style="width:110px" aria-label="Categoría" placeholder="Categoría" />
+                                    <input type="text" name="Subcategoria" value="@mat.Subcategoria" maxlength="@Material.SubcategoriaMaxLength" style="width:110px" aria-label="Subcategoría" placeholder="Subcategoría" />
+                                    <input type="text" name="Proveedor" value="@mat.Proveedor" maxlength="@Material.ProveedorMaxLength" style="width:120px" aria-label="Proveedor" placeholder="Proveedor" />
+                                    <select name="TipoElemento" aria-label="Tipo de elemento">
+                                        @foreach (TipoElemento tipo in Enum.GetValues<TipoElemento>())
+                                        {
+                                            if (tipo == mat.TipoElemento)
+                                            {
+                                                <option value="@tipo" selected>@tipo</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@tipo">@tipo</option>
+                                            }
+                                        }
+                                    </select>
+                                    <input type="text" name="Descripcion" value="@mat.Descripcion" maxlength="@Material.DescripcionMaxLength" style="width:180px" aria-label="Descripción" placeholder="Descripción" />
                                     <select name="Unit" aria-label="Unidad">
-                                        @foreach (MaterialUnit u in Enum.GetValues<MaterialUnit>())
+                                        @foreach (MaterialUnit u in UnitHelper.Catalog)
                                         {
                                             if (u == mat.Unit)
                                             {
