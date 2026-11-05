@@ -17,6 +17,12 @@ public static class InventarioImportTextos
 
     public static string DuplicadoEnArchivo(int fila, int filaPrimera) =>
         $"La fila {fila} repite la fila {filaPrimera} (mismo código, nombre y planta). Se omite.";
+
+    public const string HojaFichas = "Fichas_Tecnicas";
+    public const string FichaSinMaterialUnico = "ficha sin material único: completar a mano";
+
+    public static string FichaRepetida(int fila, int filaPrimera) =>
+        $"La fila {fila} repite la ficha de la fila {filaPrimera}. Se omite.";
 }
 
 public sealed class InventarioImportResult
@@ -28,6 +34,9 @@ public sealed class InventarioImportResult
     public IReadOnlyList<InventarioImportAdvertencia> Advertencias { get; init; } = [];
     public IReadOnlyList<InventarioImportOmitida> Omitidas { get; init; } = [];
     public int Importados { get; init; }
+    public int FichasAVincular { get; init; }
+    public int FichasVinculadas { get; init; }
+    public IReadOnlyList<InventarioImportAdvertencia> FichasAdvertencias { get; init; } = [];
     public bool Persistido { get; init; }
 
     public static InventarioImportResult Invalido(string error) => new()

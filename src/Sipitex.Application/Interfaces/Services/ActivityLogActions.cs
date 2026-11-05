@@ -38,6 +38,8 @@ public static class ActivityLogActions
     public const string Delete = "Delete";
 
     public const string ImportInventario = "ImportInventario";
+    public const string CreateFichaTecnicaMaterial = "CreateFichaTecnicaMaterial";
+    public const string UpdateFichaTecnicaMaterial = "UpdateFichaTecnicaMaterial";
 }
 
 public static class ActivityLogEntities
@@ -48,6 +50,7 @@ public static class ActivityLogEntities
     public const string BomProduct = "BomProduct";
     public const string ConsumoMaterial = "ConsumoMaterial";
     public const string Material = "Material";
+    public const string FichaTecnicaMaterial = "FichaTecnicaMaterial";
     public const string GrupoConfeccion = "GrupoConfeccion";
     public const string QualityRecord = "QualityRecord";
     public const string ActaMovimiento = "ActaMovimiento";

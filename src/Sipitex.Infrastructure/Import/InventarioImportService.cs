@@ -34,7 +34,13 @@ public sealed class InventarioImportService : IInventarioImportService
             return InventarioImportResult.Invalido(lectura.Error);
 
         var plan = await ArmarPlanAsync(lectura.Filas, cancellationToken);
-        return plan.ToResult(persistido: false, importados: 0);
+        var fichas = await FichaTecnicaImportador.ClasificarAsync(
+            _db,
+            lectura.Fichas,
+            plan.Validas.Select(v => v.CodigoAlmacen),
+            lectura.AvisoFichas,
+            cancellationToken);
+        return plan.ToResult(persistido: false, importados: 0, fichas);
     }
 
     public async Task<InventarioImportResult> ConfirmarAsync(
@@ -54,25 +60,31 @@ public sealed class InventarioImportService : IInventarioImportService
             return InventarioImportResult.Invalido("No se encontró el usuario que confirma la importación.");
 
         var preview = await ArmarPlanAsync(lectura.Filas, cancellationToken);
-        if (preview.Validas.Count == 0)
-            return preview.ToResult(persistido: false, importados: 0);
+        var fichasPreview = await FichaTecnicaImportador.ClasificarAsync(
+            _db,
+            lectura.Fichas,
+            preview.Validas.Select(v => v.CodigoAlmacen),
+            lectura.AvisoFichas,
+            cancellationToken);
+        if (preview.Validas.Count == 0 && fichasPreview.AVincular == 0)
+            return preview.ToResult(persistido: false, importados: 0, fichasPreview);
 
-        var resultado = preview.ToResult(persistido: false, importados: 0);
+        var resultado = preview.ToResult(persistido: false, importados: 0, fichasPreview);
         await _uow.ExecuteInTransactionAsync(async ct =>
         {
-            resultado = await PersistirAsync(lectura.Filas, user, ct);
+            resultado = await PersistirAsync(lectura, user, ct);
         }, cancellationToken);
         return resultado;
     }
 
     private async Task<InventarioImportResult> PersistirAsync(
-        IReadOnlyList<InventarioExcelFila> filas,
+        InventarioExcelLectura lectura,
         User user,
         CancellationToken cancellationToken)
     {
-        var plan = await ArmarPlanAsync(filas, cancellationToken);
+        var plan = await ArmarPlanAsync(lectura.Filas, cancellationToken);
         if (plan.Validas.Count == 0)
-            return plan.ToResult(persistido: false, importados: 0);
+            return await PersistirFichasAsync(lectura, plan, user, creados: 0, cancellationToken);
 
         var plantas = await _db.PlantasInventario.ToListAsync(cancellationToken);
         var porNombre = new Dictionary<string, PlantaInventario>(StringComparer.Ordinal);
@@ -160,7 +172,24 @@ public sealed class InventarioImportService : IInventarioImportService
             });
         }
 
-        return plan.ToResult(persistido: true, importados: creados.Count);
+        return await PersistirFichasAsync(lectura, plan, user, creados.Count, cancellationToken);
+    }
+
+    private async Task<InventarioImportResult> PersistirFichasAsync(
+        InventarioExcelLectura lectura,
+        Plan plan,
+        User user,
+        int creados,
+        CancellationToken cancellationToken)
+    {
+        var fichas = await FichaTecnicaImportador.ClasificarAsync(
+            _db,
+            lectura.Fichas,
+            [],
+            lectura.AvisoFichas,
+            cancellationToken);
+        var vinculadas = await FichaTecnicaImportador.GuardarAsync(_db, fichas, user, cancellationToken);
+        return plan.ToResult(persistido: creados > 0 || vinculadas > 0, importados: creados, fichas);
     }
 
     private PlantaInventario ResolverPlanta(
@@ -577,7 +606,7 @@ public sealed class InventarioImportService : IInventarioImportService
         public List<InventarioImportAdvertencia> Advertencias { get; } = [];
         public List<InventarioImportOmitida> Omitidas { get; } = [];
 
-        public InventarioImportResult ToResult(bool persistido, int importados) => new()
+        public InventarioImportResult ToResult(bool persistido, int importados, FichasPlan? fichas = null) => new()
         {
             Validas = Validas.Select(c => new InventarioImportFilaValida
             {
@@ -602,7 +631,10 @@ public sealed class InventarioImportService : IInventarioImportService
             Advertencias = Advertencias,
             Omitidas = Omitidas,
             Persistido = persistido,
-            Importados = importados
+            Importados = importados,
+            FichasAVincular = fichas?.AVincular ?? 0,
+            FichasVinculadas = fichas?.Vinculadas ?? 0,
+            FichasAdvertencias = fichas?.Advertencias ?? []
         };
     }
 }

@@ -1,0 +1,112 @@
+@model MaterialFichaViewModel
+@{
+    ViewData["Title"] = $"Ficha técnica de {Model.Nombre}";
+    ViewData["Breadcrumb"] = $"SIPITEX / Operación / Inventario por planta / {Model.Nombre}";
+    Layout = "_Layout";
+}
+
+<div class="page-header">
+    <div>
+        <h2>Ficha técnica</h2>
+        <div class="sub">@Model.Nombre · datos del material, distintos de la ficha de la prenda.</div>
+    </div>
+    <div class="row-actions">
+        <a class="ghost" asp-action="Detalle" asp-route-id="@Model.PlantaId"><i class="fas fa-arrow-left"></i> Volver al inventario</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+    @if (Model.IsSuccess)
+    {
+        <div class="alert alert-success"><i class="fas fa-circle-check"></i> @Model.Message</div>
+    }
+    else
+    {
+        <div class="alert alert-danger"><i class="fas fa-circle-exclamation"></i> @Model.Message</div>
+    }
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-box"></i> Material</div>
+    <p>
+        <strong>@Model.Nombre</strong>
+        · Código @Model.Codigo
+        · Almacén @(string.IsNullOrWhiteSpace(Model.CodigoAlmacen) ? "—" : Model.CodigoAlmacen)
+        · Referencia @(string.IsNullOrWhiteSpace(Model.Referencia) ? "—" : Model.Referencia)
+        · @Model.Unidad
+        · @Model.Planta
+    </p>
+</div>
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-file-lines"></i> Ficha técnica</div>
+    @if (!Model.TieneFicha && Model.IsSuccess == false && string.IsNullOrEmpty(Model.Message))
+    {
+        <p class="hint">Este material todavía no tiene ficha técnica. Los campos son opcionales.</p>
+    }
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="alert alert-danger"></div>
+    }
+    <form asp-action="GuardarFicha" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="MaterialId" />
+        <div class="form-row">
+            <div class="field" style="flex:1;min-width:240px;">
+                <label class="field-label" asp-for="TipoMaterial">Tipo de tela / material</label>
+                <input asp-for="TipoMaterial" maxlength="@FichaTecnicaMaterial.TipoMaterialMaxLength" />
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label" asp-for="GramajeGm2">Gramaje (g/m²)</label>
+                <input asp-for="GramajeGm2" inputmode="decimal" placeholder="ej. 180,5" />
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label" asp-for="AnchoCm">Ancho (cm)</label>
+                <input asp-for="AnchoCm" inputmode="decimal" placeholder="ej. 150" />
+            </div>
+        </div>
+        <div class="field">
+            <label class="field-label" asp-for="DescripcionTecnica">Descripción técnica</label>
+            <textarea asp-for="DescripcionTecnica" maxlength="@FichaTecnicaMaterial.DescripcionTecnicaMaxLength" rows="3"></textarea>
+        </div>
+        <div class="field">
+            <label class="field-label" asp-for="Composicion">Composición</label>
+            <textarea asp-for="Composicion" maxlength="@FichaTecnicaMaterial.ComposicionMaxLength" rows="2"></textarea>
+        </div>
+        <div class="form-row">
+            <div class="field" style="flex:1;min-width:220px;">
+                <label class="field-label" asp-for="Colores">Colores disponibles</label>
+                <input asp-for="Colores" maxlength="@FichaTecnicaMaterial.ColoresMaxLength" />
+            </div>
+            <div class="field" style="flex:1;min-width:220px;">
+                <label class="field-label" asp-for="Acabados">Acabados</label>
+                <input asp-for="Acabados" maxlength="@FichaTecnicaMaterial.AcabadosMaxLength" />
+            </div>
+        </div>
+        <div class="field">
+            <label class="field-label" asp-for="EspecificacionesUso">Especificaciones de confección / uso</label>
+            <textarea asp-for="EspecificacionesUso" maxlength="@FichaTecnicaMaterial.EspecificacionesUsoMaxLength" rows="3"></textarea>
+        </div>
+        <div class="field">
+            <label class="field-label" asp-for="ProcesoFabricacion">Proceso de fabricación</label>
+            <textarea asp-for="ProcesoFabricacion" maxlength="@FichaTecnicaMaterial.ProcesoFabricacionMaxLength" rows="3"></textarea>
+        </div>
+        <div class="form-row">
+            <div class="field" style="flex:1;min-width:220px;">
+                <label class="field-label" asp-for="NormasCertificaciones">Normas / certificaciones</label>
+                <input asp-for="NormasCertificaciones" maxlength="@FichaTecnicaMaterial.NormasCertificacionesMaxLength" />
+            </div>
+            <div class="field" style="flex:1;min-width:220px;">
+                <label class="field-label" asp-for="EnlaceFichaOriginal">Imagen o enlace a ficha original</label>
+                <input asp-for="EnlaceFichaOriginal" maxlength="@FichaTecnicaMaterial.EnlaceFichaOriginalMaxLength" />
+            </div>
+        </div>
+        <div class="field">
+            <label class="field-label" asp-for="Observaciones">Observaciones</label>
+            <textarea asp-for="Observaciones" maxlength="@FichaTecnicaMaterial.ObservacionesMaxLength" rows="2"></textarea>
+        </div>
+        <button type="submit" class="primary"><i class="fas fa-floppy-disk"></i> Guardar ficha</button>
+    </form>
+</div>

@@ -83,6 +83,7 @@ public static class DependencyInjection
         services.AddScoped<IOrderChangeLogRepository, OrderChangeLogRepository>(); // Auditoría ediciones de orden
         services.AddScoped<IActivityLogService, ActivityLogService>(); // Auditoría global transversal
         services.AddScoped<IInventarioImportService, InventarioImportService>();
+        services.AddScoped<IFichaTecnicaMaterialService, FichaTecnicaMaterialService>();
 
         return services; // Devuelvo la colección ya configurada
     }

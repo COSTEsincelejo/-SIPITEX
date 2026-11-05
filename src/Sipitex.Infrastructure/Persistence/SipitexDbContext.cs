@@ -31,6 +31,7 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
 
     // Cada DbSet = una tabla en la BD
     public DbSet<Material> Materials => Set<Material>(); // Inventario de telas, hilos, etc.
+    public DbSet<FichaTecnicaMaterial> FichasTecnicasMaterial => Set<FichaTecnicaMaterial>(); // Ficha técnica del material, no de la prenda
     public DbSet<PlantaInventario> PlantasInventario => Set<PlantaInventario>(); // PlantaInventario 1 / PlantaInventario 2 (catálogo compartido)
     public DbSet<UserPlantaInventario> UserPlantasInventario => Set<UserPlantaInventario>(); // M2M encargadoDeBodega ↔ plantaInventario
     public DbSet<BomProduct> BomProducts => Set<BomProduct>(); // Cabecera de ficha técnica (producto)
@@ -127,6 +128,32 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
             e.HasIndex(m => m.PlantaInventarioId);
             // EncargadoDeBodega: IN (plantasInventario asignadas). Restrict=false = Admin/Instructor/seed (sin filtro).
             e.HasQueryFilter(m => !RestrictToAssignedPlantasInventario || CurrentPlantaInventarioIds.Contains(m.PlantaInventarioId));
+        });
+
+        // Ficha técnica del material (1 a 1). No es BomProduct.
+        modelBuilder.Entity<FichaTecnicaMaterial>(e =>
+        {
+            e.ToTable("FichasTecnicasMaterial");
+            e.HasKey(f => f.Id);
+            e.Property(f => f.DescripcionTecnica).HasMaxLength(FichaTecnicaMaterial.DescripcionTecnicaMaxLength);
+            e.Property(f => f.TipoMaterial).HasMaxLength(FichaTecnicaMaterial.TipoMaterialMaxLength);
+            e.Property(f => f.Composicion).HasMaxLength(FichaTecnicaMaterial.ComposicionMaxLength);
+            e.Property(f => f.Colores).HasMaxLength(FichaTecnicaMaterial.ColoresMaxLength);
+            e.Property(f => f.Acabados).HasMaxLength(FichaTecnicaMaterial.AcabadosMaxLength);
+            e.Property(f => f.EspecificacionesUso).HasMaxLength(FichaTecnicaMaterial.EspecificacionesUsoMaxLength);
+            e.Property(f => f.ProcesoFabricacion).HasMaxLength(FichaTecnicaMaterial.ProcesoFabricacionMaxLength);
+            e.Property(f => f.NormasCertificaciones).HasMaxLength(FichaTecnicaMaterial.NormasCertificacionesMaxLength);
+            e.Property(f => f.EnlaceFichaOriginal).HasMaxLength(FichaTecnicaMaterial.EnlaceFichaOriginalMaxLength);
+            e.Property(f => f.Observaciones).HasMaxLength(FichaTecnicaMaterial.ObservacionesMaxLength);
+            e.Property(f => f.GramajeGm2).HasPrecision(18, 2);
+            e.Property(f => f.AnchoCm).HasPrecision(18, 2);
+            e.HasOne(f => f.Material)
+                .WithOne(m => m.FichaTecnica)
+                .HasForeignKey<FichaTecnicaMaterial>(f => f.MaterialId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(f => f.MaterialId).IsUnique();
+            e.HasQueryFilter(f => !RestrictToAssignedPlantasInventario
+                || CurrentPlantaInventarioIds.Contains(f.Material.PlantaInventarioId));
         });
 
         // Cabecera de ficha técnica (producto)

@@ -23,6 +23,7 @@ public class PlantasInventarioController : Controller
     private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
     private readonly IStockMovementService? _stockMovements;
     private readonly IInventarioPlantaService _consulta;
+    private readonly IFichaTecnicaMaterialService? _fichasMaterial;
 
     public PlantasInventarioController(
         IPlantaInventarioService plantasInventario,
@@ -31,7 +32,8 @@ public class PlantasInventarioController : Controller
         IInventoryService inventory,
         ICurrentPlantaInventarioAccessor plantaAccessor,
         IStockMovementService? stockMovements = null,
-        IInventarioPlantaService? inventarioPlanta = null)
+        IInventarioPlantaService? inventarioPlanta = null,
+        IFichaTecnicaMaterialService? fichasMaterial = null)
     {
         _plantas = plantasInventario;
         _reassignment = reassignment;
@@ -40,6 +42,7 @@ public class PlantasInventarioController : Controller
         _plantaAccessor = plantaAccessor;
         _stockMovements = stockMovements;
         _consulta = inventarioPlanta ?? new InventarioPlantaService(plantasInventario, inventory, plantaAccessor);
+        _fichasMaterial = fichasMaterial;
     }
 
     // Pantalla única. plantaId elige una planta; sin él se ve el consolidado de todas las visibles.
@@ -516,6 +519,120 @@ public class PlantasInventarioController : Controller
             : "No se pudo reactivar la planta de inventario.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
+    public async Task<IActionResult> Material(int id, CancellationToken cancellationToken)
+    {
+        if (_fichasMaterial is null)
+            return StatusCode(StatusCodes.Status500InternalServerError);
+
+        var detalle = await _fichasMaterial.ObtenerAsync(id, cancellationToken);
+        if (detalle is null)
+            return NotFound();
+
+        var acceso = await AutorizarPlantaAsync(detalle.PlantaInventarioId, cancellationToken);
+        if (acceso.Error is not null)
+            return acceso.Error;
+
+        return View(MapFicha(detalle, TempData["Message"] as string, TempData["IsSuccess"] as bool? ?? false));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
+    public async Task<IActionResult> GuardarFicha(MaterialFichaViewModel model, CancellationToken cancellationToken)
+    {
+        if (_fichasMaterial is null)
+            return StatusCode(StatusCodes.Status500InternalServerError);
+
+        var detalle = await _fichasMaterial.ObtenerAsync(model.MaterialId, cancellationToken);
+        if (detalle is null)
+            return NotFound();
+
+        var acceso = await AutorizarPlantaAsync(detalle.PlantaInventarioId, cancellationToken);
+        if (acceso.Error is not null)
+            return acceso.Error;
+
+        if (!TryGetActorUserId(out var actorId))
+        {
+            TempData["Message"] = "No se pudo identificar al usuario.";
+            TempData["IsSuccess"] = false;
+            return RedirectToAction(nameof(Material), new { id = model.MaterialId });
+        }
+
+        var resultado = await _fichasMaterial.GuardarAsync(new GuardarFichaTecnicaMaterialDto
+        {
+            MaterialId = model.MaterialId,
+            DescripcionTecnica = model.DescripcionTecnica,
+            TipoMaterial = model.TipoMaterial,
+            Composicion = model.Composicion,
+            GramajeGm2 = model.GramajeGm2,
+            AnchoCm = model.AnchoCm,
+            Colores = model.Colores,
+            Acabados = model.Acabados,
+            EspecificacionesUso = model.EspecificacionesUso,
+            ProcesoFabricacion = model.ProcesoFabricacion,
+            NormasCertificaciones = model.NormasCertificaciones,
+            EnlaceFichaOriginal = model.EnlaceFichaOriginal,
+            Observaciones = model.Observaciones
+        }, actorId, cancellationToken);
+
+        if (!resultado.Success)
+        {
+            var vm = MapFicha(detalle, resultado.Message, false);
+            vm.DescripcionTecnica = model.DescripcionTecnica;
+            vm.TipoMaterial = model.TipoMaterial;
+            vm.Composicion = model.Composicion;
+            vm.GramajeGm2 = model.GramajeGm2;
+            vm.AnchoCm = model.AnchoCm;
+            vm.Colores = model.Colores;
+            vm.Acabados = model.Acabados;
+            vm.EspecificacionesUso = model.EspecificacionesUso;
+            vm.ProcesoFabricacion = model.ProcesoFabricacion;
+            vm.NormasCertificaciones = model.NormasCertificaciones;
+            vm.EnlaceFichaOriginal = model.EnlaceFichaOriginal;
+            vm.Observaciones = model.Observaciones;
+            foreach (var error in resultado.Errores)
+                ModelState.AddModelError(string.Empty, error);
+            return View(nameof(Material), vm);
+        }
+
+        TempData["Message"] = resultado.Message;
+        TempData["IsSuccess"] = true;
+        return RedirectToAction(nameof(Material), new { id = model.MaterialId });
+    }
+
+    private static MaterialFichaViewModel MapFicha(FichaTecnicaMaterialDetalle detalle, string? message, bool isSuccess)
+    {
+        var ficha = detalle.Ficha;
+        return new MaterialFichaViewModel
+        {
+            MaterialId = detalle.MaterialId,
+            PlantaId = detalle.PlantaInventarioId,
+            Planta = detalle.Planta,
+            Codigo = detalle.Codigo,
+            CodigoAlmacen = detalle.CodigoAlmacen,
+            Nombre = detalle.Nombre,
+            Referencia = detalle.Referencia,
+            Unidad = detalle.Unidad,
+            TieneFicha = detalle.TieneFicha,
+            DescripcionTecnica = ficha.DescripcionTecnica,
+            TipoMaterial = ficha.TipoMaterial,
+            Composicion = ficha.Composicion,
+            GramajeGm2 = ficha.GramajeGm2,
+            AnchoCm = ficha.AnchoCm,
+            Colores = ficha.Colores,
+            Acabados = ficha.Acabados,
+            EspecificacionesUso = ficha.EspecificacionesUso,
+            ProcesoFabricacion = ficha.ProcesoFabricacion,
+            NormasCertificaciones = ficha.NormasCertificaciones,
+            EnlaceFichaOriginal = ficha.EnlaceFichaOriginal,
+            Observaciones = ficha.Observaciones,
+            Message = message,
+            IsSuccess = isSuccess
+        };
     }
 
     private async Task<(IActionResult? Error, PlantaInventario? Planta)> AutorizarPlantaAsync(

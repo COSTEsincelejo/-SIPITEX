@@ -330,6 +330,7 @@
                                 {
                                     <div class="hint">@item.Descripcion</div>
                                 }
+                                <div><a asp-action="Material" asp-route-id="@item.Id">Ficha técnica</a></div>
                             </td>
                             <td>@(string.IsNullOrWhiteSpace(item.Referencia) ? "—" : item.Referencia)</td>
                             <td>@item.Categoria</td>
