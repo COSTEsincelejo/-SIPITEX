@@ -7,6 +7,7 @@
         : selected is null ? "Detalle de inventario" : $"Detalle de inventario · {selected.Nombre}";
     var puedeOperar = (User.IsInRole(UserRoles.Administrador) || User.IsInRole(UserRoles.EncargadoDeBodega))
         && Model.PlantaId is int;
+    var puedeFicha = User.IsInRole(UserRoles.Administrador) || User.IsInRole(UserRoles.EncargadoDeBodega);
     var vacioTitulo = Model.PlantaId is null ? "Sin insumos" : "Sin insumos en esta planta";
     var vacioTexto = Model.PlantaId is null
         ? "No hay insumos en las plantas de su alcance."
@@ -137,6 +138,10 @@
                                         <span>@mat.Descripcion</span>
                                     }
                                 </div>
+                            }
+                            @if (puedeFicha)
+                            {
+                                <div><a asp-controller="PlantasInventario" asp-action="Material" asp-route-id="@mat.Id">Ficha técnica</a></div>
                             }
                         </td>
                         <td>@(string.IsNullOrWhiteSpace(mat.CodigoAlmacen) ? "—" : mat.CodigoAlmacen)</td>

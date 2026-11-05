@@ -76,4 +76,7 @@ public class Material
     public ICollection<StockMovement> StockMovements { get; set; } = [];
 
     public ICollection<ConsumoMaterial> Consumos { get; set; } = [];
+
+    // Ficha técnica de este material. Distinta de la ficha de prenda (BomProduct).
+    public FichaTecnicaMaterial? FichaTecnica { get; set; }
 }

@@ -134,7 +134,10 @@ public class InventarioController : Controller
         var importados = resultado.Importados == 1
             ? "Se importó 1 material"
             : $"Se importaron {resultado.Importados} materiales";
-        return $"{importados}. Omitidos: {resultado.Omitidas.Count}. Con error: {resultado.Errores.Count}.";
+        var fichas = resultado.FichasVinculadas == 1
+            ? "Se vinculó 1 ficha técnica"
+            : $"Se vincularon {resultado.FichasVinculadas} fichas técnicas";
+        return $"{importados}. {fichas}. Omitidos: {resultado.Omitidas.Count}. Con error: {resultado.Errores.Count}.";
     }
 
     // Pantalla principal: el Instructor sigue sin acceso; el resto va a la planta que le corresponde.

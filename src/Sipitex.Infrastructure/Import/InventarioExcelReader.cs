@@ -51,6 +51,8 @@ internal sealed class InventarioExcelLectura
 {
     public string? Error { get; init; }
     public IReadOnlyList<InventarioExcelFila> Filas { get; init; } = [];
+    public IReadOnlyList<FichaTecnicaExcelFila> Fichas { get; init; } = [];
+    public string? AvisoFichas { get; init; }
 
     public static InventarioExcelLectura Fallo(string error) => new() { Error = error };
 }
@@ -155,7 +157,13 @@ internal static class InventarioExcelReader
                 filas.Add(fila);
             }
 
-            return new InventarioExcelLectura { Filas = filas };
+            var fichas = FichaTecnicaExcelReader.Leer(workbook);
+            return new InventarioExcelLectura
+            {
+                Filas = filas,
+                Fichas = fichas.Filas,
+                AvisoFichas = fichas.Aviso
+            };
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -263,18 +271,29 @@ internal static class InventarioExcelReader
         return textos.Count == 0 ? ["(ninguno)"] : textos;
     }
 
-    private static CeldaLeida LeerCelda(IXLCell cell)
+    internal static CeldaLeida LeerCelda(IXLCell cell)
     {
-        if (cell.IsEmpty())
+        if (cell.IsEmpty() && !cell.HasFormula)
             return CeldaLeida.EnBlanco;
 
-        var value = cell.HasFormula ? cell.CachedValue : cell.Value;
-        if (value.IsBlank)
+        XLCellValue value;
+        try
+        {
+            value = cell.HasFormula ? cell.CachedValue : cell.Value;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return CeldaLeida.EnBlanco;
+        }
+
+        if (value.IsBlank || value.IsError)
             return CeldaLeida.EnBlanco;
         if (value.IsText)
         {
             var texto = value.GetText().Trim();
-            return texto.Length == 0 ? CeldaLeida.EnBlanco : CeldaLeida.DeTexto(texto);
+            if (texto.Length == 0 || texto.Equals("#REF!", StringComparison.OrdinalIgnoreCase))
+                return CeldaLeida.EnBlanco;
+            return CeldaLeida.DeTexto(texto);
         }
 
         if (value.IsDateTime)
@@ -341,7 +360,7 @@ internal static class InventarioExcelReader
         }
     }
 
-    private static string? Texto(CeldaLeida celda)
+    internal static string? Texto(CeldaLeida celda)
     {
         if (celda.Vacia)
             return null;

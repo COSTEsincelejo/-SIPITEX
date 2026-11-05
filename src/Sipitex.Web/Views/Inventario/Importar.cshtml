@@ -6,14 +6,14 @@
     var resultado = Model.Resultado;
     var puedeConfirmar = resultado is not null
         && resultado.ArchivoValido
-        && resultado.Validas.Count > 0
+        && (resultado.Validas.Count > 0 || resultado.FichasAVincular > 0)
         && !string.IsNullOrEmpty(Model.Token);
 }
 
 <div class="page-header">
     <div>
         <h2>Importar inventario</h2>
-        <div class="sub">Carga la hoja Inventario_Materiales. Primero se simula; nada se guarda hasta confirmar.</div>
+        <div class="sub">Carga la hoja Inventario_Materiales. Si el libro trae Fichas_Tecnicas, también se simula. Nada se guarda hasta confirmar.</div>
     </div>
 </div>
 
@@ -37,7 +37,7 @@
         <div class="field" style="flex:2;min-width:240px;">
             <label class="field-label" for="archivo">Archivo .xlsx</label>
             <input id="archivo" name="archivo" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
-            <p class="hint">Máximo 5 MB. Se lee la hoja Inventario_Materiales por el nombre de cada columna. La columna de stock calculado se ignora.</p>
+            <p class="hint">Máximo 5 MB. Se lee la hoja Inventario_Materiales por el nombre de cada columna. La columna de stock calculado se ignora. La hoja Fichas_Tecnicas, si viene, se vincula al material por código de almacén.</p>
         </div>
         <div class="field" style="align-self:flex-end;">
             <button type="submit" class="primary"><i class="fas fa-magnifying-glass"></i> Simular</button>
@@ -54,6 +54,7 @@
             · Con error: @resultado.Errores.Count
             · Advertencias: @resultado.Advertencias.Count
             · Se omiten: @resultado.Omitidas.Count
+            · Fichas a vincular: @resultado.FichasAVincular
         </p>
 
         @if (resultado.Validas.Any(f => f.PlantaNueva))
@@ -198,9 +199,41 @@
             </table>
         }
 
+        <h3>Fichas técnicas</h3>
+        <p class="hint">
+            @(resultado.FichasAVincular == 1 ? "Se vinculará 1 ficha." : $"Se vincularán {resultado.FichasAVincular} fichas.")
+            Cada una exige un único material con ese código de almacén.
+        </p>
+        @if (resultado.FichasAdvertencias.Count == 0)
+        {
+            <p class="hint">No hay fichas pendientes de completar a mano.</p>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fila</th>
+                        <th>Nombre</th>
+                        <th>Advertencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var aviso in resultado.FichasAdvertencias)
+                    {
+                        <tr>
+                            <td>@aviso.Fila</td>
+                            <td>@(aviso.Nombre ?? "—")</td>
+                            <td>@aviso.Mensaje</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
         @if (puedeConfirmar)
         {
-            <form asp-action="Confirmar" method="post" data-confirm="¿Importar las filas válidas? Se guardan todas en una sola operación." style="margin-top:16px;">
+            <form asp-action="Confirmar" method="post" data-confirm="¿Confirmar la importación? Los materiales y las fichas se guardan en una sola operación." style="margin-top:16px;">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="token" value="@Model.Token" />
                 <button type="submit" class="primary"><i class="fas fa-check"></i> Confirmar</button>

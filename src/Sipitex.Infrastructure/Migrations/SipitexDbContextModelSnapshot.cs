@@ -857,6 +857,73 @@ namespace Sipitex.Infrastructure.Migrations
                     b.ToTable("FichaInstructors");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.FichaTecnicaMaterial", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Acabados")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal?>("AnchoCm")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Colores")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<string>("Composicion")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DescripcionTecnica")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("EnlaceFichaOriginal")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("EspecificacionesUso")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal?>("GramajeGm2")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NormasCertificaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ProcesoFabricacion")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("TipoMaterial")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId")
+                        .IsUnique();
+
+                    b.ToTable("FichasTecnicasMaterial", (string)null);
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.FinishedGoodMovement", b =>
                 {
                     b.Property<int>("Id")
@@ -2317,6 +2384,17 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Sipitex.Domain.Entities.FichaTecnicaMaterial", b =>
+                {
+                    b.HasOne("Sipitex.Domain.Entities.Material", "Material")
+                        .WithOne("FichaTecnica")
+                        .HasForeignKey("Sipitex.Domain.Entities.FichaTecnicaMaterial", "MaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Material");
+                });
+
             modelBuilder.Entity("Sipitex.Domain.Entities.FinishedGoodMovement", b =>
                 {
                     b.HasOne("Sipitex.Domain.Entities.User", "ActorUser")
@@ -2758,6 +2836,8 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("BomItems");
 
                     b.Navigation("Consumos");
+
+                    b.Navigation("FichaTecnica");
 
                     b.Navigation("Requests");
 
