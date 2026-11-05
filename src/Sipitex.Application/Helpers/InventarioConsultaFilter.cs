@@ -11,7 +11,9 @@ public static class InventarioConsultaFilter
     public static IReadOnlyList<MaterialDto> Apply(
         IReadOnlyList<MaterialDto> materials,
         string? nombre,
-        string? nivel)
+        string? nivel,
+        string? categoria = null,
+        TipoElemento? tipoElemento = null)
     {
         if (materials is null || materials.Count == 0)
             return materials ?? [];
@@ -20,14 +22,32 @@ public static class InventarioConsultaFilter
         if (!string.IsNullOrWhiteSpace(nombre))
         {
             var term = nombre.Trim();
-            query = query.Where(m => m.Name.Contains(term, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(m =>
+                m.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                || Contains(m.CodigoAlmacen, term)
+                || Contains(m.Referencia, term));
         }
 
         if (!string.IsNullOrWhiteSpace(nivel))
             query = query.Where(m => MatchesNivel(m, nivel));
 
+        if (!string.IsNullOrWhiteSpace(categoria))
+        {
+            var cat = categoria.Trim();
+            query = query.Where(m =>
+                !string.IsNullOrWhiteSpace(m.Categoria)
+                && string.Equals(m.Categoria.Trim(), cat, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (tipoElemento is TipoElemento tipo)
+            query = query.Where(m => m.TipoElemento == tipo);
+
         return query.ToList();
     }
+
+    private static bool Contains(string? value, string term) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value.Contains(term, StringComparison.OrdinalIgnoreCase);
 
     public static bool MatchesNivel(MaterialDto material, string? nivel)
     {

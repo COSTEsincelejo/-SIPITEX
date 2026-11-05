@@ -20,6 +20,16 @@ public static class UnitHelper
         MaterialUnit.Litro => "litro",
         MaterialUnit.Libra => "libra",
         MaterialUnit.Yarda => "yarda",
+        MaterialUnit.Rollo => "rollo",
+        MaterialUnit.Par => "par",
+        MaterialUnit.Paquete => "paquete",
+        MaterialUnit.Cono => "cono",
+        MaterialUnit.Bolsa => "bolsa",
+        MaterialUnit.Bulto => "bulto",
+        MaterialUnit.Juego => "juego",
+        MaterialUnit.Pano => "paño",
+        MaterialUnit.Gruesa => "gruesa",
+        MaterialUnit.Decimetro => "decímetro",
         _ => unit.ToString()
     };
 

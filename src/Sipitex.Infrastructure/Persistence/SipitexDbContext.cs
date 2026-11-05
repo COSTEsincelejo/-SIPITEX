@@ -104,7 +104,17 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
         {
             e.HasKey(m => m.Id); // PK autoincremental
             e.Property(m => m.Name).HasMaxLength(120).IsRequired(); // Nombre del material, obligatorio
-            e.Property(m => m.Code).HasMaxLength(40).IsRequired(); // Código interno (mat1, mat2...)
+            e.Property(m => m.Code).HasMaxLength(40).IsRequired(); // Código interno autogenerado (mat1, mat2...)
+            e.HasIndex(m => m.Code).IsUnique(); // Sigue siendo único; CodigoAlmacen no lo reemplaza
+            e.Property(m => m.CodigoAlmacen).HasMaxLength(Material.CodigoAlmacenMaxLength);
+            e.Property(m => m.Referencia).HasMaxLength(Material.ReferenciaMaxLength);
+            e.Property(m => m.Categoria).HasMaxLength(Material.CategoriaMaxLength);
+            e.Property(m => m.Subcategoria).HasMaxLength(Material.SubcategoriaMaxLength);
+            e.Property(m => m.Descripcion).HasMaxLength(Material.DescripcionMaxLength);
+            e.Property(m => m.Proveedor).HasMaxLength(Material.ProveedorMaxLength);
+            e.Property(m => m.TipoElemento).HasDefaultValue(TipoElemento.Consumible);
+            // Índice no único: el mismo número de almacén puede repetirse entre materiales.
+            e.HasIndex(m => m.CodigoAlmacen);
             // Precision 18,2 porque stock puede tener decimales (metros de tela, etc.)
             e.Property(m => m.Stock).HasPrecision(18, 2);
             e.Property(m => m.MinStock).HasPrecision(18, 2);

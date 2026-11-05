@@ -1031,8 +1031,16 @@ namespace Sipitex.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Categoria")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
                     b.Property<string>("Code")
                         .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("CodigoAlmacen")
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
@@ -1043,6 +1051,10 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Property<decimal>("CostoPromedioPonderado")
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<DateOnly>("LastEntryDate")
                         .HasColumnType("date");
@@ -1059,6 +1071,14 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Property<int>("PlantaInventarioId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Proveedor")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Referencia")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -1066,10 +1086,24 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("Subcategoria")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("TipoElemento")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<int>("Unit")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("CodigoAlmacen");
 
                     b.HasIndex("PlantaInventarioId");
 

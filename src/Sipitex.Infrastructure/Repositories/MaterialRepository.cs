@@ -39,7 +39,14 @@ public class MaterialRepository : IMaterialRepository
                 m.Status,
                 m.LastEntryDate,
                 m.CostoAdquisicion,
-                m.CostoPromedioPonderado))
+                m.CostoPromedioPonderado,
+                m.CodigoAlmacen,
+                m.Referencia,
+                m.Categoria,
+                m.Subcategoria,
+                m.Descripcion,
+                m.Proveedor,
+                m.TipoElemento))
             .ToListAsync(cancellationToken);
 
     // Busca un material por Id (para editar o ver detalle)

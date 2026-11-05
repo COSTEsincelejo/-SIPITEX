@@ -39,6 +39,13 @@ public class CreateMaterialForm
     public MaterialUnit Unit { get; set; } = MaterialUnit.Metros;
     public StockEntryOrigin Origen { get; set; } = StockEntryOrigin.Compra;
     public decimal CostoAdquisicion { get; set; }
+    public string? CodigoAlmacen { get; set; }
+    public string? Referencia { get; set; }
+    public string? Categoria { get; set; }
+    public string? Subcategoria { get; set; }
+    public string? Descripcion { get; set; }
+    public string? Proveedor { get; set; }
+    public TipoElemento TipoElemento { get; set; } = TipoElemento.Consumible;
 }
 
 // Formulario para pedir material a plantaInventario
@@ -66,6 +73,13 @@ public class EditMaterialForm
     public MaterialUnit Unit { get; set; }
     public decimal MinStock { get; set; }
     public decimal CostoAdquisicion { get; set; }
+    public string? CodigoAlmacen { get; set; }
+    public string? Referencia { get; set; }
+    public string? Categoria { get; set; }
+    public string? Subcategoria { get; set; }
+    public string? Descripcion { get; set; }
+    public string? Proveedor { get; set; }
+    public TipoElemento TipoElemento { get; set; } = TipoElemento.Consumible;
 }
 
 // Pantalla de órdenes de producción
@@ -431,6 +445,9 @@ public class InventarioPlantaViewModel
     public InventarioPlantaResumenDto Consolidado { get; set; } = new();
     public string? Q { get; set; }
     public string? Nivel { get; set; }
+    public string? Categoria { get; set; }
+    public TipoElemento? TipoElemento { get; set; }
+    public IReadOnlyList<string> Categorias { get; set; } = [];
     public int TotalSinFiltro { get; set; }
     public bool PuedeAdministrarPlantas { get; set; }
     public string? Message { get; set; }
@@ -445,6 +462,9 @@ public class PlantaDetalleViewModel
     public bool Activa { get; set; }
     public string? Busqueda { get; set; }
     public string? Categoria { get; set; }
+    public string? CategoriaPlantilla { get; set; }
+    public TipoElemento? TipoElemento { get; set; }
+    public IReadOnlyList<string> CategoriasPlantilla { get; set; } = [];
     public string? Nivel { get; set; }
     public bool MostrarVolverAlCatalogo { get; set; }
     public IReadOnlyList<MaterialPlantaItem> Materiales { get; set; } = [];
@@ -461,6 +481,8 @@ public class PlantaDetalleViewModel
     public bool HayFiltros =>
         !string.IsNullOrWhiteSpace(Busqueda)
         || !string.IsNullOrWhiteSpace(Categoria)
+        || !string.IsNullOrWhiteSpace(CategoriaPlantilla)
+        || TipoElemento is not null
         || !string.IsNullOrWhiteSpace(Nivel);
 }
 
@@ -468,8 +490,15 @@ public class MaterialPlantaItem
 {
     public int Id { get; set; }
     public string Codigo { get; set; } = string.Empty;
+    public string? CodigoAlmacen { get; set; }
+    public string? Referencia { get; set; }
     public string Nombre { get; set; } = string.Empty;
     public string Categoria { get; set; } = string.Empty;
+    public string? CategoriaPlantilla { get; set; }
+    public string? Subcategoria { get; set; }
+    public string? Descripcion { get; set; }
+    public string? Proveedor { get; set; }
+    public TipoElemento TipoElemento { get; set; } = TipoElemento.Consumible;
     public MaterialUnit Unidad { get; set; }
     public string UnidadMedida { get; set; } = string.Empty;
     public decimal StockActual { get; set; }

@@ -18,7 +18,14 @@ public record MaterialDto(
     decimal CostoAdquisicion = 0,
     int PlantaInventarioId = 0,
     string PlantaInventarioNombre = "",
-    decimal CostoPromedioPonderado = 0);
+    decimal CostoPromedioPonderado = 0,
+    string? CodigoAlmacen = null,
+    string? Referencia = null,
+    string? Categoria = null,
+    string? Subcategoria = null,
+    string? Descripcion = null,
+    string? Proveedor = null,
+    TipoElemento TipoElemento = TipoElemento.Consumible);
 
 // Fila de stock de una planta para el detalle del catálogo.
 // EnFichaTecnica distingue Material (está en un BomItem) de Insumo (solo existe en la planta).
@@ -33,7 +40,14 @@ public record MaterialPlantaStockDto(
     MaterialStatus Status = MaterialStatus.Bueno,
     DateOnly LastEntryDate = default,
     decimal CostoAdquisicion = 0,
-    decimal CostoPromedioPonderado = 0);
+    decimal CostoPromedioPonderado = 0,
+    string? CodigoAlmacen = null,
+    string? Referencia = null,
+    string? Categoria = null,
+    string? Subcategoria = null,
+    string? Descripcion = null,
+    string? Proveedor = null,
+    TipoElemento TipoElemento = TipoElemento.Consumible);
 
 // Datos para crear material nuevo (origen tipifica la Entrada del ledger).
 // PlantaInventarioId 0 conserva el default de la entidad (planta 1) para altas que no vienen del detalle.
@@ -43,7 +57,14 @@ public record CreateMaterialDto(
     MaterialUnit Unit,
     StockEntryOrigin Origen,
     decimal CostoAdquisicion = 0,
-    int PlantaInventarioId = 0);
+    int PlantaInventarioId = 0,
+    string? CodigoAlmacen = null,
+    string? Referencia = null,
+    string? Categoria = null,
+    string? Subcategoria = null,
+    string? Descripcion = null,
+    string? Proveedor = null,
+    TipoElemento TipoElemento = TipoElemento.Consumible);
 
 // Ajuste manual de stock; Origen obligatorio cuando NewStock > stock actual
 public record AdjustStockDto(
@@ -58,7 +79,14 @@ public record UpdateMaterialDto(
     string Name,
     MaterialUnit Unit,
     decimal MinStock,
-    decimal? CostoAdquisicion = null);
+    decimal? CostoAdquisicion = null,
+    string? CodigoAlmacen = null,
+    string? Referencia = null,
+    string? Categoria = null,
+    string? Subcategoria = null,
+    string? Descripcion = null,
+    string? Proveedor = null,
+    TipoElemento TipoElemento = TipoElemento.Consumible);
 
 // Cambiar estado físico del material
 public record UpdateMaterialStatusDto(int MaterialId, MaterialStatus Status);

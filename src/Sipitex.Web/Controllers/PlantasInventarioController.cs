@@ -50,20 +50,28 @@ public class PlantasInventarioController : Controller
         int? plantaId = null,
         string? q = null,
         string? nivel = null,
-        int? plantaInventarioId = null)
+        int? plantaInventarioId = null,
+        string? categoria = null,
+        TipoElemento? tipoElemento = null)
     {
         if (plantaId is null && plantaInventarioId is int legacyId)
-            return RedirectToAction(nameof(Index), new { plantaId = legacyId, q, nivel });
+            return RedirectToAction(nameof(Index), new { plantaId = legacyId, q, nivel, categoria, tipoElemento });
 
-        var consulta = await _consulta.ConsultarAsync(plantaId, q, nivel, cancellationToken);
+        var consulta = await _consulta.ConsultarAsync(
+            plantaId, q, nivel, cancellationToken, categoria, tipoElemento);
         return View(MapConsulta(consulta));
     }
 
     // Ruta anterior de la consulta. 302 para que el marcador siga la pantalla actual.
     [HttpGet]
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor},{UserRoles.EncargadoDeBodega}")]
-    public IActionResult Consultar(int? plantaInventarioId, string? q = null, string? nivel = null) =>
-        RedirectToAction(nameof(Index), new { plantaId = plantaInventarioId, q, nivel });
+    public IActionResult Consultar(
+        int? plantaInventarioId,
+        string? q = null,
+        string? nivel = null,
+        string? categoria = null,
+        TipoElemento? tipoElemento = null) =>
+        RedirectToAction(nameof(Index), new { plantaId = plantaInventarioId, q, nivel, categoria, tipoElemento });
 
     [HttpGet]
     [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
@@ -72,7 +80,9 @@ public class PlantasInventarioController : Controller
         string? busqueda,
         string? categoria,
         CancellationToken cancellationToken = default,
-        string? nivel = null)
+        string? nivel = null,
+        string? categoriaPlantilla = null,
+        TipoElemento? tipoElemento = null)
     {
         var acceso = await AutorizarPlantaAsync(id, cancellationToken);
         if (acceso.Error is not null)
@@ -84,7 +94,7 @@ public class PlantasInventarioController : Controller
             .Select(m => StockNivelHelper.Classify(m.Stock, m.MinStock))
             .ToList();
         var conteos = StockNivelHelper.Contar(nivelesPlanta);
-        var filtrados = PlantaDetalleConsulta.Apply(stock, busqueda, categoria);
+        var filtrados = PlantaDetalleConsulta.Apply(stock, busqueda, categoria, categoriaPlantilla, tipoElemento);
         if (!string.IsNullOrWhiteSpace(nivel))
             filtrados = filtrados.Where(m => CoincideNivel(m, nivel)).ToList();
 
@@ -98,14 +108,30 @@ public class PlantasInventarioController : Controller
             Activa = planta.Activo,
             Busqueda = busqueda,
             Categoria = categoria,
+            CategoriaPlantilla = string.IsNullOrWhiteSpace(categoriaPlantilla) ? null : categoriaPlantilla.Trim(),
+            TipoElemento = tipoElemento,
+            CategoriasPlantilla = stock
+                .Select(m => m.Categoria)
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                .ToList(),
             Nivel = nivel,
             MostrarVolverAlCatalogo = esAdmin || varias,
             Materiales = filtrados.Select(m => new MaterialPlantaItem
             {
                 Id = m.Id,
                 Codigo = m.Code,
+                CodigoAlmacen = m.CodigoAlmacen,
+                Referencia = m.Referencia,
                 Nombre = m.Name,
                 Categoria = PlantaDetalleConsulta.Etiqueta(m.EnFichaTecnica),
+                CategoriaPlantilla = m.Categoria,
+                Subcategoria = m.Subcategoria,
+                Descripcion = m.Descripcion,
+                Proveedor = m.Proveedor,
+                TipoElemento = m.TipoElemento,
                 Unidad = m.Unit,
                 UnidadMedida = UnitHelper.ToDisplay(m.Unit),
                 StockActual = m.Stock,
@@ -201,7 +227,20 @@ public class PlantasInventarioController : Controller
         }
 
         var result = await _inventory.AddMaterialAsync(
-            new CreateMaterialDto(form.Name, form.Stock, form.Unit, form.Origen, form.CostoAdquisicion, id),
+            new CreateMaterialDto(
+                form.Name,
+                form.Stock,
+                form.Unit,
+                form.Origen,
+                form.CostoAdquisicion,
+                id,
+                form.CodigoAlmacen,
+                form.Referencia,
+                form.Categoria,
+                form.Subcategoria,
+                form.Descripcion,
+                form.Proveedor,
+                form.TipoElemento),
             actorId,
             cancellationToken);
 
@@ -223,7 +262,19 @@ public class PlantasInventarioController : Controller
             return NotFound();
 
         var result = await _inventory.UpdateMaterialAsync(
-            new UpdateMaterialDto(form.MaterialId, form.Name, form.Unit, form.MinStock, form.CostoAdquisicion),
+            new UpdateMaterialDto(
+                form.MaterialId,
+                form.Name,
+                form.Unit,
+                form.MinStock,
+                form.CostoAdquisicion,
+                form.CodigoAlmacen,
+                form.Referencia,
+                form.Categoria,
+                form.Subcategoria,
+                form.Descripcion,
+                form.Proveedor,
+                form.TipoElemento),
             cancellationToken,
             id);
 
@@ -516,6 +567,9 @@ public class PlantasInventarioController : Controller
             Consolidado = consulta.Consolidado,
             Q = consulta.Q,
             Nivel = consulta.Nivel,
+            Categoria = consulta.Categoria,
+            TipoElemento = consulta.TipoElemento,
+            Categorias = consulta.Categorias,
             TotalSinFiltro = consulta.TotalSinFiltro,
             PuedeAdministrarPlantas = User.IsInRole(UserRoles.Administrador),
             Message = TempData["Message"] as string,

@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Helpers;
 
@@ -24,7 +25,9 @@ public static class PlantaDetalleConsulta
     public static IReadOnlyList<MaterialPlantaStockDto> Apply(
         IReadOnlyList<MaterialPlantaStockDto> items,
         string? busqueda,
-        string? categoria)
+        string? categoria,
+        string? categoriaPlantilla = null,
+        TipoElemento? tipoElemento = null)
     {
         IEnumerable<MaterialPlantaStockDto> query = items ?? [];
 
@@ -33,7 +36,9 @@ public static class PlantaDetalleConsulta
             var term = busqueda.Trim();
             query = query.Where(m =>
                 m.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                || m.Code.Contains(term, StringComparison.OrdinalIgnoreCase));
+                || m.Code.Contains(term, StringComparison.OrdinalIgnoreCase)
+                || Contains(m.CodigoAlmacen, term)
+                || Contains(m.Referencia, term));
         }
 
         if (EsMateriales(categoria))
@@ -41,11 +46,26 @@ public static class PlantaDetalleConsulta
         else if (EsInsumos(categoria))
             query = query.Where(m => !m.EnFichaTecnica);
 
+        if (!string.IsNullOrWhiteSpace(categoriaPlantilla))
+        {
+            var cat = categoriaPlantilla.Trim();
+            query = query.Where(m =>
+                !string.IsNullOrWhiteSpace(m.Categoria)
+                && string.Equals(m.Categoria.Trim(), cat, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (tipoElemento is TipoElemento tipo)
+            query = query.Where(m => m.TipoElemento == tipo);
+
         return query
             .OrderBy(m => m.EnFichaTecnica ? 0 : 1)
             .ThenBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
+
+    private static bool Contains(string? value, string term) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value.Contains(term, StringComparison.OrdinalIgnoreCase);
 
     private static bool Coincide(string? categoria, params string[] esperados)
     {

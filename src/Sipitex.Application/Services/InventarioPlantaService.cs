@@ -2,6 +2,7 @@ using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
@@ -26,7 +27,9 @@ public class InventarioPlantaService : IInventarioPlantaService
         int? plantaId,
         string? q,
         string? nivel,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? categoria = null,
+        TipoElemento? tipoElemento = null)
     {
         var plantas = Visible(await _plantas.GetAllAsync(cancellationToken));
         if (plantaId is int requested && plantas.All(p => p.Id != requested))
@@ -47,11 +50,20 @@ public class InventarioPlantaService : IInventarioPlantaService
         {
             PlantaId = plantaId,
             Plantas = plantas,
-            Materiales = InventarioConsultaFilter.Apply(deLaPlanta, q, nivel),
+            Materiales = InventarioConsultaFilter.Apply(deLaPlanta, q, nivel, categoria, tipoElemento),
             Resumen = resumen,
             Consolidado = InventarioPlantaResumenDto.Sumar(resumen),
             Q = q,
             Nivel = nivel,
+            Categoria = string.IsNullOrWhiteSpace(categoria) ? null : categoria.Trim(),
+            TipoElemento = tipoElemento,
+            Categorias = deLaPlanta
+                .Select(m => m.Categoria)
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                .ToList(),
             TotalSinFiltro = deLaPlanta.Count
         };
     }

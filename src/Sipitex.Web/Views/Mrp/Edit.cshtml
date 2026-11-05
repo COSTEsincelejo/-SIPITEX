@@ -366,8 +366,12 @@
                                    value="@Model.Form.Lines[i].QuantityPerUnit.ToString(System.Globalization.CultureInfo.InvariantCulture)" required style="width:100px" />
                         </td>
                         <td>
-                            <select name="Form.Lines[@i].Unit" asp-items="Html.GetEnumSelectList<MaterialUnit>()"
-                                    data-selected="@((int)Model.Form.Lines[i].Unit)"></select>
+                            <select name="Form.Lines[@i].Unit" data-selected="@((int)Model.Form.Lines[i].Unit)">
+                                @foreach (MaterialUnit u in UnitHelper.Catalog)
+                                {
+                                    <option value="@((int)u)">@UnitHelper.ToDisplay(u)</option>
+                                }
+                            </select>
                         </td>
                         <td>
                             <div class="form-row" style="gap:6px;margin:0;">
@@ -375,15 +379,15 @@
                                        value="@Model.Form.Lines[i].NewMaterialName" style="width:140px" />
                                 <select name="Form.Lines[@i].NewMaterialUnit">
                                     <option value="">Unidad</option>
-                                    @foreach (MaterialUnit u in Enum.GetValues<MaterialUnit>())
+                                    @foreach (MaterialUnit u in UnitHelper.Catalog)
                                     {
                                         if (Model.Form.Lines[i].NewMaterialUnit == u)
                                         {
-                                            <option value="@u" selected>@u</option>
+                                            <option value="@u" selected>@UnitHelper.ToDisplay(u)</option>
                                         }
                                         else
                                         {
-                                            <option value="@u">@u</option>
+                                            <option value="@u">@UnitHelper.ToDisplay(u)</option>
                                         }
                                     }
                                 </select>
@@ -426,9 +430,9 @@
         </td>
         <td>
             <select name="Form.Lines[__i__].Unit">
-                @foreach (MaterialUnit u in Enum.GetValues<MaterialUnit>())
+                @foreach (MaterialUnit u in UnitHelper.Catalog)
                 {
-                    <option value="@u">@u</option>
+                    <option value="@((int)u)">@UnitHelper.ToDisplay(u)</option>
                 }
             </select>
         </td>
@@ -437,9 +441,9 @@
                 <input name="Form.Lines[__i__].NewMaterialName" placeholder="Nombre nuevo" style="width:140px" />
                 <select name="Form.Lines[__i__].NewMaterialUnit">
                     <option value="">Unidad</option>
-                    @foreach (MaterialUnit u in Enum.GetValues<MaterialUnit>())
+                    @foreach (MaterialUnit u in UnitHelper.Catalog)
                     {
-                        <option value="@u">@u</option>
+                        <option value="@u">@UnitHelper.ToDisplay(u)</option>
                     }
                 </select>
             </div>

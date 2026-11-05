@@ -81,9 +81,47 @@
                 <label class="field-label">Stock inicial</label>
                 <input asp-for="CreateMaterial.Stock" type="number" step="0.1" min="0" required />
             </div>
-            <div class="field" style="width:120px;">
+            <div class="field" style="width:140px;">
                 <label class="field-label">Unidad</label>
-                <select asp-for="CreateMaterial.Unit" asp-items="Html.GetEnumSelectList<MaterialUnit>()"></select>
+                <select asp-for="CreateMaterial.Unit">
+                    @foreach (MaterialUnit u in UnitHelper.Catalog)
+                    {
+                        <option value="@((int)u)">@UnitHelper.ToDisplay(u)</option>
+                    }
+                </select>
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Código almacén</label>
+                <input asp-for="CreateMaterial.CodigoAlmacen" maxlength="@Material.CodigoAlmacenMaxLength" placeholder="Referencia de almacén" />
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Referencia</label>
+                <input asp-for="CreateMaterial.Referencia" maxlength="@Material.ReferenciaMaxLength" />
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Categoría</label>
+                <input asp-for="CreateMaterial.Categoria" maxlength="@Material.CategoriaMaxLength" placeholder="ej. Telas" />
+            </div>
+            <div class="field" style="width:140px;">
+                <label class="field-label">Subcategoría</label>
+                <input asp-for="CreateMaterial.Subcategoria" maxlength="@Material.SubcategoriaMaxLength" />
+            </div>
+            <div class="field" style="width:160px;">
+                <label class="field-label">Proveedor</label>
+                <input asp-for="CreateMaterial.Proveedor" maxlength="@Material.ProveedorMaxLength" />
+            </div>
+            <div class="field" style="width:150px;">
+                <label class="field-label">Tipo de elemento</label>
+                <select asp-for="CreateMaterial.TipoElemento">
+                    @foreach (TipoElemento tipo in Enum.GetValues<TipoElemento>())
+                    {
+                        <option value="@tipo">@tipo</option>
+                    }
+                </select>
+            </div>
+            <div class="field" style="flex:2;min-width:220px;">
+                <label class="field-label">Descripción</label>
+                <input asp-for="CreateMaterial.Descripcion" maxlength="@Material.DescripcionMaxLength" />
             </div>
             <div class="field" style="width:160px;">
                 <label class="field-label">Precio unitario (compra)</label>
@@ -112,7 +150,7 @@
                 <input id="busqueda" name="busqueda" type="search" value="@Model.Busqueda" placeholder="Nombre o código" autocomplete="off" />
             </div>
             <div class="field" style="min-width:180px;">
-                <label class="field-label" for="categoria">Categoría</label>
+                <label class="field-label" for="categoria">Clase</label>
                 <select id="categoria" name="categoria">
                     @if (!materialesSeleccionados && !insumosSeleccionados)
                     {
@@ -137,6 +175,54 @@
                     else
                     {
                         <option value="@PlantaDetalleConsulta.Insumos">Insumos</option>
+                    }
+                </select>
+            </div>
+            <div class="field" style="min-width:180px;">
+                <label class="field-label" for="categoriaPlantilla">Categoría</label>
+                <select id="categoriaPlantilla" name="categoriaPlantilla">
+                    @if (string.IsNullOrWhiteSpace(Model.CategoriaPlantilla))
+                    {
+                        <option value="" selected>Todas</option>
+                    }
+                    else
+                    {
+                        <option value="">Todas</option>
+                    }
+                    @foreach (var cat in Model.CategoriasPlantilla)
+                    {
+                        if (string.Equals(cat, Model.CategoriaPlantilla, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <option value="@cat" selected>@cat</option>
+                        }
+                        else
+                        {
+                            <option value="@cat">@cat</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="field" style="min-width:170px;">
+                <label class="field-label" for="tipoElemento">Tipo de elemento</label>
+                <select id="tipoElemento" name="tipoElemento">
+                    @if (Model.TipoElemento is null)
+                    {
+                        <option value="" selected>Todos</option>
+                    }
+                    else
+                    {
+                        <option value="">Todos</option>
+                    }
+                    @foreach (TipoElemento tipo in Enum.GetValues<TipoElemento>())
+                    {
+                        if (Model.TipoElemento == tipo)
+                        {
+                            <option value="@tipo" selected>@tipo</option>
+                        }
+                        else
+                        {
+                            <option value="@tipo">@tipo</option>
+                        }
                     }
                 </select>
             </div>
@@ -206,7 +292,7 @@
 
         @if (!Model.Materiales.Any())
         {
-            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-filter", Title = "Sin coincidencias", Text = "Ningún material o insumo coincide con la búsqueda, la categoría o el nivel seleccionado.", ActionText = null }' />
+            <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-filter", Title = "Sin coincidencias", Text = "Ningún material o insumo coincide con la búsqueda, la clase, la categoría, el tipo de elemento o el nivel seleccionado.", ActionText = null }' />
         }
         else
         {
@@ -215,8 +301,14 @@
                     <thead>
                         <tr>
                             <th>Código</th>
+                            <th>Cód. almacén</th>
                             <th>Nombre</th>
+                            <th>Referencia</th>
+                            <th>Clase</th>
                             <th>Categoría</th>
+                            <th>Subcategoría</th>
+                            <th>Tipo</th>
+                            <th>Proveedor</th>
                             <th>Unidad</th>
                             <th>Stock</th>
                             <th>Nivel</th>
@@ -231,8 +323,20 @@
                     {
                         <tr>
                             <td>@item.Codigo</td>
-                            <td><strong>@item.Nombre</strong></td>
+                            <td>@(string.IsNullOrWhiteSpace(item.CodigoAlmacen) ? "—" : item.CodigoAlmacen)</td>
+                            <td>
+                                <strong>@item.Nombre</strong>
+                                @if (!string.IsNullOrWhiteSpace(item.Descripcion))
+                                {
+                                    <div class="hint">@item.Descripcion</div>
+                                }
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(item.Referencia) ? "—" : item.Referencia)</td>
                             <td>@item.Categoria</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.CategoriaPlantilla) ? "—" : item.CategoriaPlantilla)</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.Subcategoria) ? "—" : item.Subcategoria)</td>
+                            <td>@item.TipoElemento</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.Proveedor) ? "—" : item.Proveedor)</td>
                             <td>@item.UnidadMedida</td>
                             <td>@item.StockActual.ToString("0.0")</td>
                             <td><span class="badge @DisplayHelper.BadgeClass(item.NivelStock)">@DisplayHelper.StatusText(item.NivelStock)</span></td>
@@ -271,8 +375,27 @@
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="MaterialId" value="@item.Id" />
                                         <input type="text" name="Name" value="@item.Nombre" required style="width:140px" aria-label="Nombre" />
+                                        <input type="text" name="CodigoAlmacen" value="@item.CodigoAlmacen" maxlength="@Material.CodigoAlmacenMaxLength" style="width:110px" aria-label="Código de almacén" placeholder="Cód. almacén" />
+                                        <input type="text" name="Referencia" value="@item.Referencia" maxlength="@Material.ReferenciaMaxLength" style="width:110px" aria-label="Referencia" placeholder="Referencia" />
+                                        <input type="text" name="Categoria" value="@item.CategoriaPlantilla" maxlength="@Material.CategoriaMaxLength" style="width:110px" aria-label="Categoría" placeholder="Categoría" />
+                                        <input type="text" name="Subcategoria" value="@item.Subcategoria" maxlength="@Material.SubcategoriaMaxLength" style="width:110px" aria-label="Subcategoría" placeholder="Subcategoría" />
+                                        <input type="text" name="Proveedor" value="@item.Proveedor" maxlength="@Material.ProveedorMaxLength" style="width:120px" aria-label="Proveedor" placeholder="Proveedor" />
+                                        <select name="TipoElemento" aria-label="Tipo de elemento">
+                                            @foreach (TipoElemento tipo in Enum.GetValues<TipoElemento>())
+                                            {
+                                                if (tipo == item.TipoElemento)
+                                                {
+                                                    <option value="@tipo" selected>@tipo</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@tipo">@tipo</option>
+                                                }
+                                            }
+                                        </select>
+                                        <input type="text" name="Descripcion" value="@item.Descripcion" maxlength="@Material.DescripcionMaxLength" style="width:180px" aria-label="Descripción" placeholder="Descripción" />
                                         <select name="Unit" aria-label="Unidad">
-                                            @foreach (MaterialUnit u in Enum.GetValues<MaterialUnit>())
+                                            @foreach (MaterialUnit u in UnitHelper.Catalog)
                                             {
                                                 if (u == item.Unidad)
                                                 {

@@ -8,11 +8,36 @@ public class Material
     // PK
     public int Id { get; set; }
 
-    // Código interno autogenerado al crear (tipo mat123456...)
+    public const int CodigoAlmacenMaxLength = 40;
+    public const int ReferenciaMaxLength = 80;
+    public const int CategoriaMaxLength = 80;
+    public const int SubcategoriaMaxLength = 80;
+    public const int DescripcionMaxLength = 1000;
+    public const int ProveedorMaxLength = 120;
+
+    // Código interno autogenerado al crear (tipo mat123456...). Sigue siendo único; no se reemplaza por CodigoAlmacen.
     public string Code { get; set; } = string.Empty;
+
+    // Número de referencia del almacén principal. Puede repetirse entre materiales.
+    public string? CodigoAlmacen { get; set; }
+
+    // Referencia del ítem en la plantilla CMTC (distinta del código interno).
+    public string? Referencia { get; set; }
 
     // Nombre para mostrar en pantallas y reportes
     public string Name { get; set; } = string.Empty;
+
+    // Clasificación libre de la plantilla (telas, hilos, avíos...).
+    public string? Categoria { get; set; }
+
+    public string? Subcategoria { get; set; }
+
+    public string? Descripcion { get; set; }
+
+    public string? Proveedor { get; set; }
+
+    // Consumible por defecto: los materiales ya cargados no cambian de tipo al migrar.
+    public TipoElemento TipoElemento { get; set; } = TipoElemento.Consumible;
 
     // Unidad de medida: Metros, Unidades o Kg
     public MaterialUnit Unit { get; set; }

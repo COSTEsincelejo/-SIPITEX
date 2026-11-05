@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Interfaces.Services;
 
@@ -9,5 +10,7 @@ public interface IInventarioPlantaService
         int? plantaId,
         string? q,
         string? nivel,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string? categoria = null,
+        TipoElemento? tipoElemento = null);
 }
