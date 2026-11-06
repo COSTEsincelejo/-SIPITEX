@@ -6,11 +6,18 @@ namespace Sipitex.Web.Models;
 public sealed class PoliticaPrivacidadViewModel
 {
     public required PrivacidadOptions Opciones { get; init; }
+
+    public required PoliticaDocumento Documento { get; init; }
+
     public bool Autenticado { get; init; }
 }
 
 public sealed class AceptarPoliticaViewModel
 {
+    public string VersionVigente { get; set; } = PoliticaPrivacidad.Version;
+
+    public string? VersionAnterior { get; set; }
+
     [Range(typeof(bool), "true", "true", ErrorMessage = "Debe aceptar la política de tratamiento de datos personales.")]
     public bool AceptaPolitica { get; set; }
 }
@@ -18,9 +25,9 @@ public sealed class AceptarPoliticaViewModel
 public sealed class SolicitudDatosViewModel
 {
     [Required]
-    public string Tipo { get; set; } = "actualizacion";
+    public string Tipo { get; set; } = "rectificacion";
 
-    [Required(ErrorMessage = "Escriba qué dato quiere actualizar o por qué pide la eliminación.")]
+    [Required(ErrorMessage = "Escriba qué dato quiere actualizar o por qué pide la eliminación o la revocatoria.")]
     [StringLength(800)]
     public string Mensaje { get; set; } = string.Empty;
 }

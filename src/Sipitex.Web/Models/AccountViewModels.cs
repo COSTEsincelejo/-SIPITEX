@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Sipitex.Application.Interfaces.Services;
 
 namespace Sipitex.Web.Models;
 
@@ -84,6 +85,12 @@ public class ProfileViewModel
     public string? PoliticaVersion { get; set; }
 
     public DateTime? PoliticaAceptadaEnUtc { get; set; }
+
+    public string FichaTexto { get; set; } = "Ninguna";
+
+    public string PlantasTexto { get; set; } = "Ninguna";
+
+    public List<AceptacionTratamientoDto> Aceptaciones { get; set; } = [];
 }
 
 // Paso 1 de recuperar contraseña: solo pide el correo

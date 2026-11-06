@@ -46,6 +46,21 @@ public sealed class AceptacionTratamientoService : IAceptacionTratamientoService
             : new AceptacionTratamientoDto(fila.VersionPolitica, fila.AceptadaEnUtc, fila.DireccionIp);
     }
 
+    public async Task<IReadOnlyList<AceptacionTratamientoDto>> HistorialAsync(
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var filas = await _db.AceptacionesTratamiento.AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .OrderByDescending(a => a.AceptadaEnUtc)
+            .ThenByDescending(a => a.Id)
+            .ToListAsync(cancellationToken);
+
+        return filas
+            .Select(fila => new AceptacionTratamientoDto(fila.VersionPolitica, fila.AceptadaEnUtc, fila.DireccionIp))
+            .ToList();
+    }
+
     public async Task RegistrarAsync(int userId, string? direccionIp, CancellationToken cancellationToken = default)
     {
         if (userId <= 0)

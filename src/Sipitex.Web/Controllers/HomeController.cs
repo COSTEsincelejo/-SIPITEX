@@ -34,11 +34,9 @@ public class HomeController : Controller
         return (userId, User.FindFirstValue(ClaimTypes.Role), User.FindFirstValue(ClaimTypes.Name));
     }
 
-    // Página de política de privacidad (pública)
-    public IActionResult Privacy()
-    {
-        return View();
-    }
+    // La plantilla en inglés no es la política. La vigente está en Privacidad.
+    [AllowAnonymous]
+    public IActionResult Privacy() => RedirectToAction("Index", "Privacidad");
 
     // Sin caché para que el error muestre el RequestId actual
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
