@@ -47,13 +47,9 @@ public class InventarioInstructorRestrictionTests
         return new ClaimsPrincipal(identity);
     }
 
-    private static InventarioController CreateController(
-        ClaimsPrincipal user,
-        IInventoryService inventory,
-        IProductionOrderService orders,
-        IStockMovementService movements)
+    private static InventarioController CreateController(ClaimsPrincipal user)
     {
-        var controller = new InventarioController(inventory, orders, movements)
+        var controller = new InventarioController()
         {
             ControllerContext = new ControllerContext
             {
@@ -113,58 +109,37 @@ public class InventarioInstructorRestrictionTests
     }
 
     [Fact]
-    public void InventarioController_Index_RequiresPuedeConsultarInventarioPolicy()
+    public void InventarioController_Index_RedirigeSinPoliticaDeConsulta()
     {
         var method = typeof(InventarioController)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-            .Single(m => m.Name == nameof(InventarioController.Index) && m.GetParameters().Length == 1);
-        var attr = method.GetCustomAttribute<AuthorizeAttribute>();
-        Assert.NotNull(attr);
-        Assert.Equal(AuthorizationPolicyNames.PuedeConsultarInventario, attr!.Policy);
+            .Single(m => m.Name == nameof(InventarioController.Index));
+        Assert.Null(method.GetCustomAttribute<AuthorizeAttribute>());
+        Assert.NotNull(method.GetCustomAttribute<HttpGetAttribute>());
     }
 
     [Fact]
-    public async Task InventarioController_Index_Instructor_ReturnsForbid()
+    public void InventarioController_Index_Instructor_RedirigeAPlantas()
     {
-        var inventory = new Mock<IInventoryService>();
-        var orders = new Mock<IProductionOrderService>();
-        var movements = new Mock<IStockMovementService>();
-        var controller = CreateController(
-            Principal(10, UserRoles.Instructor, "Laura"),
-            inventory.Object,
-            orders.Object,
-            movements.Object);
+        var controller = CreateController(Principal(10, UserRoles.Instructor, "Laura"));
 
-        var result = await controller.Index(CancellationToken.None);
-
-        Assert.IsType<ForbidResult>(result);
-        inventory.Verify(
-            s => s.GetMaterialsAsync(It.IsAny<CancellationToken>()),
-            Times.Never);
-        inventory.Verify(
-            s => s.GetRequestsAsync(
-                It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task InventarioController_Index_Administrador_RedirigeAPlantas()
-    {
-        var inventory = new Mock<IInventoryService>();
-        var orders = new Mock<IProductionOrderService>();
-        var movements = new Mock<IStockMovementService>();
-        var controller = CreateController(
-            Principal(1, UserRoles.Administrador, "Admin"),
-            inventory.Object,
-            orders.Object,
-            movements.Object);
-
-        var result = await controller.Index(CancellationToken.None);
+        var result = controller.Index();
 
         var redirect = Assert.IsType<RedirectResult>(result);
         Assert.True(redirect.Permanent);
-        Assert.Equal("/PlantasInventario", redirect.Url);
-        inventory.Verify(s => s.GetMaterialsAsync(It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Equal("/PlantasInventario/Index", redirect.Url);
+    }
+
+    [Fact]
+    public void InventarioController_Index_Administrador_RedirigeAPlantas()
+    {
+        var controller = CreateController(Principal(1, UserRoles.Administrador, "Admin"));
+
+        var result = controller.Index();
+
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.True(redirect.Permanent);
+        Assert.Equal("/PlantasInventario/Index", redirect.Url);
     }
 
     [Fact]

@@ -21,22 +21,22 @@ namespace Sipitex.Tests;
 public class InventarioDentroDePlantasTests
 {
     [Fact]
-    public async Task Inventario_EncargadoConUnaPlanta_RedirigeAlDetalle()
+    public void Inventario_Encargado_RedirigeAlIndiceDePlantas()
     {
-        var controller = LegacyController(UserRoles.EncargadoDeBodega, new FixedCurrentPlantaInventarioAccessor([4]));
+        var controller = LegacyController(UserRoles.EncargadoDeBodega);
 
-        var index = await controller.Index(CancellationToken.None);
+        var index = controller.Index();
         var redirect = Assert.IsType<RedirectResult>(index);
         Assert.True(redirect.Permanent);
-        Assert.Equal("/PlantasInventario/Detalle/4", redirect.Url);
+        Assert.Equal("/PlantasInventario/Index", redirect.Url);
     }
 
     [Fact]
-    public void Inventario_EncargadoConVariasPlantas_RedirigeAlCatalogo()
+    public void Inventario_Movimientos_RedirigeAlHistorialDePlantas()
     {
-        var controller = LegacyController(UserRoles.EncargadoDeBodega, new FixedCurrentPlantaInventarioAccessor([1, 2]));
+        var controller = LegacyController(UserRoles.EncargadoDeBodega);
 
-        var result = controller.Movimientos(null, null, null, CancellationToken.None);
+        var result = controller.Movimientos();
 
         var redirect = Assert.IsType<RedirectResult>(result);
         Assert.True(redirect.Permanent);
@@ -242,13 +242,9 @@ public class InventarioDentroDePlantasTests
         return Assert.IsType<PlantaDetalleViewModel>(view.Model);
     }
 
-    private static InventarioController LegacyController(string role, ICurrentPlantaInventarioAccessor accessor)
+    private static InventarioController LegacyController(string role)
     {
-        var controller = new InventarioController(
-            Mock.Of<IInventoryService>(),
-            Mock.Of<IProductionOrderService>(),
-            Mock.Of<IStockMovementService>(),
-            accessor)
+        var controller = new InventarioController
         {
             ControllerContext = new ControllerContext
             {

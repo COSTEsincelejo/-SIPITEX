@@ -7,7 +7,7 @@ Cada controlador de `src/Sipitex.Web/Controllers` y su función:
 | Módulo UI | Ruta | Controller | Servicio | Función |
 |-----------|------|------------|----------|---------|
 | Inicio | `/Home` | `HomeController` | — | Landing autenticada, privacidad y página de error |
-| Inventario | `/Inventario` | `InventarioController` | `InventoryService` | Stock, altas, estado de material, movimientos |
+| Inventario (legado) | `/Inventario` redirige a `/PlantasInventario/Index`. `/Inventario/Movimientos` redirige a `/PlantasInventario/Movimientos`. `/Inventario/Importar` sigue en `InventarioController` | `InventarioController` | `InventarioImportService` | Importación Excel del administrador |
 | Órdenes | `/Ordenes` | `OrdenesController` | `ProductionOrderService`, `ProductionFlowService` | Crear/aprobar/cancelar órdenes y flujo MES |
 | MRP | `/Mrp` | `MrpController` | `MrpService`, `BomCatalogService` | Ficha técnica y simulación de requerimientos |
 | Fichas | `/Fichas` | `FichasController` | `FichaService` | Grupos SENA, sesiones de producción |
