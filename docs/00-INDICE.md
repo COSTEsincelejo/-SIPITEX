@@ -11,6 +11,7 @@
 | [MANUAL-ADMINISTRADOR.md](MANUAL-ADMINISTRADOR.md) | Manual del administrador |
 | [MANUAL-BODEGUERO.md](MANUAL-BODEGUERO.md) | Manual del encargado de bodega |
 | **[08-IEEE830-Especificacion.md](08-IEEE830-Especificacion.md)** | **SRS IEEE 830** (texto claro + diagramas en imagen) |
+| **[proyecto-formativo/](proyecto-formativo/)** | **Proyecto formativo SENA (puntos 1–9)** — Markdown + DOCX |
 
 ## Diagramas (imágenes)
 
