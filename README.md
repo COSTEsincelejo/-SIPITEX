@@ -128,6 +128,35 @@ Crearlas en el panel del Web Service. No pegue los valores en el repositorio.
 Si faltan `Email__ApiKey` o `Email__FromAddress`, el arranque escribe un error en el log y la pantalla dice «No pudimos enviar el correo, intente de nuevo». Ese intento no deja el código vigente ni consume el minuto de reenvío. `Email__Provider=Outbox` guarda el mensaje en `EmailOutboxMessages` y no lo entrega.
 - **Login:** 5 intentos fallidos (correo + IP) bloquean 15 minutos. El mensaje no indica si el correo existe.
 
+## Privacidad y datos personales
+
+La política publicada está en `/Privacidad` (versión 1.1, 2026-11-06). **Este texto no es asesoría legal:** debe revisarlo el área jurídica o el oficial de datos del centro antes de tratarlo como definitivo. Lo que falta por decidir está en [`PENDIENTES-PRIVACIDAD.md`](PENDIENTES-PRIVACIDAD.md).
+
+Quien aceptó una versión anterior no entra a las funciones hasta aceptar la vigente. Cada aceptación guarda versión, fecha UTC e IP, y no borra las anteriores. En Mi perfil, la sección Mis datos muestra la cuenta, el historial de aceptación y permite pedir rectificación, supresión o revocatoria. Esa solicitud queda en Auditoría con fecha, tipo y estado `recibida`.
+
+La sección `Privacidad` se lee al arrancar. Si un dato está vacío, la página no lo muestra y el log escribe una advertencia. La página no dice el nombre del archivo de configuración.
+
+| Clave | Uso |
+|-------|-----|
+| `Version` | Versión vigente. Hoy `1.1`. Si cambia, hay que aceptar de nuevo. |
+| `FechaActualizacion` | Fecha que muestra la política. Hoy `2026-11-06`. |
+| `ResponsableNombre` | Nombre del responsable. |
+| `Ciudad` | Ciudad que se muestra junto al responsable. |
+| `CorreoContacto` | Correo para ejercer derechos. |
+| `Direccion` | Dirección de notificación. |
+| `Telefono` | Teléfono de contacto. |
+| `NIT` | NIT, solo si el centro lo confirma. |
+| `HorarioAtencion` | Horario de atención. |
+| `PlazoConservacion` | Plazo posterior al cierre de la cuenta. |
+| `ProveedorCorreo` | Nombre del proveedor de correo. |
+| `PaisProveedorCorreo` | País de ese proveedor. |
+| `ProveedorHosting` | Nombre de quien aloja el sistema y la base. |
+| `PaisProveedorHosting` | País de ese proveedor. Si no es Colombia, la política informa la transmisión o transferencia internacional. |
+| `AreaSolicitudes` | Área o cargo que atiende las solicitudes. |
+| `UrlPoliticaInstitucional` | Enlace http(s) a la política de datos del SENA. |
+
+En desarrollo los ejemplos van vacíos en `appsettings.Development.json`, salvo el nombre del responsable, la ciudad, la versión y la fecha. En Render se pueden definir como variables `Privacidad__CorreoContacto`, `Privacidad__Direccion`, `Privacidad__Telefono` y el resto de claves con el mismo prefijo.
+
 ## Metodología cascada
 
 Ver carpeta [`docs/`](docs/) para el ciclo completo:
