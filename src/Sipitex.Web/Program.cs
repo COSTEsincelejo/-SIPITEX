@@ -161,6 +161,10 @@ var emailOptions = app.Services.GetRequiredService<IOptions<EmailOptions>>().Val
 var (emailLevel, emailDetail) = EmailConfiguration.StartupStatus(emailOptions);
 app.Logger.Log(emailLevel, "Configuración de correo: {Detail}", emailDetail);
 
+var privacidad = app.Services.GetRequiredService<IOptions<PrivacidadOptions>>().Value;
+foreach (var aviso in PrivacidadConfiguracion.Advertencias(privacidad))
+    app.Logger.LogWarning("{Aviso}", aviso);
+
 // Al arrancar, asegura que la BD tenga datos iniciales si hace falta.
 // Un fallo transitorio (Postgres aún no acepta conexiones) se reintenta.
 // Un fallo definitivo termina con código 1: re-lanzar la excepción en Linux acaba en SIGSEGV (139).
