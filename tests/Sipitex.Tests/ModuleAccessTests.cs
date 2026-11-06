@@ -115,6 +115,12 @@ public class ModuleAccessTests
         Assert.Contains("/PlantasInventario", adminLegacy.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("/PlantasInventario/Detalle/", adminLegacy.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
 
+        var importar = await admin.GetAsync("/Inventario/Importar");
+        Assert.Equal(HttpStatusCode.OK, importar.StatusCode);
+        var importarHtml = await importar.Content.ReadAsStringAsync();
+        Assert.Contains("Importar inventario", importarHtml, StringComparison.Ordinal);
+        Assert.Contains("href=\"/Inventario/Importar\"", importarHtml, StringComparison.Ordinal);
+
         var catalogo = await admin.GetAsync("/PlantasInventario");
         Assert.Equal(HttpStatusCode.OK, catalogo.StatusCode);
         var catalogoHtml = await catalogo.Content.ReadAsStringAsync();
@@ -128,7 +134,7 @@ public class ModuleAccessTests
         var encargado = await LoginAsync("bodega@sipitex.test", "Bodega123!");
         var encargadoLegacy = await encargado.GetAsync("/Inventario");
         Assert.Equal(HttpStatusCode.MovedPermanently, encargadoLegacy.StatusCode);
-        Assert.Contains("/PlantasInventario/Detalle/1", encargadoLegacy.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/PlantasInventario/Index", encargadoLegacy.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
 
         var menuEncargado = await encargado.GetAsync("/PlantasInventario/Consultar");
         Assert.Equal(HttpStatusCode.Redirect, menuEncargado.StatusCode);
@@ -139,6 +145,10 @@ public class ModuleAccessTests
         Assert.Equal(HttpStatusCode.OK, menuPagina.StatusCode);
         var menuHtml = await menuPagina.Content.ReadAsStringAsync();
         Assert.DoesNotContain("href=\"/Inventario\"", menuHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"/Inventario/Importar\"", menuHtml, StringComparison.Ordinal);
+        var importarEncargado = await encargado.GetAsync("/Inventario/Importar");
+        Assert.Equal(HttpStatusCode.Redirect, importarEncargado.StatusCode);
+        Assert.Contains("/Account/AccessDenied", importarEncargado.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Plantas de inventario</a>", menuHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("Inventario por bodega</a>", menuHtml, StringComparison.Ordinal);
     }
@@ -171,6 +181,10 @@ public class ModuleAccessTests
         Assert.Equal(HttpStatusCode.Redirect, reingreso.StatusCode);
         Assert.Contains("/Account/AccessDenied", reingreso.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
 
+        var importar = await client.GetAsync("/Inventario/Importar");
+        Assert.Equal(HttpStatusCode.Redirect, importar.StatusCode);
+        Assert.Contains("/Account/AccessDenied", importar.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
+
         var actas = await client.GetAsync("/Actas");
         Assert.Equal(HttpStatusCode.OK, actas.StatusCode);
 
@@ -184,6 +198,7 @@ public class ModuleAccessTests
         Assert.Equal(HttpStatusCode.OK, catalogo.StatusCode);
         var consultarHtml = await catalogo.Content.ReadAsStringAsync();
         Assert.Contains("<h2>Plantas de inventario</h2>", consultarHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"/Inventario/Importar\"", consultarHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("data-open-gestion", consultarHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("Mostrar inactivas", consultarHtml, StringComparison.Ordinal);
         Assert.DoesNotContain(">Reactivar<", consultarHtml, StringComparison.Ordinal);

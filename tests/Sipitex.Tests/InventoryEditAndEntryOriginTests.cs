@@ -87,9 +87,9 @@ public class InventoryEditAndEntryOriginTests
     [Fact]
     public void InventarioController_EditMaterial_IsAdministradorOnly()
     {
-        var method = typeof(InventarioController)
+        var method = typeof(PlantasInventarioController)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-            .Single(m => m.Name == nameof(InventarioController.EditMaterial));
+            .Single(m => m.Name == nameof(PlantasInventarioController.EditMaterial));
 
         var attr = method.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(attr);

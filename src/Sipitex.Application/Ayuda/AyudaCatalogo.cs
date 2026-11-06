@@ -280,7 +280,7 @@ public static class AyudaCatalogo
             Todos,
             ["inventario", "stock", "bodega", "stock bajo", "stock critico", "consultar inventario", "inventario por planta", "codigo almacen", "categoria", "tipo de elemento", "sin costo"],
             "/PlantasInventario",
-            ["PlantasInventario/Index", "PlantasInventario/Consultar", "PlantasInventario/Detalle", "Inventario/*", "Actas/*", "Trazabilidad/*"]),
+            ["PlantasInventario/Index", "PlantasInventario/Consultar", "PlantasInventario/Detalle", "Actas/*", "Trazabilidad/*"]),
 
         Tema(
             "importar-excel", "Cómo importar inventario desde Excel", "Plantas de inventario", "fa-file-import",

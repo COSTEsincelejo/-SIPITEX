@@ -30,11 +30,11 @@ public static class FuncionalidadesCatalog
         new("Inventario", "Eliminar material",
             "Elimina un material del catálogo de inventario.",
             UserRoles.Administrador),
-        new("Inventario", "Solicitud de material (legacy)",
-            "Crea una solicitud de material ligada a una orden de producción.",
+        new("Inventario", "Solicitar materiales",
+            "El pedido se arma en Solicitar insumos y la planta lo resuelve en Solicitudes de materiales. No hay una pantalla aparte de inventario para crear la solicitud.",
             $"{UserRoles.Administrador}, {UserRoles.Instructor}"),
         new("Inventario", "Aprobar / rechazar solicitud",
-            "Resuelve solicitudes de material pendientes desde inventario.",
+            "La cola se resuelve en Solicitudes de materiales, dentro de Plantas de inventario.",
             $"{UserRoles.Administrador}, {UserRoles.EncargadoDeBodega} (+ permiso extendido)"),
 
         // --- Órdenes ---
