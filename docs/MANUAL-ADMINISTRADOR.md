@@ -39,9 +39,9 @@ No es la receta de la prenda (BOM). Esa receta se arma en MRP.
 
 - **Solicitar insumos** pide una descripción libre y la planta de inventario destino. No exige el código de almacén.
 - En **Solicitudes de materiales**, al resolver un pedido el material se elige por nombre, código de almacén, referencia, categoría y tipo.
-- **Materiales de órdenes** entrega lo pedido por la orden y muestra esos mismos datos bajo el nombre.
-- **Consumo de materiales** registra la cantidad usada. El costo unitario queda congelado con el promedio de ese momento. La lista muestra código de almacén, referencia, categoría y tipo.
-- **Costeo de prendas** suma solo materiales. Si falta un costo, muestra «costo incompleto» en lugar del total. La tarifa de mano de obra es referencia y no entra en ese total.
+- **Materiales de órdenes** entrega lo pedido por la orden. Ahí baja el stock, una sola vez, y se congela el costo promedio de ese momento. La fila muestra código de almacén, referencia, categoría y tipo, más lo entregado, lo consumido y lo disponible para consumir.
+- **Consumo de materiales** lo usan el administrador y el instructor. Registra cuánto de lo entregado se usó. No descuenta stock. El costo unitario es el de la entrega, aunque después cambie el promedio del material. El selector solo lista materiales de la orden elegida.
+- **Costeo de prendas** suma solo materiales, sobre lo consumido: (Σ cantidad consumida × costo congelado en la entrega) / volumen × volumen de la orden. Si hay entregas sin consumo, avisa «Hay materiales entregados sin consumo registrado» y no presenta un total en cero como si fuera el costo real. Si falta un costo (entrega, consumo o ficha), muestra «costo incompleto». La tarifa de mano de obra es referencia y no entra en ese total.
 
 ## Usuarios y correo
 

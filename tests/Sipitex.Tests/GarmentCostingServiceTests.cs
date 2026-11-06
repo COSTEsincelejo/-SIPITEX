@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
@@ -175,6 +176,8 @@ public class GarmentCostingServiceTests
 
         Assert.Equal(3, result.CostoMaterialesPorUnidad);
         Assert.Equal(24, result.Total);
+        Assert.Equal(result.CostoMateriales, result.Total);
+        Assert.Contains("Mano de obra no incluida", result.Formula, StringComparison.Ordinal);
         Assert.Equal(0, result.CostoManoObra);
         Assert.Equal(2, result.HorasManoObra);
         Assert.Equal(100, result.TarifaHora);
@@ -276,5 +279,87 @@ public class GarmentCostingServiceTests
 
         Assert.True(result.CostoIncompleto);
         Assert.Equal(0, result.CostoManoObra);
+    }
+
+    [Fact]
+    public async Task CalcularAsync_EntregaDesdeStockSinCosto_QuedaIncompleta()
+    {
+        SeedOrder(10);
+        _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        var reqs = Requisitos(entregado: 10, consumido: 0, costoAcumulado: 0);
+
+        var result = await Costear(reqs).CalcularAsync(10);
+
+        Assert.True(result.CostoIncompleto);
+        Assert.False(result.MostrarTotal);
+    }
+
+    [Fact]
+    public async Task CalcularAsync_EntregasSinConsumo_AvisaYNoPresentaElCeroComoCosto()
+    {
+        SeedOrder(10);
+        _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        var reqs = Requisitos(entregado: 10, consumido: 0, costoAcumulado: 80);
+
+        var result = await Costear(reqs).CalcularAsync(10);
+
+        Assert.False(result.CostoIncompleto);
+        Assert.True(result.EntregasSinConsumo);
+        Assert.Equal(GarmentCostDto.AvisoEntregasSinConsumoTexto, result.AvisoEntregasSinConsumo);
+        Assert.Equal(0, result.Total);
+        Assert.False(result.MostrarTotal);
+        Assert.Equal(0, result.CostoManoObra);
+    }
+
+    [Fact]
+    public async Task CalcularAsync_ConsumoParcial_ConservaElAvisoYElCostoDeLoConsumido()
+    {
+        SeedOrder(10);
+        _consumos.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ConsumoMaterial { Cantidad = 4, CostoUnitarioAlMomento = 8 }
+            ]);
+        var reqs = Requisitos(entregado: 10, consumido: 4, costoAcumulado: 80);
+
+        var result = await Costear(reqs).CalcularAsync(10);
+
+        Assert.True(result.EntregasSinConsumo);
+        Assert.Equal(32, result.Total);
+        Assert.Equal(result.CostoMateriales, result.Total);
+        Assert.True(result.MostrarTotal);
+        Assert.Equal(0, result.CostoManoObra);
+    }
+
+    private GarmentCostingService Costear(Mock<IOrderMaterialRequirementRepository> reqs) =>
+        new(
+            _consumos.Object,
+            _grupos.Object,
+            _orders.Object,
+            _rates.Object,
+            NullLogger<GarmentCostingService>.Instance,
+            requerimientos: reqs.Object);
+
+    private static Mock<IOrderMaterialRequirementRepository> Requisitos(
+        decimal entregado,
+        decimal consumido,
+        decimal costoAcumulado)
+    {
+        var reqs = new Mock<IOrderMaterialRequirementRepository>();
+        reqs.Setup(r => r.GetByOrderIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ProductionOrderMaterialRequirement
+                {
+                    ProductionOrderId = 10,
+                    MaterialId = 3,
+                    QuantityDelivered = entregado,
+                    QuantityConsumed = consumido,
+                    CostoEntregadoAcumulado = costoAcumulado
+                }
+            ]);
+        return reqs;
     }
 }

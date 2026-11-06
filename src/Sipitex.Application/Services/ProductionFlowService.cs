@@ -854,6 +854,7 @@ public class ProductionFlowService : IProductionFlowService
             line.Id, line.MaterialId, line.Material?.Code ?? "", line.Material?.Name ?? "",
             line.QuantityRequired, line.QuantityDelivered, pending, stock, stock - pending,
             UnitHelper.ToDisplay(line.Unit), line.Unit, line.Observations, availability, line.IsFullyDelivered,
-            line.Material?.CodigoAlmacen, line.Material?.Referencia, line.Material?.Categoria, line.Material?.TipoElemento);
+            line.Material?.CodigoAlmacen, line.Material?.Referencia, line.Material?.Categoria, line.Material?.TipoElemento,
+            line.QuantityConsumed, line.QuantityAvailableToConsume, line.CostoUnitarioEntrega);
     }
 }

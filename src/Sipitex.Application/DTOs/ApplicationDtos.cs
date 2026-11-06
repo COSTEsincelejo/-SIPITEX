@@ -325,6 +325,18 @@ public record ConsumoMaterialDto(
     string? Categoria = null,
     TipoElemento? TipoElemento = null);
 
+public record MaterialConsumibleOrdenDto(
+    int MaterialId,
+    string Nombre,
+    decimal Entregado,
+    decimal Consumido,
+    decimal Disponible,
+    string UnitDisplay,
+    string? CodigoAlmacen,
+    string? Referencia,
+    string? Categoria,
+    TipoElemento TipoElemento);
+
 public record RegisterConsumoMaterialDto(
     int ProductionOrderId,
     int MaterialId,
@@ -597,7 +609,10 @@ public record OrderMaterialLineDto(
     string? CodigoAlmacen = null,
     string? Referencia = null,
     string? Categoria = null,
-    TipoElemento? TipoElemento = null);
+    TipoElemento? TipoElemento = null,
+    decimal QuantityConsumed = 0,
+    decimal DisponibleConsumo = 0,
+    decimal CostoUnitarioEntrega = 0);
 
 public record OrderMaterialsDetailDto(
     int OrderId,
@@ -729,7 +744,16 @@ public record GarmentCostDto(
     decimal Total,
     string Formula,
     bool TarifaConfigurada,
-    bool CostoIncompleto = false);
+    bool CostoIncompleto = false,
+    bool EntregasSinConsumo = false)
+{
+    public const string AvisoEntregasSinConsumoTexto = "Hay materiales entregados sin consumo registrado";
+
+    public bool MostrarTotal => !CostoIncompleto && !(EntregasSinConsumo && Total == 0);
+
+    public string? AvisoEntregasSinConsumo =>
+        EntregasSinConsumo ? AvisoEntregasSinConsumoTexto : null;
+}
 
 public record GrupoConfeccionDto(
     int Id,

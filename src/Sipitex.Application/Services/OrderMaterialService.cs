@@ -282,12 +282,14 @@ public class OrderMaterialService : IOrderMaterialService
                         throw new InvalidOperationException(
                             $"No se puede entregar {qty:0.##} de «{line.Material?.Name}». Máximo: {maxDeliver:0.##}.");
 
+                    var (costoAcumulado, costoUnitario) = CostoDeEstaEntrega(line.Material, qty);
                     line.Material.DescontarUnidadesSinCosto(qty);
                     line.Material.Stock -= qty;
                     if (line.Material.Stock < 0)
                         throw new InvalidOperationException("El inventario no puede quedar negativo.");
 
                     line.QuantityDelivered += qty;
+                    line.CostoEntregadoAcumulado += costoAcumulado;
                     _materialRepository.Update(line.Material);
                     _requirementRepository.Update(line);
 
@@ -299,7 +301,8 @@ public class OrderMaterialService : IOrderMaterialService
                         TipoMovimiento = StockMovementType.Salida,
                         Cantidad = qty,
                         StockResultante = line.Material.Stock,
-                        Referencia = $"Orden:{order.Id}"
+                        Referencia = $"Orden:{order.Id}",
+                        CostoUnitario = costoUnitario
                     });
                 }
 
@@ -322,6 +325,19 @@ public class OrderMaterialService : IOrderMaterialService
 
         var pendingNames = string.Join(", ", pending.Select(p => p.Material?.Name ?? $"#{p.MaterialId}"));
         return ServiceResult.Ok($"Entrega parcial registrada. Pendientes: {pendingNames}.");
+    }
+
+    // Las unidades de StockSinCosto salen a costo 0 y no diluyen el promedio. Se calcula antes de descontarlas.
+    internal static (decimal CostoAcumulado, decimal CostoUnitario) CostoDeEstaEntrega(Material material, decimal qty)
+    {
+        if (qty <= 0)
+            return (0, 0);
+
+        var sinCosto = Math.Min(qty, Math.Max(0, material.StockSinCosto));
+        var conCosto = qty - sinCosto;
+        var acumulado = decimal.Round(conCosto * material.CostoPromedioPonderado, 4, MidpointRounding.AwayFromZero);
+        var unitario = decimal.Round(acumulado / qty, 4, MidpointRounding.AwayFromZero);
+        return (acumulado, unitario);
     }
 
     internal static bool CanRegisterProduction(ProductionOrder order) =>
@@ -403,7 +419,10 @@ public class OrderMaterialService : IOrderMaterialService
             line.Material?.CodigoAlmacen,
             line.Material?.Referencia,
             line.Material?.Categoria,
-            line.Material?.TipoElemento);
+            line.Material?.TipoElemento,
+            line.QuantityConsumed,
+            line.QuantityAvailableToConsume,
+            line.CostoUnitarioEntrega);
     }
 
     private static MaterialStockAvailability ResolveAvailability(

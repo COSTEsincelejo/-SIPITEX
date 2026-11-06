@@ -3,12 +3,14 @@
     ViewData["Title"] = "Consumo de materiales";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Consumo";
     Layout = "_Layout";
+    var entregados = Model.MaterialesOrden.Where(m => m.Entregado > 0).ToList();
+    var disponibles = entregados.Where(m => m.Disponible > 0).ToList();
 }
 
 <div class="page-header">
     <div>
         <h2>Ficha de consumo de materiales</h2>
-        <div class="sub">Registra cantidad utilizada, fecha y responsable. El costo unitario se congela con el promedio ponderado vigente.</div>
+        <div class="sub">Registra cuánto de lo ya entregado se usó. El stock bajó en la entrega. El costo unitario es el de esa entrega, no el promedio actual del material.</div>
     </div>
 </div>
 
@@ -18,45 +20,96 @@
 }
 
 <div class="card">
-    <div class="card-title"><i class="fas fa-plus"></i> Registrar consumo</div>
-    <form asp-action="Create" method="post" class="form-row">
-        @Html.AntiForgeryToken()
-        <div class="field">
-            <label class="field-label">Orden</label>
-            <select asp-for="Form.ProductionOrderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber"))"></select>
-        </div>
-        <div class="field">
-            <label class="field-label">Material</label>
-            <select asp-for="Form.MaterialId">
-                @foreach (var m in Model.Materials)
-                {
-                    <option value="@m.Id">@DisplayHelper.MaterialOpcion(m.Name, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento, m.UnitDisplay) · costo @m.CostoPromedioPonderado.ToString("0.####")</option>
-                }
-            </select>
-        </div>
-        <div class="field" style="width:140px;">
-            <label class="field-label">Cantidad</label>
-            <input asp-for="Form.Cantidad" type="number" step="0.01" min="0.01" required />
-        </div>
-        <div class="field">
-            <label class="field-label">Fecha</label>
-            <input asp-for="Form.FechaLocal" type="datetime-local" />
-        </div>
-        <button type="submit" class="primary">Registrar</button>
-    </form>
-</div>
-
-<div class="card">
-    <div class="card-title"><i class="fas fa-filter"></i> Consultar por orden</div>
+    <div class="card-title"><i class="fas fa-filter"></i> Orden</div>
     <form method="get" class="form-row">
         <div class="field">
-            <label class="field-label">Orden</label>
-            <select name="orderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.Form.ProductionOrderId))"></select>
+            <label class="field-label" for="orderId">Orden</label>
+            <select id="orderId" name="orderId" data-auto-submit asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.Form.ProductionOrderId))"></select>
         </div>
         <div class="field" style="align-self:flex-end;">
             <button type="submit" class="small">Ver</button>
         </div>
     </form>
+</div>
+
+@if (Model.Form.ProductionOrderId <= 0)
+{
+    <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-scissors", Title = "Sin orden", Text = "No hay órdenes de producción para registrar consumo." }' />
+}
+else if (entregados.Count == 0)
+{
+    <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-truck-ramp-box", Title = "Sin materiales entregados", Text = "Todavía no hay materiales entregados a esta orden. Primero el encargado de bodega debe entregar los materiales desde Materiales de órdenes." }' />
+}
+else
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-boxes-stacked"></i> Entregado a esta orden</div>
+        <div class="table-wrap table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th class="text-end">Entregado</th>
+                        <th class="text-end">Consumido</th>
+                        <th class="text-end">Disponible para consumir</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var m in entregados)
+                {
+                    <tr>
+                        <td>
+                            @DisplayHelper.MaterialOpcion(m.Nombre, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento, m.UnitDisplay)
+                        </td>
+                        <td class="text-end">@m.Entregado.ToString("0.##") @m.UnitDisplay</td>
+                        <td class="text-end">@m.Consumido.ToString("0.##") @m.UnitDisplay</td>
+                        <td class="text-end">@m.Disponible.ToString("0.##") @m.UnitDisplay</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @if (disponibles.Count == 0)
+    {
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-scissors", Title = "Nada pendiente de consumir", Text = "Ya se registró el consumo de todo lo entregado a esta orden." }' />
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-title"><i class="fas fa-plus"></i> Registrar consumo</div>
+            <form asp-action="Create" method="post" class="form-row">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Form.ProductionOrderId" />
+                <div class="field">
+                    <label class="field-label" for="Form_MaterialId">Material</label>
+                    <select asp-for="Form.MaterialId" id="Form_MaterialId">
+                        @foreach (var m in disponibles)
+                        {
+                            <option value="@m.MaterialId">
+                                @DisplayHelper.MaterialOpcion(m.Nombre, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento, m.UnitDisplay)
+                                · entregado @m.Entregado.ToString("0.##") / consumido @m.Consumido.ToString("0.##") / disponible @m.Disponible.ToString("0.##") @m.UnitDisplay
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="field" style="width:140px;">
+                    <label class="field-label">Cantidad</label>
+                    <input asp-for="Form.Cantidad" type="number" step="0.01" min="0.01" required />
+                </div>
+                <div class="field">
+                    <label class="field-label">Fecha</label>
+                    <input asp-for="Form.FechaLocal" type="datetime-local" />
+                </div>
+                <button type="submit" class="primary">Registrar</button>
+            </form>
+        </div>
+    }
+}
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-list"></i> Consumos registrados</div>
     @if (Model.Costo is not null)
     {
         <p>
@@ -78,7 +131,7 @@
                         <th>Fecha</th>
                         <th>Material</th>
                         <th>Cantidad</th>
-                        <th>Costo unitario al momento</th>
+                        <th>Costo unitario de la entrega</th>
                         <th>Costo</th>
                         <th>Responsable</th>
                     </tr>
