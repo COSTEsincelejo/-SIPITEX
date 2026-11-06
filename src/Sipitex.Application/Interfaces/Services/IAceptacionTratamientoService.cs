@@ -9,6 +9,9 @@ public interface IAceptacionTratamientoService
 
     Task<AceptacionTratamientoDto?> UltimaAsync(int userId, CancellationToken cancellationToken = default);
 
+    // Todas las aceptaciones, de la más nueva a la más antigua. No se borran al aceptar otra versión.
+    Task<IReadOnlyList<AceptacionTratamientoDto>> HistorialAsync(int userId, CancellationToken cancellationToken = default);
+
     Task RegistrarAsync(int userId, string? direccionIp, CancellationToken cancellationToken = default);
 
     Task RegistrarPorCorreoAsync(string email, string? direccionIp, CancellationToken cancellationToken = default);

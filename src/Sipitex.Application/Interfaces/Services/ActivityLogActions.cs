@@ -10,6 +10,7 @@ public static class ActivityLogActions
     public const string AceptarPoliticaDatos = "AceptarPoliticaDatos";
     public const string SolicitarActualizacionDatos = "SolicitarActualizacionDatos";
     public const string SolicitarSupresionDatos = "SolicitarSupresionDatos";
+    public const string SolicitarRevocatoriaDatos = "SolicitarRevocatoriaDatos";
 
     public const string CreatePlantaInventario = "CreatePlantaInventario";
     public const string UpdatePlantaInventario = "UpdatePlantaInventario";

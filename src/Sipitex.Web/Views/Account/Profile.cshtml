@@ -14,11 +14,6 @@
     </div>
 </div>
 
-@if (TempData["Message"] is string msg)
-{
-    <div data-toast data-toast-type="success" style="position:absolute;left:-9999px;">@msg</div>
-}
-
 <div class="card profile-card">
     <form asp-action="Profile" method="post" enctype="multipart/form-data" class="profile-form">
         @Html.AntiForgeryToken()
@@ -39,8 +34,8 @@
                 }
             </div>
             <div class="profile-photo-actions">
-                <label class="field-label">Foto de perfil</label>
-                <p class="hint">JPG, PNG o WEBP · máximo 2 MB</p>
+                <label class="field-label">Foto de perfil <span class="field-optional">(opcional)</span></label>
+                <p class="hint">Opcional. Solo se guarda si usted la carga. JPG, PNG o WEBP · máximo 2 MB. No se usa para reconocimiento facial.</p>
                 <input type="file" name="photo" id="photoInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
                 @if (!string.IsNullOrWhiteSpace(Model.PhotoPath))
                 {
@@ -70,9 +65,9 @@
         </div>
 
         <div class="field">
-            <label class="field-label" asp-for="FuncionDescripcion">Descripción de mis funciones</label>
+            <label class="field-label" for="FuncionDescripcion">Descripción de mis funciones <span class="field-optional">(opcional)</span></label>
             <textarea asp-for="FuncionDescripcion" rows="4" maxlength="800" placeholder="Ej.: Responsable de inventario y despacho de materiales en planta de inventario; apoyo en conteos y alertas de stock."></textarea>
-            <p class="hint">Escriba con sus palabras las funciones que desempeña en SIPITEX (máx. 800 caracteres).</p>
+            <p class="hint">Opcional. Solo se guarda si usted la escribe (máx. 800 caracteres).</p>
             <span asp-validation-for="FuncionDescripcion" class="field-error"></span>
         </div>
 
@@ -98,30 +93,54 @@
 
 <div class="card">
     <div class="card-title"><i class="fas fa-shield-halved"></i> Mis datos</div>
-    @if (string.IsNullOrWhiteSpace(Model.PoliticaVersion))
+    <p>Estos son los datos personales que SIPITEX guarda de su cuenta. Consultarlos aquí es gratuito.</p>
+    <ul>
+        <li>Nombre: @Model.Nombre</li>
+        <li>Correo: @Model.Email</li>
+        <li>Rol: @Model.Rol</li>
+        <li>Ficha asignada: @Model.FichaTexto</li>
+        <li>Plantas de inventario: @Model.PlantasTexto</li>
+        <li>Descripción de funciones: @(string.IsNullOrWhiteSpace(Model.FuncionDescripcion) ? "No ha cargado una (es opcional)." : Model.FuncionDescripcion)</li>
+        <li>Foto de perfil: @(string.IsNullOrWhiteSpace(Model.PhotoPath) ? "No ha cargado una (es opcional)." : "Sí, cargada por usted.")</li>
+    </ul>
+    <p class="hint">Puede corregir el nombre, el correo, la foto y la descripción en el formulario de arriba. El rol, la ficha y las plantas los asigna el administrador.</p>
+
+    <h3>Aceptación de la política</h3>
+    @if (Model.Aceptaciones.Count == 0)
     {
         <p>Todavía no hay una aceptación registrada de la política de tratamiento de datos.</p>
     }
     else
     {
-        var cuando = Model.PoliticaAceptadaEnUtc is DateTime aceptada
-            ? " el " + aceptada.ToString("yyyy-MM-dd HH:mm") + " UTC"
-            : "";
-        <p>Aceptó la política versión <strong>@Model.PoliticaVersion</strong>@cuando.
-            <a asp-controller="Privacidad" asp-action="Index">Ver la política</a></p>
+        <ul>
+            @foreach (var aceptacion in Model.Aceptaciones)
+            {
+                var ip = string.IsNullOrWhiteSpace(aceptacion.DireccionIp) ? "" : " · IP " + aceptacion.DireccionIp;
+                <li>
+                    Versión <strong>@aceptacion.VersionPolitica</strong>,
+                    el @aceptacion.AceptadaEnUtc.ToString("yyyy-MM-dd HH:mm") UTC@ip.
+                    <a asp-controller="Privacidad" asp-action="Index" asp-route-version="@aceptacion.VersionPolitica">Ver esa versión</a>
+                </li>
+            }
+        </ul>
+        <p><a asp-controller="Privacidad" asp-action="Descargar">Descargar constancia y texto aceptado</a></p>
     }
-    <p class="hint">Puede pedir que actualicemos o eliminemos sus datos. La solicitud queda en la auditoría y, si hay correo de contacto, se avisa al responsable.</p>
+
+    <h3>Solicitudes</h3>
+    <p>Puede pedir la rectificación, la supresión o la revocatoria. La solicitud queda en la auditoría con la fecha, el tipo y el estado «recibida». Si hay correo de contacto, se avisa al responsable.</p>
+    <p>Este pedido se trata como reclamo: la respuesta llega en máximo 15 días hábiles, prorrogables 8 más si le avisan los motivos. Si el reclamo está incompleto, le pedirán completarlo en 5 días; si pasan 2 meses sin su respuesta, se entiende desistido. Puede acudir a la SIC solo después de agotar este trámite. Consultar los datos es gratuito. Una consulta que no sea este formulario se responde en máximo 10 días hábiles, prorrogables 5 más.</p>
     <form asp-controller="Privacidad" asp-action="Solicitar" method="post">
         <div class="field">
             <label class="field-label" for="tipoSolicitud">Qué solicita</label>
             <select id="tipoSolicitud" name="Tipo">
-                <option value="actualizacion">Actualizar o rectificar mis datos</option>
+                <option value="rectificacion">Rectificar mis datos</option>
                 <option value="supresion">Suprimir mis datos</option>
+                <option value="revocatoria">Revocar la autorización</option>
             </select>
         </div>
         <div class="field">
             <label class="field-label" for="mensajeSolicitud">Detalle</label>
-            <textarea id="mensajeSolicitud" name="Mensaje" rows="3" maxlength="800" required placeholder="Indique qué dato hay que corregir o por qué pide la eliminación."></textarea>
+            <textarea id="mensajeSolicitud" name="Mensaje" rows="3" maxlength="800" required placeholder="Indique qué dato hay que corregir, por qué pide la supresión o la revocatoria."></textarea>
         </div>
         <div class="form-actions">
             <button type="submit" class="ghost">Enviar solicitud</button>

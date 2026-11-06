@@ -5,12 +5,20 @@
 }
 <div class="card" style="max-width:640px;">
     <div class="card-title"><i class="fas fa-shield-halved"></i> Antes de continuar</div>
-    <p>Para usar SIPITEX debe aceptar la política de tratamiento de datos personales vigente. Puede leerla completa antes de marcar la casilla.</p>
+    @if (!string.IsNullOrWhiteSpace(Model.VersionAnterior))
+    {
+        <p>Usted aceptó la versión @Model.VersionAnterior. La versión vigente es @Model.VersionVigente. Para seguir usando SIPITEX debe aceptar esta versión. La aceptación anterior se conserva.</p>
+    }
+    else
+    {
+        <p>Para usar SIPITEX debe aceptar la política de tratamiento de datos personales vigente (versión @Model.VersionVigente). Puede leerla completa antes de marcar la casilla.</p>
+    }
+    <p><a asp-action="Index" target="_blank" rel="noopener">Leer la política completa</a></p>
     <form asp-action="Aceptar" method="post">
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
         <label style="display:flex;gap:.5rem;align-items:flex-start;margin:1rem 0;">
             <input asp-for="AceptaPolitica" />
-            <span>He leído y acepto la <a asp-action="Index" target="_blank" rel="noopener">política de tratamiento de datos personales</a>.</span>
+            <span>He leído y acepto la <a asp-action="Index" target="_blank" rel="noopener">política de tratamiento de datos personales</a> (versión @Model.VersionVigente).</span>
         </label>
         <span asp-validation-for="AceptaPolitica" class="field-error"></span>
         <button type="submit" class="primary">Continuar</button>

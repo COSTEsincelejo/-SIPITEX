@@ -269,12 +269,7 @@ public class AccountController : Controller
         if (user is null) return Challenge();
 
         var modelo = ToProfileViewModel(user);
-        var aceptacion = await _aceptaciones.UltimaAsync(user.Id, cancellationToken);
-        if (aceptacion is not null)
-        {
-            modelo.PoliticaVersion = aceptacion.VersionPolitica;
-            modelo.PoliticaAceptadaEnUtc = aceptacion.AceptadaEnUtc;
-        }
+        await CompletarPrivacidadAsync(modelo, user, cancellationToken);
         return View(modelo);
     }
 
@@ -292,7 +287,10 @@ public class AccountController : Controller
         model.PhotoPath = user.PhotoPath;
 
         if (!ModelState.IsValid)
+        {
+            await CompletarPrivacidadAsync(model, user, cancellationToken);
             return View(model);
+        }
 
         string? previousPhotoPath = user.PhotoPath;
         byte[]? photoBytes = null;
@@ -306,6 +304,7 @@ public class AccountController : Controller
             if (!read.Success)
             {
                 ModelState.AddModelError(string.Empty, read.Error!);
+                await CompletarPrivacidadAsync(model, user, cancellationToken);
                 return View(model);
             }
 
@@ -331,6 +330,7 @@ public class AccountController : Controller
         if (!result.Success)
         {
             ModelState.AddModelError(string.Empty, result.Message ?? "No se pudo actualizar el perfil.");
+            await CompletarPrivacidadAsync(model, user, cancellationToken);
             return View(model);
         }
 
@@ -581,6 +581,21 @@ public class AccountController : Controller
         PhotoPath = user.PhotoPath,
         FuncionDescripcion = user.FuncionDescripcion
     };
+
+    private async Task CompletarPrivacidadAsync(ProfileViewModel modelo, User user, CancellationToken cancellationToken)
+    {
+        modelo.FichaTexto = user.FichaAsignada is null
+            ? "Ninguna"
+            : user.FichaAsignada.NumeroGrupo + " — " + user.FichaAsignada.ProcessName;
+        var plantas = user.FormatAssignedPlantasInventario();
+        modelo.PlantasTexto = plantas == "—" ? "Ninguna" : plantas;
+
+        var historial = await _aceptaciones.HistorialAsync(user.Id, cancellationToken);
+        modelo.Aceptaciones = historial.ToList();
+        var ultima = historial.FirstOrDefault();
+        modelo.PoliticaVersion = ultima?.VersionPolitica;
+        modelo.PoliticaAceptadaEnUtc = ultima?.AceptadaEnUtc;
+    }
 
     // Lee la imagen en memoria. El servicio la persiste en UserProfilePhotos.
     private async Task<(bool Success, byte[]? Content, string? ContentType, string? FileName, string? Error)> ReadProfilePhotoAsync(
