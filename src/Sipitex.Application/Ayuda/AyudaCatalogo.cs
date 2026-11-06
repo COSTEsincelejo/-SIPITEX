@@ -17,6 +17,7 @@ public static class AyudaCatalogo
         "MRP / Materiales",
         "Plantas de inventario",
         "Solicitudes de materiales",
+        "Consumo de materiales",
         "Reingreso desde etapas",
         "Movimientos de stock",
         "Costeo de prendas",
@@ -225,7 +226,7 @@ public static class AyudaCatalogo
             Todos,
             ["mrp", "bom", "ficha tecnica", "materiales", "como crear ficha", "simular mrp", "fichas"],
             "/Mrp",
-            ["Mrp/*", "Fichas/*", "GruposConfeccion/*", "Consumos/*", "Calidad/*"]),
+            ["Mrp/*", "Fichas/*", "GruposConfeccion/*", "Calidad/*"]),
 
         Tema(
             "plantas", "Administrar plantas", "Plantas de inventario", "fa-warehouse",
@@ -341,7 +342,7 @@ public static class AyudaCatalogo
                 "Elija la planta de inventario destino. En cada ítem escriba Descripción del ítem y Cantidad. Agregar ítem suma otra línea; Quitar la borra. En la cola, el material se elige por nombre, código de almacén, referencia, categoría y tipo.",
                 "Las Observaciones son opcionales. Pulse Enviar a planta de inventario.",
                 "La cola de la planta está en Solicitudes de materiales. Abra el detalle y use Confirmar resolución cuando haya marcado cada ítem.",
-                "En Materiales de órdenes revise la orden y entregue las cantidades pedidas. No se entregan materiales a una orden cerrada ni a una que siga pendiente de aprobación."
+                "En Materiales de órdenes revise la orden y entregue las cantidades pedidas. Ahí baja el stock, una sola vez, y queda congelado el costo promedio de ese momento. No se entregan materiales a una orden cerrada ni a una que siga pendiente de aprobación."
             ],
             [
                 "Después de enviada, la solicitud se corrige resolviéndola en la planta, no reescribiendo el pedido original.",
@@ -358,6 +359,28 @@ public static class AyudaCatalogo
             ["PlantasInventarioSolicitudes/*", "SolicitudesMaterial/*", "PlantasInventarioOrdenes/Index"]),
 
         Tema(
+            "consumo", "Consumo de materiales", "Consumo de materiales", "fa-scissors",
+            "Registrar cuánto de lo entregado se usó de verdad.",
+            "El encargado de bodega entrega los materiales en Materiales de órdenes y ahí baja el stock. El instructor registra después el consumo de esa entrega. El consumo no vuelve a descontar inventario.",
+            "Sirve para que el costo de la prenda use la cantidad realmente usada y el costo que quedó congelado en la entrega, no el promedio actual del material.",
+            [
+                "Abra Consumo de materiales. El selector de orden recarga los materiales de esa orden.",
+                "Si no hay entregas, la pantalla lo dice: primero el encargado de bodega entrega desde Materiales de órdenes.",
+                "Cada material muestra entregado, consumido y disponible para consumir.",
+                "Elija un material con disponible mayor que cero, escriba la cantidad y pulse Registrar.",
+                "La cantidad no puede pasar de lo entregado menos lo ya consumido. No se puede consumir un material que no está en la orden, ni en una orden finalizada o cancelada."
+            ],
+            [
+                "El costo unitario del consumo es el promedio de la entrega de esa línea. Si después cambia el costo del material en la planta, el consumo ya registrado no se mueve.",
+                "Unidades entregadas desde stock sin costo quedan en cero y el costeo las marca como costo incompleto."
+            ],
+            ["El encargado de bodega no registra el consumo. Entrega los materiales y consulta el movimiento de stock."],
+            AdminInstructor,
+            ["consumo", "consumo de materiales", "material gastado", "consumo de tela"],
+            "/Consumos",
+            ["Consumos/*"]),
+
+        Tema(
             "reingreso", "Reingreso desde etapas", "Reingreso desde etapas", "fa-rotate-left",
             "Devolver material o producto terminado desde una etapa al inventario.",
             "El reingreso registra lo que vuelve desde Trazo, Corte, Confección, Control de Calidad o Terminado.",
@@ -372,7 +395,7 @@ public static class AyudaCatalogo
             ],
             [
                 "No se puede reingresar más de lo disponible en la etapa.",
-                "El reingreso no edita la orden: suma una entrada de stock o registra el producto terminado, según el tipo elegido.",
+                "El reingreso no edita la orden: suma una entrada de stock o registra el producto terminado, según el tipo elegido. Todavía no resta lo disponible para consumir en la línea de la orden.",
                 "No hay un botón de borrar el reingreso. Un error se corrige con un ajuste documentado en Movimientos de stock."
             ],
             ["El instructor no tiene esta pantalla."],
@@ -405,12 +428,13 @@ public static class AyudaCatalogo
         Tema(
             "costeo", "Costeo de prendas", "Costeo de prendas", "fa-coins",
             "Calcular el costo de materiales de una orden.",
-            "El costo final usa solo materiales: la cantidad consumida por el costo unitario que quedó congelado al consumir, repartido en el volumen de la orden.",
+            "El costo final usa solo materiales: la cantidad consumida por el costo unitario congelado en la entrega, repartido en el volumen de la orden.",
             "Sirve para conocer el costo de la prenda. La mano de obra no entra en ese total.",
             [
                 "Abra Costeo de prendas.",
                 "Elija la Orden y pulse Calcular.",
-                "Si un consumo o un material de la receta no tiene costo, el costo por unidad y el total muestran costo incompleto en lugar de un número.",
+                "Si hay materiales entregados y todavía no se registró todo el consumo, la pantalla avisa «Hay materiales entregados sin consumo registrado» y no presenta un total en cero como si fuera el costo real.",
+                "Si una entrega, un consumo o un material de la receta no tiene costo, el costo por unidad y el total muestran costo incompleto en lugar de un número.",
                 "El administrador puede guardar la tarifa COP / hora con Guardar tarifa. Esa tarifa es de referencia del grupo de confección y no se suma al costo de la prenda."
             ],
             [
@@ -535,7 +559,8 @@ public static class AyudaCatalogo
         new("Sin mínimo definido", "El material no tiene mínimo. No cuenta como falta ni dispara la misma alerta que Bajo o Crítico."),
         new("Reingreso", "Devolución de material o de producto terminado desde una etapa (Trazo, Corte, Confección, Control de Calidad o Terminado) hacia el inventario."),
         new("Acta de ingreso o egreso", "Documento de entrada o salida con nombre, cargo, hora UTC y firma dibujada. Se crea con Nueva acta."),
-        new("Solicitud de materiales", "Pedido de insumos por descripción, o la entrega de materiales ya ligados a una orden.")
+        new("Solicitud de materiales", "Pedido de insumos por descripción, o la entrega de materiales ya ligados a una orden."),
+        new("Consumo de materiales", "Registro de lo usado sobre lo que la bodega ya entregó a la orden. No descuenta stock.")
     ];
 
     private static TemaAyuda Tema(

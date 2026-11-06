@@ -1639,6 +1639,12 @@ namespace Sipitex.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("CostoEntregadoAcumulado")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasDefaultValue(0m);
+
                     b.Property<int>("MaterialId")
                         .HasColumnType("integer");
 
@@ -1648,6 +1654,12 @@ namespace Sipitex.Infrastructure.Migrations
 
                     b.Property<int>("ProductionOrderId")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("QuantityConsumed")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<decimal>("QuantityDelivered")
                         .HasPrecision(18, 2)

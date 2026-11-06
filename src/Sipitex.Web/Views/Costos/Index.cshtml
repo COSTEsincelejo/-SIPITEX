@@ -62,9 +62,13 @@ else
     <div class="card">
         <div class="card-title"><i class="fas fa-coins"></i> @Model.Costo.OrderNumber</div>
         <p class="text-muted hint">@Model.Costo.Formula</p>
+        @if (Model.Costo.AvisoEntregasSinConsumo is string avisoEntrega)
+        {
+            <p><span class="badge badge-warning">@avisoEntrega</span> El costo de la prenda se calcula sobre lo consumido. Registre el consumo de lo que realmente se usó antes de tomar el total como costo de la orden.</p>
+        }
         @if (Model.Costo.CostoIncompleto)
         {
-            <p><span class="badge badge-warning">costo incompleto</span> Hay materiales de la ficha sin costo. No se muestra un total para no presentar un valor que no es el costo real. El costo de la prenda es solo materiales; la mano de obra queda fuera.</p>
+            <p><span class="badge badge-warning">costo incompleto</span> Hay una entrega, un consumo o un material de la ficha sin costo. No se muestra un total para no presentar un valor que no es el costo real. El costo de la prenda es solo materiales; la mano de obra queda fuera.</p>
         }
         <div class="table-wrap table-responsive">
             <table>
@@ -84,9 +88,9 @@ else
                     <tr>
                         <td>Costo materiales (por unidad)</td>
                         <td>Σ (cantidad consumida × costo unitario al momento) / volumen</td>
-                        @if (Model.Costo.CostoIncompleto)
+                        @if (!Model.Costo.MostrarTotal)
                         {
-                            <td class="text-end"><span class="badge badge-warning">costo incompleto</span></td>
+                            <td class="text-end"><span class="badge badge-warning">@(Model.Costo.CostoIncompleto ? "costo incompleto" : Model.Costo.AvisoEntregasSinConsumo)</span></td>
                         }
                         else
                         {
@@ -96,9 +100,9 @@ else
                     <tr>
                         <td>Costo final (orden)</td>
                         <td>Costo por unidad × volumen</td>
-                        @if (Model.Costo.CostoIncompleto)
+                        @if (!Model.Costo.MostrarTotal)
                         {
-                            <td class="text-end"><span class="badge badge-warning">costo incompleto</span></td>
+                            <td class="text-end"><span class="badge badge-warning">@(Model.Costo.CostoIncompleto ? "costo incompleto" : Model.Costo.AvisoEntregasSinConsumo)</span></td>
                         }
                         else
                         {

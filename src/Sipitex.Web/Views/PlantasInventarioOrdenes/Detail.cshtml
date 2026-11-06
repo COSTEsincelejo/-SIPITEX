@@ -57,7 +57,7 @@
         }
         <div class="table-wrap table-responsive">
             <table>
-                <thead><tr><th>Material</th><th>Requerido</th><th>Entregado</th><th>Pendiente</th><th>Stock</th><th>Estado</th></tr></thead>
+                <thead><tr><th>Material</th><th>Requerido</th><th>Entregado</th><th>Consumido</th><th>Disponible para consumir</th><th>Pendiente</th><th>Stock</th><th>Estado</th></tr></thead>
                 <tbody>
                 @foreach (var line in d.Lines)
                 {
@@ -71,6 +71,8 @@
                         </td>
                         <td>@line.QuantityRequired.ToString("0.##") @line.UnitDisplay</td>
                         <td>@line.QuantityDelivered.ToString("0.##")</td>
+                        <td>@line.QuantityConsumed.ToString("0.##")</td>
+                        <td>@line.DisponibleConsumo.ToString("0.##")</td>
                         <td>@line.QuantityPending.ToString("0.##")</td>
                         <td>@line.StockAvailable.ToString("0.##")</td>
                         <td><span class="badge @DisplayHelper.BadgeClass(line.Availability)">@DisplayHelper.StatusText(line.Availability)</span></td>
@@ -92,6 +94,8 @@
                             <th>Material</th>
                             <th>Requerido</th>
                             <th>Entregado</th>
+                            <th>Consumido</th>
+                            <th>Disponible para consumir</th>
                             <th>Pendiente</th>
                             <th>Stock</th>
                             <th>Estado</th>
@@ -118,6 +122,8 @@
                             </td>
                             <td>@line.QuantityRequired.ToString("0.##") @line.UnitDisplay</td>
                             <td>@line.QuantityDelivered.ToString("0.##")</td>
+                            <td>@line.QuantityConsumed.ToString("0.##")</td>
+                            <td>@line.DisponibleConsumo.ToString("0.##")</td>
                             <td>@line.QuantityPending.ToString("0.##")</td>
                             <td class="@(stockBajo ? "stock-warn-text" : null)">@line.StockAvailable.ToString("0.##")</td>
                             <td><span class="badge @DisplayHelper.BadgeClass(line.Availability)">@DisplayHelper.StatusText(line.Availability)</span></td>

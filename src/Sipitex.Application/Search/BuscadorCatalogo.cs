@@ -522,7 +522,7 @@ public static class BuscadorCatalogo
             ["grupos de confeccion", "confeccion"],
             ["grupo de costura", "equipo de confeccion"],
             Consultar, prioridad: 18),
-        A("Consumo de materiales", "Registrar el material consumido en producción",
+        A("Consumo de materiales", "Registrar cuánto de lo entregado se usó. No descuenta stock",
             "/Consumos", "fa-scissors", "Operación", AdminInstructor,
             ["consumo", "consumo de materiales"],
             ["material gastado", "consumo de tela"],

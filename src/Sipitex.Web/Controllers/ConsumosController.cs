@@ -13,18 +13,15 @@ public class ConsumosController : Controller
 {
     private readonly IMaterialConsumptionService _consumos;
     private readonly IProductionOrderService _orders;
-    private readonly IInventoryService _inventory;
     private readonly IActivityLogService _activityLog;
 
     public ConsumosController(
         IMaterialConsumptionService consumos,
         IProductionOrderService orders,
-        IInventoryService inventory,
         IActivityLogService activityLog)
     {
         _consumos = consumos;
         _orders = orders;
-        _inventory = inventory;
         _activityLog = activityLog;
     }
 
@@ -44,10 +41,14 @@ public class ConsumosController : Controller
             ? await _consumos.GetCostoPromedioByOrderAsync(selected, cancellationToken)
             : null;
 
+        var materiales = selected > 0
+            ? await _consumos.GetMaterialesDeLaOrdenAsync(selected, cancellationToken)
+            : [];
+
         return View(new ConsumosIndexViewModel
         {
             Orders = orders,
-            Materials = await _inventory.GetMaterialsAsync(cancellationToken),
+            MaterialesOrden = materiales,
             Consumos = consumos,
             Costo = costo,
             Form = new RegisterConsumoForm { ProductionOrderId = selected },

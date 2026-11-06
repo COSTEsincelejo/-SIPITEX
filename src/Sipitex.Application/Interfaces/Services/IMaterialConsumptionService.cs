@@ -11,6 +11,7 @@ public interface IMaterialConsumptionCostService
 public interface IMaterialConsumptionService
 {
     Task<IReadOnlyList<ConsumoMaterialDto>> GetByOrderAsync(int productionOrderId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MaterialConsumibleOrdenDto>> GetMaterialesDeLaOrdenAsync(int productionOrderId, CancellationToken cancellationToken = default);
     Task<ServiceResult> RegisterAsync(RegisterConsumoMaterialDto dto, CancellationToken cancellationToken = default);
     Task<ConsumoCostoResumenDto> GetCostoPromedioByOrderAsync(int productionOrderId, CancellationToken cancellationToken = default);
 }

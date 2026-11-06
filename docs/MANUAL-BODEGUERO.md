@@ -30,10 +30,10 @@ Es la ficha del insumo, no la receta de la prenda.
 
 1. **Solicitudes de materiales** es la cola de su planta. Abra el detalle.
 2. En un pedido libre, elija el material del catálogo. La lista muestra nombre, código de almacén, referencia, categoría, tipo y stock. No apruebe más de lo que hay.
-3. **Materiales de órdenes** entrega a producción lo que la orden ya pidió. La fila repite código de almacén, referencia, categoría y tipo. No se entrega a una orden cerrada ni a una que siga pendiente de aprobación.
-4. **Reingreso desde etapas** devuelve material o producto terminado desde Trazo, Corte, Confección, Control de Calidad o Terminado. No puede reingresar más de lo disponible en la etapa.
-5. **Movimientos de stock** consulta entradas y salidas. No edita el historial. Un ajuste se hace en el inventario de la planta y deja otra línea.
-6. **Consumo de materiales** registra lo usado en una orden. El costo unitario queda congelado. La fila muestra código de almacén, referencia, categoría y tipo cuando el material los tiene.
+3. **Materiales de órdenes** entrega a producción lo que la orden ya pidió. La fila repite código de almacén, referencia, categoría y tipo, y muestra entregado, consumido y lo que todavía se puede consumir. El stock baja en esta entrega, una sola vez. El costo promedio del material en ese momento queda congelado en la línea. Las unidades que salen de stock sin costo entran a la orden con costo 0. No se entrega a una orden cerrada ni a una que siga pendiente de aprobación.
+4. **Reingreso desde etapas** devuelve material o producto terminado desde Trazo, Corte, Confección, Control de Calidad o Terminado. No puede reingresar más de lo disponible en la etapa. Ese reingreso suma stock en la planta y todavía no descuenta lo disponible para consumir en la línea de la orden.
+5. **Movimientos de stock** consulta entradas y salidas. La entrega a una orden deja una salida con referencia `Orden:` y el costo unitario de esa entrega. No edita el historial. Un ajuste se hace en el inventario de la planta y deja otra línea.
+6. **Consumo de materiales** no está en este menú. Lo registra el instructor (o el administrador) sobre lo que usted ya entregó. Ese registro no vuelve a bajar el stock.
 
 ## Lo que no hace este rol
 

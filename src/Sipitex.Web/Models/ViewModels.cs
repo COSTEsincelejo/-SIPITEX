@@ -648,7 +648,7 @@ public class FichaTecnicaMaterialsViewModel
 public class ConsumosIndexViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
-    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public IReadOnlyList<MaterialConsumibleOrdenDto> MaterialesOrden { get; set; } = [];
     public IReadOnlyList<ConsumoMaterialDto> Consumos { get; set; } = [];
     public ConsumoCostoResumenDto? Costo { get; set; }
     public RegisterConsumoForm Form { get; set; } = new();
