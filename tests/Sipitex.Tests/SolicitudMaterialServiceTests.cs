@@ -571,6 +571,58 @@ public class SolicitudMaterialServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_InsumosLibres_PlantaInactiva_Falla_YPlantaActivaDistintaDe1Y2_Crea()
+    {
+        _plantas.Setup(r => r.GetByIdAsync(8, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlantaInventario { Id = 8, Nombre = "bodega cerrada", Activo = false });
+        _plantas.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlantaInventario { Id = 7, Nombre = "centro logistico CMTC", Activo = true });
+        _codigos.Setup(c => c.GenerarCodigoSolicitudMaterialAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync("SOL-LIB-7");
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        SolicitudMaterial? saved = null;
+        _solicitudes
+            .Setup(r => r.AddAsync(It.IsAny<SolicitudMaterial>(), It.IsAny<CancellationToken>()))
+            .Callback<SolicitudMaterial, CancellationToken>((s, _) => saved = s)
+            .Returns(Task.CompletedTask);
+
+        var inactiva = await CreateSut().CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.InsumosLibres,
+                FichaId: null,
+                ProductionOrderId: null,
+                DescripcionLibre: "Pedido",
+                [new CreateDetalleSolicitudDto(null, 1, "Hilo")],
+                PlantaInventarioId: 8),
+            solicitanteId: 10,
+            actorRole: UserRoles.Instructor,
+            actorName: "Laura");
+
+        Assert.False(inactiva.Success);
+        Assert.Equal("Planta de inventario no válida.", inactiva.Message);
+        _solicitudes.Verify(
+            r => r.AddAsync(It.IsAny<SolicitudMaterial>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        var activa = await CreateSut().CreateAsync(
+            new CreateSolicitudMaterialDto(
+                SolicitudMaterialTipo.InsumosLibres,
+                FichaId: null,
+                ProductionOrderId: null,
+                DescripcionLibre: "Pedido",
+                [new CreateDetalleSolicitudDto(null, 2, "Tela")],
+                PlantaInventarioId: 7),
+            solicitanteId: 10,
+            actorRole: UserRoles.Instructor,
+            actorName: "Laura");
+
+        Assert.True(activa.Success, activa.Message);
+        Assert.NotNull(saved);
+        Assert.Equal(7, saved!.PlantaInventarioId);
+    }
+
+    [Fact]
     public async Task CreateAsync_PorFicha_NotificaTodosLosEncargadosDeEsaPlantaInventario()
     {
         var ficha = FichaConInstructor(1, 10);

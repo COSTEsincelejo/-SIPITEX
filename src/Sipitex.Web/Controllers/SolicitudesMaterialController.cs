@@ -16,15 +16,18 @@ public class SolicitudesMaterialController : Controller
     private readonly ISolicitudMaterialService _solicitudService;
     private readonly IFichaService _fichaService;
     private readonly IProductionOrderService _orderService;
+    private readonly IPlantaInventarioService _plantaService;
 
     public SolicitudesMaterialController(
         ISolicitudMaterialService solicitudService,
         IFichaService fichaService,
-        IProductionOrderService orderService)
+        IProductionOrderService orderService,
+        IPlantaInventarioService plantaService)
     {
         _solicitudService = solicitudService;
         _fichaService = fichaService;
         _orderService = orderService;
+        _plantaService = plantaService;
     }
 
     [HttpGet]
@@ -161,11 +164,17 @@ public class SolicitudesMaterialController : Controller
     {
         var fichas = await _fichaService.GetFichasAsync(userId, role, name, cancellationToken);
         var orders = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken);
+        var plantas = (await _plantaService.GetAllAsync(cancellationToken))
+            .Where(p => p.Activo)
+            .OrderBy(p => p.Id)
+            .Select(p => (p.Id, p.Nombre))
+            .ToList();
         return new SolicitarInsumosViewModel
         {
             Form = form ?? new CreateInsumosLibresForm(),
             Fichas = fichas.Select(f => (f.Id, f.NumeroGrupo)).ToList(),
             Ordenes = orders.Select(o => (o.Id, $"{o.OrderNumber} · {o.ProductName}")).ToList(),
+            PlantasInventario = plantas,
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         };
