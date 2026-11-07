@@ -187,7 +187,7 @@
 
   const PASOS_TOUR = [
     { sel: '#sidebar', titulo: 'Menú', texto: 'Aquí están las secciones de su rol: Operación para el día a día y Análisis para cifras y reportes.' },
-    { sel: '#globalSearch', titulo: 'Buscador', texto: 'Escriba lo que quiere hacer, por ejemplo «crear orden» o «ayuda». Ctrl+K enfoca este cuadro.' },
+    { sel: '#globalSearch', titulo: 'Buscador', texto: 'Escriba lo que quiere hacer, por ejemplo «tela jersey» o «crear orden». Ctrl+K abre este cuadro. La equis borra el texto.' },
     { sel: '#topbarAlertas', titulo: 'Alertas', texto: 'La campana abre los avisos de stock y las notificaciones de su rol.' },
     { sel: '#topbarPerfil', titulo: 'Perfil', texto: 'Su nombre abre Mi perfil: foto, funciones y contraseña. Al final del menú también está Ayuda.' }
   ];
