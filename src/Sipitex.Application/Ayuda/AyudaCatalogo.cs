@@ -152,7 +152,7 @@ public static class AyudaCatalogo
                 "Si la cuenta es nueva, abra el correo, copie el código de 6 dígitos y use Confirmar correo. Sin ese paso no podrá entrar.",
                 "Si olvidó la clave, use ¿Olvidaste tu contraseña?, pida el código y defina una nueva.",
                 "A la izquierda está el menú: Operación (el día a día) y Análisis (cifras y reportes).",
-                "Arriba, Buscar en SIPITEX abre la pantalla que usted describe. Ctrl+K también enfoca ese cuadro.",
+                "Arriba, el buscador abre la pantalla que usted describe. Ctrl+K también enfoca ese cuadro.",
                 "La campana lleva a Alertas. Su nombre, a la derecha, abre Mi perfil."
             ],
             [

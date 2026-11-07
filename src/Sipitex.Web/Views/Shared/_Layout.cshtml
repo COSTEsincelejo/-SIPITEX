@@ -31,6 +31,35 @@
     // Mensajes que vienen del controlador vía TempData (toast)
     var toastMessage = TempData["Message"] as string;
     var toastSuccess = TempData["IsSuccess"] as bool?;
+    var accesosRapidos = new List<(string Titulo, string Url, string Icono)>();
+    void Acceso(string titulo, string icono, string controlador, string accion) =>
+        accesosRapidos.Add((titulo, Url.Action(accion, controlador) ?? "", icono));
+    if (User.IsInRole("Administrador"))
+    {
+        Acceso("Órdenes de producción", "fa-clipboard-list", "Ordenes", "Index");
+        Acceso("Plantas de inventario", "fa-warehouse", "PlantasInventario", "Index");
+        Acceso("Importar inventario", "fa-file-import", "Inventario", "Importar");
+        Acceso("Usuarios", "fa-users-gear", "Account", "Users");
+        Acceso("Ayuda", "fa-circle-question", "Ayuda", "Index");
+    }
+    else if (User.IsInRole("Instructor"))
+    {
+        Acceso("Órdenes de producción", "fa-clipboard-list", "Ordenes", "Index");
+        Acceso("Fichas y producción", "fa-people-group", "Fichas", "Index");
+        Acceso("Solicitar insumos", "fa-comment-dots", "SolicitudesMaterial", "SolicitarInsumos");
+        Acceso("Consumo de materiales", "fa-scissors", "Consumos", "Index");
+        Acceso("Ayuda", "fa-circle-question", "Ayuda", "Index");
+    }
+    else if (User.IsInRole("Encargado de bodega"))
+    {
+        Acceso("Plantas de inventario", "fa-warehouse", "PlantasInventario", "Index");
+        Acceso("Solicitudes de materiales", "fa-truck-ramp-box", "PlantasInventarioSolicitudes", "Index");
+        Acceso("Materiales de órdenes", "fa-clipboard-check", "PlantasInventarioOrdenes", "Index");
+        Acceso("Reingreso desde etapas", "fa-rotate-left", "PlantasInventarioOrdenes", "Reingreso");
+        Acceso("Movimientos de stock", "fa-clock-rotate-left", "PlantasInventario", "Movimientos");
+    }
+    var accesosJson = System.Text.Json.JsonSerializer.Serialize(
+        accesosRapidos.Select(a => new { titulo = a.Titulo, url = a.Url, icono = a.Icono }));
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -182,20 +211,16 @@
                                id="globalSearchInput"
                                class="search-input"
                                role="combobox"
-                               placeholder="Buscar en SIPITEX..."
+                               placeholder="Buscar órdenes, materiales, fichas… (ej. tela jersey)"
                                autocomplete="off"
-                               aria-label="Buscar en SIPITEX"
+                               aria-label="Buscar órdenes, materiales y fichas"
                                aria-autocomplete="list"
                                aria-controls="globalSearchResults"
                                aria-expanded="false"
                                aria-haspopup="listbox"
                                aria-keyshortcuts="Control+K Slash"
                                aria-busy="false" />
-                        <kbd class="search-kbd" aria-hidden="true">Ctrl K</kbd>
-                        <span class="search-loading" hidden>
-                            <span class="search-spinner" aria-hidden="true"></span>
-                            <span class="visually-hidden">Buscando</span>
-                        </span>
+                        <button type="button" class="search-clear" id="globalSearchClear" aria-label="Borrar búsqueda" hidden>✕</button>
                     </div>
                     <div class="search-dropdown" id="globalSearchResults" role="listbox" aria-label="Sugerencias de búsqueda" hidden></div>
                 </div>
@@ -244,6 +269,7 @@
 @if (User.Identity?.IsAuthenticated == true)
 {
     <script type="application/json" id="buscador-catalogo">@Html.Raw(BuscadorCatalogo.JsonVisibles(User))</script>
+    <script type="application/json" id="buscador-accesos">@Html.Raw(accesosJson)</script>
     <script type="application/json" id="ayuda-temas">@Html.Raw(AyudaCatalogo.JsonTemas(User))</script>
     <div id="ayudaPanel" class="ayuda-panel" role="dialog" aria-modal="true" aria-labelledby="ayudaPanelTitulo" hidden>
         <div class="ayuda-panel-fondo" data-ayuda-cerrar></div>
