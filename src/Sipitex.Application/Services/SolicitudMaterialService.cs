@@ -208,7 +208,7 @@ public class SolicitudMaterialService : ISolicitudMaterialService
         // Sin MaterialId aún: el solicitante puede pasar PlantaInventarioId; si no, PlantaInventario 1 (backfill AddPlantasInventario).
         var plantaInventarioId = dto.PlantaInventarioId is > 0 ? dto.PlantaInventarioId.Value : DefaultPlantaInventarioId;
         var plantaInventario = await _plantaInventarioRepository.GetByIdAsync(plantaInventarioId, cancellationToken);
-        if (plantaInventario is null)
+        if (plantaInventario is null || !plantaInventario.Activo)
             return ServiceResult.Fail("Planta de inventario no válida.");
 
         var codigo = await _codigoGenerador.GenerarCodigoSolicitudMaterialAsync(cancellationToken);

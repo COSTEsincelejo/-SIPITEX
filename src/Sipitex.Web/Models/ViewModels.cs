@@ -261,8 +261,8 @@ public class CreateInsumosLibresForm
     public string? DescripcionLibre { get; set; }
     public int? FichaId { get; set; }
     public int? ProductionOrderId { get; set; }
-    // Destino de insumos libres; si no se envía, el servicio usa PlantaInventario 1.
-    public int? PlantaInventarioId { get; set; } = 1;
+    // Destino de insumos libres. Vacío: la vista preselecciona la primera planta activa.
+    public int? PlantaInventarioId { get; set; }
     public string? Observaciones { get; set; }
     public List<CreateInsumoLibreItemForm> Detalles { get; set; } = [new()];
 }
@@ -278,12 +278,8 @@ public class SolicitarInsumosViewModel
     public CreateInsumosLibresForm Form { get; set; } = new();
     public IReadOnlyList<(int Id, string Label)> Fichas { get; set; } = [];
     public IReadOnlyList<(int Id, string Label)> Ordenes { get; set; } = [];
-    // Catálogo seed AddPlantasInventario (PlantaInventario 1 / PlantaInventario 2); el form pasa Form.PlantaInventarioId al DTO.
-    public IReadOnlyList<(int Id, string Label)> PlantasInventario { get; set; } =
-    [
-        (1, "Planta de inventario 1"),
-        (2, "Planta de inventario 2")
-    ];
+    // Plantas activas ordenadas por Id. Las llena el controlador; no hay catálogo fijo.
+    public IReadOnlyList<(int Id, string Label)> PlantasInventario { get; set; } = [];
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }

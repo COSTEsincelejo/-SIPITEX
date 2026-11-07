@@ -4,6 +4,7 @@
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Solicitar insumos a planta de inventario";
     Layout = "_Layout";
     var f = Model.Form;
+    var plantaDestinoId = f.PlantaInventarioId ?? Model.PlantasInventario.FirstOrDefault().Id;
 }
 
 <div class="page-header">
@@ -75,7 +76,7 @@
                 <select name="Form.PlantaInventarioId" style="width:100%" required>
                     @foreach (var item in Model.PlantasInventario)
                     {
-                        if ((f.PlantaInventarioId ?? 1) == item.Id)
+                        if (plantaDestinoId == item.Id)
                         {
                             <option value="@item.Id" selected>@item.Label</option>
                         }
