@@ -142,7 +142,15 @@ internal static class CmtcBomCatalogSeed
     private static async Task<Dictionary<string, Material>> EnsureMaterialsAsync(SipitexDbContext context)
     {
         var existing = await context.Materials.ToListAsync();
-        var byName = existing.ToDictionary(m => m.Name, StringComparer.OrdinalIgnoreCase);
+        // El nombre ya no es único: el mismo material puede existir en plantas distintas
+        // (y con distinta capitalización). ToDictionary por nombre tira el arranque.
+        // De cada grupo se conserva el de menor Id, de forma determinista, para enlazar el BOM.
+        var byName = existing
+            .GroupBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => g.MinBy(m => m.Id)!,
+                StringComparer.OrdinalIgnoreCase);
 
         var nextSeq = existing
             .Where(m => m.Code.StartsWith(MaterialCodePrefix, StringComparison.OrdinalIgnoreCase))
