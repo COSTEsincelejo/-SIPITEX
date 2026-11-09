@@ -1,6 +1,8 @@
 namespace Sipitex.Domain.Entities;
 
-// Ficha de consumo: material usado en una orden (y, más adelante, en un grupo de confección).
+// Ficha de consumo: lo usado en una orden. No descuenta stock.
+// El stock sale en la entrega de la orden (ProductionOrderMaterialRequirement).
+// EntregaMaterial es otra cosa: cierra una SolicitudMaterial.
 public class ConsumoMaterial
 {
     public int Id { get; set; }
@@ -13,6 +15,10 @@ public class ConsumoMaterial
 
     public int MaterialId { get; set; }
     public Material Material { get; set; } = null!;
+
+    // Línea de entrega de la orden de la que sale este uso. Nulo en consumos anteriores a la regla.
+    public int? OrderMaterialRequirementId { get; set; }
+    public ProductionOrderMaterialRequirement? OrderMaterialRequirement { get; set; }
 
     public decimal Cantidad { get; set; }
 

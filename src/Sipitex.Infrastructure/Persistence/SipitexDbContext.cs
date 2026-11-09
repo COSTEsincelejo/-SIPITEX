@@ -807,7 +807,13 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
                 .WithMany(g => g.Consumos)
                 .HasForeignKey(c => c.GrupoConfeccionId)
                 .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(c => c.OrderMaterialRequirement)
+                .WithMany()
+                .HasForeignKey(c => c.OrderMaterialRequirementId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_ConsumosMaterial_ReqMaterialOrden");
             e.HasIndex(c => c.ProductionOrderId);
+            e.HasIndex(c => c.OrderMaterialRequirementId);
             e.HasIndex(c => c.MaterialId);
             e.HasIndex(c => c.FechaUtc);
             e.HasIndex(c => c.GrupoConfeccionId);
