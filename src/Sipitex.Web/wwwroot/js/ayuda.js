@@ -2,48 +2,7 @@
 (function (doc, win) {
   const CLAVE_TOUR = 'sipitex-ayuda-tour';
 
-  function plegar(texto) {
-    return String(texto || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  function distancia(a, b) {
-    const limite = a.length >= 8 || b.length >= 8 ? 2 : 1;
-    if (Math.abs(a.length - b.length) > limite) return limite + 1;
-    const filas = [new Array(b.length + 1), new Array(b.length + 1)];
-    for (let j = 0; j <= b.length; j++) filas[0][j] = j;
-    for (let i = 1; i <= a.length; i++) {
-      const actual = filas[i % 2];
-      const anterior = filas[(i - 1) % 2];
-      actual[0] = i;
-      let minimo = actual[0];
-      for (let j = 1; j <= b.length; j++) {
-        const costo = a[i - 1] === b[j - 1] ? 0 : 1;
-        actual[j] = Math.min(actual[j - 1] + 1, anterior[j] + 1, anterior[j - 1] + costo);
-        if (actual[j] < minimo) minimo = actual[j];
-      }
-      if (minimo > limite) return limite + 1;
-    }
-    return filas[a.length % 2][b.length];
-  }
-
-  function coincide(consulta, texto) {
-    const q = plegar(consulta);
-    if (!q) return true;
-    const base = plegar(texto);
-    const palabras = base.split(' ').filter(Boolean);
-    return q.split(' ').filter(Boolean).every((token) => {
-      if (base.includes(token)) return true;
-      if (token.length < 5) return false;
-      const tope = token.length >= 8 ? 2 : 1;
-      return palabras.some((palabra) => distancia(token, palabra) <= tope);
-    });
-  }
+  const MENSAJE_VACIO = 'No encontramos exactamente eso. Prueba con otras palabras o revisa las categorías de abajo.';
 
   function leerTemas() {
     const nodo = doc.getElementById('ayuda-temas');
@@ -58,43 +17,140 @@
 
   function filtrarAyuda() {
     const input = doc.getElementById('ayudaBuscar');
+    const panel = doc.getElementById('ayudaSugerencias');
     const estado = doc.getElementById('ayudaBuscarEstado');
-    const vacio = doc.getElementById('ayudaVacio');
-    if (!input) return;
+    if (!input || !panel) return;
 
-    function aplicar() {
-      const q = input.value || '';
-      let visibles = 0;
-      doc.querySelectorAll('[data-ayuda-id]').forEach((tema) => {
-        const ok = coincide(q, tema.getAttribute('data-busca') || '');
-        tema.hidden = !ok;
-        if (ok) visibles += 1;
+    let espera = 0;
+    let control = null;
+    let consultaActual = '';
+
+    function cerrar() {
+      panel.hidden = true;
+      panel.replaceChildren();
+      input.setAttribute('aria-expanded', 'false');
+      if (estado) estado.textContent = '';
+    }
+
+    function enfocar(id) {
+      const articulo = doc.getElementById(id);
+      if (!articulo) return;
+      const detalle = articulo.querySelector('details');
+      if (detalle) detalle.open = true;
+      articulo.classList.add('ayuda-tema-foco');
+      articulo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      win.setTimeout(() => articulo.classList.remove('ayuda-tema-foco'), 2400);
+    }
+
+    function pintar(data) {
+      panel.replaceChildren();
+      const resultados = data && Array.isArray(data.resultados) ? data.resultados : [];
+      if (!consultaActual) {
+        cerrar();
+        return;
+      }
+
+      panel.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      if (data && data.sugerencia && resultados.length) {
+        const titulo = doc.createElement('p');
+        titulo.className = 'ayuda-sugerencias-titulo';
+        titulo.textContent = 'Quizá quisiste decir…';
+        panel.appendChild(titulo);
+      }
+
+      if (!resultados.length) {
+        const vacio = doc.createElement('p');
+        vacio.className = 'ayuda-sugerencias-vacio';
+        vacio.textContent = MENSAJE_VACIO;
+        panel.appendChild(vacio);
+        if (estado) estado.textContent = MENSAJE_VACIO;
+        return;
+      }
+
+      resultados.forEach((item) => {
+        const enlace = doc.createElement('a');
+        enlace.className = 'ayuda-sugerencia';
+        enlace.href = '#' + item.id;
+        enlace.setAttribute('role', 'option');
+        const tope = doc.createElement('span');
+        tope.className = 'ayuda-sugerencia-top';
+        const tipo = doc.createElement('span');
+        tipo.className = 'ayuda-tipo ' + (item.tipo === 'Explicación' ? 'ayuda-tipo-explica' : 'ayuda-tipo-paso');
+        tipo.textContent = item.tipo || 'Paso a paso';
+        const categoria = doc.createElement('span');
+        categoria.className = 'ayuda-sugerencia-cat';
+        categoria.textContent = item.categoria || '';
+        tope.append(tipo, categoria);
+        const titulo = doc.createElement('strong');
+        titulo.textContent = item.titulo || '';
+        const desc = doc.createElement('span');
+        desc.className = 'ayuda-sugerencia-desc';
+        desc.textContent = item.descripcion || '';
+        enlace.append(tope, titulo, desc);
+        enlace.addEventListener('click', () => {
+          enfocar(item.id);
+          cerrar();
+        });
+        panel.appendChild(enlace);
       });
-      doc.querySelectorAll('[data-ayuda-grupo]').forEach((grupo) => {
-        const tieneTema = grupo.querySelector('[data-ayuda-id]');
-        if (!tieneTema) {
-          const items = grupo.querySelectorAll('[data-glosario]');
-          let alguno = false;
-          items.forEach((item) => {
-            const ok = coincide(q, item.getAttribute('data-busca') || '');
-            item.hidden = !ok;
-            if (ok) alguno = true;
-          });
-          grupo.hidden = q && !alguno;
-          return;
-        }
-        const queda = grupo.querySelector('[data-ayuda-id]:not([hidden])');
-        grupo.hidden = !queda;
-      });
-      if (vacio) vacio.hidden = !q || visibles > 0;
+
       if (estado) {
-        estado.textContent = !q
-          ? ''
-          : (visibles === 1 ? '1 tema' : visibles + ' temas');
+        estado.textContent = resultados.length === 1 ? '1 guía' : resultados.length + ' guías';
       }
     }
 
-    input.addEventListener('input', aplicar);
+    function consultar(q) {
+      if (control) control.abort();
+      control = new AbortController();
+      const signal = control.signal;
+      fetch('/Ayuda/Buscar?q=' + encodeURIComponent(q), {
+        headers: { Accept: 'application/json' },
+        signal: signal
+      }).then((resp) => {
+        if (!resp.ok) throw new Error('buscar');
+        return resp.json();
+      }).then((data) => {
+        if (input.value.trim() !== q) return;
+        pintar(data);
+      }).catch((error) => {
+        if (error && error.name === 'AbortError') return;
+        if (input.value.trim() !== q) return;
+        pintar({ sugerencia: false, resultados: [] });
+      });
+    }
+
+    function programar() {
+      win.clearTimeout(espera);
+      const q = input.value.trim();
+      consultaActual = q;
+      if (!q) {
+        if (control) control.abort();
+        cerrar();
+        return;
+      }
+      espera = win.setTimeout(() => consultar(q), 300);
+    }
+
+    input.addEventListener('input', programar);
+    input.addEventListener('search', programar);
+    input.addEventListener('focus', programar);
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') {
+        cerrar();
+        return;
+      }
+      if (ev.key !== 'Enter') return;
+      const primero = panel.querySelector('a');
+      if (!primero) return;
+      ev.preventDefault();
+      primero.click();
+    });
+    doc.addEventListener('mousedown', (ev) => {
+      if (panel.hidden) return;
+      if (ev.target === input || panel.contains(ev.target)) return;
+      cerrar();
+    });
   }
 
   function textoRoles(roles) {
@@ -105,7 +161,7 @@
     const titulo = doc.getElementById('ayudaPanelTitulo');
     const cuerpo = doc.getElementById('ayudaPanelCuerpo');
     if (!titulo || !cuerpo || !tema) return;
-    titulo.textContent = tema.titulo || 'Ayuda';
+    titulo.textContent = tema.pregunta || tema.titulo || 'Ayuda';
     cuerpo.replaceChildren();
 
     const roles = doc.createElement('p');

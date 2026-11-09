@@ -24,6 +24,9 @@ public class AyudaCatalogoTests
         Assert.Contains("perfil", ids);
         Assert.Contains("importar-excel", ids);
         Assert.Contains("ficha-tecnica-material", ids);
+        Assert.Contains("aprendices", ids);
+        Assert.Contains("actas", ids);
+        Assert.Contains("trazabilidad", ids);
     }
 
     [Fact]
@@ -36,6 +39,9 @@ public class AyudaCatalogoTests
         Assert.Contains("solicitudes", ids);
         Assert.Contains("costeo", ids);
         Assert.Contains("perfil", ids);
+        Assert.Contains("aprendices", ids);
+        Assert.Contains("actas", ids);
+        Assert.Contains("trazabilidad", ids);
         Assert.DoesNotContain("usuarios", ids);
         Assert.DoesNotContain("plantas", ids);
         Assert.DoesNotContain("reingreso", ids);
@@ -58,6 +64,9 @@ public class AyudaCatalogoTests
         Assert.DoesNotContain("usuarios", ids);
         Assert.DoesNotContain("costeo", ids);
         Assert.Contains("ficha-tecnica-material", ids);
+        Assert.Contains("actas", ids);
+        Assert.Contains("trazabilidad", ids);
+        Assert.DoesNotContain("aprendices", ids);
         Assert.DoesNotContain("importar-excel", ids);
     }
 
@@ -93,6 +102,20 @@ public class AyudaCatalogoTests
 
         Assert.NotNull(tema);
         Assert.Equal("ordenes", tema!.Id);
+    }
+
+    [Theory]
+    [InlineData("Fichas", "Index", "aprendices")]
+    [InlineData("GruposConfeccion", "Index", "aprendices")]
+    [InlineData("Actas", "Index", "actas")]
+    [InlineData("Trazabilidad", "Index", "trazabilidad")]
+    [InlineData("Mrp", "Index", "mrp")]
+    public void Ruta_AbreLaGuiaDeEsaPantalla(string controller, string action, string id)
+    {
+        var tema = AyudaCatalogo.ParaRuta(controller, action, Principal(UserRoles.Administrador));
+
+        Assert.NotNull(tema);
+        Assert.Equal(id, tema!.Id);
     }
 
     private static HashSet<string> Ids(string rol) =>
