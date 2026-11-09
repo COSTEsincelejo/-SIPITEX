@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Web.Logging;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
@@ -38,11 +39,15 @@ public class HomeController : Controller
     [AllowAnonymous]
     public IActionResult Privacy() => RedirectToAction("Index", "Privacidad");
 
-    // Sin caché para que el error muestre el RequestId actual
+    // Sin caché para que el error muestre el código de esta petición
+    [AllowAnonymous]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
-        // Activity.Current es el trace de .NET; si no hay, uso el id del request HTTP
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        return View(new ErrorViewModel
+        {
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+            CodigoError = HttpContext.Items[CodigoCorrelacion.Clave] as string
+        });
     }
 }

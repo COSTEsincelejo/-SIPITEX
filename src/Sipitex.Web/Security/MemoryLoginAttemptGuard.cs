@@ -39,20 +39,9 @@ public sealed class MemoryLoginAttemptGuard : ILoginAttemptGuard
         if (state.FailedCount >= MaxFailedAttempts)
         {
             state.LockedUntil = now.Add(LockoutDuration);
-            _logger.LogWarning(
-                "Login bloqueado temporalmente para {Email} desde {Ip} tras {Count} intentos fallidos",
-                Normalize(email),
-                string.IsNullOrWhiteSpace(ipAddress) ? "-" : ipAddress,
-                state.FailedCount);
-        }
-        else
-        {
             _logger.LogInformation(
-                "Login fallido ({Count}/{Max}) para {Email} desde {Ip}",
-                state.FailedCount,
-                MaxFailedAttempts,
-                Normalize(email),
-                string.IsNullOrWhiteSpace(ipAddress) ? "-" : ipAddress);
+                "Cuenta bloqueada tras {Intentos} intentos fallidos",
+                state.FailedCount);
         }
 
         var expires = state.LockedUntil ?? state.WindowStart.Add(LockoutDuration);

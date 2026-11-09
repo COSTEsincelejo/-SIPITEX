@@ -6,6 +6,10 @@ public class ErrorViewModel
     // ID de la petición para rastrear el error en logs
     public string? RequestId { get; set; }
 
-    // Solo mostramos el ID si existe, para no dejar hueco raro en la vista
+    // Código corto que el usuario puede informar. No es el stack trace.
+    public string? CodigoError { get; set; }
+
     public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    public bool ShowCodigoError => !string.IsNullOrEmpty(CodigoError);
 }

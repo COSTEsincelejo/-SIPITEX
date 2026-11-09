@@ -241,10 +241,11 @@ public class ProductionOrderService : IProductionOrderService
         }
 
         _logger.LogInformation(
-            "Orden {OrderNumber} creada (producto {Product}, cantidad {Quantity})",
+            "Orden creada. OrdenId {OrdenId} Numero {OrderNumber} Cantidad {Cantidad} Estado {Estado}",
+            order.Id,
             orderNumber,
-            product.ProductName,
-            dto.TotalQuantity);
+            dto.TotalQuantity,
+            order.Status);
         return ServiceResult.Ok($"Orden {orderNumber} creada (pendiente de aprobación).");
     }
 
@@ -286,8 +287,11 @@ public class ProductionOrderService : IProductionOrderService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogInformation(
-            "Orden {OrderNumber} aprobada por usuario {ActorUserId} (Pendiente → EnProceso)",
+            "Orden cambió de estado. OrdenId {OrdenId} Numero {OrderNumber} EstadoAnterior {EstadoAnterior} EstadoNuevo {EstadoNuevo} UsuarioId {UsuarioId}",
+            order.Id,
             order.OrderNumber,
+            previous,
+            OrderStatus.EnProceso,
             actorUserId);
         return ServiceResult.Ok($"Orden {order.OrderNumber} aprobada. Ya puede iniciar producción y MES.");
     }
@@ -420,10 +424,12 @@ public class ProductionOrderService : IProductionOrderService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogInformation(
-            "Orden {OrderNumber} cancelada por usuario {ActorUserId} (estado previo {PreviousStatus})",
+            "Orden cambió de estado. OrdenId {OrdenId} Numero {OrderNumber} EstadoAnterior {EstadoAnterior} EstadoNuevo {EstadoNuevo} UsuarioId {UsuarioId}",
+            order.Id,
             order.OrderNumber,
-            actorUserId,
-            previous);
+            previous,
+            OrderStatus.Cancelada,
+            actorUserId);
         return ServiceResult.Ok($"Orden {order.OrderNumber} cancelada. El stock entregado no se revierte automáticamente.");
     }
 
@@ -470,11 +476,22 @@ public class ProductionOrderService : IProductionOrderService
                 return ServiceResult.Fail("Consumo fallido: materiales insuficientes.");
         }
 
+        var estadoAnterior = order.Status.ToString();
         ProductionConsumptionService.UpdateOrderProgress(order, toAdd);
         _orderRepository.Update(order);
         var conflicto = await GuardarEnTransaccionAsync(cancellationToken);
         if (conflicto is not null)
             return conflicto;
+
+        if (!string.Equals(estadoAnterior, order.Status.ToString(), StringComparison.Ordinal))
+        {
+            _logger.LogInformation(
+                "Orden cambió de estado. OrdenId {OrdenId} Numero {OrderNumber} EstadoAnterior {EstadoAnterior} EstadoNuevo {EstadoNuevo}",
+                order.Id,
+                order.OrderNumber,
+                estadoAnterior,
+                order.Status);
+        }
 
         await _flowService.LogProductionRegisteredAsync(orderId, toAdd, null, cancellationToken);
         return ServiceResult.Ok($"Se registraron {toAdd} unidades.");

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
@@ -17,6 +19,7 @@ public class ActaMovimientoService : IActaMovimientoService
     private readonly IUserRepository _users;
     private readonly IActaPdfService _pdf;
     private readonly IUnitOfWork _uow;
+    private readonly ILogger<ActaMovimientoService> _logger;
 
     public ActaMovimientoService(
         IActaMovimientoRepository actas,
@@ -25,7 +28,8 @@ public class ActaMovimientoService : IActaMovimientoService
         IProductionOrderRepository orders,
         IUserRepository users,
         IActaPdfService pdf,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        ILogger<ActaMovimientoService>? logger = null)
     {
         _actas = actas;
         _stock = stock;
@@ -34,6 +38,7 @@ public class ActaMovimientoService : IActaMovimientoService
         _users = users;
         _pdf = pdf;
         _uow = uow;
+        _logger = logger ?? NullLogger<ActaMovimientoService>.Instance;
     }
 
     public async Task<IReadOnlyList<ActaMovimientoDto>> GetAllAsync(
@@ -119,6 +124,12 @@ public class ActaMovimientoService : IActaMovimientoService
 
         await _actas.AddAsync(acta, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation(
+            "Acta creada. ActaId {ActaId} Numero {Numero} UsuarioId {UsuarioId} Detalles {Detalles}",
+            acta.Id,
+            acta.Numero,
+            creador.Id,
+            detalles.Count);
         var saved = await _actas.GetByIdAsync(acta.Id, cancellationToken) ?? acta;
         return ServiceResult<ActaMovimientoDto>.Ok(Map(saved), $"Acta {acta.Numero} registrada.");
     }

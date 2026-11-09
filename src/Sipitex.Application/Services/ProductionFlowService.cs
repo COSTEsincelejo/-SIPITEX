@@ -746,10 +746,21 @@ public class ProductionFlowService : IProductionFlowService
         var toAdd = Math.Min(quantity, Math.Max(0, order.TotalQuantity - order.ProducedQuantity));
         if (toAdd > 0)
         {
+            var estadoAnterior = order.Status.ToString();
             order.ProducedQuantity += toAdd;
             if (order.ProducedQuantity >= order.TotalQuantity)
                 order.Status = OrderStatus.Finalizada;
             _orders.Update(order);
+            if (!string.Equals(estadoAnterior, order.Status.ToString(), StringComparison.Ordinal))
+            {
+                _logger.LogInformation(
+                    "Orden cambió de estado. OrdenId {OrdenId} Numero {OrderNumber} EstadoAnterior {EstadoAnterior} EstadoNuevo {EstadoNuevo} UsuarioId {UsuarioId}",
+                    order.Id,
+                    order.OrderNumber,
+                    estadoAnterior,
+                    order.Status,
+                    actorUserId);
+            }
         }
 
         await AddHistory(order.Id, ProductionHistoryEventType.PartialInventoryIn,
