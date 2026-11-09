@@ -119,6 +119,83 @@ public class OrderMaterialServiceTests
     }
 
     [Fact]
+    public async Task DeliverAsync_CongelaElCostoPromedioEnLaLineaYEnElMovimiento()
+    {
+        var material = new Material
+        {
+            Id = 5,
+            Name = "Hilo",
+            Unit = MaterialUnit.Metros,
+            Stock = 500,
+            CostoPromedioPonderado = 15m
+        };
+        var order = OrdenEnProceso();
+        var line = Linea(material, requerido: 20);
+        List<StockMovement>? movimientos = null;
+        _stockMovements.Setup(s => s.AddRangeAsync(It.IsAny<IEnumerable<StockMovement>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<StockMovement>, CancellationToken>((m, _) => movimientos = m.ToList())
+            .Returns(Task.CompletedTask);
+        _orders.Setup(o => o.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(order);
+        _reqs.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([line]);
+
+        var result = await CreateSut().DeliverAsync(
+            new DeliverOrderMaterialsDto(1, [new DeliverOrderMaterialItemDto(9, 10)], null), 3);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(490m, material.Stock);
+        Assert.Equal(150m, line.CostoEntregadoAcumulado);
+        Assert.Equal(15m, line.CostoUnitarioEntrega);
+        Assert.NotNull(movimientos);
+        Assert.Equal(15m, movimientos![0].CostoUnitario);
+        Assert.Equal("Orden:1", movimientos[0].Referencia);
+    }
+
+    [Fact]
+    public async Task DeliverAsync_StockSinCosto_EntraACostoCero()
+    {
+        var material = new Material
+        {
+            Id = 5,
+            Name = "Hilo",
+            Unit = MaterialUnit.Metros,
+            Stock = 500,
+            StockSinCosto = 10,
+            CostoPromedioPonderado = 25m
+        };
+        var order = OrdenEnProceso();
+        var line = Linea(material, requerido: 10);
+        _orders.Setup(o => o.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(order);
+        _reqs.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([line]);
+
+        var result = await CreateSut().DeliverAsync(
+            new DeliverOrderMaterialsDto(1, [new DeliverOrderMaterialItemDto(9, 10)], null), 3);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(490m, material.Stock);
+        Assert.Equal(0m, material.StockSinCosto);
+        Assert.Equal(0m, line.CostoEntregadoAcumulado);
+        Assert.Equal(0m, line.CostoUnitarioEntrega);
+    }
+
+    private static ProductionOrder OrdenEnProceso() => new()
+    {
+        Id = 1,
+        OrderNumber = "OP-101",
+        Status = OrderStatus.EnProceso,
+        MaterialsStatus = OrderMaterialsStatus.PendienteRevisionPlantaInventario
+    };
+
+    private static ProductionOrderMaterialRequirement Linea(Material material, decimal requerido) => new()
+    {
+        Id = 9,
+        ProductionOrderId = 1,
+        MaterialId = material.Id,
+        Material = material,
+        QuantityRequired = requerido,
+        Unit = material.Unit
+    };
+
+    [Fact]
     public async Task DeliverAsync_NeverAllowsNegativeStock()
     {
         var material = new Material { Id = 5, Name = "Hilo", Stock = 3, Unit = MaterialUnit.Metros };

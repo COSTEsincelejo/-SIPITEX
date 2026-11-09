@@ -37,7 +37,13 @@
     return loader;
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('select[data-auto-submit]').forEach((select) => {
+      select.addEventListener('change', () => {
+        if (select.form) select.form.submit();
+      });
+    });
+
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menuToggle');
     const backdrop = document.getElementById('sidebarBackdrop');

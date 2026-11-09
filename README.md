@@ -107,7 +107,7 @@ Fotos de perfil, correos sin SMTP y claves de cookie viven en PostgreSQL. El res
 ## Políticas de negocio documentadas
 
 - **Actas:** conformidad con nombre, cargo, timestamp UTC y **firma gráfica** dibujada en pantalla (incluida en el PDF).
-- **Costeo:** tarifa de hora de mano de obra con valor de referencia `Costing:LaborHourRate` (6500 COP/h). El Administrador puede ajustarla en `/Costos`. Esa tarifa no se suma al costo de la prenda. Si un material o un consumo no tiene costo, la pantalla muestra «costo incompleto» en lugar del total.
+- **Costeo:** tarifa de hora de mano de obra con valor de referencia `Costing:LaborHourRate` (6500 COP/h). El Administrador puede ajustarla en `/Costos`. Esa tarifa no se suma al costo de la prenda. El total usa solo lo consumido, con el costo congelado en la entrega. Si hay entregas sin consumo, avisa «Hay materiales entregados sin consumo registrado» y no muestra un total en cero. Si una entrega, un consumo o un material de la ficha no tiene costo, muestra «costo incompleto».
 - **Correo:** en producción el canal es **Brevo** por HTTPS (puerto 443). El plan gratis de Render bloquea SMTP (puertos 25, 465 y 587). `Resend` sigue disponible cambiando `Email__Provider`. SMTP queda como alternativa con `Email__Provider=Smtp`.
 
 ### Variables de correo en Render

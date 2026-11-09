@@ -293,6 +293,8 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
             e.HasKey(r => r.Id);
             e.Property(r => r.QuantityRequired).HasPrecision(18, 2);
             e.Property(r => r.QuantityDelivered).HasPrecision(18, 2);
+            e.Property(r => r.QuantityConsumed).HasPrecision(18, 2).HasDefaultValue(0m);
+            e.Property(r => r.CostoEntregadoAcumulado).HasPrecision(18, 4).HasDefaultValue(0m);
             e.Property(r => r.Observations).HasMaxLength(500);
             e.HasOne(r => r.ProductionOrder)
                 .WithMany(o => o.MaterialRequirements)
@@ -306,6 +308,8 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
             e.HasIndex(r => new { r.ProductionOrderId, r.MaterialId }).IsUnique();
             e.Ignore(r => r.QuantityPending);
             e.Ignore(r => r.IsFullyDelivered);
+            e.Ignore(r => r.CostoUnitarioEntrega);
+            e.Ignore(r => r.QuantityAvailableToConsume);
         });
 
         // Snapshot de BOM al crear la orden
