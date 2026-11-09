@@ -16,7 +16,6 @@ public class ActividadInstructorServiceTests
 {
     private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IProductionSessionRepository> _sessions = new();
-    private readonly Mock<IProductionOrderBomSnapshotRepository> _snapshots = new();
     private readonly Mock<IGrupoConfeccionRepository> _grupos = new();
     private readonly Mock<IQualityRepository> _quality = new();
     private readonly Mock<IConsumoMaterialRepository> _consumos = new();
@@ -29,11 +28,10 @@ public class ActividadInstructorServiceTests
         _grupos.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _quality.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _consumos.Setup(r => r.GetAllWithDetailsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
-        _snapshots.Setup(r => r.GetByOrderIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
     }
 
     private ActividadInstructorService CreateSut() => new(
-        _users.Object, _sessions.Object, _snapshots.Object, _grupos.Object,
+        _users.Object, _sessions.Object, _grupos.Object,
         _quality.Object, _consumos.Object, _fichas.Object);
 
     [Fact]
@@ -49,7 +47,10 @@ public class ActividadInstructorServiceTests
         Assert.Equal(3, reporte.DiasSinActividad);
         Assert.Equal(0, reporte.DiasConActividad);
         Assert.Equal(ActividadInstructorTexto.NoRegistrado, reporte.HorasRegistradas);
+        Assert.Equal(ActividadInstructorTexto.MarcacionNoRegistrada, reporte.NotaHoras);
         Assert.Equal(ActividadInstructorTexto.NoRegistrado, reporte.Aprendices);
+        Assert.Equal(ActividadInstructorTexto.AprendicesSinPadron, reporte.NotaAprendices);
+        Assert.Empty(reporte.Materiales);
         Assert.All(reporte.Dias, dia =>
         {
             Assert.False(dia.ConActividad);
@@ -89,15 +90,6 @@ public class ActividadInstructorServiceTests
                     Observations = "Faltó hilo azul",
                     SessionDate = new DateTime(2026, 11, 3, 9, 15, 0),
                     RegisteredByUserId = 10
-                }
-            ]);
-        _snapshots.Setup(r => r.GetByOrderIdAsync(5, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([
-                new ProductionOrderBomSnapshot
-                {
-                    MaterialName = "Tela Jersey",
-                    QuantityPerUnit = 1.6m,
-                    Unit = MaterialUnit.Metros
                 }
             ]);
         _grupos.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -150,7 +142,13 @@ public class ActividadInstructorServiceTests
         Assert.Equal(12, reporte.UnidadesEnSesiones);
         Assert.Equal(8, reporte.PrendasEnGrupos);
         Assert.Equal("4 h 30 min", reporte.HorasRegistradas);
+        Assert.Equal(ActividadInstructorTexto.HorasDesdeGrupo, reporte.NotaHoras);
         Assert.Equal(ActividadInstructorTexto.NoRegistrado, reporte.Aprendices);
+        Assert.Equal(ActividadInstructorTexto.AprendicesSinPadron, reporte.NotaAprendices);
+        var material = Assert.Single(reporte.Materiales);
+        Assert.Equal("Hilo Poliéster", material.Material);
+        Assert.Equal("4.5", material.Cantidad);
+        Assert.Equal("metro", material.Unidad);
         Assert.Contains("Producción", reporte.ActividadesRealizadas);
         Assert.Contains("Grupo de confección", reporte.ActividadesRealizadas);
         Assert.Contains("Control de calidad", reporte.ActividadesRealizadas);
@@ -159,7 +157,9 @@ public class ActividadInstructorServiceTests
         var tres = reporte.Dias.Single(d => d.Fecha == new DateOnly(2026, 11, 3));
         Assert.Equal(ActividadInstructorTexto.NoRegistrado, tres.Ingreso);
         Assert.Equal(ActividadInstructorTexto.NoRegistrado, tres.Salida);
-        Assert.Contains(tres.Actividades, a => a.Contains("12 unidades", StringComparison.Ordinal) && a.Contains("19.2 metro", StringComparison.Ordinal));
+        Assert.Contains(tres.Actividades, a => a.Contains("12 unidades", StringComparison.Ordinal));
+        Assert.DoesNotContain(tres.Actividades, a => a.Contains("19.2", StringComparison.Ordinal) || a.Contains("Tela", StringComparison.Ordinal) || a.Contains("estimado", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(tres.Actividades, a => a.Contains(ActividadInstructorTexto.MarcacionNoRegistrada, StringComparison.Ordinal));
         Assert.Contains(tres.Actividades, a => a.Contains("Aprobada", StringComparison.Ordinal));
         Assert.Contains("Faltó hilo azul", tres.Observaciones);
         Assert.Contains(tres.ConQuien, q => q.Contains("FICHA-T1", StringComparison.Ordinal));
@@ -217,7 +217,10 @@ public class ActividadInstructorServiceTests
                     "No registrado",
                     ["Faltó hilo azul"])
             ],
-            "AB12CD34EF56");
+            "AB12CD34EF56",
+            [new ActividadMaterialConsumidoDto("Hilo Poliéster", "4.5", "metro")],
+            ActividadInstructorTexto.MarcacionNoRegistrada,
+            ActividadInstructorTexto.AprendicesSinPadron);
 
         var file = new ActividadInstructorPdf().Render(reporte);
         var texto = ExtraerTextoPdf(file.Content);
@@ -232,6 +235,68 @@ public class ActividadInstructorServiceTests
         Assert.Contains("Faltó hilo azul", legible, StringComparison.Ordinal);
         Assert.Contains("AB12CD34EF56", legible, StringComparison.Ordinal);
         Assert.Contains("Código de ver", legible, StringComparison.Ordinal);
+        Assert.Contains("Hilo Poliéster", legible, StringComparison.Ordinal);
+        Assert.Contains("4.5", legible, StringComparison.Ordinal);
+        Assert.Contains(ActividadInstructorTexto.AprendicesSinPadron, legible, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PantallaExcelYPdf_CompartenTotalesYElConsumoReal()
+    {
+        var orden = new ProductionOrder { Id = 5, OrderNumber = "OP-001", ProductName = "Camisa" };
+        _users.Setup(u => u.GetByIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = 10, Nombre = "Laura Gómez" });
+        _consumos.Setup(r => r.GetAllWithDetailsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new ConsumoMaterial
+                {
+                    ProductionOrderId = 5,
+                    ProductionOrder = orden,
+                    Material = new Material { Name = "Hilo Poliéster", Unit = MaterialUnit.Metros },
+                    Cantidad = 2.5m,
+                    FechaUtc = new DateTime(2026, 11, 3, 10, 0, 0),
+                    ResponsableUserId = 10
+                },
+                new ConsumoMaterial
+                {
+                    ProductionOrderId = 5,
+                    ProductionOrder = orden,
+                    Material = new Material { Name = "Hilo Poliéster", Unit = MaterialUnit.Metros },
+                    Cantidad = 2m,
+                    FechaUtc = new DateTime(2026, 11, 3, 16, 0, 0),
+                    ResponsableUserId = 10
+                }
+            ]);
+
+        var reporte = await CreateSut().ConsultarAsync(new ActividadInstructorConsulta(
+            10, new DateOnly(2026, 11, 3), new DateOnly(2026, 11, 3)));
+
+        var material = Assert.Single(reporte.Materiales);
+        Assert.Equal("4.5", material.Cantidad);
+        Assert.DoesNotContain(reporte.Dias.SelectMany(d => d.Actividades), a => a.Contains("estimado", StringComparison.OrdinalIgnoreCase));
+
+        var excel = new ActividadInstructorExcel().Render(reporte);
+        using var libro = new ClosedXML.Excel.XLWorkbook(new MemoryStream(excel.Content));
+        var hoja = libro.Worksheet("Actividad");
+        var celdas = hoja.CellsUsed().Select(c => c.GetString()).ToList();
+        foreach (var (etiqueta, valor) in ActividadInstructorExcel.Resumen(reporte))
+        {
+            Assert.Contains(etiqueta, celdas);
+            Assert.Contains(valor, celdas);
+        }
+
+        Assert.Contains("Hilo Poliéster", celdas);
+        Assert.Contains("4.5", celdas);
+        Assert.Contains(reporte.CodigoVerificacion, celdas);
+        Assert.DoesNotContain(celdas, c => c.Contains("Tela Jersey", StringComparison.Ordinal) || c.Contains("estimado", StringComparison.OrdinalIgnoreCase));
+
+        var pdf = ExtraerTextoPdf(new ActividadInstructorPdf().Render(reporte).Content)
+            .Replace("\uFB01", "fi").Replace("\uFB02", "fl");
+        Assert.Contains("4.5", pdf, StringComparison.Ordinal);
+        Assert.Contains("Hilo Poliéster", pdf, StringComparison.Ordinal);
+        Assert.Contains(reporte.HorasRegistradas, pdf, StringComparison.Ordinal);
+        Assert.Contains(reporte.NotaAprendices, pdf, StringComparison.Ordinal);
+        Assert.Contains(reporte.CodigoVerificacion, pdf, StringComparison.Ordinal);
     }
 
     private static string ExtraerTextoPdf(byte[] pdf)

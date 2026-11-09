@@ -95,6 +95,39 @@ public class ActividadInstructorPdf : IActividadInstructorPdf
                             : string.Join(", ", reporte.ActividadesNoRealizadas) + ".");
                     });
 
+                    col.Item().Text(reporte.NotaHoras);
+                    col.Item().Text(reporte.NotaAprendices);
+
+                    col.Item().PaddingTop(6).Text("Materiales consumidos").SemiBold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                    if (reporte.Materiales.Count == 0)
+                    {
+                        col.Item().Text(ActividadInstructorTexto.SinConsumos).Italic();
+                    }
+                    else
+                    {
+                        col.Item().Table(tabla =>
+                        {
+                            tabla.ColumnsDefinition(c =>
+                            {
+                                c.RelativeColumn(3);
+                                c.RelativeColumn();
+                                c.RelativeColumn();
+                            });
+                            tabla.Header(header =>
+                            {
+                                header.Cell().Text("Material").SemiBold();
+                                header.Cell().Text("Cantidad").SemiBold();
+                                header.Cell().Text("Unidad").SemiBold();
+                            });
+                            foreach (var material in reporte.Materiales)
+                            {
+                                tabla.Cell().Text(material.Material);
+                                tabla.Cell().Text(material.Cantidad);
+                                tabla.Cell().Text(material.Unidad);
+                            }
+                        });
+                    }
+
                     if (!reporte.TieneActividad)
                     {
                         col.Item().PaddingTop(8).Background(Colors.Grey.Lighten4).Padding(10)

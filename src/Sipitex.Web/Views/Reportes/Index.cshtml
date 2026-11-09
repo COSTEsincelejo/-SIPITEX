@@ -38,14 +38,15 @@
             <text>
                 Su alcance está limitado a sus fichas y órdenes asignadas.
                 El filtro de instructor no se puede cambiar.
-                Combinables: ficha, jornada y fecha (Órdenes, Calidad, Dashboard, Actividad).
+                Combinables: ficha, jornada y fecha (Órdenes, Calidad y Dashboard).
+                La actividad del instructor se consulta en su propia pantalla.
             </text>
         }
         else
         {
             <text>
                 Combinables y opcionales para Inventario, Órdenes, Calidad y Dashboard.
-                <strong>Actividad del instructor</strong> tiene su propia búsqueda, con resumen antes del PDF.
+                <strong>Actividad del instructor</strong> se consulta aparte: el resumen, el PDF y el Excel usan la misma cuenta.
                 Si un filtro no aplica al tipo de reporte (p. ej. Instructor en Inventario), se ignora en esa descarga.
             </text>
         }
@@ -182,10 +183,9 @@
     <div class="module-link report-card">
         <i class="fas fa-user-check"></i>
         <h3>Actividad del instructor</h3>
-        <p>Resumen por día, grupos y PDF detallado. El Excel de esta tarjeta sigue usando los filtros de arriba.</p>
+        <p>Un solo resumen por instructor y fechas. El PDF y el Excel se generan ahí, con los mismos totales.</p>
         <div class="report-actions">
             <a class="btn primary small" asp-action="Actividad"><i class="fas fa-user-check"></i> Ver actividad</a>
-            <a class="btn ghost small js-download js-report-download" asp-action="ActividadInstructor" asp-route-format="excel" data-report-base="@Url.Action("ActividadInstructor")" data-format="excel" data-requires-instructor="@(instructorScoped ? "false" : "true")"><i class="fas fa-file-excel"></i> Excel</a>
         </div>
     </div>
 </div>

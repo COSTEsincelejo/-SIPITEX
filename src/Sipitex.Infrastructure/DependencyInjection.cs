@@ -78,6 +78,7 @@ public static class DependencyInjection
         services.AddScoped<IActaMovimientoRepository, ActaMovimientoRepository>();
         services.AddScoped<IActaPdfService, ActaPdfService>();
         services.AddScoped<IActividadInstructorPdf, ActividadInstructorPdf>();
+        services.AddScoped<IActividadInstructorExcel, ActividadInstructorExcel>();
         services.AddScoped<IAppSettingRepository, AppSettingRepository>();
         services.AddScoped<IPrendaTrazableRepository, PrendaTrazableRepository>();
         services.AddScoped<IOrderChangeLogRepository, OrderChangeLogRepository>(); // Auditoría ediciones de orden
