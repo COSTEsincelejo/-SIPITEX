@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
@@ -14,6 +15,7 @@ public class TrazabilidadService : ITrazabilidadService
     private readonly IPrendaTrazableRepository _prendas;
     private readonly IProductionOrderRepository _orders;
     private readonly IProductionOrderBomSnapshotRepository _snapshots;
+    private readonly IBomRepository _boms;
     private readonly IConsumoMaterialRepository _consumos;
     private readonly IQualityRepository _quality;
     private readonly IProductionFlowRepository _flow;
@@ -25,6 +27,7 @@ public class TrazabilidadService : ITrazabilidadService
         IPrendaTrazableRepository prendas,
         IProductionOrderRepository orders,
         IProductionOrderBomSnapshotRepository snapshots,
+        IBomRepository boms,
         IConsumoMaterialRepository consumos,
         IQualityRepository quality,
         IProductionFlowRepository flow,
@@ -35,6 +38,7 @@ public class TrazabilidadService : ITrazabilidadService
         _prendas = prendas;
         _orders = orders;
         _snapshots = snapshots;
+        _boms = boms;
         _consumos = consumos;
         _quality = quality;
         _flow = flow;
@@ -196,17 +200,26 @@ public class TrazabilidadService : ITrazabilidadService
                 $"{c.Material?.Name ?? $"Material #{c.MaterialId}"} · {c.Cantidad:0.##}"));
         }
 
-        var materiales = snapshots
-            .Select(s => $"{s.MaterialName} ({s.QuantityPerUnit:0.##} / ud)")
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var materiales = RecetaOrden.LineasTrazabilidad(snapshots);
+        if (materiales.Count == 0)
+        {
+            var bom = await _boms.GetByProductAsync(order?.ProductName ?? prenda.ProductName, cancellationToken);
+            materiales = RecetaOrden.LineasTrazabilidad(bom);
+        }
+
         if (materiales.Count == 0)
         {
             materiales = consumos
-                .Select(c => c.Material?.Name ?? $"Material #{c.MaterialId}")
+                .Select(c => c.Material is { } material
+                    ? RecetaOrden.Linea(material.Name, c.Cantidad, material.Unit)
+                    : $"Material #{c.MaterialId}")
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
+
+        var stages = await _flow.GetStagesByOrderAsync(prenda.ProductionOrderId, cancellationToken);
+        var etapa = stages.FirstOrDefault(s => order is not null && s.Id == order.CurrentStageId)?.Name
+                    ?? stages.FirstOrDefault(s => s.Status != ProductionStageStatus.Finalizado)?.Name;
 
         return new PrendaTrazableDetailDto(
             prenda.Id,
@@ -224,7 +237,8 @@ public class TrazabilidadService : ITrazabilidadService
             order?.ProducedQuantity ?? 0,
             order?.TotalQuantity ?? 0,
             materiales,
-            eventos.OrderBy(e => e.AtUtc).ToList());
+            eventos.OrderBy(e => e.AtUtc).ToList(),
+            etapa);
     }
 
     private static PrendaTrazableListDto MapList(PrendaTrazable p) => new(
