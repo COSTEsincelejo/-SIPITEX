@@ -36,6 +36,24 @@ public class AyudaController : Controller
         });
     }
 
+    [HttpGet]
+    public IActionResult Buscar(string? q)
+    {
+        var consulta = AyudaBusqueda.Buscar(q, AyudaCatalogo.Visibles(User));
+        return Json(new
+        {
+            sugerencia = consulta.Sugerencia,
+            resultados = consulta.Resultados.Select(r => new
+            {
+                r.Id,
+                r.Titulo,
+                r.Descripcion,
+                r.Categoria,
+                r.Tipo
+            })
+        });
+    }
+
     // Solo se enlazan PDF reales en wwwroot/manuales:
     // manual-administrador.pdf, manual-instructor.pdf, manual-encargado.pdf.
     private IReadOnlyList<ManualAyudaItem> BuscarManuales()

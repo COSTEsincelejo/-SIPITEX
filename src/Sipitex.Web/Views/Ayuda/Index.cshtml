@@ -24,14 +24,20 @@
 
     <div class="card ayuda-buscador">
         <label class="field-label" for="ayudaBuscar">Buscar en la ayuda</label>
-        <div class="search-field ayuda-search-field">
-            <i class="fas fa-magnifying-glass search-icon" aria-hidden="true"></i>
-            <input type="search"
-                   id="ayudaBuscar"
-                   placeholder="Ej. crear orden, planta, solicitar materiales"
-                   autocomplete="off"
-                   aria-controls="ayudaResultados"
-                   aria-describedby="ayudaBuscarEstado" />
+        <div class="ayuda-search-wrap">
+            <div class="search-field ayuda-search-field">
+                <i class="fas fa-magnifying-glass search-icon" aria-hidden="true"></i>
+                <input type="search"
+                       id="ayudaBuscar"
+                       placeholder="Escribe lo que quieres hacer o entender… ej. crear orden, cómo funciona el MRP"
+                       autocomplete="off"
+                       role="combobox"
+                       aria-autocomplete="list"
+                       aria-expanded="false"
+                       aria-controls="ayudaSugerencias"
+                       aria-describedby="ayudaBuscarEstado" />
+            </div>
+            <div id="ayudaSugerencias" class="ayuda-sugerencias" hidden role="listbox"></div>
         </div>
         <p id="ayudaBuscarEstado" class="hint ayuda-estado" role="status"></p>
     </div>
@@ -56,12 +62,14 @@
                 <h3>@grupo.Categoria</h3>
                 @foreach (var tema in grupo.Temas)
                 {
-                    var busca = string.Join(" ", new[] { tema.Titulo, tema.Categoria, tema.Resumen, tema.QueEs, tema.ParaQueSirve }.Concat(tema.PalabrasClave).Concat(tema.Pasos).Concat(tema.Cambios));
+                    var busca = string.Join(" ", new[] { tema.Pregunta, tema.Titulo, tema.Categoria, tema.Resumen, tema.DescripcionBusqueda, tema.QueEs, tema.ParaQueSirve }.Concat(tema.PalabrasClave).Concat(tema.Intenciones).Concat(tema.Pasos).Concat(tema.Cambios));
+                    var tipoClase = tema.Tipo == "Explicación" ? "ayuda-tipo-explica" : "ayuda-tipo-paso";
                     <article class="card ayuda-tema" id="@tema.Id" data-ayuda-id="@tema.Id" data-busca="@busca">
                         <header class="ayuda-tema-head">
                             <div>
-                                <h4><i class="fas @tema.Icono" aria-hidden="true"></i> @tema.Titulo</h4>
-                                <p>@tema.Resumen</p>
+                                <span class="ayuda-tipo @tipoClase">@tema.Tipo</span>
+                                <h4><i class="fas @tema.Icono" aria-hidden="true"></i> @tema.Pregunta</h4>
+                                <p>@tema.DescripcionBusqueda</p>
                             </div>
                             <p class="ayuda-roles">
                                 @foreach (var rol in tema.RolesPermitidos)
@@ -112,7 +120,7 @@
                 }
             </section>
         }
-        <p class="card ayuda-vacio" id="ayudaVacio" hidden>No encontré temas para esa búsqueda. Pruebe con una palabra de la pantalla, por ejemplo orden, planta o usuario.</p>
+        <p class="card ayuda-vacio" id="ayudaVacio" hidden>No encontramos exactamente eso. Prueba con otras palabras o revisa las categorías de abajo.</p>
     </div>
 
     <section class="card" id="glosario" data-ayuda-grupo>

@@ -15,10 +15,12 @@ public static class AyudaCatalogo
         "Primeros pasos",
         "Órdenes de producción",
         "MRP / Materiales",
+        "Fichas y grupos",
         "Plantas de inventario",
         "Solicitudes de materiales",
         "Reingreso desde etapas",
         "Movimientos de stock",
+        "Actas y trazabilidad",
         "Costeo de prendas",
         "Reportes y Estadísticas",
         "Usuarios y permisos",
@@ -76,7 +78,9 @@ public static class AyudaCatalogo
             t.RolesPermitidos,
             t.PalabrasClave,
             t.UrlRelacionada,
-            t.Icono
+            t.Icono,
+            t.Pregunta,
+            t.Tipo
         });
         return JsonSerializer.Serialize(lista, JsonOpciones).Replace("<", "\\u003c", StringComparison.Ordinal);
     }
@@ -225,7 +229,32 @@ public static class AyudaCatalogo
             Todos,
             ["mrp", "bom", "ficha tecnica", "materiales", "como crear ficha", "simular mrp", "fichas"],
             "/Mrp",
-            ["Mrp/*", "Fichas/*", "GruposConfeccion/*", "Consumos/*", "Calidad/*"]),
+            ["Mrp/*", "Consumos/*", "Calidad/*"]),
+
+        Tema(
+            "aprendices", "Fichas y grupos", "Fichas y grupos", "fa-people-group",
+            "Dónde ver el número de ficha y los grupos de confección.",
+            "SIPITEX no guarda el nombre de cada aprendiz. El grupo de formación se ve por el número de ficha (Fichas y producción) y el trabajo del taller por los grupos de confección.",
+            "Sirve para saber con qué grupo se trabaja, qué instructor lo acompaña y a qué orden está ligado, sin buscar una lista de alumnos que el sistema no tiene.",
+            [
+                "Abra Fichas y producción. La tarjeta Fichas de aprendices / procesos muestra el número de grupo, el proceso, los instructores y la orden asignada.",
+                "Para buscar, escriba el Número de grupo en Buscar fichas y sesiones.",
+                "Para registrar una ficha, escriba Número de grupo (por ejemplo FICHA-T4), elija el Proceso y pulse Registrar ficha. Lo hacen el administrador y el instructor.",
+                "Abra Grupos de confección. Ahí el grupo queda ligado a una orden, con instructor, fecha, horario y cantidad de prendas. Pulse Crear para uno nuevo.",
+                "Si la tabla dice que no tiene fichas, pida al administrador que le asigne una en Usuarios."
+            ],
+            [
+                "Quitar un instructor de la ficha usa la × de su etiqueta, en Fichas y producción.",
+                "Un grupo de confección no es la lista de alumnos: guarda el horario y la cantidad de prendas de esa orden."
+            ],
+            [
+                "El encargado de bodega no ve Fichas ni Grupos de confección.",
+                "No busque un nombre de aprendiz: el sistema no lo guarda."
+            ],
+            AdminInstructor,
+            ["aprendices", "alumnos", "ficha de grupo", "grupos de confeccion"],
+            "/Fichas",
+            ["Fichas/*", "GruposConfeccion/*"]),
 
         Tema(
             "plantas", "Administrar plantas", "Plantas de inventario", "fa-warehouse",
@@ -280,7 +309,7 @@ public static class AyudaCatalogo
             Todos,
             ["inventario", "stock", "bodega", "stock bajo", "stock critico", "consultar inventario", "inventario por planta", "codigo almacen", "categoria", "tipo de elemento", "sin costo"],
             "/PlantasInventario",
-            ["PlantasInventario/Index", "PlantasInventario/Consultar", "PlantasInventario/Detalle", "Actas/*", "Trazabilidad/*"]),
+            ["PlantasInventario/Index", "PlantasInventario/Consultar", "PlantasInventario/Detalle"]),
 
         Tema(
             "importar-excel", "Cómo importar inventario desde Excel", "Plantas de inventario", "fa-file-import",
@@ -401,6 +430,54 @@ public static class AyudaCatalogo
             ["movimientos", "movimiento de stock", "historial", "entradas", "salidas", "ajustes"],
             "/PlantasInventario/Movimientos",
             ["PlantasInventario/Movimientos"]),
+
+        Tema(
+            "actas", "Actas de ingreso y egreso", "Actas y trazabilidad", "fa-file-signature",
+            "Cómo dejar por escrito una entrada o una salida, con firma.",
+            "Un acta de ingreso o de egreso documenta el movimiento: tipo, origen, quien entrega, quien recibe y la firma dibujada de cada uno.",
+            "Sirve para tener un comprobante del material que entra o sale, y para descargarlo en PDF.",
+            [
+                "Abra Actas de ingreso/egreso y pulse Nueva acta.",
+                "Elija el Tipo (ingreso o egreso) y el Origen. Manual deja el detalle en Observaciones. Stock pide marcar movimientos de su planta. Consumo usa los de una orden.",
+                "Si el acta sale de una orden, elija la Orden.",
+                "Escriba el nombre y el cargo de quien entrega y de quien recibe, marque Conforme y dibuje cada firma. Limpiar firma borra el trazo.",
+                "Pulse Registrar acta.",
+                "En el listado, Ver abre el detalle y PDF descarga el documento."
+            ],
+            [
+                "El acta ya registrada no se reescribe desde el listado. Si hubo un error, registre otra acta que lo aclare.",
+                "El PDF se arma al abrirlo. No hace falta cargar un archivo a mano."
+            ],
+            ["Stock solo lista movimientos de las plantas asignadas a su usuario."],
+            Todos,
+            ["acta", "acta de ingreso", "acta de egreso", "nueva acta"],
+            "/Actas",
+            ["Actas/*"]),
+
+        Tema(
+            "trazabilidad", "Trazabilidad de prendas", "Actas y trazabilidad", "fa-barcode",
+            "Cómo seguir una prenda por su código único.",
+            "Cada prenda puede recibir un código (SIP-orden-consecutivo) ligado a la orden, a los materiales de la receta y a la calidad.",
+            "Sirve para consultar de dónde salió una prenda, generar los códigos que faltan e imprimir la etiqueta.",
+            [
+                "Abra Trazabilidad.",
+                "En Consultar código escriba el código (por ejemplo SIP-OP-001-0001), la prenda o elija la Orden, y pulse Buscar.",
+                "Para crear códigos, en Generar códigos elija la orden y la cantidad (máximo 200 por lote) y pulse Generar. No repite códigos que ya existen.",
+                "En la tabla Prendas abra el código. Ahí están el QR, la ficha de la prenda, los materiales de la receta y la línea de tiempo.",
+                "Imprimir etiqueta prepara el código para pegarlo en la prenda."
+            ],
+            [
+                "El código no se edita a mano: queda ligado a esa orden.",
+                "La línea de tiempo muestra lo ya registrado. No se borra desde esta pantalla."
+            ],
+            [
+                "Generar no pasa de la meta de la orden ni duplica un código existente.",
+                "El estado de la orden y el ciclo del producto se leen juntos, pero no son el mismo dato."
+            ],
+            Todos,
+            ["trazabilidad", "codigo de prenda", "qr", "etiqueta"],
+            "/Trazabilidad",
+            ["Trazabilidad/*"]),
 
         Tema(
             "costeo", "Costeo de prendas", "Costeo de prendas", "fa-coins",
@@ -553,8 +630,10 @@ public static class AyudaCatalogo
         string[] roles,
         string[] palabras,
         string url,
-        string[] rutas) =>
-        new()
+        string[] rutas)
+    {
+        var didactica = AyudaDidactica.De(id);
+        return new TemaAyuda
         {
             Id = id,
             Titulo = titulo,
@@ -569,8 +648,14 @@ public static class AyudaCatalogo
             RolesPermitidos = roles,
             PalabrasClave = palabras,
             UrlRelacionada = url,
-            Rutas = rutas
+            Rutas = rutas,
+            Pregunta = didactica?.Pregunta ?? titulo,
+            Tipo = didactica?.Tipo ?? "Paso a paso",
+            DescripcionBusqueda = didactica?.Descripcion ?? resumen,
+            Intenciones = didactica?.Intenciones ?? [],
+            Variantes = didactica?.Variantes ?? []
         };
+    }
 }
 
 public sealed class TemaAyuda
@@ -589,6 +674,11 @@ public sealed class TemaAyuda
     public string[] PalabrasClave { get; init; } = [];
     public string UrlRelacionada { get; init; } = "";
     public string[] Rutas { get; init; } = [];
+    public string Pregunta { get; init; } = "";
+    public string Tipo { get; init; } = "Paso a paso";
+    public string DescripcionBusqueda { get; init; } = "";
+    public string[] Intenciones { get; init; } = [];
+    public VarianteAyuda[] Variantes { get; init; } = [];
 }
 
 public sealed record TerminoGlosario(string Termino, string Definicion);

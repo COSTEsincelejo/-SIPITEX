@@ -1,11 +1,31 @@
 /* Centro de ayuda, panel contextual y recorrido guiado. */
-.ayuda-buscador{margin-bottom:18px;}
-.ayuda-search-field{margin-top:8px;width:100%;max-width:none;}
+.ayuda-buscador{margin-bottom:18px;overflow:visible;position:relative;z-index:6;}
+.ayuda-search-wrap{position:relative;margin-top:8px;}
+.ayuda-search-field{margin-top:0;width:100%;max-width:none;}
 .ayuda-search-field input[type="search"]{
   width:100%;max-width:none;min-width:0;flex:1 1 auto;box-sizing:border-box;
   padding:10px 12px 10px 36px;-webkit-appearance:none;appearance:none;
 }
 .ayuda-estado{min-height:1.2em;}
+.ayuda-sugerencias{
+  position:absolute;left:-24px;right:-24px;top:calc(100% + 6px);z-index:8;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow-md);max-height:min(380px,62vh);overflow:auto;padding:6px;
+}
+.ayuda-sugerencias[hidden]{display:none;}
+.ayuda-sugerencias-titulo,.ayuda-sugerencias-vacio{margin:6px 8px 8px;color:var(--text-mut);font-size:13px;}
+.ayuda-sugerencias-titulo{font-weight:750;color:var(--navy-2);}
+.ayuda-sugerencia{display:block;padding:10px 12px;border-radius:10px;text-decoration:none;color:var(--text);}
+.ayuda-sugerencia:hover,.ayuda-sugerencia:focus-visible{background:var(--accent-soft);outline:none;}
+.ayuda-sugerencia-top{display:flex;justify-content:space-between;gap:8px;align-items:center;}
+.ayuda-sugerencia-cat{color:var(--text-mut);font-size:12px;font-weight:650;text-align:right;}
+.ayuda-sugerencia strong{display:block;color:var(--navy-2);font-size:14px;line-height:1.35;margin:4px 0 2px;}
+.ayuda-sugerencia-desc{display:block;color:var(--text-mut);font-size:13px;line-height:1.4;}
+.ayuda-tipo{display:inline-flex;align-items:center;font-size:11px;font-weight:750;border-radius:999px;padding:2px 8px;margin-bottom:6px;}
+.ayuda-tipo-paso{background:var(--accent-soft);color:var(--accent);}
+.ayuda-tipo-explica{background:var(--teal-soft);color:var(--teal);}
+.ayuda-tema{scroll-margin-top:84px;}
+.ayuda-tema-foco{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);}
 .ayuda-categorias{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:22px;}
 .ayuda-cat{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--navy-2);text-decoration:none;font-weight:700;box-shadow:var(--shadow-sm);}
 .ayuda-cat i{width:32px;height:32px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -60,4 +80,7 @@
   .ayuda-tema-head{flex-direction:column;}
   .ayuda-roles{justify-content:flex-start;}
   .ayuda-panel-card{width:100%;}
+  .ayuda-sugerencias{left:-16px;right:-16px;max-height:min(320px,55vh);}
+  .ayuda-sugerencia-top{align-items:flex-start;}
+  .ayuda-sugerencia-cat{text-align:left;}
 }
