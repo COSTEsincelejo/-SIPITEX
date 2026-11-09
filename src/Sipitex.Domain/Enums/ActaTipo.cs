@@ -20,3 +20,10 @@ public enum ActaOrigen
     Consumo = 2,
     EstadoProducto = 3
 }
+
+public enum ActaEstado
+{
+    PendienteFirma = 0,
+    Firmada = 1,
+    Anulada = 2
+}

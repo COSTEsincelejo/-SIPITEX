@@ -14,6 +14,21 @@ public interface IActaMovimientoService
         CancellationToken cancellationToken = default);
 
     Task<ServiceResult<ActaMovimientoDto>> CreateAsync(CreateActaDto dto, CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<ActaMovimientoDto>> FirmarRecibeAsync(
+        int actaId,
+        int actorUserId,
+        string actorRole,
+        bool conforme,
+        byte[]? firmaPng,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<ActaMovimientoDto>> AnularAsync(
+        int actaId,
+        int actorUserId,
+        string actorRole,
+        string motivo,
+        CancellationToken cancellationToken = default);
     Task<ServiceResult<ReportFileDto>> ExportPdfAsync(int id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<int, string>> GetActasPorMovimientoStockAsync(CancellationToken cancellationToken = default);

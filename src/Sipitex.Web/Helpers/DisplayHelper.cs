@@ -246,6 +246,9 @@ public static class DisplayHelper
         ActaItemTipo.Material => "Material",
         ActaItemTipo.ProductoEnProceso => "Producto en proceso",
         ActaItemTipo.ProductoTerminado => "Producto terminado",
+        ActaEstado.PendienteFirma => "Pendiente de firma",
+        ActaEstado.Firmada => "Firmada",
+        ActaEstado.Anulada => "Anulada",
         EstadoProducto.MateriaPrima => "Materia prima",
         EstadoProducto.Corte => "Corte",
         EstadoProducto.Confeccion => "Confección",
@@ -283,6 +286,8 @@ public static class DisplayHelper
         "AssignBomInstructor" => "Asignar instructor a BOM",
         "RemoveBomInstructor" => "Quitar instructor de BOM",
         "RegisterConsumoMaterial" => "Registrar consumo de material",
+        "FirmarActaRecibe" => "Firmar acta como quien recibe",
+        "AnularActa" => "Anular acta",
         "ChangeProductState" => "Cambio de estado de producto",
         "Create" => "Crear",
         "Update" => "Editar",
@@ -305,6 +310,14 @@ public static class DisplayHelper
         "PrendaTrazable" => "Prenda trazable",
         "AppSetting" => "Configuración",
         _ => string.IsNullOrWhiteSpace(entity) ? "—" : entity
+    };
+
+    public static string BadgeClass(ActaEstado estado) => estado switch
+    {
+        ActaEstado.Firmada => "badge-success",
+        ActaEstado.PendienteFirma => "badge-warning",
+        ActaEstado.Anulada => "badge-danger",
+        _ => "badge-neutral"
     };
 
     public static string BadgeClass(StockNivel nivel) => nivel switch

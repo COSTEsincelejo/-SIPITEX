@@ -887,6 +887,10 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
             e.Property(a => a.Origen).HasConversion<string>().HasMaxLength(30);
             e.Property(a => a.EstadoProductoOrigen).HasConversion<string>().HasMaxLength(40);
             e.Property(a => a.EstadoProductoDestino).HasConversion<string>().HasMaxLength(40);
+            e.Property(a => a.Estado)
+                .HasDefaultValue(ActaEstado.Firmada)
+                .HasSentinel((ActaEstado)(-1));
+            e.Property(a => a.MotivoAnulacion).HasMaxLength(500);
             e.Property(a => a.Observaciones).HasMaxLength(1000);
             e.Property(a => a.EntregaNombre).HasMaxLength(120).IsRequired();
             e.Property(a => a.EntregaCargo).HasMaxLength(80);
@@ -901,6 +905,18 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
             e.HasOne(a => a.CreadoPor)
                 .WithMany()
                 .HasForeignKey(a => a.CreadoPorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(a => a.AnuladaPor)
+                .WithMany()
+                .HasForeignKey(a => a.AnuladaPorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(a => a.PlantaOrigen)
+                .WithMany()
+                .HasForeignKey(a => a.PlantaOrigenId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(a => a.PlantaDestino)
+                .WithMany()
+                .HasForeignKey(a => a.PlantaDestinoId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasMany(a => a.Detalles)
                 .WithOne(d => d.ActaMovimiento)

@@ -22,6 +22,19 @@ public class ActaMovimiento
     public EstadoProducto? EstadoProductoOrigen { get; set; }
     public EstadoProducto? EstadoProductoDestino { get; set; }
 
+    public int? PlantaOrigenId { get; set; }
+    public PlantaInventario? PlantaOrigen { get; set; }
+
+    public int? PlantaDestinoId { get; set; }
+    public PlantaInventario? PlantaDestino { get; set; }
+
+    public ActaEstado Estado { get; set; } = ActaEstado.Firmada;
+
+    public DateTime? AnuladaUtc { get; set; }
+    public int? AnuladaPorUserId { get; set; }
+    public User? AnuladaPor { get; set; }
+    public string? MotivoAnulacion { get; set; }
+
     public string EntregaNombre { get; set; } = string.Empty;
     public string EntregaCargo { get; set; } = string.Empty;
     public DateTime? EntregaConformidadUtc { get; set; }

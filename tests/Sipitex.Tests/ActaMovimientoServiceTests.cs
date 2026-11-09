@@ -143,7 +143,9 @@ public class ActaMovimientoServiceTests
             "Laura", "Instructor", true,
             7, StockMovementIds: [9],
             EntregaFirmaPng: TestPng.Bytes,
-            RecibeFirmaPng: TestPng.Bytes));
+            RecibeFirmaPng: TestPng.Bytes,
+            PlantaOrigenId: 1,
+            PlantaDestinoId: 2));
 
         Assert.True(result.Success, result.Message);
         Assert.Equal(ActaTipo.Ingreso, result.Value!.Tipo);
@@ -175,7 +177,9 @@ public class ActaMovimientoServiceTests
             "Laura", "Instructor", true,
             7, StockMovementIds: [9],
             EntregaFirmaPng: TestPng.Bytes,
-            RecibeFirmaPng: TestPng.Bytes));
+            RecibeFirmaPng: TestPng.Bytes,
+            PlantaOrigenId: 1,
+            PlantaDestinoId: 2));
 
         Assert.False(result.Success);
         Assert.Contains("movimiento de stock 9", result.Message, StringComparison.OrdinalIgnoreCase);
@@ -208,7 +212,8 @@ public class ActaMovimientoServiceTests
             "Pedro", "Encargado de bodega", false,
             7, ProductionOrderId: 4,
             EstadoOrigen: EstadoProducto.Corte,
-            EstadoDestino: EstadoProducto.Confeccion));
+            EstadoDestino: EstadoProducto.Confeccion,
+            EntregaFirmaPng: TestPng.Bytes));
 
         Assert.True(result.Success, result.Message);
         var line = Assert.Single(result.Value!.Detalles);

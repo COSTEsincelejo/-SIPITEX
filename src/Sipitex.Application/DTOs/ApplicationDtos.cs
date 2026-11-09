@@ -793,7 +793,16 @@ public record ActaMovimientoDto(
     int CreadoPorUserId,
     string CreadoPorNombre,
     IReadOnlyList<ActaDetalleDto> Detalles,
-    string? ProductoOrden = null);
+    string? ProductoOrden = null,
+    ActaEstado Estado = ActaEstado.Firmada,
+    int? PlantaOrigenId = null,
+    string? PlantaOrigenNombre = null,
+    int? PlantaDestinoId = null,
+    string? PlantaDestinoNombre = null,
+    DateTime? AnuladaUtc = null,
+    int? AnuladaPorUserId = null,
+    string? AnuladaPorNombre = null,
+    string? MotivoAnulacion = null);
 
 public record CreateActaDto(
     ActaTipo Tipo,
@@ -812,7 +821,9 @@ public record CreateActaDto(
     IReadOnlyList<int>? StockMovementIds = null,
     IReadOnlyList<int>? ConsumoIds = null,
     byte[]? EntregaFirmaPng = null,
-    byte[]? RecibeFirmaPng = null);
+    byte[]? RecibeFirmaPng = null,
+    int? PlantaOrigenId = null,
+    int? PlantaDestinoId = null);
 
 public record PrendaTrazableListDto(
     int Id,

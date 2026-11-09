@@ -1,25 +1,34 @@
-@model ActaMovimientoDto
+@model ActaDetailsViewModel
 @{
-    ViewData["Title"] = Model.Numero;
-    ViewData["Breadcrumb"] = $"SIPITEX / Operación / Actas / {Model.Numero}";
+    ViewData["Title"] = Model.Acta.Numero;
+    ViewData["Breadcrumb"] = $"SIPITEX / Operación / Actas / {Model.Acta.Numero}";
     Layout = "_Layout";
+    var acta = Model.Acta;
 }
 
 <div class="page-header">
     <div>
-        <h2>@Model.Numero · @DisplayHelper.StatusText(Model.Tipo)</h2>
-        <div class="sub">@Model.FechaUtc.ToString("yyyy-MM-dd HH:mm") UTC · Origen @DisplayHelper.StatusText(Model.Origen)</div>
+        <h2>@acta.Numero · @DisplayHelper.StatusText(acta.Tipo)</h2>
+        <div class="sub">
+            @acta.FechaUtc.ToString("yyyy-MM-dd HH:mm") UTC · Origen @DisplayHelper.StatusText(acta.Origen)
+            · <span class="badge @DisplayHelper.BadgeClass(acta.Estado)">@DisplayHelper.StatusText(acta.Estado)</span>
+        </div>
     </div>
     <div>
-        <a class="primary" asp-action="Pdf" asp-route-id="@Model.Id"><i class="fas fa-file-pdf"></i> Descargar PDF</a>
+        <a class="primary" asp-action="Pdf" asp-route-id="@acta.Id"><i class="fas fa-file-pdf"></i> Descargar PDF</a>
         <button type="button" class="ghost" data-print><i class="fas fa-print"></i> Imprimir</button>
         <a class="ghost" asp-action="Index">Volver</a>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div data-toast data-toast-type="@(Model.IsSuccess ? "success" : "danger")" style="position:absolute;left:-9999px;">@Model.Message</div>
+}
+
 @if (string.Equals(Context.Request.Query["descargar"], "1", StringComparison.Ordinal))
 {
-    <a id="actaDescargaAuto" href="@Url.Action("Pdf", new { id = Model.Id })" hidden tabindex="-1" aria-hidden="true">Descargar PDF</a>
+    <a id="actaDescargaAuto" href="@Url.Action("Pdf", new { id = acta.Id })" hidden tabindex="-1" aria-hidden="true">Descargar PDF</a>
     <script>
         (function () {
             var link = document.getElementById('actaDescargaAuto');
@@ -33,16 +42,27 @@
 }
 
 <div class="card">
-    @if (!string.IsNullOrWhiteSpace(Model.OrderNumber))
+    <p>Planta origen: <strong>@(string.IsNullOrWhiteSpace(acta.PlantaOrigenNombre) ? "—" : acta.PlantaOrigenNombre)</strong></p>
+    <p>Planta destino: <strong>@(string.IsNullOrWhiteSpace(acta.PlantaDestinoNombre) ? "—" : acta.PlantaDestinoNombre)</strong></p>
+    @if (acta.Estado == ActaEstado.Anulada)
     {
-        <p>Orden: <strong>@Model.OrderNumber</strong></p>
+        <p><span class="badge badge-danger">Anulada</span>
+            @(acta.AnuladaUtc is DateTime anulada ? $" · {anulada:yyyy-MM-dd HH:mm} UTC" : "")
+            @(string.IsNullOrWhiteSpace(acta.AnuladaPorNombre) ? "" : $" · {acta.AnuladaPorNombre}")
+        </p>
+        <p>Motivo: @acta.MotivoAnulacion</p>
+        <p class="hint">La anulación no revirtió movimientos de stock ni consumos. Esos ítems quedaron libres para otra acta. Esta acta no se puede firmar ni editar.</p>
     }
-    @if (!string.IsNullOrWhiteSpace(Model.ProductoOrden))
+    @if (!string.IsNullOrWhiteSpace(acta.OrderNumber))
     {
-        <p>Producto: <strong>@Model.ProductoOrden</strong></p>
+        <p>Orden: <strong>@acta.OrderNumber</strong></p>
+    }
+    @if (!string.IsNullOrWhiteSpace(acta.ProductoOrden))
+    {
+        <p>Producto: <strong>@acta.ProductoOrden</strong></p>
     }
     @{
-        var plantas = Model.Detalles
+        var plantas = acta.Detalles
             .Select(d => d.PlantaInventario)
             .Where(nombre => !string.IsNullOrWhiteSpace(nombre))
             .Select(nombre => nombre!)
@@ -54,13 +74,13 @@
     {
         <p>Planta de inventario: <strong>@string.Join(", ", plantas)</strong></p>
     }
-    @if (Model.EstadoProductoOrigen is { } from && Model.EstadoProductoDestino is { } to)
+    @if (acta.EstadoProductoOrigen is { } from && acta.EstadoProductoDestino is { } to)
     {
         <p>Estado de producto: @DisplayHelper.StatusText(from) → @DisplayHelper.StatusText(to)</p>
     }
-    @if (!string.IsNullOrWhiteSpace(Model.Observaciones))
+    @if (!string.IsNullOrWhiteSpace(acta.Observaciones))
     {
-        <p>Observaciones: @Model.Observaciones</p>
+        <p>Observaciones: @acta.Observaciones</p>
     }
 
     <div class="table-wrap table-responsive">
@@ -75,7 +95,7 @@
                 </tr>
             </thead>
             <tbody>
-            @foreach (var d in Model.Detalles)
+            @foreach (var d in acta.Detalles)
             {
                 <tr>
                     <td>@DisplayHelper.StatusText(d.ItemTipo)</td>
@@ -94,24 +114,81 @@
     <div class="form-row">
         <div class="field">
             <div class="card-title">Quien entrega</div>
-            <p><strong>@Model.EntregaNombre</strong></p>
-            <p class="hint">@(string.IsNullOrWhiteSpace(Model.EntregaCargo) ? "Cargo no indicado" : Model.EntregaCargo)</p>
-            <p>@(Model.EntregaConformidadUtc is DateTime te ? $"Conforme · {te:yyyy-MM-dd HH:mm} UTC" : "Pendiente de conformidad")</p>
-            @if (Model.EntregaFirmaPng is { Length: > 0 })
+            <p><strong>@acta.EntregaNombre</strong></p>
+            <p class="hint">@(string.IsNullOrWhiteSpace(acta.EntregaCargo) ? "Cargo no indicado" : acta.EntregaCargo)</p>
+            <p>@(acta.EntregaConformidadUtc is DateTime te ? $"Conforme · {te:yyyy-MM-dd HH:mm} UTC" : "Pendiente de conformidad")</p>
+            @if (acta.EntregaFirmaPng is { Length: > 0 })
             {
-                <img class="signature-preview" alt="Firma de @Model.EntregaNombre" src="data:image/png;base64,@Convert.ToBase64String(Model.EntregaFirmaPng)" />
+                <img class="signature-preview" alt="Firma de @acta.EntregaNombre" src="data:image/png;base64,@Convert.ToBase64String(acta.EntregaFirmaPng)" />
             }
         </div>
         <div class="field">
             <div class="card-title">Quien recibe</div>
-            <p><strong>@Model.RecibeNombre</strong></p>
-            <p class="hint">@(string.IsNullOrWhiteSpace(Model.RecibeCargo) ? "Cargo no indicado" : Model.RecibeCargo)</p>
-            <p>@(Model.RecibeConformidadUtc is DateTime tr ? $"Conforme · {tr:yyyy-MM-dd HH:mm} UTC" : "Pendiente de conformidad")</p>
-            @if (Model.RecibeFirmaPng is { Length: > 0 })
+            <p><strong>@acta.RecibeNombre</strong></p>
+            <p class="hint">@(string.IsNullOrWhiteSpace(acta.RecibeCargo) ? "Cargo no indicado" : acta.RecibeCargo)</p>
+            @if (acta.Estado == ActaEstado.PendienteFirma)
             {
-                <img class="signature-preview" alt="Firma de @Model.RecibeNombre" src="data:image/png;base64,@Convert.ToBase64String(Model.RecibeFirmaPng)" />
+                <p>Firma de quien recibe pendiente</p>
+            }
+            else
+            {
+                <p>@(acta.RecibeConformidadUtc is DateTime tr ? $"Conforme · {tr:yyyy-MM-dd HH:mm} UTC" : "Pendiente de conformidad")</p>
+            }
+            @if (acta.RecibeFirmaPng is { Length: > 0 })
+            {
+                <img class="signature-preview" alt="Firma de @acta.RecibeNombre" src="data:image/png;base64,@Convert.ToBase64String(acta.RecibeFirmaPng)" />
             }
         </div>
     </div>
     <p class="hint">Validez: nombre, cargo, marca de tiempo UTC y firma gráfica de quien entrega y quien recibe.</p>
 </div>
+
+@if (Model.PuedeFirmar)
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-file-signature"></i> Firmar como quien recibe</div>
+        <p class="hint">Al firmar, el acta pasa a Firmada y se registra la conformidad con la marca de tiempo.</p>
+        <form asp-action="Firmar" asp-route-id="@acta.Id" method="post">
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label><input asp-for="Firmar.Conforme" /> Conforme</label>
+            </div>
+            <div class="signature-pad" data-signature-pad>
+                <label class="field-label">Firma de quien recibe</label>
+                <div class="signature-canvas-wrap">
+                    <canvas width="320" height="120" aria-label="Firme aquí (quien recibe)"></canvas>
+                    <span class="signature-hint" data-signature-hint>Firme aquí</span>
+                </div>
+                <input type="hidden" asp-for="Firmar.FirmaDataUrl" />
+                <button type="button" class="ghost small" data-signature-clear>Limpiar firma</button>
+            </div>
+            <button type="submit" class="primary">Firmar como quien recibe</button>
+        </form>
+    </div>
+}
+
+@if (Model.PuedeAnular)
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-ban"></i> Anular acta</div>
+        <p class="hint">Anular no revierte movimientos de stock ni consumos. El acta queda cerrada y sus ítems pueden usarse en otra acta. No se puede volver a firmar ni editar.</p>
+        <form asp-action="Anular" asp-route-id="@acta.Id" method="post" onsubmit="return confirm('¿Anular esta acta? No se revierten los movimientos de stock ni los consumos. Esos ítems quedarán libres para otra acta.');">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="field">
+                <label class="field-label" asp-for="Anular.Motivo">Motivo</label>
+                <textarea asp-for="Anular.Motivo" rows="3" maxlength="500" required minlength="10"></textarea>
+                <span asp-validation-for="Anular.Motivo" class="field-error"></span>
+            </div>
+            <button type="submit" class="danger">Anular acta (no revierte stock ni consumos)</button>
+        </form>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @if (Model.PuedeFirmar)
+    {
+        <script src="~/js/signature-pad.js" asp-append-version="true"></script>
+    }
+}

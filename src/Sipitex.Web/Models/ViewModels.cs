@@ -716,6 +716,8 @@ public class CostosIndexViewModel
 public class ActasIndexViewModel
 {
     public IReadOnlyList<ActaMovimientoDto> Actas { get; set; } = [];
+    public ActaEstado? Estado { get; set; }
+    public bool FiltroSinResultados { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -727,6 +729,7 @@ public class ActaCreateViewModel
     public IReadOnlyList<ConsumoMaterialDto> Consumos { get; set; } = [];
     public IReadOnlyDictionary<int, string> ActasPorStock { get; set; } = new Dictionary<int, string>();
     public IReadOnlyDictionary<int, string> ActasPorConsumo { get; set; } = new Dictionary<int, string>();
+    public IReadOnlyList<PlantaInventario> PlantasActivas { get; set; } = [];
     public CreateActaForm Form { get; set; } = new();
 }
 
@@ -754,6 +757,33 @@ public class CreateActaForm
     public int[] ConsumoIds { get; set; } = [];
     public string? EntregaFirmaDataUrl { get; set; }
     public string? RecibeFirmaDataUrl { get; set; }
+    public int? PlantaOrigenId { get; set; }
+    public int? PlantaDestinoId { get; set; }
+}
+
+public class ActaDetailsViewModel
+{
+    public ActaMovimientoDto Acta { get; set; } = null!;
+    public bool PuedeFirmar { get; set; }
+    public bool PuedeAnular { get; set; }
+    public FirmarActaForm Firmar { get; set; } = new();
+    public AnularActaForm Anular { get; set; } = new();
+    public string? Message { get; set; }
+    public bool IsSuccess { get; set; }
+}
+
+public class FirmarActaForm
+{
+    public bool Conforme { get; set; } = true;
+    public string? FirmaDataUrl { get; set; }
+}
+
+public class AnularActaForm
+{
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Indique el motivo de la anulación.")]
+    [System.ComponentModel.DataAnnotations.MinLength(10, ErrorMessage = "El motivo debe tener al menos 10 caracteres.")]
+    [System.ComponentModel.DataAnnotations.StringLength(500, ErrorMessage = "El motivo no puede superar 500 caracteres.")]
+    public string Motivo { get; set; } = string.Empty;
 }
 
 public class TrazabilidadIndexViewModel
