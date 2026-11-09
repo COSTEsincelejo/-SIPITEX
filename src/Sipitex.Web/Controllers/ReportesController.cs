@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
@@ -13,13 +15,23 @@ namespace Sipitex.Web.Controllers;
 [Authorize]
 public class ReportesController : Controller
 {
+    private const int MaximoDiasActividad = 92;
+
     private readonly IReportService _reportService;
     private readonly IFichaService _fichaService;
+    private readonly IActividadInstructorService _actividad;
+    private readonly IActividadInstructorPdf _actividadPdf;
 
-    public ReportesController(IReportService reportService, IFichaService fichaService)
+    public ReportesController(
+        IReportService reportService,
+        IFichaService fichaService,
+        IActividadInstructorService actividad,
+        IActividadInstructorPdf actividadPdf)
     {
         _reportService = reportService;
         _fichaService = fichaService;
+        _actividad = actividad;
+        _actividadPdf = actividadPdf;
     }
 
     // Menú de reportes + filtros (instructor ve solo sus fichas; sin selector de "otro instructor")
@@ -129,6 +141,124 @@ public class ReportesController : Controller
                      ?? new ReportFilterDto();
         // Este reporte exige InstructorId; con Instructor el ResolveFilter ya lo fuerza
         return FileResult(await _reportService.ExportActividadInstructorAsync(format, filter, cancellationToken));
+    }
+
+    // Resumen visual de la actividad. El PDF sale de esta misma consulta, no de los filtros genéricos.
+    [HttpGet]
+    public async Task<IActionResult> Actividad(
+        int? instructorId = null,
+        DateOnly? desde = null,
+        DateOnly? hasta = null,
+        int? fichaId = null,
+        string? jornada = null,
+        string? tipo = null,
+        CancellationToken cancellationToken = default)
+    {
+        var model = await ArmarActividadAsync(instructorId, desde, hasta, fichaId, jornada, tipo, cancellationToken);
+        if (model.Consultado && model.Error is null && model.InstructorId is int id && model.Desde is DateOnly d && model.Hasta is DateOnly h)
+        {
+            model.Reporte = await _actividad.ConsultarAsync(
+                new ActividadInstructorConsulta(id, d, h, model.FichaId, model.Jornada, model.Tipo),
+                cancellationToken);
+            if (model.Reporte is { InstructorExiste: false })
+                model.Error = "No se encontró ese instructor.";
+        }
+
+        return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ActividadPdf(
+        int? instructorId = null,
+        DateOnly? desde = null,
+        DateOnly? hasta = null,
+        int? fichaId = null,
+        string? jornada = null,
+        string? tipo = null,
+        CancellationToken cancellationToken = default)
+    {
+        var model = await ArmarActividadAsync(instructorId, desde, hasta, fichaId, jornada, tipo, cancellationToken);
+        if (!model.Consultado || model.Error is not null || model.InstructorId is not int id || model.Desde is not DateOnly d || model.Hasta is not DateOnly h)
+        {
+            model.Consultado = true;
+            model.Error ??= "Indique el instructor y el período para generar el PDF.";
+            return View("Actividad", model);
+        }
+
+        var reporte = await _actividad.ConsultarAsync(
+            new ActividadInstructorConsulta(id, d, h, model.FichaId, model.Jornada, model.Tipo),
+            cancellationToken);
+        if (!reporte.InstructorExiste)
+        {
+            model.Error = "No se encontró ese instructor.";
+            return View("Actividad", model);
+        }
+
+        return FileResult(_actividadPdf.Render(reporte));
+    }
+
+    private async Task<ActividadInstructorViewModel> ArmarActividadAsync(
+        int? instructorId,
+        DateOnly? desde,
+        DateOnly? hasta,
+        int? fichaId,
+        string? jornada,
+        string? tipo,
+        CancellationToken cancellationToken)
+    {
+        var (userId, role, name) = CurrentViewer();
+        var isInstructor = IsInstructorOnly();
+        if (isInstructor && userId is int self)
+            instructorId = self;
+
+        var instructors = isInstructor
+            ? (await _fichaService.GetActiveInstructorsAsync(cancellationToken)).Where(i => i.Id == userId).ToList()
+            : await _fichaService.GetActiveInstructorsAsync(cancellationToken);
+        var fichas = await _fichaService.GetFichasAsync(userId, role, name, cancellationToken);
+        var elegido = instructors.FirstOrDefault(i => i.Id == instructorId);
+        var intento = instructorId is > 0 || desde is not null || hasta is not null
+            || fichaId is > 0 || !string.IsNullOrWhiteSpace(jornada) || !string.IsNullOrWhiteSpace(tipo);
+
+        string? error = null;
+        var consultado = false;
+        if (intento)
+        {
+            consultado = true;
+            if (instructorId is not > 0 || elegido is null)
+                error = "Seleccione un instructor de la lista.";
+            else if (desde is null || hasta is null)
+                error = "Indique el período Desde y Hasta.";
+            else if (desde > hasta)
+                error = "La fecha Desde no puede ser posterior a Hasta.";
+            else if (hasta.Value.DayNumber - desde.Value.DayNumber + 1 > MaximoDiasActividad)
+                error = $"El período máximo es de {MaximoDiasActividad} días. Para un mes use Este mes o Mes anterior.";
+            else if (fichaId is > 0 && fichas.All(f => f.Id != fichaId))
+                error = "La ficha no está en su alcance.";
+        }
+
+        if (error is not null)
+            consultado = true;
+
+        var json = JsonSerializer.Serialize(
+            instructors.Select(i => new { id = i.Id, nombre = i.Nombre, meta = "Instructor" }),
+            new JsonSerializerOptions { Encoder = JavaScriptEncoder.Default });
+
+        return new ActividadInstructorViewModel
+        {
+            Instructors = instructors,
+            Fichas = fichas,
+            InstructoresJson = json,
+            IsInstructorScoped = isInstructor,
+            InstructorId = elegido?.Id,
+            InstructorNombre = elegido?.Nombre ?? string.Empty,
+            Desde = desde,
+            Hasta = hasta,
+            FichaId = fichaId is > 0 ? fichaId : null,
+            Jornada = string.IsNullOrWhiteSpace(jornada) ? null : jornada.Trim(),
+            Tipo = string.IsNullOrWhiteSpace(tipo) ? null : tipo.Trim(),
+            Consultado = consultado && error is null,
+            Error = error
+        };
     }
 
     // Instructor: siempre InstructorId = NameIdentifier (ignora query). Admin/EncargadoDeBodega: query intacta.

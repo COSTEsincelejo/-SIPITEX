@@ -38,4 +38,16 @@ public class ConsumoMaterialRepository : IConsumoMaterialRepository
             .Where(c => c.MaterialId == materialId)
             .OrderByDescending(c => c.FechaUtc)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<ConsumoMaterial>> GetAllWithDetailsAsync(
+        CancellationToken cancellationToken = default) =>
+        await _context.ConsumosMaterial
+            .AsNoTracking()
+            .Include(c => c.ProductionOrder)
+            .Include(c => c.Material)
+            .Include(c => c.Responsable)
+            .Include(c => c.GrupoConfeccion)
+            .OrderByDescending(c => c.FechaUtc)
+            .ThenByDescending(c => c.Id)
+            .ToListAsync(cancellationToken);
 }

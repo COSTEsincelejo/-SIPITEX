@@ -21,6 +21,8 @@ public class ReportesInstructorScopeTests
 {
     private readonly Mock<IReportService> _reports = new();
     private readonly Mock<IFichaService> _fichas = new();
+    private readonly Mock<IActividadInstructorService> _actividad = new();
+    private readonly Mock<IActividadInstructorPdf> _actividadPdf = new();
 
     private static ReportFileDto DummyFile(string name = "Ordenes") => new(
         [0x25, 0x50, 0x44, 0x46], // %PDF
@@ -54,7 +56,8 @@ public class ReportesInstructorScopeTests
                 It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        var controller = new ReportesController(_reports.Object, _fichas.Object)
+        var controller = new ReportesController(
+            _reports.Object, _fichas.Object, _actividad.Object, _actividadPdf.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -129,6 +132,32 @@ public class ReportesInstructorScopeTests
         _reports.Verify(r => r.ExportActividadInstructorAsync(
             It.IsAny<string>(),
             It.Is<ReportFilterDto>(f => f.InstructorId == 10),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Actividad_Instructor_FuerzaSuPropioId()
+    {
+        var controller = CreateController(Principal(10, UserRoles.Instructor, "Laura"));
+        _actividad.Setup(a => a.ConsultarAsync(It.IsAny<ActividadInstructorConsulta>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ActividadInstructorReporteDto(
+                true, 10, "Laura Gómez", null, "LG",
+                new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 2), "período",
+                null, null, null, false, 2, 0, 2,
+                "No registrado", "No registrado", 0, 0, 0, [], [], [], "ABC123ABC123"));
+
+        var result = await controller.Actividad(
+            instructorId: 20,
+            desde: new DateOnly(2026, 11, 1),
+            hasta: new DateOnly(2026, 11, 2),
+            cancellationToken: CancellationToken.None);
+
+        var view = Assert.IsType<ViewResult>(result);
+        var model = Assert.IsType<ActividadInstructorViewModel>(view.Model);
+        Assert.Equal(10, model.InstructorId);
+        Assert.True(model.IsInstructorScoped);
+        _actividad.Verify(a => a.ConsultarAsync(
+            It.Is<ActividadInstructorConsulta>(c => c.InstructorId == 10),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

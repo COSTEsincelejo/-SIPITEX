@@ -74,7 +74,9 @@
       const nombre = String(item.nombre || item.Nombre || item.value || '').trim();
       const codigo = String(item.codigo || item.Codigo || '').trim();
       const materiales = Number(item.materiales ?? item.Materiales ?? 0);
-      return { nombre, codigo, materiales: Number.isFinite(materiales) ? materiales : 0 };
+      const meta = String(item.meta || item.Meta || '').trim();
+      const id = String(item.id ?? item.Id ?? '').trim();
+      return { nombre, codigo, materiales: Number.isFinite(materiales) ? materiales : 0, meta, id };
     }).filter((item) => item.nombre);
   }
 
@@ -82,7 +84,9 @@
     return Array.from(nodo.querySelectorAll('option')).map((op) => ({
       nombre: (op.value || op.textContent || '').trim(),
       codigo: (op.getAttribute('data-codigo') || '').trim(),
-      materiales: Number(op.getAttribute('data-materiales') || 0)
+      materiales: Number(op.getAttribute('data-materiales') || 0),
+      meta: (op.getAttribute('data-meta') || '').trim(),
+      id: (op.getAttribute('data-id') || '').trim()
     })).filter((item) => item.nombre);
   }
 
@@ -99,6 +103,7 @@
   }
 
   function detalle(item) {
+    if (item.meta) return item.meta;
     const n = item.materiales;
     const materiales = n === 1 ? '1 material' : n + ' materiales';
     return item.codigo ? item.codigo + ' · ' + materiales : materiales;
@@ -142,6 +147,8 @@
 
     const crearUrl = input.getAttribute('data-combobox-create-url');
     const crearLabel = input.getAttribute('data-combobox-create-label') || 'Crear ficha técnica';
+    const mensajeVacio = input.getAttribute('data-combobox-empty') || MENSAJE_VACIO;
+    const mensajeInvalido = input.getAttribute('data-combobox-invalid') || MENSAJE_INVALIDO;
     let planos = [];
     let activo = -1;
     let listaCompleta = true;
@@ -153,7 +160,7 @@
     function aplicarValidez() {
       const valor = input.value.trim();
       if (!valor || coincide(input.value)) input.setCustomValidity('');
-      else input.setCustomValidity(MENSAJE_INVALIDO);
+      else input.setCustomValidity(mensajeInvalido);
     }
 
     function abierto() {
@@ -198,8 +205,19 @@
       }
       input.value = item.nombre;
       input.setCustomValidity('');
+      sincronizarValor();
+      input.dispatchEvent(new Event('change', { bubbles: true }));
       cerrar();
       input.focus();
+    }
+
+    function sincronizarValor() {
+      const hiddenId = input.getAttribute('data-combobox-value');
+      if (!hiddenId) return;
+      const hidden = doc.getElementById(hiddenId);
+      if (!hidden) return;
+      const elegido = items.find((item) => item.nombre === input.value);
+      hidden.value = elegido && elegido.id ? elegido.id : '';
     }
 
     function pintar(consulta, completa) {
@@ -214,7 +232,7 @@
       if (!visibles.length) {
         const vacio = doc.createElement('div');
         vacio.className = 'search-empty';
-        vacio.textContent = MENSAJE_VACIO;
+        vacio.textContent = mensajeVacio;
         panel.appendChild(vacio);
         if (crearUrl) {
           const enlace = doc.createElement('a');
@@ -280,6 +298,7 @@
     });
     input.addEventListener('input', () => {
       aplicarValidez();
+      sincronizarValor();
       pintar(input.value, false);
     });
     input.addEventListener('blur', () => {
@@ -320,6 +339,7 @@
     });
 
     aplicarValidez();
+    sincronizarValor();
   }
 
   function arrancar() {
