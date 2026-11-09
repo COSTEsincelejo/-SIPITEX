@@ -472,7 +472,7 @@ public static class AyudaCatalogo
             ],
             [
                 "Generar no pasa de la meta de la orden ni duplica un código existente.",
-                "El estado de la orden y el ciclo del producto se leen juntos, pero no son el mismo dato."
+                "El estado de la orden (En proceso, Finalizada) no es el ciclo de la prenda. El ciclo sigue la etapa actual: Trazo se ve como Materia prima, Corte como Corte, Confección como Confección, Control de Calidad como Calidad y Terminado como Producto terminado."
             ],
             Todos,
             ["trazabilidad", "codigo de prenda", "qr", "etiqueta"],

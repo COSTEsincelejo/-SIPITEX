@@ -24,6 +24,7 @@ public class ProductionFlowService : IProductionFlowService
     private readonly IMaterialRepository _materialRepository;
     private readonly IStockMovementRepository _stockMovements;
     private readonly IUnitOfWork _uow;
+    private readonly IProductLifecycleService _lifecycle;
     private readonly ILogger<ProductionFlowService> _logger;
 
     public ProductionFlowService(
@@ -36,6 +37,7 @@ public class ProductionFlowService : IProductionFlowService
         IMaterialRepository materialRepository,
         IStockMovementRepository stockMovements,
         IUnitOfWork uow,
+        IProductLifecycleService lifecycle,
         ILogger<ProductionFlowService> logger)
     {
         _orders = orders;
@@ -47,6 +49,7 @@ public class ProductionFlowService : IProductionFlowService
         _materialRepository = materialRepository;
         _stockMovements = stockMovements;
         _uow = uow;
+        _lifecycle = lifecycle;
         _logger = logger;
     }
 
@@ -117,6 +120,7 @@ public class ProductionFlowService : IProductionFlowService
         if (first is not null)
         {
             order.CurrentStageId = first.Id;
+            await _lifecycle.AlignWithStageAsync(order, first.Name, cancellationToken);
             _orders.Update(order);
         }
 
@@ -315,6 +319,7 @@ public class ProductionFlowService : IProductionFlowService
         if (order is not null)
         {
             order.CurrentStageId = next?.Id ?? stage.Id;
+            await _lifecycle.AlignWithStageAsync(order, next?.Name ?? stage.Name, cancellationToken);
             _orders.Update(order);
         }
 
@@ -421,6 +426,7 @@ public class ProductionFlowService : IProductionFlowService
         if (order is not null)
         {
             order.CurrentStageId = next.Id;
+            await _lifecycle.AlignWithStageAsync(order, next.Name, cancellationToken);
             _orders.Update(order);
         }
 
@@ -480,6 +486,7 @@ public class ProductionFlowService : IProductionFlowService
         var closed = RejectIfOrderClosed(orderGate);
         if (closed is not null) return closed;
 
+        // El reingreso no mueve la etapa actual, así que el ciclo de la prenda tampoco cambia.
         // EncargadoDeBodega/Admin: no exige permiso de instructor por etapa (gap #14)
         var stage = await _flow.GetStageByIdAsync(dto.StageId, cancellationToken);
         if (stage is null) return ServiceResult.Fail("Etapa no encontrada.");
@@ -608,6 +615,7 @@ public class ProductionFlowService : IProductionFlowService
         if (order is not null && newStatus == ProductionStageStatus.EnProceso)
         {
             order.CurrentStageId = stage.Id;
+            await _lifecycle.AlignWithStageAsync(order, stage.Name, cancellationToken);
             _orders.Update(order);
         }
 

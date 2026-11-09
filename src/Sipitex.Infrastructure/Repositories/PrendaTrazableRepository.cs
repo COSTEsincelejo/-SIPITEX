@@ -63,6 +63,13 @@ public class PrendaTrazableRepository : IPrendaTrazableRepository
     public Task<int> CountByOrderAsync(int productionOrderId, CancellationToken cancellationToken = default) =>
         _db.PrendasTrazables.CountAsync(p => p.ProductionOrderId == productionOrderId, cancellationToken);
 
+    public async Task<IReadOnlyList<PrendaTrazable>> GetByOrderForUpdateAsync(
+        int productionOrderId,
+        CancellationToken cancellationToken = default) =>
+        await _db.PrendasTrazables
+            .Where(p => p.ProductionOrderId == productionOrderId)
+            .ToListAsync(cancellationToken);
+
     public async Task<string?> GetLastCodigoForPrefixAsync(string prefix, CancellationToken cancellationToken = default) =>
         await _db.PrendasTrazables
             .AsNoTracking()
