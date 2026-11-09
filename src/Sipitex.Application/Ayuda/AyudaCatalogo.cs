@@ -430,9 +430,10 @@ public static class AyudaCatalogo
             "Sirve para revisar el taller y llevarse un archivo, sin volver a escribir los datos.",
             [
                 "Abra Estadísticas para ver las tarjetas y la gráfica. Ir a reportes e Ir a alertas están en el encabezado.",
-                "En Reportes, los filtros Instructor, ficha, jornada y fecha son opcionales, salvo en Actividad del instructor: ahí el instructor es obligatorio.",
-                "El instructor solo descarga sus fichas y órdenes. Su filtro de instructor no se puede cambiar.",
-                "Elija el reporte y pulse la descarga PDF o Excel de esa tarjeta.",
+                "En Reportes, los filtros Instructor, ficha, jornada y fecha son opcionales para Inventario, Órdenes, Calidad y Dashboard.",
+                "Actividad del instructor abre su propia búsqueda: persona, rango (hoy, esta semana, este mes, mes anterior o uno propio) y resumen antes del PDF.",
+                "El instructor solo ve sus fichas y su propia actividad. Su filtro de instructor no se puede cambiar.",
+                "En las otras tarjetas elija PDF o Excel. En Actividad del instructor use Ver actividad.",
                 "En Alertas active las notificaciones de su rol. Configurar la evaluación solo aparece si tiene el permiso Alertas.Configurar (el administrador siempre lo tiene)."
             ],
             [

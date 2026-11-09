@@ -45,7 +45,7 @@
         {
             <text>
                 Combinables y opcionales para Inventario, Órdenes, Calidad y Dashboard.
-                En <strong>Actividad del instructor</strong> el filtro Instructor es obligatorio.
+                <strong>Actividad del instructor</strong> tiene su propia búsqueda, con resumen antes del PDF.
                 Si un filtro no aplica al tipo de reporte (p. ej. Instructor en Inventario), se ignora en esa descarga.
             </text>
         }
@@ -182,9 +182,9 @@
     <div class="module-link report-card">
         <i class="fas fa-user-check"></i>
         <h3>Actividad del instructor</h3>
-        <p>Producción por ficha/jornada y materiales consumidos (BOM × unidades).</p>
+        <p>Resumen por día, grupos y PDF detallado. El Excel de esta tarjeta sigue usando los filtros de arriba.</p>
         <div class="report-actions">
-            <a class="btn primary small js-download js-report-download" asp-action="ActividadInstructor" asp-route-format="pdf" data-report-base="@Url.Action("ActividadInstructor")" data-format="pdf" data-requires-instructor="@(instructorScoped ? "false" : "true")"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="btn primary small" asp-action="Actividad"><i class="fas fa-user-check"></i> Ver actividad</a>
             <a class="btn ghost small js-download js-report-download" asp-action="ActividadInstructor" asp-route-format="excel" data-report-base="@Url.Action("ActividadInstructor")" data-format="excel" data-requires-instructor="@(instructorScoped ? "false" : "true")"><i class="fas fa-file-excel"></i> Excel</a>
         </div>
     </div>

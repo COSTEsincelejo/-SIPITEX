@@ -1,0 +1,358 @@
+@model ActividadInstructorViewModel
+@{
+    ViewData["Title"] = "Actividad del instructor";
+    ViewData["Breadcrumb"] = "SIPITEX / Análisis / Reportes / Actividad del instructor";
+    Layout = "_Layout";
+    var reporte = Model.Reporte;
+    var mostrar = Model.Error is null && reporte is { InstructorExiste: true };
+}
+
+<div class="analysis-page">
+<div class="page-header">
+    <div>
+        <h2>Actividad del instructor</h2>
+        <div class="sub">Busque qué hizo un instructor, revise el resumen y después genere el PDF.</div>
+    </div>
+    <div class="row-actions">
+        <a class="ghost small" asp-action="Index"><i class="fas fa-arrow-left"></i> Reportes</a>
+    </div>
+</div>
+
+<partial name="_AnalysisHub" />
+
+<div class="card">
+    <div class="card-title"><i class="fas fa-user-check"></i> Buscar actividad</div>
+    <form method="get" asp-action="Actividad" id="formActividad">
+        <div class="form-row">
+            <div class="field combobox-field">
+                <label class="field-label" for="instructorBusqueda">Instructor</label>
+                @if (Model.IsInstructorScoped)
+                {
+                    <input id="instructorBusqueda" value="@Model.InstructorNombre" readonly />
+                    <input type="hidden" id="instructorId" name="instructorId" value="@Model.InstructorId" />
+                }
+                else
+                {
+                    <input id="instructorBusqueda"
+                           class="combobox-input"
+                           value="@Model.InstructorNombre"
+                           data-combobox="instructores-actividad"
+                           data-combobox-source="instructores-actividad"
+                           data-combobox-value="instructorId"
+                           data-combobox-empty="No hay instructores con ese nombre"
+                           data-combobox-invalid="Elija un instructor de la lista."
+                           autocomplete="off"
+                           placeholder="Buscar instructor"
+                           aria-label="Instructor" />
+                    <input type="hidden" id="instructorId" name="instructorId" value="@(Model.InstructorId?.ToString() ?? "")" />
+                }
+            </div>
+            <div class="field">
+                <label class="field-label" for="desde">Desde</label>
+                <input type="date" id="desde" name="desde" value="@Model.Desde?.ToString("yyyy-MM-dd")" required />
+            </div>
+            <div class="field">
+                <label class="field-label" for="hasta">Hasta</label>
+                <input type="date" id="hasta" name="hasta" value="@Model.Hasta?.ToString("yyyy-MM-dd")" required />
+            </div>
+        </div>
+
+        <div class="actividad-atajos" role="group" aria-label="Atajos de período">
+            <button type="button" class="ghost small" data-rango="hoy">Hoy</button>
+            <button type="button" class="ghost small" data-rango="semana">Esta semana</button>
+            <button type="button" class="ghost small" data-rango="mes">Este mes</button>
+            <button type="button" class="ghost small" data-rango="anterior">Mes anterior</button>
+        </div>
+
+        <div class="form-row">
+            <div class="field">
+                <label class="field-label" for="fichaId">Ficha <span class="field-optional">opcional</span></label>
+                <select id="fichaId" name="fichaId">
+                    <option value="">Todas</option>
+                    @foreach (var ficha in Model.Fichas)
+                    {
+                        if (Model.FichaId == ficha.Id)
+                        {
+                            <option value="@ficha.Id" selected>@ficha.NumeroGrupo — @ficha.ProcessName</option>
+                        }
+                        else
+                        {
+                            <option value="@ficha.Id">@ficha.NumeroGrupo — @ficha.ProcessName</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label class="field-label" for="jornada">Jornada <span class="field-optional">opcional</span></label>
+                <select id="jornada" name="jornada">
+                    <option value="">Todas</option>
+                    @foreach (var jornada in new[] { "Mañana", "Tarde", "Noche" })
+                    {
+                        if (string.Equals(Model.Jornada, jornada, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <option value="@jornada" selected>@jornada</option>
+                        }
+                        else
+                        {
+                            <option value="@jornada">@jornada</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label class="field-label" for="tipo">Tipo de actividad <span class="field-optional">opcional</span></label>
+                <select id="tipo" name="tipo">
+                    <option value="">Todas</option>
+                    @foreach (var opcion in new[] { ("produccion", "Producción"), ("calidad", "Control de calidad"), ("consumo", "Consumo de materiales"), ("grupo", "Grupo de confección") })
+                    {
+                        if (string.Equals(Model.Tipo, opcion.Item1, StringComparison.Ordinal))
+                        {
+                            <option value="@opcion.Item1" selected>@opcion.Item2</option>
+                        }
+                        else
+                        {
+                            <option value="@opcion.Item1">@opcion.Item2</option>
+                        }
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn primary"><i class="fas fa-magnifying-glass"></i> Ver actividad</button>
+        </div>
+    </form>
+    <script type="application/json" id="instructores-actividad">@Html.Raw(Model.InstructoresJson)</script>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-warning" role="alert"><i class="fas fa-circle-exclamation"></i> @Model.Error</div>
+}
+
+@if (mostrar && reporte is not null)
+{
+    <section class="card" aria-labelledby="resumenActividad">
+        <div class="actividad-hero">
+            @if (!string.IsNullOrWhiteSpace(reporte.PhotoPath))
+            {
+                <img class="actividad-avatar" src="@reporte.PhotoPath" alt="" />
+            }
+            else
+            {
+                <div class="actividad-avatar" aria-hidden="true">@reporte.Iniciales</div>
+            }
+            <div>
+                <h3 id="resumenActividad">@reporte.Nombre</h3>
+                <p class="sub">Período consultado: @reporte.PeriodoTexto</p>
+                <p class="hint">
+                    @(reporte.FichaFiltro is null ? "Todas las fichas" : $"Ficha {reporte.FichaFiltro}")
+                    · @(reporte.JornadaFiltro is null ? "Todas las jornadas" : $"Jornada {reporte.JornadaFiltro}")
+                    · @(reporte.TipoFiltro is null ? "Todas las actividades" : reporte.TipoFiltro)
+                </p>
+            </div>
+        </div>
+
+        @if (!reporte.TieneActividad)
+        {
+            <div class="alert alert-info" role="status">
+                <i class="fas fa-circle-info"></i>
+                @ActividadInstructorTexto.SinRegistros
+            </div>
+        }
+
+        <div class="kpi-grid">
+            <div class="kpi-card teal">
+                <div class="kpi-label">Días con actividad</div>
+                <div class="kpi-value">@reporte.DiasConActividad</div>
+                <div class="kpi-trend">de @reporte.DiasEnPeriodo en el período</div>
+            </div>
+            <div class="kpi-card neutral">
+                <div class="kpi-label">Días sin actividad</div>
+                <div class="kpi-value">@reporte.DiasSinActividad</div>
+                <div class="kpi-trend">sin producción, calidad, consumo ni grupo</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Horas registradas</div>
+                <div class="kpi-value es-texto">@reporte.HorasRegistradas</div>
+                <div class="kpi-trend">Solo grupos de confección con hora de inicio y fin</div>
+            </div>
+            <div class="kpi-card amber">
+                <div class="kpi-label">Aprendices</div>
+                <div class="kpi-value es-texto">@reporte.Aprendices</div>
+                <div class="kpi-trend">El sistema no guarda la lista de aprendices</div>
+            </div>
+            <div class="kpi-card teal">
+                <div class="kpi-label">Grupos</div>
+                <div class="kpi-value">@reporte.Grupos</div>
+                <div class="kpi-trend">Fichas y grupos de confección distintos</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Unidades en sesiones</div>
+                <div class="kpi-value">@reporte.UnidadesEnSesiones</div>
+                <div class="kpi-trend">@reporte.PrendasEnGrupos prendas en grupos de confección</div>
+            </div>
+        </div>
+
+        <div class="actividad-listas">
+            <div>
+                <h4>Actividades realizadas</h4>
+                @if (reporte.ActividadesRealizadas.Count == 0)
+                {
+                    <p class="hint">Ninguna en este período.</p>
+                }
+                else
+                {
+                    <ul class="actividad-chips">
+                        @foreach (var hecha in reporte.ActividadesRealizadas)
+                        {
+                            <li>@hecha</li>
+                        }
+                    </ul>
+                }
+            </div>
+            <div>
+                <h4>Actividades sin registro</h4>
+                @if (reporte.ActividadesNoRealizadas.Count == 0)
+                {
+                    <p class="hint">Todas las actividades consultadas tienen registro.</p>
+                }
+                else
+                {
+                    <ul class="actividad-chips is-vacia">
+                        @foreach (var falta in reporte.ActividadesNoRealizadas)
+                        {
+                            <li>@falta</li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <div class="actividad-pdf">
+            <a class="btn primary" asp-action="ActividadPdf"
+               asp-route-instructorId="@Model.InstructorId"
+               asp-route-desde="@Model.Desde?.ToString("yyyy-MM-dd")"
+               asp-route-hasta="@Model.Hasta?.ToString("yyyy-MM-dd")"
+               asp-route-fichaId="@Model.FichaId"
+               asp-route-jornada="@Model.Jornada"
+               asp-route-tipo="@Model.Tipo">
+                <i class="fas fa-file-pdf"></i> Generar PDF de actividad
+            </a>
+        </div>
+    </section>
+
+    <section class="card" id="detalle-dias" aria-labelledby="tituloDias">
+        <div class="card-title"><i class="fas fa-timeline"></i> <span id="tituloDias">Detalle por día</span></div>
+        <ol class="actividad-timeline">
+            @foreach (var dia in reporte.Dias)
+            {
+                <li class="actividad-dia @(dia.ConActividad ? "is-activa" : "is-vacia")">
+                    <div class="actividad-dia-head">
+                        <time datetime="@dia.Fecha.ToString("yyyy-MM-dd")">@dia.FechaTexto</time>
+                        @if (dia.ConActividad)
+                        {
+                            <span class="badge badge-success">Con actividad</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-neutral">Sin registro</span>
+                        }
+                    </div>
+                    <dl class="actividad-meta">
+                        <div>
+                            <dt>Ingreso</dt>
+                            <dd>@dia.Ingreso</dd>
+                        </div>
+                        <div>
+                            <dt>Salida</dt>
+                            <dd>@dia.Salida</dd>
+                        </div>
+                        <div>
+                            <dt>Aprendices</dt>
+                            <dd>@dia.Aprendices</dd>
+                        </div>
+                    </dl>
+                    @if (!dia.ConActividad)
+                    {
+                        <p class="actividad-vacia-nota">Sin actividades registradas este día.</p>
+                    }
+                    else
+                    {
+                        <h4>Qué hizo</h4>
+                        <ul>
+                            @foreach (var actividad in dia.Actividades)
+                            {
+                                <li>@actividad</li>
+                            }
+                        </ul>
+                        <h4>Con quién estuvo</h4>
+                        @if (dia.ConQuien.Count == 0)
+                        {
+                            <p class="hint">No quedó asociado a una ficha o grupo.</p>
+                        }
+                        else
+                        {
+                            <ul>
+                                @foreach (var quien in dia.ConQuien)
+                                {
+                                    <li>@quien</li>
+                                }
+                            </ul>
+                        }
+                        @if (dia.Observaciones.Count > 0)
+                        {
+                            <h4>Observaciones</h4>
+                            <ul>
+                                @foreach (var nota in dia.Observaciones)
+                                {
+                                    <li>@nota</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="hint">Observaciones: @ActividadInstructorTexto.NoRegistrado</p>
+                        }
+                    }
+                </li>
+            }
+        </ol>
+    </section>
+}
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const form = document.getElementById('formActividad');
+    const desde = document.getElementById('desde');
+    const hasta = document.getElementById('hasta');
+
+    function iso(fecha) {
+        const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+        const dia = String(fecha.getDate()).padStart(2, '0');
+        return fecha.getFullYear() + '-' + mes + '-' + dia;
+    }
+
+    document.querySelectorAll('[data-rango]').forEach((boton) => {
+        boton.addEventListener('click', () => {
+            const hoy = new Date();
+            let inicio = new Date(hoy);
+            let fin = new Date(hoy);
+            const rango = boton.getAttribute('data-rango');
+            if (rango === 'semana') {
+                const retroceso = (hoy.getDay() + 6) % 7;
+                inicio.setDate(hoy.getDate() - retroceso);
+            } else if (rango === 'mes') {
+                inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            } else if (rango === 'anterior') {
+                inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+                fin = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+            }
+            if (desde) desde.value = iso(inicio);
+            if (hasta) hasta.value = iso(fin);
+            if (form && typeof form.requestSubmit === 'function') form.requestSubmit();
+            else form?.submit();
+        });
+    });
+})();
+</script>
+}

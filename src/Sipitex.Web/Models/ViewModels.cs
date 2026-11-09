@@ -517,6 +517,24 @@ public class ReportesIndexViewModel
     public int? ForcedInstructorId { get; set; }
 }
 
+public class ActividadInstructorViewModel
+{
+    public IReadOnlyList<InstructorOptionDto> Instructors { get; set; } = [];
+    public IReadOnlyList<FichaDto> Fichas { get; set; } = [];
+    public string InstructoresJson { get; set; } = "[]";
+    public bool IsInstructorScoped { get; set; }
+    public int? InstructorId { get; set; }
+    public string InstructorNombre { get; set; } = string.Empty;
+    public DateOnly? Desde { get; set; }
+    public DateOnly? Hasta { get; set; }
+    public int? FichaId { get; set; }
+    public string? Jornada { get; set; }
+    public string? Tipo { get; set; }
+    public bool Consultado { get; set; }
+    public string? Error { get; set; }
+    public ActividadInstructorReporteDto? Reporte { get; set; }
+}
+
 // Detalle de materiales asociados a una orden (legacy VM; Detail usa OrdenMesDetailViewModel)
 public class OrdenMaterialDetailViewModel
 {

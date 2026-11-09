@@ -41,6 +41,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICostingSettingsService, CostingSettingsService>();
         services.AddScoped<IActaMovimientoService, ActaMovimientoService>();
         services.AddScoped<ITrazabilidadService, TrazabilidadService>();
+        services.AddScoped<IActividadInstructorService, ActividadInstructorService>();
         services.AddScoped<IFichaService, FichaService>();
         services.AddScoped<IFichaService, FichaService>();
 
