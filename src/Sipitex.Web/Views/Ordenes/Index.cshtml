@@ -5,6 +5,9 @@
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Órdenes de producción";
     Layout = "_Layout";
     var puedeCrear = (await AuthorizationService.AuthorizeAsync(User, resource: null, Sipitex.Application.Authorization.AuthorizationPolicyNames.PuedeCrearOrdenes)).Succeeded;
+    var productosJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.Productos.Select(p => new { nombre = p.Nombre, codigo = p.Codigo, materiales = p.Materiales }));
+    var crearFicha = User.IsInRole("Administrador");
 }
 
 <div class="page-header">
@@ -29,15 +32,18 @@
             <form asp-action="Create" method="post">
                 @Html.AntiForgeryToken()
                 <div class="form-row">
-                    <div class="field" style="flex:1;">
-                        <label class="field-label">Producto</label>
-                        <input asp-for="CreateOrder.ProductName" list="productos" placeholder="Producto con ficha técnica" style="width:100%" required />
-                        <datalist id="productos">
-                            @foreach (var name in Model.ProductNames)
-                            {
-                                <option value="@name"></option>
-                            }
-                        </datalist>
+                    <div class="field combobox-field">
+                        <label class="field-label" for="CreateOrder_ProductName">Producto</label>
+                        <input asp-for="CreateOrder.ProductName"
+                               class="combobox-input"
+                               data-combobox="productos-orden"
+                               data-combobox-source="productos-orden"
+                               placeholder="Producto con ficha técnica"
+                               autocomplete="off"
+                               required
+                               data-combobox-create-url="@(crearFicha ? Url.Action("Create", "Mrp") : null)"
+                               data-combobox-create-label="@(crearFicha ? "Crear ficha técnica" : null)" />
+                        <script type="application/json" id="productos-orden">@Html.Raw(productosJson)</script>
                     </div>
                     <div class="field" style="width:140px;">
                         <label class="field-label">Cantidad total</label>

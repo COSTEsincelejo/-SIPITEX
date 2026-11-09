@@ -149,11 +149,17 @@ public class BomCatalogService : IBomCatalogService
 
     public async Task<IReadOnlyList<string>> GetOrderEligibleProductNamesAsync(CancellationToken cancellationToken = default)
     {
+        var products = await GetOrderEligibleProductsAsync(cancellationToken);
+        return products.Select(p => p.Nombre).ToList();
+    }
+
+    public async Task<IReadOnlyList<ProductoElegibleOrdenDto>> GetOrderEligibleProductsAsync(CancellationToken cancellationToken = default)
+    {
         var products = await _bomRepository.GetProductsAsync(cancellationToken);
         return products
             .Where(p => p.HabilitadoParaOrdenes && p.Items.Count > 0)
-            .Select(p => p.ProductName)
-            .OrderBy(n => n)
+            .OrderBy(p => p.ProductName)
+            .Select(p => new ProductoElegibleOrdenDto(p.ProductName, p.Codigo, p.Items.Count))
             .ToList();
     }
 

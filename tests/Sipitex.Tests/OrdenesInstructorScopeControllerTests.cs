@@ -76,8 +76,8 @@ public class OrdenesInstructorScopeControllerTests
     {
         _orders.Setup(s => s.GetOrdersAsync(10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
             .ReturnsAsync([OrderDto(1, "OP-101")]);
-        _bom.Setup(b => b.GetOrderEligibleProductNamesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(["Camisa"]);
+        _bom.Setup(b => b.GetOrderEligibleProductsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ProductoElegibleOrdenDto("Camisa", "PRD-0001", 3)]);
 
         var controller = CreateController(Principal(10, UserRoles.Instructor, "Laura"));
         var result = await controller.Index(CancellationToken.None);
@@ -98,8 +98,8 @@ public class OrdenesInstructorScopeControllerTests
     {
         _orders.Setup(s => s.GetOrdersAsync(1, UserRoles.Administrador, "Admin", It.IsAny<CancellationToken>()))
             .ReturnsAsync([OrderDto(1, "OP-101"), OrderDto(2, "OP-102")]);
-        _bom.Setup(b => b.GetOrderEligibleProductNamesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(["Camisa"]);
+        _bom.Setup(b => b.GetOrderEligibleProductsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ProductoElegibleOrdenDto("Camisa", "PRD-0001", 3)]);
 
         var controller = CreateController(Principal(1, UserRoles.Administrador, "Admin"));
         var result = await controller.Index(CancellationToken.None);
@@ -107,6 +107,9 @@ public class OrdenesInstructorScopeControllerTests
         var view = Assert.IsType<ViewResult>(result);
         var vm = Assert.IsType<OrdenesIndexViewModel>(view.Model);
         Assert.Equal(2, vm.Orders.Count);
+        Assert.Equal(["Camisa"], vm.ProductNames);
+        Assert.Equal("PRD-0001", vm.Productos[0].Codigo);
+        Assert.Equal(3, vm.Productos[0].Materiales);
     }
 
     [Fact]
