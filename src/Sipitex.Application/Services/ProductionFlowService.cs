@@ -4,6 +4,7 @@ using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
@@ -501,7 +502,17 @@ public class ProductionFlowService : IProductionFlowService
                 dto.OrderId, stage, materialId, dto.Quantity, dto.Observations,
                 actorUserId, actorName, cancellationToken);
             if (!materialResult.Success) return materialResult;
-            await _uow.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _uow.ExecuteInTransactionAsync(
+                    ct => _uow.SaveChangesAsync(ct),
+                    cancellationToken);
+            }
+            catch (ConflictoConcurrenciaStockException)
+            {
+                return ServiceResult.Fail(ConflictoConcurrenciaStockException.Mensaje);
+            }
+
             return materialResult;
         }
 

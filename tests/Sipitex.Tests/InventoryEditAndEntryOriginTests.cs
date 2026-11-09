@@ -25,13 +25,18 @@ public class InventoryEditAndEntryOriginTests
     private readonly Mock<IStockMovementRepository> _stockMovements = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
-    private InventoryService CreateSut() => new(
+    private InventoryService CreateSut()
+    {
+        _uow.Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(async (action, ct) => await action(ct));
+        return new(
         _materials.Object,
         _requests.Object,
         _orders.Object,
         _boms.Object,
         _stockMovements.Object,
         _uow.Object);
+    }
 
     [Fact]
     public async Task UpdateMaterialAsync_UpdatesNameUnitAndMinStock()

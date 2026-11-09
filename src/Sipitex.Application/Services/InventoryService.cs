@@ -3,6 +3,7 @@ using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
@@ -133,23 +134,33 @@ public class InventoryService : IInventoryService
 
         material.Stock = dto.Stock;
 
-        // INSERT en el contexto de EF
-        await _materialRepository.AddAsync(material, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken); // Necesito material.Id para el ledger
-
-        await _stockMovements.AddAsync(new StockMovement
+        try
         {
-            MaterialId = material.Id,
-            FechaUtc = DateTime.UtcNow,
-            UsuarioId = actorUserId,
-            TipoMovimiento = StockMovementType.Entrada,
-            Origen = dto.Origen,
-            Cantidad = material.Stock,
-            StockResultante = material.Stock,
-            Referencia = $"Material:{material.Id}",
-            CostoUnitario = dto.Origen == StockEntryOrigin.Compra ? precio : (precio > 0 ? precio : null)
-        }, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            // Alta y movimiento de entrada en la misma transacción.
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                await _materialRepository.AddAsync(material, ct);
+                await _unitOfWork.SaveChangesAsync(ct); // Necesito material.Id para el ledger
+
+                await _stockMovements.AddAsync(new StockMovement
+                {
+                    MaterialId = material.Id,
+                    FechaUtc = DateTime.UtcNow,
+                    UsuarioId = actorUserId,
+                    TipoMovimiento = StockMovementType.Entrada,
+                    Origen = dto.Origen,
+                    Cantidad = material.Stock,
+                    StockResultante = material.Stock,
+                    Referencia = $"Material:{material.Id}",
+                    CostoUnitario = dto.Origen == StockEntryOrigin.Compra ? precio : (precio > 0 ? precio : null)
+                }, ct);
+            }, cancellationToken);
+        }
+        catch (ConflictoConcurrenciaStockException)
+        {
+            return ServiceResult.Fail(ConflictoConcurrenciaStockException.Mensaje);
+        }
+
         return ServiceResult.Ok("Material agregado.");
     }
 
@@ -222,8 +233,7 @@ public class InventoryService : IInventoryService
             CostoUnitario = isCompra ? dto.PrecioUnitario : null
         }, cancellationToken);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok("Stock actualizado.");
+        return await GuardarStockAsync("Stock actualizado.", cancellationToken);
     }
 
     // Edición completa de metadatos (nombre, unidad, mínimo). No modifica stock.
@@ -267,8 +277,7 @@ public class InventoryService : IInventoryService
             return plantilla;
 
         _materialRepository.Update(material);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok($"Material «{material.Name}» actualizado.");
+        return await GuardarStockAsync($"Material «{material.Name}» actualizado.", cancellationToken);
     }
 
     // Cambia el estado físico: Bueno / Regular / Deteriorado
@@ -283,8 +292,7 @@ public class InventoryService : IInventoryService
         // Asigno el nuevo estado del enum
         material.Status = dto.Status;
         _materialRepository.Update(material);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok($"Estado actualizado a {dto.Status}.");
+        return await GuardarStockAsync($"Estado actualizado a {dto.Status}.", cancellationToken);
     }
 
     // Solicitudes de material (pendientes, aprobadas, rechazadas).
@@ -375,8 +383,7 @@ public class InventoryService : IInventoryService
             Referencia = $"MaterialRequest:{request.Id}"
         }, cancellationToken);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return ServiceResult.Ok("Solicitud aprobada.");
+        return await GuardarStockAsync("Solicitud aprobada.", cancellationToken);
     }
 
     // Rechazo: no toco el stock, solo cambio el estado
@@ -517,4 +524,21 @@ public class InventoryService : IInventoryService
     private static bool IsInstructor(string? role, int? userId) =>
         userId is > 0
         && string.Equals(role, UserRoles.Instructor, StringComparison.OrdinalIgnoreCase);
+
+    // El cambio de stock (o de la fila del material) se confirma en una transacción.
+    // Si otra operación ganó la carrera, se devuelve el mensaje y no se deja el saldo a medias.
+    private async Task<ServiceResult> GuardarStockAsync(string mensajeOk, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _unitOfWork.ExecuteInTransactionAsync(
+                ct => _unitOfWork.SaveChangesAsync(ct),
+                cancellationToken);
+            return ServiceResult.Ok(mensajeOk);
+        }
+        catch (ConflictoConcurrenciaStockException)
+        {
+            return ServiceResult.Fail(ConflictoConcurrenciaStockException.Mensaje);
+        }
+    }
 }

@@ -69,7 +69,7 @@ public class ProductionOrderServiceTests
                     }
                 ]
             });
-        _orders.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(0);
+        _orders.Setup(r => r.NextOrderNumberAsync(It.IsAny<CancellationToken>())).ReturnsAsync("OP-101");
         _orders.Setup(r => r.AddAsync(It.IsAny<ProductionOrder>(), It.IsAny<CancellationToken>()))
             .Callback<ProductionOrder, CancellationToken>((o, _) => o.Id = 1)
             .Returns(Task.CompletedTask);
@@ -78,7 +78,7 @@ public class ProductionOrderServiceTests
             new CreateProductionOrderDto("Camisa", 50, DateOnly.FromDateTime(DateTime.Today.AddDays(7))));
 
         Assert.True(result.Success);
-        Assert.Contains("OP-", result.Message);
+        Assert.Contains("OP-101", result.Message);
         Assert.Contains("pendiente", result.Message, StringComparison.OrdinalIgnoreCase);
         _orders.Verify(r => r.AddAsync(
             It.Is<ProductionOrder>(o =>

@@ -45,6 +45,11 @@ public class Material
     // Cantidad actual en planta de inventario (puede tener decimales)
     public decimal Stock { get; set; }
 
+    // Token de concurrencia optimista. Cada guardado de la fila lo incrementa.
+    // Dos operaciones que leyeron el mismo stock no pueden pisarse: la segunda
+    // falla y pide reintentar, en lugar de dejar un saldo a medias.
+    public long RowVersion { get; set; }
+
     // Umbral de reposición. <= 0 significa que no hay mínimo: el nivel es Sin mínimo definido y no alerta.
     public decimal MinStock { get; set; }
 

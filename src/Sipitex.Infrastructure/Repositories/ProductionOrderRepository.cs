@@ -1,6 +1,8 @@
-using Microsoft.EntityFrameworkCore; // OrderBy, FirstOrDefaultAsync, CountAsync...
+using System.Data;
+using Microsoft.EntityFrameworkCore; // OrderBy, FirstOrDefaultAsync
+using Microsoft.EntityFrameworkCore.Storage; // GetDbTransaction
 using Sipitex.Application.Interfaces.Repositories; // IProductionOrderRepository
-using Sipitex.Domain.Entities; // ProductionOrder
+using Sipitex.Domain.Entities; // ProductionOrder, NumeracionDocumento
 using Sipitex.Infrastructure.Persistence; // SipitexDbContext
 
 namespace Sipitex.Infrastructure.Repositories;
@@ -31,7 +33,45 @@ public class ProductionOrderRepository : IProductionOrderRepository
     // Actualiza cantidad producida, estado, etc.
     public void Update(ProductionOrder order) => _context.ProductionOrders.Update(order);
 
-    // Para armar el siguiente número de orden (OP-101, OP-102...)
-    public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
-        _context.ProductionOrders.CountAsync(cancellationToken);
+    // Reserva el siguiente OP-xxx en la fila NumeracionesDocumento.
+    // El UPDATE ... RETURNING es atómico: la segunda alta espera el bloqueo de esa fila
+    // y recibe el número siguiente. No usa Count + 101, que repetía el número si dos
+    // usuarios creaban la orden a la vez. El índice único de OrderNumber queda como red de seguridad.
+    public async Task<string> NextOrderNumberAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = _context.Database.GetDbConnection();
+        var close = connection.State != ConnectionState.Open;
+        if (close)
+            await connection.OpenAsync(cancellationToken);
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                UPDATE "NumeracionesDocumento"
+                SET "Siguiente" = "Siguiente" + 1
+                WHERE "Codigo" = @codigo
+                RETURNING "Siguiente" - 1
+                """;
+            var codigo = command.CreateParameter();
+            codigo.ParameterName = "codigo";
+            codigo.Value = NumeracionDocumento.OrdenProduccion;
+            command.Parameters.Add(codigo);
+            if (_context.Database.CurrentTransaction is { } transaction)
+                command.Transaction = transaction.GetDbTransaction();
+
+            var scalar = await command.ExecuteScalarAsync(cancellationToken);
+            if (scalar is null or DBNull)
+                throw new InvalidOperationException(
+                    "No está configurada la numeración de órdenes de producción.");
+
+            return $"OP-{Convert.ToInt32(scalar):D3}";
+        }
+        finally
+        {
+            if (close)
+                await connection.CloseAsync();
+        }
+    }
 }

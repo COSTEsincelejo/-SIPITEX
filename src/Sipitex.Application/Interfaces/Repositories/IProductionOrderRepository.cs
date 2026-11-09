@@ -10,6 +10,7 @@ public interface IProductionOrderRepository
     Task<ProductionOrder?> GetByOrderNumberAsync(string orderNumber, CancellationToken cancellationToken = default);
     Task AddAsync(ProductionOrder order, CancellationToken cancellationToken = default);
     void Update(ProductionOrder order);
-    // Para generar número correlativo OP-xxx
-    Task<int> CountAsync(CancellationToken cancellationToken = default);
+
+    // Siguiente OP-xxx. Atómico: dos llamadas simultáneas no devuelven el mismo número.
+    Task<string> NextOrderNumberAsync(CancellationToken cancellationToken = default);
 }

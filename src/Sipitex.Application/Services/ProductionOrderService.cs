@@ -4,6 +4,7 @@ using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
@@ -191,8 +192,8 @@ public class ProductionOrderService : IProductionOrderService
             return ServiceResult.Fail(
                 $"El producto «{product.ProductName}» tiene ficha técnica incompleta o no habilitada para órdenes de producción.");
 
-        var count = await _orderRepository.CountAsync(cancellationToken);
-        var orderNumber = $"OP-{(count + 101):D3}";
+        // Correlativo atómico (tabla NumeracionesDocumento), no Count + 101.
+        var orderNumber = await _orderRepository.NextOrderNumberAsync(cancellationToken);
 
         var order = new ProductionOrder
         {
@@ -471,7 +472,9 @@ public class ProductionOrderService : IProductionOrderService
 
         ProductionConsumptionService.UpdateOrderProgress(order, toAdd);
         _orderRepository.Update(order);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        var conflicto = await GuardarEnTransaccionAsync(cancellationToken);
+        if (conflicto is not null)
+            return conflicto;
 
         await _flowService.LogProductionRegisteredAsync(orderId, toAdd, null, cancellationToken);
         return ServiceResult.Ok($"Se registraron {toAdd} unidades.");
@@ -587,5 +590,22 @@ public class ProductionOrderService : IProductionOrderService
         return bom
             .Select(b => new ProductionConsumptionService.RecipeLine(b.MaterialId, b.QuantityPerUnit))
             .ToList();
+    }
+
+    // El descuento de receta (cuando la orden no pasó por entrega de bodega) y el avance
+    // se confirman juntos. Si otra operación movió el stock, no se guarda a medias.
+    private async Task<ServiceResult?> GuardarEnTransaccionAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _unitOfWork.ExecuteInTransactionAsync(
+                ct => _unitOfWork.SaveChangesAsync(ct),
+                cancellationToken);
+            return null;
+        }
+        catch (ConflictoConcurrenciaStockException)
+        {
+            return ServiceResult.Fail(ConflictoConcurrenciaStockException.Mensaje);
+        }
     }
 }

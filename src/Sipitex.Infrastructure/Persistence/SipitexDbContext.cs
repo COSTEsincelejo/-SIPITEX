@@ -31,6 +31,7 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
 
     // Cada DbSet = una tabla en la BD
     public DbSet<Material> Materials => Set<Material>(); // Inventario de telas, hilos, etc.
+    public DbSet<NumeracionDocumento> NumeracionesDocumento => Set<NumeracionDocumento>(); // Correlativos OP-xxx
     public DbSet<FichaTecnicaMaterial> FichasTecnicasMaterial => Set<FichaTecnicaMaterial>(); // Ficha técnica del material, no de la prenda
     public DbSet<PlantaInventario> PlantasInventario => Set<PlantaInventario>(); // PlantaInventario 1 / PlantaInventario 2 (catálogo compartido)
     public DbSet<UserPlantaInventario> UserPlantasInventario => Set<UserPlantaInventario>(); // M2M encargadoDeBodega ↔ plantaInventario
@@ -80,6 +81,34 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<EmailOutboxMessage> EmailOutboxMessages => Set<EmailOutboxMessage>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        AvanzarRowVersionMaterial();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(
+        bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
+    {
+        AvanzarRowVersionMaterial();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    // El token no lo genera la base: lo subimos en cada modificación para que el WHERE
+    // de concurrencia compare el valor leído y escriba el siguiente.
+    private void AvanzarRowVersionMaterial()
+    {
+        foreach (var entry in ChangeTracker.Entries<Material>())
+        {
+            if (entry.State != EntityState.Modified)
+                continue;
+
+            var version = entry.Property(m => m.RowVersion);
+            version.CurrentValue = version.OriginalValue + 1;
+        }
+    }
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         configurationBuilder.Properties<DateTime>().HaveColumnType("timestamp with time zone");
@@ -118,6 +147,10 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
             e.HasIndex(m => m.CodigoAlmacen);
             // Precision 18,2 porque stock puede tener decimales (metros de tela, etc.)
             e.Property(m => m.Stock).HasPrecision(18, 2);
+            // Cada UPDATE compara este valor con el que se leyó. SaveChanges lo incrementa.
+            // ValueGeneratedNever: el token lo escribe la aplicación. Si quedara OnAdd por el
+            // default 0, EF podría omitirlo del WHERE y dos guardados se pisarían.
+            e.Property(m => m.RowVersion).IsConcurrencyToken().HasDefaultValue(0L).ValueGeneratedNever();
             e.Property(m => m.MinStock).HasPrecision(18, 2);
             e.Property(m => m.StockSinCosto).HasPrecision(18, 2);
             e.Property(m => m.CostoAdquisicion).HasPrecision(18, 4);
@@ -129,6 +162,15 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
             e.HasIndex(m => m.PlantaInventarioId);
             // EncargadoDeBodega: IN (plantasInventario asignadas). Restrict=false = Admin/Instructor/seed (sin filtro).
             e.HasQueryFilter(m => !RestrictToAssignedPlantasInventario || CurrentPlantaInventarioIds.Contains(m.PlantaInventarioId));
+        });
+
+        // Un registro por tipo de documento. La fila de órdenes se inserta en la migración
+        // y se avanza con UPDATE ... RETURNING (ver ProductionOrderRepository).
+        modelBuilder.Entity<NumeracionDocumento>(e =>
+        {
+            e.HasKey(n => n.Codigo);
+            e.Property(n => n.Codigo).HasMaxLength(40);
+            e.Property(n => n.Siguiente).IsRequired();
         });
 
         // Ficha técnica del material (1 a 1). No es BomProduct.

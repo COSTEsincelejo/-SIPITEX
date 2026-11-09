@@ -116,7 +116,7 @@ public class OrdenesCrearPermissionTests
                     }
                 ]
             });
-        orders.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(0);
+        orders.Setup(r => r.NextOrderNumberAsync(It.IsAny<CancellationToken>())).ReturnsAsync("OP-101");
         orders.Setup(r => r.AddAsync(It.IsAny<ProductionOrder>(), It.IsAny<CancellationToken>()))
             .Callback<ProductionOrder, CancellationToken>((o, _) => o.Id = 9)
             .Returns(Task.CompletedTask);
@@ -183,7 +183,7 @@ public class OrdenesCrearPermissionTests
                     }
                 ]
             });
-        orders.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(0);
+        orders.Setup(r => r.NextOrderNumberAsync(It.IsAny<CancellationToken>())).ReturnsAsync("OP-101");
         orders.Setup(r => r.AddAsync(It.IsAny<ProductionOrder>(), It.IsAny<CancellationToken>()))
             .Callback<ProductionOrder, CancellationToken>((o, _) => o.Id = 1)
             .Returns(Task.CompletedTask);
