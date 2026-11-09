@@ -207,7 +207,8 @@ public static class DisplayHelper
         OrderStatus.Pendiente => "Pendiente",
         OrderStatus.Finalizada => "Finalizada",
         OrderStatus.Cancelada => "Cancelada",
-        OrderMaterialsStatus.NoAplica => "Sin materiales",
+        // NoAplica: sin líneas de entrega de planta. El BOM puede existir (ver MRP sugerido).
+        OrderMaterialsStatus.NoAplica => "Sin asignación de planta",
         OrderMaterialsStatus.PendienteRevisionPlantaInventario => "Pendiente revisión planta de inventario",
         OrderMaterialsStatus.MaterialesValidados => "Materiales validados",
         OrderMaterialsStatus.EntregaParcial => "Entrega parcial",

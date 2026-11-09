@@ -29,7 +29,8 @@
             <div><span class="field-label">Orden</span><br /><a asp-controller="Ordenes" asp-action="Detail" asp-route-id="@Model.ProductionOrderId">@Model.OrderNumber</a></div>
             <div><span class="field-label">Producto</span><br />@Model.ProductName</div>
             <div><span class="field-label">Talla</span><br />@(Model.Talla ?? "—")</div>
-            <div><span class="field-label">Estado</span><br />@DisplayHelper.StatusText(Model.Estado)</div>
+            <div><span class="field-label">Estado</span><br />@DisplayHelper.StatusText(Model.OrderStatus)@(string.IsNullOrWhiteSpace(Model.EtapaActual) ? "" : $" · {Model.EtapaActual}")</div>
+            <div><span class="field-label">Ciclo del producto</span><br />@DisplayHelper.StatusText(Model.Estado)</div>
             <div><span class="field-label">Pedido</span><br />@Model.ProducedQuantity / @Model.TotalQuantity</div>
             <div><span class="field-label">Alta</span><br />@Model.CreadoUtc.ToString("yyyy-MM-dd HH:mm") UTC</div>
             <div><span class="field-label">Registró</span><br />@Model.CreadoPorNombre</div>

@@ -842,7 +842,8 @@ public record PrendaTrazableDetailDto(
     int ProducedQuantity,
     int TotalQuantity,
     IReadOnlyList<string> MaterialesBom,
-    IReadOnlyList<PrendaTrazableEventDto> Eventos);
+    IReadOnlyList<PrendaTrazableEventDto> Eventos,
+    string? EtapaActual = null);
 
 public record ServiceResult<T>(bool Success, string? Message, T? Value)
 {
