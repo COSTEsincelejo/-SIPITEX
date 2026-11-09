@@ -81,6 +81,12 @@ namespace Sipitex.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AnuladaPorUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("AnuladaUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("CreadoPorUserId")
                         .HasColumnType("integer");
 
@@ -100,6 +106,11 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<int>("Estado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("EstadoProductoDestino")
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
@@ -110,6 +121,10 @@ namespace Sipitex.Infrastructure.Migrations
 
                     b.Property<DateTime>("FechaUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MotivoAnulacion")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Numero")
                         .IsRequired()
@@ -124,6 +139,12 @@ namespace Sipitex.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
+
+                    b.Property<int?>("PlantaDestinoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PlantaOrigenId")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ProductionOrderId")
                         .HasColumnType("integer");
@@ -151,12 +172,18 @@ namespace Sipitex.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AnuladaPorUserId");
+
                     b.HasIndex("CreadoPorUserId");
 
                     b.HasIndex("FechaUtc");
 
                     b.HasIndex("Numero")
                         .IsUnique();
+
+                    b.HasIndex("PlantaDestinoId");
+
+                    b.HasIndex("PlantaOrigenId");
 
                     b.HasIndex("ProductionOrderId");
 
@@ -2142,18 +2169,39 @@ namespace Sipitex.Infrastructure.Migrations
 
             modelBuilder.Entity("Sipitex.Domain.Entities.ActaMovimiento", b =>
                 {
+                    b.HasOne("Sipitex.Domain.Entities.User", "AnuladaPor")
+                        .WithMany()
+                        .HasForeignKey("AnuladaPorUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Sipitex.Domain.Entities.User", "CreadoPor")
                         .WithMany()
                         .HasForeignKey("CreadoPorUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Sipitex.Domain.Entities.PlantaInventario", "PlantaDestino")
+                        .WithMany()
+                        .HasForeignKey("PlantaDestinoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Sipitex.Domain.Entities.PlantaInventario", "PlantaOrigen")
+                        .WithMany()
+                        .HasForeignKey("PlantaOrigenId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
                         .WithMany()
                         .HasForeignKey("ProductionOrderId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.Navigation("AnuladaPor");
+
                     b.Navigation("CreadoPor");
+
+                    b.Navigation("PlantaDestino");
+
+                    b.Navigation("PlantaOrigen");
 
                     b.Navigation("ProductionOrder");
                 });

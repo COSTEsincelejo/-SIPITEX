@@ -20,6 +20,8 @@ public class ActaMovimientoService : IActaMovimientoService
     private readonly IActaPdfService _pdf;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<ActaMovimientoService> _logger;
+    private readonly IPlantaInventarioRepository? _plantas;
+    private readonly IActivityLogService? _activityLog;
 
     public ActaMovimientoService(
         IActaMovimientoRepository actas,
@@ -29,7 +31,9 @@ public class ActaMovimientoService : IActaMovimientoService
         IUserRepository users,
         IActaPdfService pdf,
         IUnitOfWork uow,
-        ILogger<ActaMovimientoService>? logger = null)
+        ILogger<ActaMovimientoService>? logger = null,
+        IPlantaInventarioRepository? plantas = null,
+        IActivityLogService? activityLog = null)
     {
         _actas = actas;
         _stock = stock;
@@ -39,6 +43,8 @@ public class ActaMovimientoService : IActaMovimientoService
         _pdf = pdf;
         _uow = uow;
         _logger = logger ?? NullLogger<ActaMovimientoService>.Instance;
+        _plantas = plantas;
+        _activityLog = activityLog;
     }
 
     public async Task<IReadOnlyList<ActaMovimientoDto>> GetAllAsync(
@@ -69,14 +75,14 @@ public class ActaMovimientoService : IActaMovimientoService
         if (entrega.Length == 0 || recibe.Length == 0)
             return ServiceResult<ActaMovimientoDto>.Fail("Nombre de quien entrega y de quien recibe son obligatorios.");
 
-        if (dto.EntregaConforme && !SignatureImage.IsPng(dto.EntregaFirmaPng))
+        if (!SignatureImage.IsPng(dto.EntregaFirmaPng))
             return ServiceResult<ActaMovimientoDto>.Fail("Quien entrega debe dibujar su firma gráfica para marcar conformidad.");
-        if (dto.RecibeConforme && !SignatureImage.IsPng(dto.RecibeFirmaPng))
-            return ServiceResult<ActaMovimientoDto>.Fail("Quien recibe debe dibujar su firma gráfica para marcar conformidad.");
-        if (dto.EntregaFirmaPng is not null && !SignatureImage.IsPng(dto.EntregaFirmaPng))
-            return ServiceResult<ActaMovimientoDto>.Fail("La firma de quien entrega no es un PNG válido.");
         if (dto.RecibeFirmaPng is not null && !SignatureImage.IsPng(dto.RecibeFirmaPng))
             return ServiceResult<ActaMovimientoDto>.Fail("La firma de quien recibe no es un PNG válido.");
+
+        var plantas = await ValidarPlantasAsync(dto, cancellationToken);
+        if (plantas is not null)
+            return ServiceResult<ActaMovimientoDto>.Fail(plantas);
 
         var creador = await _users.GetByIdAsync(dto.CreadoPorUserId, cancellationToken);
         if (creador is null)
@@ -100,6 +106,7 @@ public class ActaMovimientoService : IActaMovimientoService
 
         var now = DateTime.UtcNow;
         var last = await _actas.GetLastNumeroAsync(cancellationToken);
+        var recibeFirma = SignatureImage.IsPng(dto.RecibeFirmaPng) ? dto.RecibeFirmaPng : null;
         var acta = new ActaMovimiento
         {
             Numero = CodigoGeneradorService.SiguienteCodigo("ACT-", last),
@@ -110,14 +117,17 @@ public class ActaMovimientoService : IActaMovimientoService
             ProductionOrderId = order?.Id,
             EstadoProductoOrigen = dto.EstadoOrigen,
             EstadoProductoDestino = dto.EstadoDestino,
+            PlantaOrigenId = IdPlanta(dto.PlantaOrigenId),
+            PlantaDestinoId = IdPlanta(dto.PlantaDestinoId),
+            Estado = recibeFirma is null ? ActaEstado.PendienteFirma : ActaEstado.Firmada,
             EntregaNombre = Trunc(entrega, 120),
             EntregaCargo = Trunc((dto.EntregaCargo ?? string.Empty).Trim(), 80),
             EntregaConformidadUtc = dto.EntregaConforme ? now : null,
-            EntregaFirmaPng = SignatureImage.IsPng(dto.EntregaFirmaPng) ? dto.EntregaFirmaPng : null,
+            EntregaFirmaPng = dto.EntregaFirmaPng,
             RecibeNombre = Trunc(recibe, 120),
             RecibeCargo = Trunc((dto.RecibeCargo ?? string.Empty).Trim(), 80),
-            RecibeConformidadUtc = dto.RecibeConforme ? now : null,
-            RecibeFirmaPng = SignatureImage.IsPng(dto.RecibeFirmaPng) ? dto.RecibeFirmaPng : null,
+            RecibeConformidadUtc = recibeFirma is not null && dto.RecibeConforme ? now : null,
+            RecibeFirmaPng = recibeFirma,
             CreadoPorUserId = creador.Id,
             Detalles = detalles
         };
@@ -125,13 +135,113 @@ public class ActaMovimientoService : IActaMovimientoService
         await _actas.AddAsync(acta, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         _logger.LogInformation(
-            "Acta creada. ActaId {ActaId} Numero {Numero} UsuarioId {UsuarioId} Detalles {Detalles}",
+            "Acta creada. ActaId {ActaId} Numero {Numero} UsuarioId {UsuarioId} Detalles {Detalles} Estado {Estado}",
             acta.Id,
             acta.Numero,
             creador.Id,
-            detalles.Count);
+            detalles.Count,
+            acta.Estado);
         var saved = await _actas.GetByIdAsync(acta.Id, cancellationToken) ?? acta;
-        return ServiceResult<ActaMovimientoDto>.Ok(Map(saved), $"Acta {acta.Numero} registrada.");
+        var mensaje = acta.Estado == ActaEstado.PendienteFirma
+            ? $"Acta {acta.Numero} registrada. Queda pendiente la firma de quien recibe."
+            : $"Acta {acta.Numero} registrada.";
+        return ServiceResult<ActaMovimientoDto>.Ok(Map(saved), mensaje);
+    }
+
+    public async Task<ServiceResult<ActaMovimientoDto>> FirmarRecibeAsync(
+        int actaId,
+        int actorUserId,
+        string actorRole,
+        bool conforme,
+        byte[]? firmaPng,
+        CancellationToken cancellationToken = default)
+    {
+        var acta = await _actas.GetByIdAsync(actaId, cancellationToken);
+        if (acta is null)
+            return ServiceResult<ActaMovimientoDto>.Fail("Acta no encontrada.");
+        if (acta.Estado == ActaEstado.Anulada)
+            return ServiceResult<ActaMovimientoDto>.Fail("Un acta anulada no se puede firmar.");
+        if (acta.Estado != ActaEstado.PendienteFirma)
+            return ServiceResult<ActaMovimientoDto>.Fail("El acta ya está firmada.");
+        if (!PuedeFirmar(acta, actorUserId, actorRole))
+            return ServiceResult<ActaMovimientoDto>.Fail("Solo el administrador o quien creó el acta puede firmar como quien recibe.");
+        if (!conforme)
+            return ServiceResult<ActaMovimientoDto>.Fail("Marque la casilla Conforme para registrar la firma de quien recibe.");
+        if (!SignatureImage.IsPng(firmaPng))
+            return ServiceResult<ActaMovimientoDto>.Fail("Quien recibe debe dibujar su firma gráfica para marcar conformidad.");
+
+        var ahora = DateTime.UtcNow;
+        acta.RecibeFirmaPng = firmaPng;
+        acta.RecibeConformidadUtc = ahora;
+        acta.Estado = ActaEstado.Firmada;
+        await _uow.SaveChangesAsync(cancellationToken);
+        if (_activityLog is not null)
+        {
+            await _activityLog.LogAsync(
+                actorUserId,
+                ActivityLogActions.FirmarActaRecibe,
+                ActivityLogEntities.ActaMovimiento,
+                acta.Id.ToString(),
+                $"Acta {acta.Numero} firmada por quien recibe.",
+                cancellationToken);
+        }
+
+        _logger.LogInformation(
+            "Acta firmada por quien recibe. ActaId {ActaId} Numero {Numero} UsuarioId {UsuarioId}",
+            acta.Id,
+            acta.Numero,
+            actorUserId);
+        var saved = await _actas.GetByIdAsync(acta.Id, cancellationToken) ?? acta;
+        return ServiceResult<ActaMovimientoDto>.Ok(Map(saved), $"Acta {acta.Numero} firmada.");
+    }
+
+    public async Task<ServiceResult<ActaMovimientoDto>> AnularAsync(
+        int actaId,
+        int actorUserId,
+        string actorRole,
+        string motivo,
+        CancellationToken cancellationToken = default)
+    {
+        if (!EsAdministrador(actorRole))
+            return ServiceResult<ActaMovimientoDto>.Fail("Solo el administrador puede anular un acta.");
+
+        var texto = (motivo ?? string.Empty).Trim();
+        if (texto.Length < 10)
+            return ServiceResult<ActaMovimientoDto>.Fail("El motivo de anulación debe tener al menos 10 caracteres.");
+        if (texto.Length > 500)
+            texto = texto[..500];
+
+        var acta = await _actas.GetByIdAsync(actaId, cancellationToken);
+        if (acta is null)
+            return ServiceResult<ActaMovimientoDto>.Fail("Acta no encontrada.");
+        if (acta.Estado == ActaEstado.Anulada)
+            return ServiceResult<ActaMovimientoDto>.Fail("El acta ya está anulada.");
+
+        acta.Estado = ActaEstado.Anulada;
+        acta.AnuladaUtc = DateTime.UtcNow;
+        acta.AnuladaPorUserId = actorUserId;
+        acta.MotivoAnulacion = texto;
+        await _uow.SaveChangesAsync(cancellationToken);
+        if (_activityLog is not null)
+        {
+            await _activityLog.LogAsync(
+                actorUserId,
+                ActivityLogActions.AnularActa,
+                ActivityLogEntities.ActaMovimiento,
+                acta.Id.ToString(),
+                $"Acta {acta.Numero} anulada. Motivo: {texto}. No se revirtieron stock ni consumos.",
+                cancellationToken);
+        }
+
+        _logger.LogInformation(
+            "Acta anulada. ActaId {ActaId} Numero {Numero} UsuarioId {UsuarioId}",
+            acta.Id,
+            acta.Numero,
+            actorUserId);
+        var saved = await _actas.GetByIdAsync(acta.Id, cancellationToken) ?? acta;
+        return ServiceResult<ActaMovimientoDto>.Ok(
+            Map(saved),
+            $"Acta {acta.Numero} anulada. No se revirtieron movimientos de stock ni consumos.");
     }
 
     public Task<IReadOnlyDictionary<int, string>> GetActasPorMovimientoStockAsync(CancellationToken cancellationToken = default) =>
@@ -356,7 +466,48 @@ public class ActaMovimientoService : IActaMovimientoService
             d.ProductionOrderId,
             d.Material?.Code,
             d.Material?.PlantaInventario?.Nombre)).ToList(),
-        a.ProductionOrder?.ProductName);
+        a.ProductionOrder?.ProductName,
+        a.Estado,
+        a.PlantaOrigenId,
+        a.PlantaOrigen?.Nombre,
+        a.PlantaDestinoId,
+        a.PlantaDestino?.Nombre,
+        a.AnuladaUtc,
+        a.AnuladaPorUserId,
+        a.AnuladaPor?.Nombre,
+        a.MotivoAnulacion);
+
+    private async Task<string?> ValidarPlantasAsync(CreateActaDto dto, CancellationToken cancellationToken)
+    {
+        var origen = IdPlanta(dto.PlantaOrigenId);
+        var destino = IdPlanta(dto.PlantaDestinoId);
+        if (dto.Origen == ActaOrigen.Stock && (origen is null || destino is null))
+            return "Seleccione la planta de origen y la planta de destino.";
+        if (origen is null && destino is null)
+            return null;
+        if (_plantas is null)
+            return null;
+
+        if (origen is int origenId && !await PlantaActivaAsync(origenId, cancellationToken))
+            return "La planta de origen no está activa.";
+        if (destino is int destinoId && !await PlantaActivaAsync(destinoId, cancellationToken))
+            return "La planta de destino no está activa.";
+        return null;
+    }
+
+    private async Task<bool> PlantaActivaAsync(int id, CancellationToken cancellationToken)
+    {
+        var planta = await _plantas!.GetByIdAsync(id, cancellationToken);
+        return planta is { Activo: true };
+    }
+
+    private static int? IdPlanta(int? id) => id is > 0 ? id : null;
+
+    private static bool EsAdministrador(string? role) =>
+        string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
+
+    private static bool PuedeFirmar(ActaMovimiento acta, int actorUserId, string actorRole) =>
+        EsAdministrador(actorRole) || acta.CreadoPorUserId == actorUserId;
 
     private static string Trunc(string value, int max) =>
         value.Length <= max ? value : value[..max];

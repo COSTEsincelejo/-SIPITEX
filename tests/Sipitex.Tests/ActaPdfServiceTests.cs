@@ -92,6 +92,77 @@ public class ActaPdfServiceTests
         Assert.Contains("Código de veri", texto, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Render_ActaAnulada_MuestraMarcaYMotivo()
+    {
+        var acta = new ActaMovimientoDto(
+            1,
+            "ACT-0002",
+            ActaTipo.Egreso,
+            ActaOrigen.Manual,
+            new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Laura",
+            "Instructor",
+            new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+            TestPng.Bytes,
+            "Pedro",
+            "Encargado",
+            null,
+            null,
+            7,
+            "Ana",
+            [new ActaDetalleDto(1, ActaItemTipo.Material, "Tela", 1, "metro", null, null, null, null)],
+            Estado: ActaEstado.Anulada,
+            PlantaOrigenNombre: "Planta de Inventario 1",
+            PlantaDestinoNombre: "Planta de Inventario 2",
+            MotivoAnulacion: "Error de destinatario");
+
+        var texto = ExtraerTextoPdf(new ActaPdfService().Render(acta).Content);
+        var normalizado = texto.Replace("\0", "");
+
+        Assert.Contains("ANULADA", texto, StringComparison.Ordinal);
+        Assert.Contains("Error de des", normalizado, StringComparison.Ordinal);
+        Assert.Contains("natario", normalizado, StringComparison.Ordinal);
+        Assert.Contains("Planta de Inventario 1", texto, StringComparison.Ordinal);
+        Assert.Contains("Planta de Inventario 2", texto, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Render_PendienteFirma_IndicaFirmaDeQuienRecibe()
+    {
+        var acta = new ActaMovimientoDto(
+            1,
+            "ACT-0003",
+            ActaTipo.Ingreso,
+            ActaOrigen.Manual,
+            new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Laura",
+            "Instructor",
+            new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+            TestPng.Bytes,
+            "Pedro",
+            "Encargado",
+            null,
+            null,
+            7,
+            "Ana",
+            [new ActaDetalleDto(1, ActaItemTipo.Material, "Tela", 1, "metro", null, null, null, null)],
+            Estado: ActaEstado.PendienteFirma);
+
+        var texto = ExtraerTextoPdf(new ActaPdfService().Render(acta).Content);
+        Assert.Contains("Firma de quien recibe pendiente", texto, StringComparison.Ordinal);
+    }
+
     private static string ExtraerTextoPdf(byte[] pdf)
     {
         var latin = Encoding.Latin1.GetString(pdf);

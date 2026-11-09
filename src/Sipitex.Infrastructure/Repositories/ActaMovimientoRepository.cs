@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
 using Sipitex.Infrastructure.Persistence;
 
 namespace Sipitex.Infrastructure.Repositories;
@@ -21,6 +22,9 @@ public class ActaMovimientoRepository : IActaMovimientoRepository
                     .ThenInclude(m => m.PlantaInventario)
             .Include(a => a.ProductionOrder)
             .Include(a => a.CreadoPor)
+            .Include(a => a.PlantaOrigen)
+            .Include(a => a.PlantaDestino)
+            .Include(a => a.AnuladaPor)
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<ActaMovimiento>> GetAllAsync(CancellationToken cancellationToken = default) =>
@@ -31,6 +35,8 @@ public class ActaMovimientoRepository : IActaMovimientoRepository
                     .ThenInclude(m => m.PlantaInventario)
             .Include(a => a.ProductionOrder)
             .Include(a => a.CreadoPor)
+            .Include(a => a.PlantaOrigen)
+            .Include(a => a.PlantaDestino)
             .OrderByDescending(a => a.FechaUtc)
             .ThenByDescending(a => a.Id)
             .ToListAsync(cancellationToken);
@@ -45,7 +51,7 @@ public class ActaMovimientoRepository : IActaMovimientoRepository
     public async Task<IReadOnlyDictionary<int, string>> GetNumerosPorStockMovementAsync(CancellationToken cancellationToken = default)
     {
         var filas = await _db.ActasMovimientoDetalle.AsNoTracking()
-            .Where(d => d.StockMovementId != null)
+            .Where(d => d.StockMovementId != null && d.ActaMovimiento.Estado != ActaEstado.Anulada)
             .Select(d => new { Id = d.StockMovementId!.Value, d.ActaMovimiento.Numero })
             .ToListAsync(cancellationToken);
 
@@ -57,7 +63,7 @@ public class ActaMovimientoRepository : IActaMovimientoRepository
     public async Task<IReadOnlyDictionary<int, string>> GetNumerosPorConsumoAsync(CancellationToken cancellationToken = default)
     {
         var filas = await _db.ActasMovimientoDetalle.AsNoTracking()
-            .Where(d => d.ConsumoMaterialId != null)
+            .Where(d => d.ConsumoMaterialId != null && d.ActaMovimiento.Estado != ActaEstado.Anulada)
             .Select(d => new { Id = d.ConsumoMaterialId!.Value, d.ActaMovimiento.Numero })
             .ToListAsync(cancellationToken);
 

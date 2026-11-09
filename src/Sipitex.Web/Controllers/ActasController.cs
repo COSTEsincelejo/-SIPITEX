@@ -18,30 +18,39 @@ public class ActasController : Controller
     private readonly IStockMovementService _stock;
     private readonly IMaterialConsumptionService _consumos;
     private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
+    private readonly IPlantaInventarioService _plantas;
 
     public ActasController(
         IActaMovimientoService actas,
         IProductionOrderService orders,
         IStockMovementService stock,
         IMaterialConsumptionService consumos,
-        ICurrentPlantaInventarioAccessor plantaAccessor)
+        ICurrentPlantaInventarioAccessor plantaAccessor,
+        IPlantaInventarioService plantas)
     {
         _actas = actas;
         _orders = orders;
         _stock = stock;
         _consumos = consumos;
         _plantaAccessor = plantaAccessor;
+        _plantas = plantas;
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(ActaEstado? estado, CancellationToken cancellationToken)
     {
         ViewData["Title"] = "Actas de ingreso y egreso";
         ViewData["Breadcrumb"] = "SIPITEX / Operación / Actas";
         var filter = await BuildFilterAsync(cancellationToken);
+        var actas = await _actas.GetAllAsync(filter, cancellationToken);
+        var visibles = estado is ActaEstado filtro
+            ? actas.Where(a => a.Estado == filtro).ToList()
+            : actas;
         return View(new ActasIndexViewModel
         {
-            Actas = await _actas.GetAllAsync(filter, cancellationToken),
+            Actas = visibles,
+            Estado = estado,
+            FiltroSinResultados = estado is not null && visibles.Count == 0 && actas.Count > 0,
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
@@ -92,7 +101,9 @@ public class ActasController : Controller
             form.StockMovementIds,
             form.ConsumoIds,
             SignatureImage.FromDataUrl(form.EntregaFirmaDataUrl),
-            SignatureImage.FromDataUrl(form.RecibeFirmaDataUrl)), cancellationToken);
+            SignatureImage.FromDataUrl(form.RecibeFirmaDataUrl),
+            form.PlantaOrigenId,
+            form.PlantaDestinoId), cancellationToken);
 
         if (result is { Success: true, Value: { } acta })
         {
@@ -124,6 +135,7 @@ public class ActasController : Controller
                 : [],
             ActasPorStock = await _actas.GetActasPorMovimientoStockAsync(cancellationToken),
             ActasPorConsumo = await _actas.GetActasPorConsumoAsync(cancellationToken),
+            PlantasActivas = (await _plantas.GetAllAsync(cancellationToken)).Where(p => p.Activo).OrderBy(p => p.Nombre).ToList(),
             Form = form
         };
     }
@@ -136,6 +148,12 @@ public class ActasController : Controller
         {
             ModelState.AddModelError("Form.EntregaNombre", "El nombre de quien entrega es obligatorio.");
             ModelState.AddModelError("Form.RecibeNombre", "El nombre de quien recibe es obligatorio.");
+            return;
+        }
+
+        if (text.Contains("planta", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError("Form.PlantaOrigenId", text);
             return;
         }
 
@@ -163,7 +181,67 @@ public class ActasController : Controller
             return NotFound();
         ViewData["Title"] = acta.Numero;
         ViewData["Breadcrumb"] = $"SIPITEX / Operación / Actas / {acta.Numero}";
-        return View(acta);
+        return View(BuildDetailsViewModel(acta));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Firmar(int id, [Bind(Prefix = "Firmar")] FirmarActaForm form, CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var userId))
+            return Challenge();
+
+        var role = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
+        var result = await _actas.FirmarRecibeAsync(
+            id,
+            userId,
+            role,
+            form.Conforme,
+            SignatureImage.FromDataUrl(form.FirmaDataUrl),
+            cancellationToken);
+        TempData["Message"] = result.Message ?? (result.Success ? "Acta firmada." : "No se pudo firmar el acta.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [Authorize(Roles = UserRoles.Administrador)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Anular(int id, [Bind(Prefix = "Anular")] AnularActaForm form, CancellationToken cancellationToken)
+    {
+        if (!TryGetActorUserId(out var userId))
+            return Challenge();
+        if (!ModelState.IsValid)
+        {
+            var filter = await BuildFilterAsync(cancellationToken);
+            var acta = await _actas.GetByIdAsync(id, filter, cancellationToken);
+            if (acta is null)
+                return NotFound();
+            var model = BuildDetailsViewModel(acta);
+            model.Anular = form;
+            return View(nameof(Details), model);
+        }
+
+        var role = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
+        var result = await _actas.AnularAsync(id, userId, role, form.Motivo, cancellationToken);
+        TempData["Message"] = result.Message ?? (result.Success ? "Acta anulada." : "No se pudo anular el acta.");
+        TempData["IsSuccess"] = result.Success;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private ActaDetailsViewModel BuildDetailsViewModel(ActaMovimientoDto acta)
+    {
+        var (userId, role, _) = CurrentViewer();
+        var admin = string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
+        var pendiente = acta.Estado == ActaEstado.PendienteFirma;
+        return new ActaDetailsViewModel
+        {
+            Acta = acta,
+            PuedeFirmar = pendiente && (admin || (userId is int uid && uid == acta.CreadoPorUserId)),
+            PuedeAnular = admin && acta.Estado != ActaEstado.Anulada,
+            Message = TempData["Message"] as string,
+            IsSuccess = TempData["IsSuccess"] as bool? ?? false
+        };
     }
 
     [HttpGet]

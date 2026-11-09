@@ -9,7 +9,7 @@
 <div class="page-header">
     <div>
         <h2>Nueva acta</h2>
-        <p class="hint">Origen Manual registra un ítem con las observaciones (o un texto por defecto). Stock exige marcar movimientos de su planta. Consumo usa los de la orden.</p>
+        <p class="hint">Origen Manual registra un ítem con las observaciones (o un texto por defecto). Stock exige marcar movimientos y las plantas de origen y destino. La firma de quien entrega es obligatoria. Si quien recibe no firma, el acta queda pendiente de firma.</p>
     </div>
     <div>
         <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
@@ -36,6 +36,32 @@
                     <option value="">—</option>
                 </select>
                 <p class="hint">Al cambiar la orden se recargan los consumos asociados.</p>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="field">
+                <label class="field-label" asp-for="Form.PlantaOrigenId">Planta origen</label>
+                <select asp-for="Form.PlantaOrigenId" required="@(Model.Form.Origen == ActaOrigen.Stock ? "required" : null)">
+                    <option value="">—</option>
+                    @foreach (var planta in Model.PlantasActivas)
+                    {
+                        <option value="@planta.Id">@planta.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="Form.PlantaOrigenId" class="field-error"></span>
+            </div>
+            <div class="field">
+                <label class="field-label" asp-for="Form.PlantaDestinoId">Planta destino</label>
+                <select asp-for="Form.PlantaDestinoId" required="@(Model.Form.Origen == ActaOrigen.Stock ? "required" : null)">
+                    <option value="">—</option>
+                    @foreach (var planta in Model.PlantasActivas)
+                    {
+                        <option value="@planta.Id">@planta.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="Form.PlantaDestinoId" class="field-error"></span>
+                <p class="hint">Obligatorias cuando el origen es movimientos de stock. En los demás orígenes son opcionales y solo se listan plantas activas.</p>
             </div>
         </div>
 
@@ -230,7 +256,7 @@
             </div>
         </div>
         <div class="signature-pad" data-signature-pad>
-            <label class="field-label">Firma de quien recibe</label>
+            <label class="field-label">Firma de quien recibe (puede quedar pendiente)</label>
             <div class="signature-canvas-wrap">
                 <canvas width="320" height="120" aria-label="Firme aquí (quien recibe)"></canvas>
                 <span class="signature-hint" data-signature-hint>Firme aquí</span>

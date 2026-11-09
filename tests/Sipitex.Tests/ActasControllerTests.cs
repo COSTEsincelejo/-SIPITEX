@@ -16,4 +16,13 @@ public class ActasControllerTests
         Assert.Contains(UserRoles.Instructor, classAttr.Roles!, StringComparison.Ordinal);
         Assert.Contains(UserRoles.EncargadoDeBodega, classAttr.Roles!, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Anular_SoloAdministrador()
+    {
+        var method = typeof(ActasController).GetMethod(nameof(ActasController.Anular));
+        var attr = method!.GetCustomAttribute<AuthorizeAttribute>();
+        Assert.NotNull(attr);
+        Assert.Equal(UserRoles.Administrador, attr!.Roles);
+    }
 }

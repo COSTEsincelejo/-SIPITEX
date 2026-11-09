@@ -39,6 +39,8 @@ public static class ActivityLogActions
     public const string Delete = "Delete";
 
     public const string ImportInventario = "ImportInventario";
+    public const string FirmarActaRecibe = "FirmarActaRecibe";
+    public const string AnularActa = "AnularActa";
     public const string CreateFichaTecnicaMaterial = "CreateFichaTecnicaMaterial";
     public const string UpdateFichaTecnicaMaterial = "UpdateFichaTecnicaMaterial";
 }

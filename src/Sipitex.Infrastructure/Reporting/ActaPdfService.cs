@@ -50,6 +50,18 @@ public class ActaPdfService : IActaPdfService
                         col.Item().Text($"Orden: {acta.OrderNumber}").FontSize(10);
                     if (!string.IsNullOrWhiteSpace(acta.ProductoOrden))
                         col.Item().Text($"Producto: {acta.ProductoOrden}").FontSize(10);
+                    col.Item().Text($"Estado: {EtiquetaActa(acta.Estado)}").FontSize(10);
+                    col.Item().Text($"Planta origen: {NombrePlanta(acta.PlantaOrigenNombre)}").FontSize(10);
+                    col.Item().Text($"Planta destino: {NombrePlanta(acta.PlantaDestinoNombre)}").FontSize(10);
+                    if (acta.Estado == ActaEstado.Anulada)
+                    {
+                        col.Item().PaddingTop(4).Text("ANULADA").FontSize(28).Bold().FontColor(Colors.Red.Darken2);
+                        col.Item().Text($"Motivo de anulación: {acta.MotivoAnulacion}").FontSize(10).FontColor(Colors.Red.Darken2);
+                    }
+                    else if (acta.Estado == ActaEstado.PendienteFirma)
+                    {
+                        col.Item().Text("Firma de quien recibe pendiente").FontSize(11).SemiBold();
+                    }
                     if (plantas.Count > 0)
                         col.Item().Text($"Planta de inventario: {string.Join(", ", plantas)}").FontSize(10);
                     if (acta.EstadoProductoOrigen is { } from && acta.EstadoProductoDestino is { } to)
@@ -131,6 +143,17 @@ public class ActaPdfService : IActaPdfService
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(contenido.ToString()));
         return Convert.ToHexString(hash)[..12].ToLowerInvariant();
     }
+
+    private static string EtiquetaActa(ActaEstado estado) => estado switch
+    {
+        ActaEstado.PendienteFirma => "Pendiente de firma",
+        ActaEstado.Firmada => "Firmada",
+        ActaEstado.Anulada => "Anulada",
+        _ => estado.ToString()
+    };
+
+    private static string NombrePlanta(string? nombre) =>
+        string.IsNullOrWhiteSpace(nombre) ? "—" : nombre;
 
     private static string EtiquetaEstado(EstadoProducto estado) => estado switch
     {

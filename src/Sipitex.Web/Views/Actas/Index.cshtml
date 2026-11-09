@@ -8,7 +8,7 @@
 <div class="page-header">
     <div>
         <h2>Actas de ingreso y egreso</h2>
-        <div class="sub">Ingreso y egreso con conformidad: nombre, cargo, timestamp UTC y firma gráfica dibujada.</div>
+        <div class="sub">Ingreso y egreso con conformidad. La firma de quien recibe puede quedar pendiente. Anular un acta no revierte stock ni consumos.</div>
     </div>
     <div>
         <a class="primary" asp-action="Create"><i class="fas fa-plus"></i> Nueva acta</a>
@@ -21,9 +21,34 @@
 }
 
 <div class="card">
+    <form method="get" class="form-row" style="margin-bottom:1rem;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field">
+            <label class="field-label" for="estado">Estado</label>
+            <select id="estado" name="estado">
+                <option value="">Todos</option>
+                @foreach (var estado in Enum.GetValues<ActaEstado>())
+                {
+                    if (Model.Estado == estado)
+                    {
+                        <option value="@estado" selected>@DisplayHelper.StatusText(estado)</option>
+                    }
+                    else
+                    {
+                        <option value="@estado">@DisplayHelper.StatusText(estado)</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="field">
+            <button type="submit" class="ghost">Filtrar</button>
+        </div>
+    </form>
     @if (Model.Actas.Count == 0)
     {
-        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-file-signature", Title = "Sin actas", Text = "Todavía no hay actas de ingreso o egreso." }' />
+        var vacio = Model.FiltroSinResultados
+            ? "Ninguna acta coincide con el estado seleccionado."
+            : "Todavía no hay actas de ingreso o egreso.";
+        <partial name="_EmptyState" model='new EmptyStateModel { Icon = "fa-file-signature", Title = "Sin actas", Text = vacio }' />
     }
     else
     {
@@ -32,6 +57,7 @@
                 <thead>
                     <tr>
                         <th>Número</th>
+                        <th>Estado</th>
                         <th>Tipo</th>
                         <th>Origen</th>
                         <th>Fecha</th>
@@ -46,6 +72,7 @@
                 {
                     <tr>
                         <td><a asp-action="Details" asp-route-id="@a.Id">@a.Numero</a></td>
+                        <td><span class="badge @DisplayHelper.BadgeClass(a.Estado)">@DisplayHelper.StatusText(a.Estado)</span></td>
                         <td><span class="badge @(a.Tipo == ActaTipo.Ingreso ? "badge-success" : "badge-warning")">@DisplayHelper.StatusText(a.Tipo)</span></td>
                         <td>@DisplayHelper.StatusText(a.Origen)</td>
                         <td>@a.FechaUtc.ToString("yyyy-MM-dd HH:mm")</td>
