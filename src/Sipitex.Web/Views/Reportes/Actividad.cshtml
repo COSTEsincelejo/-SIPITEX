@@ -11,7 +11,7 @@
 <div class="page-header">
     <div>
         <h2>Actividad del instructor</h2>
-        <div class="sub">Busque qué hizo un instructor, revise el resumen y después genere el PDF.</div>
+        <div class="sub">Busque qué hizo un instructor, revise el resumen y después descargue el PDF o el Excel. Los dos archivos salen de este mismo resumen.</div>
     </div>
     <div class="row-actions">
         <a class="ghost small" asp-action="Index"><i class="fas fa-arrow-left"></i> Reportes</a>
@@ -172,12 +172,12 @@
             <div class="kpi-card">
                 <div class="kpi-label">Horas registradas</div>
                 <div class="kpi-value es-texto">@reporte.HorasRegistradas</div>
-                <div class="kpi-trend">Solo grupos de confección con hora de inicio y fin</div>
+                <div class="kpi-trend">@reporte.NotaHoras</div>
             </div>
             <div class="kpi-card amber">
                 <div class="kpi-label">Aprendices</div>
                 <div class="kpi-value es-texto">@reporte.Aprendices</div>
-                <div class="kpi-trend">El sistema no guarda la lista de aprendices</div>
+                <div class="kpi-trend">@reporte.NotaAprendices</div>
             </div>
             <div class="kpi-card teal">
                 <div class="kpi-label">Grupos</div>
@@ -226,6 +226,36 @@
             </div>
         </div>
 
+        <h4>Materiales consumidos</h4>
+        @if (reporte.Materiales.Count == 0)
+        {
+            <p class="hint">@ActividadInstructorTexto.SinConsumos</p>
+        }
+        else
+        {
+            <div class="table-wrap table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Cantidad</th>
+                            <th>Unidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var material in reporte.Materiales)
+                        {
+                            <tr>
+                                <td>@material.Material</td>
+                                <td>@material.Cantidad</td>
+                                <td>@material.Unidad</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
         <div class="actividad-pdf">
             <a class="btn primary" asp-action="ActividadPdf"
                asp-route-instructorId="@Model.InstructorId"
@@ -235,6 +265,15 @@
                asp-route-jornada="@Model.Jornada"
                asp-route-tipo="@Model.Tipo">
                 <i class="fas fa-file-pdf"></i> Generar PDF de actividad
+            </a>
+            <a class="btn ghost" asp-action="ActividadExcel"
+               asp-route-instructorId="@Model.InstructorId"
+               asp-route-desde="@Model.Desde?.ToString("yyyy-MM-dd")"
+               asp-route-hasta="@Model.Hasta?.ToString("yyyy-MM-dd")"
+               asp-route-fichaId="@Model.FichaId"
+               asp-route-jornada="@Model.Jornada"
+               asp-route-tipo="@Model.Tipo">
+                <i class="fas fa-file-excel"></i> Generar Excel de actividad
             </a>
         </div>
     </section>

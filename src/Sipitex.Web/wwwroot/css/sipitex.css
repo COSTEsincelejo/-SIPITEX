@@ -470,7 +470,7 @@ tr.acta-oculta{display:none;}
 .actividad-chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0;}
 .actividad-chips li{background:var(--teal-soft);color:var(--teal);border-radius:999px;padding:6px 10px;font-size:12.5px;font-weight:700;}
 .actividad-chips.is-vacia li{background:#EEF1F4;color:var(--text-mut);}
-.actividad-pdf{display:flex;justify-content:flex-end;}
+.actividad-pdf{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px;}
 .actividad-timeline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
 .actividad-dia{border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface);border-left:4px solid var(--border);}
 .actividad-dia.is-activa{border-left-color:var(--teal);}
@@ -485,6 +485,6 @@ tr.acta-oculta{display:none;}
 @media (max-width:640px){
   .actividad-hero{align-items:flex-start;}
   .actividad-pdf{justify-content:stretch;}
-  .actividad-pdf .btn{width:100%;}
+  .actividad-pdf .btn{width:100%;justify-content:center;}
 }
 

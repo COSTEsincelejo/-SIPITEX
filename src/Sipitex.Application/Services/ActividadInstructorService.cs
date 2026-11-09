@@ -10,15 +10,17 @@ using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
-// Arma el resumen de actividad con lo que el sistema ya guarda.
-// No hay marcación de ingreso/salida ni padrón de aprendices: esos campos salen como "No registrado".
+// Única cuenta de la actividad del instructor. La pantalla, el Excel y el PDF
+// muestran este mismo objeto: no hay otro cálculo en ReportService.
+// Las horas salen solo del inicio y fin de GrupoConfeccion.
+// Los materiales salen de ConsumoMaterial, nunca de la receta (snapshot del BOM).
+// No hay marcación de ingreso/salida ni padrón de aprendices: eso se dice en el reporte.
 public class ActividadInstructorService : IActividadInstructorService
 {
     private static readonly CultureInfo Es = CultureInfo.GetCultureInfo("es-CO");
 
     private readonly IUserRepository _users;
     private readonly IProductionSessionRepository _sessions;
-    private readonly IProductionOrderBomSnapshotRepository _snapshots;
     private readonly IGrupoConfeccionRepository _grupos;
     private readonly IQualityRepository _quality;
     private readonly IConsumoMaterialRepository _consumos;
@@ -27,7 +29,6 @@ public class ActividadInstructorService : IActividadInstructorService
     public ActividadInstructorService(
         IUserRepository users,
         IProductionSessionRepository sessions,
-        IProductionOrderBomSnapshotRepository snapshots,
         IGrupoConfeccionRepository grupos,
         IQualityRepository quality,
         IConsumoMaterialRepository consumos,
@@ -35,7 +36,6 @@ public class ActividadInstructorService : IActividadInstructorService
     {
         _users = users;
         _sessions = sessions;
-        _snapshots = snapshots;
         _grupos = grupos;
         _quality = quality;
         _consumos = consumos;
@@ -60,6 +60,7 @@ public class ActividadInstructorService : IActividadInstructorService
         }
 
         var eventos = new List<Evento>();
+        var materiales = new Dictionary<(string Nombre, string Unidad), decimal>();
         var horas = TimeSpan.Zero;
         var unidades = 0;
         var prendas = 0;
@@ -67,17 +68,10 @@ public class ActividadInstructorService : IActividadInstructorService
         if (Incluye(tipo, ActividadInstructorTexto.Produccion))
         {
             var sesiones = await _sessions.GetAllWithDetailsAsync(cancellationToken);
-            var snapshots = new Dictionary<int, IReadOnlyList<ProductionOrderBomSnapshot>>();
             foreach (var sesion in sesiones.Where(s => SesionDelInstructor(s, consulta.InstructorId) && EnRango(s.SessionDate, desde, hasta)))
             {
                 if (!SesionPasaFiltro(sesion, consulta))
                     continue;
-
-                if (!snapshots.TryGetValue(sesion.ProductionOrderId, out var receta))
-                {
-                    receta = await _snapshots.GetByOrderIdAsync(sesion.ProductionOrderId, cancellationToken);
-                    snapshots[sesion.ProductionOrderId] = receta;
-                }
 
                 unidades += sesion.Units;
                 var orden = sesion.ProductionOrder?.OrderNumber ?? $"Orden #{sesion.ProductionOrderId}";
@@ -91,10 +85,7 @@ public class ActividadInstructorService : IActividadInstructorService
                 if (ficha is not null)
                     texto.Append(", ficha ").Append(ficha);
                 texto.Append(". Hora de registro ").Append(sesion.SessionDate.ToString("HH:mm", Es));
-                texto.Append(". El ingreso y la salida de este registro no se guardan.");
-                var estimado = ConsumoEstimado(receta, sesion.Units);
-                if (estimado is not null)
-                    texto.Append(' ').Append(estimado);
+                texto.Append(". ").Append(ActividadInstructorTexto.MarcacionNoRegistrada).Append('.');
 
                 eventos.Add(new Evento(
                     DateOnly.FromDateTime(sesion.SessionDate),
@@ -181,6 +172,8 @@ public class ActividadInstructorService : IActividadInstructorService
                 var orden = consumo.ProductionOrder?.OrderNumber ?? $"Orden #{consumo.ProductionOrderId}";
                 var material = consumo.Material?.Name ?? $"Material #{consumo.MaterialId}";
                 var unidad = consumo.Material is { } mat ? UnitHelper.ToDisplay(mat.Unit) : "unidad";
+                var clave = (material, unidad);
+                materiales[clave] = materiales.GetValueOrDefault(clave) + consumo.Cantidad;
                 var texto = $"Consumo de materiales: {material}, {consumo.Cantidad.ToString("0.##", CultureInfo.InvariantCulture)} {unidad}, orden {orden}.";
                 eventos.Add(new Evento(
                     DateOnly.FromDateTime(consumo.FechaUtc),
@@ -239,7 +232,10 @@ public class ActividadInstructorService : IActividadInstructorService
             realizadas,
             noRealizadas,
             dias,
-            "");
+            "",
+            ListaMateriales(materiales),
+            NotaHoras(horas),
+            ActividadInstructorTexto.AprendicesSinPadron);
 
         return reporte with { CodigoVerificacion = Codigo(reporte) };
     }
@@ -311,7 +307,10 @@ public class ActividadInstructorService : IActividadInstructorService
             [],
             noRealizadas,
             dias,
-            "");
+            "",
+            [],
+            ActividadInstructorTexto.MarcacionNoRegistrada,
+            ActividadInstructorTexto.AprendicesSinPadron);
         return reporte with { CodigoVerificacion = Codigo(reporte) };
     }
 
@@ -376,15 +375,21 @@ public class ActividadInstructorService : IActividadInstructorService
         return texto;
     }
 
-    private static string? ConsumoEstimado(IReadOnlyList<ProductionOrderBomSnapshot> receta, int unidades)
-    {
-        if (receta.Count == 0 || unidades == 0)
-            return null;
-        var partes = receta
-            .OrderBy(l => l.MaterialName, StringComparer.OrdinalIgnoreCase)
-            .Select(l => $"{l.MaterialName} {(l.QuantityPerUnit * unidades).ToString("0.##", CultureInfo.InvariantCulture)} {UnitHelper.ToDisplay(l.Unit)}");
-        return "Consumo estimado por la receta: " + string.Join(", ", partes) + ".";
-    }
+    private static List<ActividadMaterialConsumidoDto> ListaMateriales(
+        Dictionary<(string Nombre, string Unidad), decimal> materiales) =>
+        materiales
+            .OrderBy(m => m.Key.Nombre, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(m => m.Key.Unidad, StringComparer.OrdinalIgnoreCase)
+            .Select(m => new ActividadMaterialConsumidoDto(
+                m.Key.Nombre,
+                m.Value.ToString("0.##", CultureInfo.InvariantCulture),
+                m.Key.Unidad))
+            .ToList();
+
+    private static string NotaHoras(TimeSpan horas) =>
+        horas <= TimeSpan.Zero
+            ? ActividadInstructorTexto.MarcacionNoRegistrada
+            : ActividadInstructorTexto.HorasDesdeGrupo;
 
     private static bool Incluye(string? filtro, string tipo) =>
         filtro is null || string.Equals(filtro, tipo, StringComparison.Ordinal);
@@ -456,6 +461,8 @@ public class ActividadInstructorService : IActividadInstructorService
             .Append(reporte.UnidadesEnSesiones).Append('|')
             .Append(reporte.PrendasEnGrupos).Append('|')
             .Append(reporte.HorasRegistradas).Append('|');
+        foreach (var material in reporte.Materiales)
+            contenido.Append(material.Material).Append(';').Append(material.Cantidad).Append(';').Append(material.Unidad).Append('|');
         foreach (var dia in reporte.Dias)
         {
             contenido.Append(dia.Fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).Append(';')

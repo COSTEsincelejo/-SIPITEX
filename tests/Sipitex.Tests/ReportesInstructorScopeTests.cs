@@ -23,6 +23,7 @@ public class ReportesInstructorScopeTests
     private readonly Mock<IFichaService> _fichas = new();
     private readonly Mock<IActividadInstructorService> _actividad = new();
     private readonly Mock<IActividadInstructorPdf> _actividadPdf = new();
+    private readonly Mock<IActividadInstructorExcel> _actividadExcel = new();
 
     private static ReportFileDto DummyFile(string name = "Ordenes") => new(
         [0x25, 0x50, 0x44, 0x46], // %PDF
@@ -43,9 +44,12 @@ public class ReportesInstructorScopeTests
         _reports.Setup(r => r.ExportInventoryAsync(
                 It.IsAny<string>(), It.IsAny<ReportFilterDto?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(DummyFile("Inventario"));
-        _reports.Setup(r => r.ExportActividadInstructorAsync(
-                It.IsAny<string>(), It.IsAny<ReportFilterDto>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(DummyFile("ActividadInstructor"));
+        _actividad.Setup(a => a.ConsultarAsync(It.IsAny<ActividadInstructorConsulta>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ReporteVacio());
+        _actividadPdf.Setup(p => p.Render(It.IsAny<ActividadInstructorReporteDto>()))
+            .Returns(DummyFile("Actividad"));
+        _actividadExcel.Setup(e => e.Render(It.IsAny<ActividadInstructorReporteDto>()))
+            .Returns(new ReportFileDto([1], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Actividad.xlsx"));
 
         _fichas.Setup(f => f.GetActiveInstructorsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([
@@ -57,7 +61,7 @@ public class ReportesInstructorScopeTests
             .ReturnsAsync([]);
 
         var controller = new ReportesController(
-            _reports.Object, _fichas.Object, _actividad.Object, _actividadPdf.Object)
+            _reports.Object, _fichas.Object, _actividad.Object, _actividadPdf.Object, _actividadExcel.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -66,6 +70,13 @@ public class ReportesInstructorScopeTests
         };
         return controller;
     }
+
+    private static ActividadInstructorReporteDto ReporteVacio() => new(
+        true, 10, "Laura Gómez", null, "LG",
+        new DateOnly(2026, 11, 3), new DateOnly(2026, 11, 3), "período",
+        null, null, null, false, 1, 0, 1,
+        "No registrado", "No registrado", 0, 0, 0, [], [], [], "ABC123ABC123",
+        [], "Hora de ingreso/salida: no registrada", "Aprendices: no se lleva padrón en SIPITEX");
 
     private static ClaimsPrincipal Principal(int userId, string role, string name = "Usuario")
     {
@@ -119,7 +130,10 @@ public class ReportesInstructorScopeTests
 
         await controller.Calidad(instructorId: 20, cancellationToken: CancellationToken.None);
         await controller.Dashboard(instructorId: 20, cancellationToken: CancellationToken.None);
-        await controller.ActividadInstructor(instructorId: 20, cancellationToken: CancellationToken.None);
+        await controller.ActividadInstructor(
+            instructorId: 20,
+            fecha: new DateOnly(2026, 11, 3),
+            cancellationToken: CancellationToken.None);
 
         _reports.Verify(r => r.ExportQualityAsync(
             It.IsAny<string>(),
@@ -129,10 +143,53 @@ public class ReportesInstructorScopeTests
             It.IsAny<string>(),
             It.Is<ReportFilterDto?>(f => f!.InstructorId == 10),
             It.IsAny<CancellationToken>()), Times.Once);
-        _reports.Verify(r => r.ExportActividadInstructorAsync(
-            It.IsAny<string>(),
-            It.Is<ReportFilterDto>(f => f.InstructorId == 10),
+        _actividad.Verify(a => a.ConsultarAsync(
+            It.Is<ActividadInstructorConsulta>(c =>
+                c.InstructorId == 10
+                && c.Desde == new DateOnly(2026, 11, 3)
+                && c.Hasta == new DateOnly(2026, 11, 3)),
             It.IsAny<CancellationToken>()), Times.Once);
+        _actividadPdf.Verify(p => p.Render(It.IsAny<ActividadInstructorReporteDto>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ActividadExcel_UsaLaMismaConsultaQueLaPantalla()
+    {
+        var controller = CreateController(Principal(1, UserRoles.Administrador, "Admin"));
+        var desde = new DateOnly(2026, 11, 1);
+        var hasta = new DateOnly(2026, 11, 6);
+
+        await controller.Actividad(instructorId: 10, desde: desde, hasta: hasta, tipo: "consumo", cancellationToken: CancellationToken.None);
+        var archivo = await controller.ActividadExcel(
+            instructorId: 10, desde: desde, hasta: hasta, tipo: "consumo", cancellationToken: CancellationToken.None);
+
+        Assert.IsType<FileContentResult>(archivo);
+        _actividad.Verify(a => a.ConsultarAsync(
+            It.Is<ActividadInstructorConsulta>(c =>
+                c.InstructorId == 10 && c.Desde == desde && c.Hasta == hasta && c.Tipo == "consumo"),
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _actividadExcel.Verify(e => e.Render(It.Is<ActividadInstructorReporteDto>(r => r.InstructorId == 10)), Times.Once);
+    }
+
+    [Fact]
+    public async Task ActividadInstructor_Mes_UsaElMismoServicioQueLaPantalla()
+    {
+        var controller = CreateController(Principal(1, UserRoles.Administrador, "Admin"));
+
+        await controller.ActividadInstructor(
+            format: "excel",
+            instructorId: 10,
+            mes: 11,
+            anio: 2026,
+            cancellationToken: CancellationToken.None);
+
+        _actividad.Verify(a => a.ConsultarAsync(
+            It.Is<ActividadInstructorConsulta>(c =>
+                c.InstructorId == 10
+                && c.Desde == new DateOnly(2026, 11, 1)
+                && c.Hasta == new DateOnly(2026, 11, 30)),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _actividadExcel.Verify(e => e.Render(It.IsAny<ActividadInstructorReporteDto>()), Times.Once);
     }
 
     [Fact]
@@ -144,7 +201,8 @@ public class ReportesInstructorScopeTests
                 true, 10, "Laura Gómez", null, "LG",
                 new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 2), "período",
                 null, null, null, false, 2, 0, 2,
-                "No registrado", "No registrado", 0, 0, 0, [], [], [], "ABC123ABC123"));
+                "No registrado", "No registrado", 0, 0, 0, [], [], [], "ABC123ABC123",
+                [], "Hora de ingreso/salida: no registrada", "Aprendices: no se lleva padrón en SIPITEX"));
 
         var result = await controller.Actividad(
             instructorId: 20,
@@ -251,9 +309,6 @@ public class ReportesInstructorScopeTests
         var quality = new Mock<IQualityRepository>();
         var fichas = new Mock<IFichaRepository>();
         var flow = new Mock<IProductionFlowRepository>();
-        var sessions = new Mock<IProductionSessionRepository>();
-        var snapshots = new Mock<IProductionOrderBomSnapshotRepository>();
-        var users = new Mock<IUserRepository>();
         var stats = new Mock<IStatisticsService>();
 
         orders.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(
@@ -279,8 +334,7 @@ public class ReportesInstructorScopeTests
             .ReturnsAsync([new ProductionOrderStage { ProductionOrderId = 2, InstructorUserId = 99 }]);
 
         var sut = new ReportService(
-            materials.Object, orders.Object, quality.Object, fichas.Object, flow.Object,
-            sessions.Object, snapshots.Object, users.Object, stats.Object);
+            materials.Object, orders.Object, quality.Object, fichas.Object, flow.Object, stats.Object);
 
         var file = await sut.ExportOrdersAsync("excel", new ReportFilterDto(InstructorId: 10));
 

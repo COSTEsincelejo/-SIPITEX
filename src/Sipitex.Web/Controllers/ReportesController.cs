@@ -21,17 +21,20 @@ public class ReportesController : Controller
     private readonly IFichaService _fichaService;
     private readonly IActividadInstructorService _actividad;
     private readonly IActividadInstructorPdf _actividadPdf;
+    private readonly IActividadInstructorExcel _actividadExcel;
 
     public ReportesController(
         IReportService reportService,
         IFichaService fichaService,
         IActividadInstructorService actividad,
-        IActividadInstructorPdf actividadPdf)
+        IActividadInstructorPdf actividadPdf,
+        IActividadInstructorExcel actividadExcel)
     {
         _reportService = reportService;
         _fichaService = fichaService;
         _actividad = actividad;
         _actividadPdf = actividadPdf;
+        _actividadExcel = actividadExcel;
     }
 
     // Menú de reportes + filtros (instructor ve solo sus fichas; sin selector de "otro instructor")
@@ -125,7 +128,8 @@ public class ReportesController : Controller
             ResolveFilter(instructorId, fichaId, jornada, fecha, mes, anio),
             cancellationToken));
 
-    // Actividad del instructor: Instructor forzado a sí mismo; Admin/EncargadoDeBodega eligen en query
+    // Enlace viejo de la tarjeta de reportes. Un día o un mes se traducen al mismo
+    // rango que usa la pantalla; el archivo sale de ActividadInstructorService.
     [HttpGet]
     public async Task<IActionResult> ActividadInstructor(
         string format = "pdf",
@@ -139,11 +143,20 @@ public class ReportesController : Controller
     {
         var filter = ResolveFilter(instructorId, fichaId, jornada, fecha, mes, anio)
                      ?? new ReportFilterDto();
-        // Este reporte exige InstructorId; con Instructor el ResolveFilter ya lo fuerza
-        return FileResult(await _reportService.ExportActividadInstructorAsync(format, filter, cancellationToken));
+        if (filter.InstructorId is not int id || id <= 0 || !TryRangoActividad(filter, out var desde, out var hasta))
+        {
+            return RedirectToAction(nameof(Actividad), new
+            {
+                instructorId = filter.InstructorId,
+                fichaId = filter.FichaId,
+                jornada = filter.Jornada
+            });
+        }
+
+        return await ExportarActividadAsync(format, id, desde, hasta, filter.FichaId, filter.Jornada, tipo: null, cancellationToken);
     }
 
-    // Resumen visual de la actividad. El PDF sale de esta misma consulta, no de los filtros genéricos.
+    // Resumen visual. El PDF y el Excel salen de esta misma consulta.
     [HttpGet]
     public async Task<IActionResult> Actividad(
         int? instructorId = null,
@@ -154,16 +167,9 @@ public class ReportesController : Controller
         string? tipo = null,
         CancellationToken cancellationToken = default)
     {
-        var model = await ArmarActividadAsync(instructorId, desde, hasta, fichaId, jornada, tipo, cancellationToken);
-        if (model.Consultado && model.Error is null && model.InstructorId is int id && model.Desde is DateOnly d && model.Hasta is DateOnly h)
-        {
-            model.Reporte = await _actividad.ConsultarAsync(
-                new ActividadInstructorConsulta(id, d, h, model.FichaId, model.Jornada, model.Tipo),
-                cancellationToken);
-            if (model.Reporte is { InstructorExiste: false })
-                model.Error = "No se encontró ese instructor.";
-        }
-
+        var (model, reporte) = await ConsultarPantallaAsync(
+            instructorId, desde, hasta, fichaId, jornada, tipo, cancellationToken);
+        model.Reporte = reporte;
         return View(model);
     }
 
@@ -177,13 +183,83 @@ public class ReportesController : Controller
         string? tipo = null,
         CancellationToken cancellationToken = default)
     {
-        var model = await ArmarActividadAsync(instructorId, desde, hasta, fichaId, jornada, tipo, cancellationToken);
-        if (!model.Consultado || model.Error is not null || model.InstructorId is not int id || model.Desde is not DateOnly d || model.Hasta is not DateOnly h)
+        var (model, reporte) = await ConsultarPantallaAsync(
+            instructorId, desde, hasta, fichaId, jornada, tipo, cancellationToken);
+        if (reporte is null)
         {
             model.Consultado = true;
             model.Error ??= "Indique el instructor y el período para generar el PDF.";
             return View("Actividad", model);
         }
+
+        return FileResult(_actividadPdf.Render(reporte));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ActividadExcel(
+        int? instructorId = null,
+        DateOnly? desde = null,
+        DateOnly? hasta = null,
+        int? fichaId = null,
+        string? jornada = null,
+        string? tipo = null,
+        CancellationToken cancellationToken = default)
+    {
+        var (model, reporte) = await ConsultarPantallaAsync(
+            instructorId, desde, hasta, fichaId, jornada, tipo, cancellationToken);
+        if (reporte is null)
+        {
+            model.Consultado = true;
+            model.Error ??= "Indique el instructor y el período para generar el Excel.";
+            return View("Actividad", model);
+        }
+
+        return FileResult(_actividadExcel.Render(reporte));
+    }
+
+    private async Task<IActionResult> ExportarActividadAsync(
+        string format,
+        int instructorId,
+        DateOnly desde,
+        DateOnly hasta,
+        int? fichaId,
+        string? jornada,
+        string? tipo,
+        CancellationToken cancellationToken)
+    {
+        if (hasta.DayNumber - desde.DayNumber + 1 > MaximoDiasActividad)
+        {
+            return RedirectToAction(nameof(Actividad), new
+            {
+                instructorId,
+                desde,
+                hasta,
+                fichaId,
+                jornada,
+                tipo
+            });
+        }
+
+        var reporte = await _actividad.ConsultarAsync(
+            new ActividadInstructorConsulta(instructorId, desde, hasta, fichaId, jornada, tipo),
+            cancellationToken);
+        var excel = format.Equals("excel", StringComparison.OrdinalIgnoreCase)
+                    || format.Equals("xlsx", StringComparison.OrdinalIgnoreCase);
+        return FileResult(excel ? _actividadExcel.Render(reporte) : _actividadPdf.Render(reporte));
+    }
+
+    private async Task<(ActividadInstructorViewModel Model, ActividadInstructorReporteDto? Reporte)> ConsultarPantallaAsync(
+        int? instructorId,
+        DateOnly? desde,
+        DateOnly? hasta,
+        int? fichaId,
+        string? jornada,
+        string? tipo,
+        CancellationToken cancellationToken)
+    {
+        var model = await ArmarActividadAsync(instructorId, desde, hasta, fichaId, jornada, tipo, cancellationToken);
+        if (!model.Consultado || model.InstructorId is not int id || model.Desde is not DateOnly d || model.Hasta is not DateOnly h)
+            return (model, null);
 
         var reporte = await _actividad.ConsultarAsync(
             new ActividadInstructorConsulta(id, d, h, model.FichaId, model.Jornada, model.Tipo),
@@ -191,10 +267,31 @@ public class ReportesController : Controller
         if (!reporte.InstructorExiste)
         {
             model.Error = "No se encontró ese instructor.";
-            return View("Actividad", model);
+            return (model, null);
         }
 
-        return FileResult(_actividadPdf.Render(reporte));
+        return (model, reporte);
+    }
+
+    // Fecha suelta = ese día. Mes y año = el mes completo. Sin eso, la pantalla pide el rango.
+    private static bool TryRangoActividad(ReportFilterDto filter, out DateOnly desde, out DateOnly hasta)
+    {
+        if (filter.Fecha is DateOnly dia)
+        {
+            desde = hasta = dia;
+            return true;
+        }
+
+        if (filter.Mes is int mes and >= 1 and <= 12 && filter.Anio is int anio and >= 2000 and <= 2100)
+        {
+            desde = new DateOnly(anio, mes, 1);
+            hasta = desde.AddMonths(1).AddDays(-1);
+            return true;
+        }
+
+        desde = default;
+        hasta = default;
+        return false;
     }
 
     private async Task<ActividadInstructorViewModel> ArmarActividadAsync(

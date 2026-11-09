@@ -16,6 +16,15 @@ public static class ActividadInstructorTexto
 
     public const string NoRegistrado = "No registrado";
 
+    public const string MarcacionNoRegistrada = "Hora de ingreso/salida: no registrada";
+
+    public const string HorasDesdeGrupo =
+        "Horas calculadas con el inicio y el fin del grupo de confección. La marcación de ingreso y salida no se registra.";
+
+    public const string AprendicesSinPadron = "Aprendices: no se lleva padrón en SIPITEX";
+
+    public const string SinConsumos = "Sin consumos de material registrados en el período.";
+
     public const string Produccion = "produccion";
     public const string Calidad = "calidad";
     public const string Consumo = "consumo";
@@ -57,7 +66,13 @@ public record ActividadInstructorReporteDto(
     IReadOnlyList<string> ActividadesRealizadas,
     IReadOnlyList<string> ActividadesNoRealizadas,
     IReadOnlyList<ActividadInstructorDiaDto> Dias,
-    string CodigoVerificacion);
+    string CodigoVerificacion,
+    IReadOnlyList<ActividadMaterialConsumidoDto> Materiales,
+    string NotaHoras,
+    string NotaAprendices);
+
+// Totales de ConsumoMaterial. La pantalla, el Excel y el PDF muestran esta lista, no la receta.
+public record ActividadMaterialConsumidoDto(string Material, string Cantidad, string Unidad);
 
 public record ActividadInstructorDiaDto(
     DateOnly Fecha,

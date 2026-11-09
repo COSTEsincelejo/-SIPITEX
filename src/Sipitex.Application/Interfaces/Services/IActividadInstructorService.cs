@@ -14,3 +14,9 @@ public interface IActividadInstructorPdf
 {
     ReportFileDto Render(ActividadInstructorReporteDto reporte);
 }
+
+// El Excel sale del mismo reporte que la pantalla y el PDF.
+public interface IActividadInstructorExcel
+{
+    ReportFileDto Render(ActividadInstructorReporteDto reporte);
+}
