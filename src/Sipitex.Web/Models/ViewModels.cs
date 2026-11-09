@@ -87,6 +87,7 @@ public class OrdenesIndexViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public IReadOnlyList<string> ProductNames { get; set; } = [];
+    public IReadOnlyList<ProductoElegibleOrdenDto> Productos { get; set; } = [];
     public CreateOrderForm CreateOrder { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }

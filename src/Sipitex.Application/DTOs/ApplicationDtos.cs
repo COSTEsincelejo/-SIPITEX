@@ -174,6 +174,9 @@ public record OrderChangeLogDto(
 // Una línea del listado BOM
 public record BomItemDto(string ProductName, string MaterialName, decimal QuantityPerUnit, string UnitDisplay);
 
+// Producto que se puede elegir al crear una orden (nombre, código y tamaño del BOM)
+public record ProductoElegibleOrdenDto(string Nombre, string Codigo, int Materiales);
+
 // Fila del listado de ficha técnica
 public record BomProductListItemDto(
     int Id,

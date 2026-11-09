@@ -101,6 +101,36 @@ button.search-clear[hidden]{display:none;}
 .search-mark{background:#DCE6F1;color:#1F3864;font-weight:800;border-radius:3px;padding:0 1px;}
 .search-item.is-active .search-mark,.search-item:hover .search-mark{background:#fff;}
 .search-empty{padding:10px 14px 4px;font-size:13px;color:#1F3864;font-weight:650;}
+
+/* Combobox reutilizable. Se activa con data-combobox; hoy lo usa el producto de órdenes. */
+.form-row .combobox-field{flex:1 1 280px;min-width:min(280px,100%);max-width:100%;}
+.combobox{position:relative;width:100%;min-width:0;z-index:2;}
+.combobox:focus-within{z-index:30;}
+.combobox-input{width:100%;padding-left:36px;padding-right:36px;}
+.combobox-icon{
+  position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  color:var(--text-mut);font-size:13px;pointer-events:none;z-index:1;
+}
+button.combobox-toggle{
+  position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  width:28px;height:28px;min-width:28px;padding:0;border:none;border-radius:6px;
+  background:transparent;color:var(--text-mut);box-shadow:none;
+}
+button.combobox-toggle:hover,
+button.combobox-toggle:focus{background:var(--accent-soft);color:var(--accent);transform:translateY(-50%);}
+.combobox-panel{
+  left:0;right:0;width:auto;max-width:100%;max-height:320px;border-radius:12px;
+  box-shadow:var(--shadow-md);animation:fadeIn .18s var(--ease);
+}
+.combobox-panel[hidden]{display:none;}
+.combobox-panel .search-item-text{white-space:normal;}
+.combobox-nombre{font-weight:800;}
+.combobox-meta{font-size:12px;font-weight:500;color:var(--text-mut);line-height:1.35;}
+.combobox-crear{font-weight:700;}
+@media (max-width:640px){
+  .form-row .combobox-field{flex-basis:100%;min-width:0;width:100%;}
+  .combobox-panel{max-width:100%;}
+}
 .search-examples{display:flex;flex-wrap:wrap;gap:6px;padding:4px 14px 10px;}
 .search-example{
   border:1px solid #1F3864;background:#DCE6F1;color:#1F3864;border-radius:999px;

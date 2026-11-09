@@ -35,6 +35,45 @@ public class BomCatalogServiceTests
     };
 
     [Fact]
+    public async Task GetOrderEligibleProductsAsync_UsaElMismoFiltroQueLosNombres()
+    {
+        _boms.Setup(r => r.GetProductsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new BomProduct
+                {
+                    ProductName = "Camisa",
+                    Codigo = "PRD-0001",
+                    HabilitadoParaOrdenes = true,
+                    Items = [new BomItem(), new BomItem()]
+                },
+                new BomProduct
+                {
+                    ProductName = "Sin receta",
+                    Codigo = "PRD-0002",
+                    HabilitadoParaOrdenes = true,
+                    Items = []
+                },
+                new BomProduct
+                {
+                    ProductName = "Apagada",
+                    Codigo = "PRD-0003",
+                    HabilitadoParaOrdenes = false,
+                    Items = [new BomItem()]
+                }
+            ]);
+
+        var productos = await CreateSut().GetOrderEligibleProductsAsync();
+        var nombres = await CreateSut().GetOrderEligibleProductNamesAsync();
+
+        var producto = Assert.Single(productos);
+        Assert.Equal("Camisa", producto.Nombre);
+        Assert.Equal("PRD-0001", producto.Codigo);
+        Assert.Equal(2, producto.Materiales);
+        Assert.Equal(["Camisa"], nombres);
+    }
+
+    [Fact]
     public async Task CreateAsync_WithValidLines_Succeeds()
     {
         _boms.Setup(r => r.GetProductByNameAsync("Camiseta", It.IsAny<CancellationToken>()))

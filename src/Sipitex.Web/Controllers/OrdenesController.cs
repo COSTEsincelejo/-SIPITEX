@@ -44,11 +44,13 @@ public class OrdenesController : Controller
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         var (userId, role, name) = GetActor();
+        var productos = await _bomCatalog.GetOrderEligibleProductsAsync(cancellationToken);
         return View(new OrdenesIndexViewModel
         {
             Orders = await _orderService.GetOrdersAsync(
                 userId > 0 ? userId : null, role, name, cancellationToken),
-            ProductNames = await _bomCatalog.GetOrderEligibleProductNamesAsync(cancellationToken),
+            ProductNames = productos.Select(p => p.Nombre).ToList(),
+            Productos = productos,
             CreateOrder = new CreateOrderForm(),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false

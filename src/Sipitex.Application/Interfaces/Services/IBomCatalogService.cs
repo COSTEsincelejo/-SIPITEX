@@ -12,6 +12,9 @@ public interface IBomCatalogService
 
     Task<BomProductDetailDto?> GetProductAsync(int id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> GetOrderEligibleProductNamesAsync(CancellationToken cancellationToken = default);
+
+    // Misma elegibilidad que los nombres: habilitado para órdenes y con materiales en el BOM
+    Task<IReadOnlyList<ProductoElegibleOrdenDto>> GetOrderEligibleProductsAsync(CancellationToken cancellationToken = default);
     Task<ServiceResult> CreateAsync(UpsertBomProductDto dto, CancellationToken cancellationToken = default);
     Task<ServiceResult> UpdateAsync(int id, UpsertBomProductDto dto, CancellationToken cancellationToken = default);
     Task<ServiceResult> DeleteAsync(int id, CancellationToken cancellationToken = default);
