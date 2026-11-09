@@ -1,7 +1,10 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
+using Serilog.Formatting.Compact;
 using Sipitex.Application.Seguridad;
 using Microsoft.Extensions.Logging;
 using Sipitex.Application.Ayuda;
@@ -15,13 +18,26 @@ using Sipitex.Web;
 using Sipitex.Web.Authorization;
 using Sipitex.Web.Helpers;
 using Sipitex.Web.Hosting;
+using Sipitex.Web.Logging;
 using Sipitex.Web.Security;
 
 // Render inyecta PORT. Hay que fijar la URL antes de crear el host.
 RenderListen.Apply();
 
+var entornoInicial = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+var consolaJson = string.Equals(entornoInicial, "Production", StringComparison.OrdinalIgnoreCase)
+    || string.IsNullOrWhiteSpace(entornoInicial);
+Log.Logger = consolaJson
+    ? new LoggerConfiguration().MinimumLevel.Information().WriteTo.Console(new CompactJsonFormatter()).CreateBootstrapLogger()
+    : new LoggerConfiguration().MinimumLevel.Information().WriteTo.Console().CreateBootstrapLogger();
+
 // Punto de entrada de la web. Acá registro servicios y armo el pipeline HTTP.
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog((context, services, logger) =>
+    SipitexLogging.Configurar(logger, context.Configuration, context.HostingEnvironment, services));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<Serilog.Core.ILogEventEnricher, ContextoPeticionEnricher>();
+builder.Services.AddSingleton<ContextoPeticionMiddleware>();
 
 // Kestrel no anuncia el producto en la cabecera Server.
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.AddServerHeader = false);
@@ -37,10 +53,9 @@ var rawConnection = PostgresConnectionStrings.SelectRaw(
 if (rawConnection is null)
 {
     const string missingDb =
-        "Falta la cadena de PostgreSQL. Configure la variable de entorno DATABASE_URL " +
-        "(postgresql://usuario:clave@host/db?sslmode=require o Host=...;Database=...;Username=...;Password=...). " +
-        "También se acepta ConnectionStrings__DefaultConnection si no apunta a 127.0.0.1. No se intenta una base local.";
-    LogStartupFailure(missingDb);
+        "Falta la cadena de PostgreSQL. Configure DATABASE_URL o ConnectionStrings__DefaultConnection. " +
+        "No se intenta una base local.";
+    AbortarArranque(PasosArranque.CadenaConexion, missingDb);
     if (RunningUnderTestHost())
         throw new InvalidOperationException(missingDb);
 
@@ -59,8 +74,7 @@ if (cameFromEnvironment)
     }
     catch (Exception ex)
     {
-        var detail = DatabaseAvailability.Describe(ex);
-        LogStartupFailure("La cadena de PostgreSQL no se pudo leer. " + detail + " Configure DATABASE_URL.");
+        AbortarArranque(PasosArranque.CadenaConexion, "La cadena de PostgreSQL no se pudo leer.", ex);
         if (RunningUnderTestHost())
             throw;
 
@@ -165,48 +179,26 @@ var privacidad = app.Services.GetRequiredService<IOptions<PrivacidadOptions>>().
 foreach (var aviso in PrivacidadConfiguracion.Advertencias(privacidad))
     app.Logger.LogWarning("{Aviso}", aviso);
 
-// Al arrancar, asegura que la BD tenga datos iniciales si hace falta.
-// Un fallo transitorio (Postgres aún no acepta conexiones) se reintenta.
-// Un fallo definitivo termina con código 1: re-lanzar la excepción en Linux acaba en SIGSEGV (139).
-const int dbInitAttempts = 5;
-var dbReady = false;
-for (var attempt = 1; attempt <= dbInitAttempts && !dbReady; attempt++)
+// Migraciones y semilla. Si fallan, se registra el paso y el proceso termina. No se reintenta.
+try
 {
-    try
-    {
-        using var scope = app.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<SipitexDbContext>();
-        var seedDemoUsers = ResolveSeedDemoData(app);
-        var adminSeedPassword = app.Configuration["ADMIN_SEED_PASSWORD"];
-        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbInitializer");
-        await DbInitializer.InitializeAsync(db, seedDemoUsers, adminSeedPassword, logger);
-        dbReady = true;
-    }
-    catch (Exception ex) when (attempt < dbInitAttempts && DatabaseAvailability.IsStartupTransient(ex))
-    {
-        var detail = DatabaseAvailability.Describe(ex);
-        app.Logger.LogWarning(
-            ex,
-            "PostgreSQL no respondió (intento {Attempt} de {Max}). {Detail} Nuevo intento en 2 s.",
-            attempt,
-            dbInitAttempts,
-            detail);
-        await Task.Delay(TimeSpan.FromSeconds(2));
-    }
-    catch (Exception ex)
-    {
-        var detail = DatabaseAvailability.Describe(ex);
-        app.Logger.LogCritical(
-            ex,
-            "El arranque falló al preparar la base de datos y no se reintenta. {Detail} Revise DATABASE_URL.",
-            detail);
-        Console.Error.WriteLine("SIPITEX: arranque abortado (exit 1). " + detail);
-        if (RunningUnderTestHost())
-            throw;
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<SipitexDbContext>();
+    var seedDemoUsers = ResolveSeedDemoData(app);
+    var adminSeedPassword = app.Configuration["ADMIN_SEED_PASSWORD"];
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbInitializer");
+    await DbInitializer.InitializeAsync(db, seedDemoUsers, adminSeedPassword, logger);
+}
+catch (Exception ex)
+{
+    var paso = ex is ArranqueException arranque ? arranque.Paso : PasosArranque.Inicializacion;
+    RegistroSeguro.Fatal(app.Logger, ex, paso);
+    Console.Error.WriteLine("SIPITEX: arranque abortado (exit 1). Paso " + paso);
+    if (RunningUnderTestHost())
+        throw;
 
-        Environment.ExitCode = 1;
-        return;
-    }
+    Environment.ExitCode = 1;
+    return;
 }
 
 // Render pone el esquema real en X-Forwarded-Proto. Tiene que ir antes de HSTS y la redirección.
@@ -218,6 +210,31 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        var codigo = CodigoCorrelacion.Crear();
+        context.Items[CodigoCorrelacion.Clave] = codigo;
+        var errores = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Sipitex.Errores");
+        var idRaw = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        int? usuarioId = int.TryParse(idRaw, out var id) && id > 0 ? id : null;
+        var rol = context.User.FindFirstValue(ClaimTypes.Role);
+        errores.LogError(
+            ex,
+            "Error no controlado {CodigoError} {RequestId} {UsuarioId} {Rol}",
+            codigo,
+            context.TraceIdentifier,
+            usuarioId,
+            string.IsNullOrWhiteSpace(rol) ? null : rol);
+        throw;
+    }
+});
 
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
@@ -254,6 +271,8 @@ app.UseStaticFiles(); // CSS, JS, imágenes de wwwroot
 app.UseRouting(); // resuelve rutas antes de auth
 app.UseAuthentication(); // tiene que ir antes de Authorization
 app.UseAuthorization(); // revisa roles y políticas
+app.UseMiddleware<ContextoPeticionMiddleware>();
+app.UseSerilogRequestLogging(SipitexLogging.ConfigurarPeticion);
 app.UseMiddleware<AceptacionPoliticaMiddleware>();
 
 app.MapGet("/healthz", () => Results.Text("ok", "text/plain")).AllowAnonymous();
@@ -277,6 +296,13 @@ app.MapGet("/version", (IWebHostEnvironment env) =>
     });
 }).AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous(); // endpoint público de salud (consulta la BD)
+if (RunningUnderTestHost())
+{
+    app.MapGet("/pruebas/error", () =>
+    {
+        throw new InvalidOperationException("fallo-controlado-prueba");
+    }).AllowAnonymous();
+}
 app.MapControllers(); // rutas por atributo (ej. /api/busqueda)
 // La raíz abre el panel. El inventario vive en PlantasInventario/Detalle/{id}.
 app.MapControllerRoute(
@@ -285,11 +311,23 @@ app.MapControllerRoute(
 
 app.Run(); // levanta el servidor
 
-static void LogStartupFailure(string message)
+static void AbortarArranque(string paso, string detalle, Exception? ex = null)
 {
-    using var bootstrap = LoggerFactory.Create(logging => logging.AddConsole());
-    bootstrap.CreateLogger("Startup").LogCritical(message);
-    Console.Error.WriteLine("SIPITEX: arranque abortado (exit 1). " + message);
+    if (ex is null)
+    {
+        Log.Fatal("Arranque abortado en el paso {Paso}. No se reintenta. {Detalle}", paso, detalle);
+    }
+    else
+    {
+        var texto = ex.ToString();
+        if (RegistroSeguro.TieneSecreto(texto))
+            Log.Fatal("Arranque abortado en el paso {Paso}. No se reintenta. {Detalle}", paso, RegistroSeguro.Redactar(texto));
+        else
+            Log.Fatal(ex, "Arranque abortado en el paso {Paso}. No se reintenta.", paso);
+    }
+
+    Console.Error.WriteLine("SIPITEX: arranque abortado (exit 1). Paso " + paso);
+    Log.CloseAndFlush();
 }
 
 static bool ResolveSeedDemoData(WebApplication app)

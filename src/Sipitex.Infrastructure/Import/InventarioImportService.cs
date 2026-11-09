@@ -1,5 +1,7 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
@@ -18,11 +20,16 @@ public sealed class InventarioImportService : IInventarioImportService
 
     private readonly SipitexDbContext _db;
     private readonly IUnitOfWork _uow;
+    private readonly ILogger<InventarioImportService> _logger;
 
-    public InventarioImportService(SipitexDbContext db, IUnitOfWork uow)
+    public InventarioImportService(
+        SipitexDbContext db,
+        IUnitOfWork uow,
+        ILogger<InventarioImportService>? logger = null)
     {
         _db = db;
         _uow = uow;
+        _logger = logger ?? NullLogger<InventarioImportService>.Instance;
     }
 
     public async Task<InventarioImportResult> SimularAsync(
@@ -50,7 +57,10 @@ public sealed class InventarioImportService : IInventarioImportService
     {
         var lectura = InventarioExcelReader.Leer(contenido);
         if (lectura.Error is not null)
+        {
+            RegistrarImportacion(actorUserId, validas: 0, omitidas: 0, errores: 0, importados: 0);
             return InventarioImportResult.Invalido(lectura.Error);
+        }
         if (actorUserId <= 0)
             return InventarioImportResult.Invalido("No se pudo identificar al administrador que confirma.");
 
@@ -67,15 +77,37 @@ public sealed class InventarioImportService : IInventarioImportService
             lectura.AvisoFichas,
             cancellationToken);
         if (preview.Validas.Count == 0 && fichasPreview.AVincular == 0)
-            return preview.ToResult(persistido: false, importados: 0, fichasPreview);
+        {
+            var vacio = preview.ToResult(persistido: false, importados: 0, fichasPreview);
+            RegistrarImportacion(actorUserId, vacio);
+            return vacio;
+        }
 
         var resultado = preview.ToResult(persistido: false, importados: 0, fichasPreview);
         await _uow.ExecuteInTransactionAsync(async ct =>
         {
             resultado = await PersistirAsync(lectura, user, ct);
         }, cancellationToken);
+        RegistrarImportacion(actorUserId, resultado);
         return resultado;
     }
+
+    private void RegistrarImportacion(int actorUserId, InventarioImportResult resultado) =>
+        RegistrarImportacion(
+            actorUserId,
+            resultado.Validas.Count,
+            resultado.Omitidas.Count,
+            resultado.Errores.Count,
+            resultado.Importados);
+
+    private void RegistrarImportacion(int actorUserId, int validas, int omitidas, int errores, int importados) =>
+        _logger.LogInformation(
+            "Inventario importado. UsuarioId {UsuarioId} FilasValidas {FilasValidas} FilasOmitidas {FilasOmitidas} FilasConError {FilasConError} Importados {Importados}",
+            actorUserId,
+            validas,
+            omitidas,
+            errores,
+            importados);
 
     private async Task<InventarioImportResult> PersistirAsync(
         InventarioExcelLectura lectura,

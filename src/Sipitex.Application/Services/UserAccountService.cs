@@ -50,13 +50,22 @@ public class UserAccountService : IUserAccountService
         // Usuario inexistente o cuenta desactivada
         if (user is null || !user.IsActive)
         {
-            _logger.LogWarning("Login fallido para {Email}: usuario inexistente o inactivo", email.Trim());
+            if (user is null)
+                _logger.LogInformation("Inicio de sesión fallido. Usuario no identificado");
+            else
+                _logger.LogInformation(
+                    "Inicio de sesión fallido. UsuarioId {UsuarioId} Rol {Rol}",
+                    user.Id,
+                    user.Rol);
             return null;
         }
         // Verifico contraseña con PBKDF2
         if (!PasswordHasher.Verify(password, user.PasswordHash))
         {
-            _logger.LogWarning("Login fallido para {Email}: contraseña inválida", user.Email);
+            _logger.LogInformation(
+                "Inicio de sesión fallido. UsuarioId {UsuarioId} Rol {Rol}",
+                user.Id,
+                user.Rol);
             return null;
         }
 
@@ -64,11 +73,17 @@ public class UserAccountService : IUserAccountService
         // y lo mande a ingresar el código. No registro el código en el log.
         if (!user.EmailConfirmed)
         {
-            _logger.LogInformation("Login bloqueado para {Email}: correo sin confirmar", user.Email);
+            _logger.LogInformation(
+                "Inicio de sesión sin correo confirmado. UsuarioId {UsuarioId} Rol {Rol}",
+                user.Id,
+                user.Rol);
             return user;
         }
 
-        _logger.LogInformation("Login exitoso para {Email} (rol {Rol})", user.Email, user.Rol);
+        _logger.LogInformation(
+            "Inicio de sesión correcto. UsuarioId {UsuarioId} Rol {Rol}",
+            user.Id,
+            user.Rol);
         return user;
     }
 

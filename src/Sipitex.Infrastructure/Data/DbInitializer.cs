@@ -23,12 +23,26 @@ public static class DbInitializer
         string? adminSeedPassword = null,
         ILogger? logger = null)
     {
-        // Primero reviso si hay una BD vieja sin historial de migraciones
-        await MigrationBaseline.EnsureBaselineAsync(context);
-        // Parche SQLite legado: columnas de AddFichaTurno aplicadas a mano.
-        await EnsureAddFichaTurnoCompatibleAsync(context);
-        await context.Database.MigrateAsync();
+        await PasosArranque.Ejecutar(
+            PasosArranque.LineaBaseMigraciones,
+            () => MigrationBaseline.EnsureBaselineAsync(context));
+        await PasosArranque.Ejecutar(
+            PasosArranque.CompatibilidadFichaTurno,
+            () => EnsureAddFichaTurnoCompatibleAsync(context));
+        await PasosArranque.Ejecutar(
+            PasosArranque.Migraciones,
+            () => context.Database.MigrateAsync());
+        await PasosArranque.Ejecutar(
+            PasosArranque.Semilla,
+            () => SembrarAsync(context, seedDemoUsers, adminSeedPassword, logger));
+    }
 
+    private static async Task SembrarAsync(
+        SipitexDbContext context,
+        bool seedDemoUsers,
+        string? adminSeedPassword,
+        ILogger? logger)
+    {
         // Materiales, órdenes y fichas de ejemplo solo con SEED_DEMO_DATA / Seed:DemoUsers.
         if (seedDemoUsers && !await context.Materials.AnyAsync())
         {
@@ -331,12 +345,11 @@ public static class DbInitializer
         if (string.IsNullOrWhiteSpace(password) || password.Length < PasswordRules.MinLength)
         {
             logger?.LogWarning(
-                "No hay administrador y ADMIN_SEED_PASSWORD no está definida o es demasiado corta. No se creó {Email}.",
-                ProductionAdminEmail);
+                "No hay administrador y ADMIN_SEED_PASSWORD no está definida o es demasiado corta. No se creó el usuario inicial.");
             return;
         }
 
-        context.Users.Add(new User
+        var admin = new User
         {
             Nombre = "Administrador",
             Email = ProductionAdminEmail,
@@ -345,12 +358,13 @@ public static class DbInitializer
             PermisosExtendidos = string.Empty,
             IsActive = true,
             EmailConfirmed = true
-        });
+        };
+        context.Users.Add(admin);
         await context.SaveChangesAsync();
 
         logger?.LogInformation(
-            "Administrador inicial de producción creado: {Email}. La contraseña no se registra.",
-            ProductionAdminEmail);
+            "Administrador inicial de producción creado. UsuarioId {UsuarioId}",
+            admin.Id);
     }
 
     // Une fichas con usuarios instructor por nombre y rellena la tabla M2M FichaInstructors
