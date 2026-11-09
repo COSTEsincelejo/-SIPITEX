@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -19,6 +22,14 @@ public class ActaPdfService : IActaPdfService
         var titulo = acta.Tipo == ActaTipo.Ingreso
             ? "Acta de ingreso"
             : "Acta de egreso";
+        var verificacion = CodigoVerificacion(acta);
+        var plantas = acta.Detalles
+            .Select(d => d.PlantaInventario)
+            .Where(nombre => !string.IsNullOrWhiteSpace(nombre))
+            .Select(nombre => nombre!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(nombre => nombre, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         var pdf = Document.Create(container =>
         {
@@ -37,8 +48,12 @@ public class ActaPdfService : IActaPdfService
                     col.Spacing(10);
                     if (!string.IsNullOrWhiteSpace(acta.OrderNumber))
                         col.Item().Text($"Orden: {acta.OrderNumber}").FontSize(10);
+                    if (!string.IsNullOrWhiteSpace(acta.ProductoOrden))
+                        col.Item().Text($"Producto: {acta.ProductoOrden}").FontSize(10);
+                    if (plantas.Count > 0)
+                        col.Item().Text($"Planta de inventario: {string.Join(", ", plantas)}").FontSize(10);
                     if (acta.EstadoProductoOrigen is { } from && acta.EstadoProductoDestino is { } to)
-                        col.Item().Text($"Estado de producto: {from} → {to}").FontSize(10);
+                        col.Item().Text($"Estado de producto: {EtiquetaEstado(from)} → {EtiquetaEstado(to)}").FontSize(10);
                     if (!string.IsNullOrWhiteSpace(acta.Observaciones))
                         col.Item().Text($"Observaciones: {acta.Observaciones}").FontSize(10);
 
@@ -47,18 +62,20 @@ public class ActaPdfService : IActaPdfService
                         table.ColumnsDefinition(cols =>
                         {
                             cols.RelativeColumn(2);
+                            cols.RelativeColumn(1.6f);
                             cols.RelativeColumn(4);
                             cols.RelativeColumn(1);
                             cols.RelativeColumn(1);
                         });
                         table.Header(header =>
                         {
-                            foreach (var h in new[] { "Tipo de ítem", "Descripción", "Cantidad", "Unidad" })
+                            foreach (var h in new[] { "Tipo de ítem", "Código", "Descripción", "Cantidad", "Unidad" })
                                 header.Cell().Background(Colors.Blue.Darken2).Padding(4).Text(h).FontColor(Colors.White).FontSize(9).SemiBold();
                         });
                         foreach (var d in acta.Detalles)
                         {
                             table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(LabelItem(d.ItemTipo)).FontSize(9);
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(string.IsNullOrWhiteSpace(d.CodigoMaterial) ? "—" : d.CodigoMaterial).FontSize(9);
                             table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(d.Descripcion).FontSize(9);
                             table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(d.Cantidad.ToString("0.####")).FontSize(9);
                             table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(d.Unidad ?? "—").FontSize(9);
@@ -76,12 +93,55 @@ public class ActaPdfService : IActaPdfService
                         .FontSize(8).Italic().FontColor(Colors.Grey.Darken1);
                 });
 
-                page.Footer().AlignCenter().Text("CMTC · SENA · ADSO").FontSize(8).FontColor(Colors.Grey.Medium);
+                page.Footer().AlignCenter().Column(col =>
+                {
+                    col.Item().AlignCenter().Text("CMTC · SENA · ADSO").FontSize(8).FontColor(Colors.Grey.Medium);
+                    col.Item().AlignCenter().Text($"Código de verificación: {verificacion}").FontSize(8).FontColor(Colors.Grey.Darken1);
+                });
             });
         }).GeneratePdf();
 
         return new ReportFileDto(pdf, "application/pdf", $"SIPITEX_{acta.Numero}_{acta.FechaUtc:yyyyMMdd_HHmm}.pdf");
     }
+
+    public static string CodigoVerificacion(ActaMovimientoDto acta)
+    {
+        var contenido = new StringBuilder();
+        contenido.Append(acta.Numero).Append('|')
+            .Append(acta.Tipo).Append('|')
+            .Append(acta.Origen).Append('|')
+            .Append(acta.FechaUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture)).Append('|')
+            .Append(acta.OrderNumber ?? string.Empty).Append('|')
+            .Append(acta.ProductoOrden ?? string.Empty).Append('|')
+            .Append(acta.Observaciones ?? string.Empty).Append('|');
+        foreach (var detalle in acta.Detalles)
+        {
+            contenido.Append(detalle.CodigoMaterial ?? string.Empty).Append(';')
+                .Append(detalle.Descripcion).Append(';')
+                .Append(detalle.Cantidad.ToString("0.####", CultureInfo.InvariantCulture)).Append(';')
+                .Append(detalle.Unidad ?? string.Empty).Append(';')
+                .Append(detalle.PlantaInventario ?? string.Empty).Append('|');
+        }
+
+        contenido.Append(acta.EntregaNombre).Append('|')
+            .Append(acta.EntregaCargo).Append('|')
+            .Append(acta.RecibeNombre).Append('|')
+            .Append(acta.RecibeCargo);
+
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(contenido.ToString()));
+        return Convert.ToHexString(hash)[..12].ToLowerInvariant();
+    }
+
+    private static string EtiquetaEstado(EstadoProducto estado) => estado switch
+    {
+        EstadoProducto.MateriaPrima => "Materia prima",
+        EstadoProducto.Corte => "Corte",
+        EstadoProducto.Confeccion => "Confección",
+        EstadoProducto.Calidad => "Calidad",
+        EstadoProducto.ProductoTerminado => "Producto terminado",
+        EstadoProducto.VentaEntrega => "Venta / entrega",
+        _ => estado.ToString()
+    };
 
     private static void Firma(IContainer container, string titulo, string nombre, string cargo, DateTime? conformeUtc, byte[]? firmaPng)
     {

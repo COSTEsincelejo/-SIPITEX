@@ -15,6 +15,9 @@ public interface IActaMovimientoService
 
     Task<ServiceResult<ActaMovimientoDto>> CreateAsync(CreateActaDto dto, CancellationToken cancellationToken = default);
     Task<ServiceResult<ReportFileDto>> ExportPdfAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyDictionary<int, string>> GetActasPorMovimientoStockAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, string>> GetActasPorConsumoAsync(CancellationToken cancellationToken = default);
 }
 
 public record ActaViewerFilter(

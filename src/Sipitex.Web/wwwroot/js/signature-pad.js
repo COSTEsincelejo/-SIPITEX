@@ -1,6 +1,6 @@
 (() => {
-  function bindPad(canvas, hidden, clearBtn) {
-    if (!canvas || !hidden) return;
+  function bindPad(wrap, canvas, hidden, clearBtn) {
+    if (!wrap || !canvas || !hidden) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -39,6 +39,7 @@
       ctx.lineTo(p.x, p.y);
       ctx.stroke();
       dirty = true;
+      wrap.classList.add('is-signed');
     }
 
     function end() {
@@ -58,12 +59,16 @@
       ctx.clearRect(0, 0, cssWidth, cssHeight);
       hidden.value = '';
       dirty = false;
+      wrap.classList.remove('is-signed');
     });
+
+    if (hidden.value) wrap.classList.add('is-signed');
   }
 
   window.SipitexBindSignaturePads = function () {
     document.querySelectorAll('[data-signature-pad]').forEach((wrap) => {
       bindPad(
+        wrap,
         wrap.querySelector('canvas'),
         wrap.querySelector('input[type=hidden]'),
         wrap.querySelector('[data-signature-clear]')

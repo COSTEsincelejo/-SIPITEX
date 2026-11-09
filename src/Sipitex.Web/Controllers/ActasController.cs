@@ -48,13 +48,13 @@ public class ActasController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Create(int? orderId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(int? orderId, ActaOrigen? origen, CancellationToken cancellationToken)
     {
         var (_, role, name) = CurrentViewer();
         var form = new CreateActaForm
         {
             ProductionOrderId = orderId,
-            Origen = ActaOrigen.Manual,
+            Origen = origen ?? ActaOrigen.Manual,
             EntregaNombre = name ?? string.Empty,
             EntregaCargo = role ?? string.Empty
         };
@@ -98,7 +98,7 @@ public class ActasController : Controller
         {
             TempData["Message"] = result.Message;
             TempData["IsSuccess"] = true;
-            return RedirectToAction(nameof(Details), new { id = acta.Id });
+            return RedirectToAction(nameof(Details), new { id = acta.Id, descargar = 1 });
         }
 
         AddActaError(result.Message);
@@ -122,6 +122,8 @@ public class ActasController : Controller
             Consumos = selected is int oid
                 ? await _consumos.GetByOrderAsync(oid, cancellationToken)
                 : [],
+            ActasPorStock = await _actas.GetActasPorMovimientoStockAsync(cancellationToken),
+            ActasPorConsumo = await _actas.GetActasPorConsumoAsync(cancellationToken),
             Form = form
         };
     }

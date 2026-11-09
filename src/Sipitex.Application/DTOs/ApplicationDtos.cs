@@ -767,7 +767,9 @@ public record ActaDetalleDto(
     int? MaterialId,
     int? ConsumoMaterialId,
     int? StockMovementId,
-    int? ProductionOrderId);
+    int? ProductionOrderId,
+    string? CodigoMaterial = null,
+    string? PlantaInventario = null);
 
 public record ActaMovimientoDto(
     int Id,
@@ -790,7 +792,8 @@ public record ActaMovimientoDto(
     byte[]? RecibeFirmaPng,
     int CreadoPorUserId,
     string CreadoPorNombre,
-    IReadOnlyList<ActaDetalleDto> Detalles);
+    IReadOnlyList<ActaDetalleDto> Detalles,
+    string? ProductoOrden = null);
 
 public record CreateActaDto(
     ActaTipo Tipo,

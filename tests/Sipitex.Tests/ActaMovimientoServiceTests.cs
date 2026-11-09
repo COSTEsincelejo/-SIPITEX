@@ -42,6 +42,10 @@ public class ActaMovimientoServiceTests
                 _actas.Invocations
                     .Select(i => i.Arguments.FirstOrDefault() as ActaMovimiento)
                     .FirstOrDefault(a => a is { Id: 1 }));
+        _actas.Setup(r => r.GetNumerosPorStockMovementAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, string>());
+        _actas.Setup(r => r.GetNumerosPorConsumoAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, string>());
     }
 
     [Fact]
@@ -144,6 +148,39 @@ public class ActaMovimientoServiceTests
         Assert.True(result.Success, result.Message);
         Assert.Equal(ActaTipo.Ingreso, result.Value!.Tipo);
         Assert.Equal(9, Assert.Single(result.Value.Detalles).StockMovementId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_MovimientoYaEnOtraActa_Falla()
+    {
+        SeedActorAndCapture();
+        _actas.Setup(r => r.GetNumerosPorStockMovementAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, string> { [9] = "ACTA-0001" });
+        _stock.Setup(r => r.GetByIdsAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new StockMovement
+                {
+                    Id = 9,
+                    MaterialId = 2,
+                    Material = new Material { Id = 2, Name = "Tela", Unit = MaterialUnit.Metros },
+                    TipoMovimiento = StockMovementType.Entrada,
+                    Cantidad = 12
+                }
+            ]);
+
+        var result = await CreateSut().CreateAsync(new CreateActaDto(
+            ActaTipo.Ingreso, ActaOrigen.Stock,
+            "Pedro", "Encargado de bodega", true,
+            "Laura", "Instructor", true,
+            7, StockMovementIds: [9],
+            EntregaFirmaPng: TestPng.Bytes,
+            RecibeFirmaPng: TestPng.Bytes));
+
+        Assert.False(result.Success);
+        Assert.Contains("movimiento de stock 9", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ACTA-0001", result.Message, StringComparison.Ordinal);
+        _actas.Verify(r => r.AddAsync(It.IsAny<ActaMovimiento>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

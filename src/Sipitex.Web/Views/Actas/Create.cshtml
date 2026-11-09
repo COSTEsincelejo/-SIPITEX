@@ -3,6 +3,7 @@
     ViewData["Title"] = "Nueva acta";
     ViewData["Breadcrumb"] = "SIPITEX / Operación / Actas / Nueva";
     Layout = "_Layout";
+    var tipos = Model.Movimientos.Select(m => m.TipoMovimiento).Distinct().ToList();
 }
 
 <div class="page-header">
@@ -31,28 +32,68 @@
             <div class="field">
                 <label class="field-label">Orden</label>
                 <select asp-for="Form.ProductionOrderId"
-                        asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.Form.ProductionOrderId))"
-                        data-go="@Url.Action("Create")">
+                        asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.Form.ProductionOrderId))">
                     <option value="">—</option>
                 </select>
                 <p class="hint">Al cambiar la orden se recargan los consumos asociados.</p>
             </div>
         </div>
 
-        <div class="form-row">
-            <div class="field">
-                <label class="field-label">Estado origen (si es transición)</label>
-                <select asp-for="Form.EstadoOrigen" asp-items="Html.GetEnumSelectList<EstadoProducto>()"></select>
+        @if (Model.Form.Origen == ActaOrigen.EstadoProducto)
+        {
+            <div class="form-row" id="actaEstados">
+                <div class="field">
+                    <label class="field-label">Estado origen</label>
+                    <select asp-for="Form.EstadoOrigen">
+                        @foreach (var estado in Enum.GetValues<EstadoProducto>())
+                        {
+                            <option value="@estado">@DisplayHelper.StatusText(estado)</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label class="field-label">Estado destino</label>
+                    <select asp-for="Form.EstadoDestino">
+                        @foreach (var estado in Enum.GetValues<EstadoProducto>())
+                        {
+                            <option value="@estado">@DisplayHelper.StatusText(estado)</option>
+                        }
+                    </select>
+                </div>
             </div>
-            <div class="field">
-                <label class="field-label">Estado destino</label>
-                <select asp-for="Form.EstadoDestino" asp-items="Html.GetEnumSelectList<EstadoProducto>()"></select>
-            </div>
-        </div>
+        }
 
         <div class="card-title"><i class="fas fa-boxes-stacked"></i> Movimientos de stock (origen Stock)</div>
-        <div class="table-wrap table-responsive" style="max-height:240px;overflow:auto;">
-            <table>
+        <div class="acta-filtros form-row">
+            <div class="field" style="flex:1;min-width:180px;">
+                <label class="field-label" for="actaBuscar">Buscar</label>
+                <input type="search" id="actaBuscar" placeholder="Material, tipo o fecha" autocomplete="off" />
+            </div>
+            <div class="field">
+                <label class="field-label" for="actaDesde">Desde</label>
+                <input type="date" id="actaDesde" />
+            </div>
+            <div class="field">
+                <label class="field-label" for="actaHasta">Hasta</label>
+                <input type="date" id="actaHasta" />
+            </div>
+            <div class="field">
+                <label class="field-label" for="actaTipo">Tipo</label>
+                <select id="actaTipo">
+                    <option value="">Todos</option>
+                    @foreach (var tipo in tipos)
+                    {
+                        <option value="@tipo">@DisplayHelper.Label(tipo)</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="acta-resumen">
+            <label><input type="checkbox" id="actaSeleccionarVisibles" /> Seleccionar todos</label>
+            <span id="actaResumen">Mostrando @Model.Movimientos.Count de @Model.Movimientos.Count · 0 seleccionados</span>
+        </div>
+        <div class="table-wrap table-responsive" style="max-height:280px;overflow:auto;">
+            <table id="actaMovimientos">
                 <thead>
                     <tr>
                         <th></th>
@@ -63,13 +104,36 @@
                     </tr>
                 </thead>
                 <tbody>
-                @foreach (var m in Model.Movimientos.Take(40))
+                @foreach (var m in Model.Movimientos)
                 {
-                    <tr>
-                        <td><input type="checkbox" name="Form.StockMovementIds" value="@m.Id" /></td>
+                    var ocupada = Model.ActasPorStock.TryGetValue(m.Id, out var actaStock);
+                    var fecha = m.FechaUtc.ToString("yyyy-MM-dd");
+                    var tipo = DisplayHelper.Label(m.TipoMovimiento);
+                    var texto = $"{fecha} {m.FechaUtc:HH:mm} {tipo} {m.MaterialName} {m.Cantidad:0.##}";
+                    if (ocupada)
+                    {
+                        texto += $" Ya en acta {actaStock}";
+                    }
+                    <tr data-fecha="@fecha" data-tipo="@m.TipoMovimiento" data-texto="@texto">
+                        <td>
+                            @if (ocupada)
+                            {
+                                <input type="checkbox" disabled aria-disabled="true" />
+                            }
+                            else
+                            {
+                                <input type="checkbox" name="Form.StockMovementIds" value="@m.Id" />
+                            }
+                        </td>
                         <td>@m.FechaUtc.ToString("yyyy-MM-dd HH:mm")</td>
-                        <td>@DisplayHelper.Label(m.TipoMovimiento)</td>
-                        <td>@m.MaterialName</td>
+                        <td>@tipo</td>
+                        <td>
+                            @m.MaterialName
+                            @if (ocupada)
+                            {
+                                <span class="badge badge-warning">Ya en acta @actaStock</span>
+                            }
+                        </td>
                         <td>@m.Cantidad.ToString("0.##")</td>
                     </tr>
                 }
@@ -79,27 +143,50 @@
 
         <div class="card-title"><i class="fas fa-scissors"></i> Consumos de la orden (origen Consumo)</div>
         <p class="hint">Si no marcas ninguno, se incluyen todos los consumos de la orden seleccionada.</p>
-        <div class="table-wrap table-responsive" style="max-height:240px;overflow:auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>Material</th>
-                        <th>Cantidad</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var c in Model.Consumos)
-                {
-                    <tr>
-                        <td><input type="checkbox" name="Form.ConsumoIds" value="@c.Id" /></td>
-                        <td>@c.MaterialName</td>
-                        <td>@c.Cantidad.ToString("0.##")</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
+        @if (!Model.Consumos.Any())
+        {
+            <p>Esta orden no tiene consumos</p>
+        }
+        else
+        {
+            <div class="table-wrap table-responsive" style="max-height:240px;overflow:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Material</th>
+                            <th>Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var c in Model.Consumos)
+                    {
+                        var ocupado = Model.ActasPorConsumo.TryGetValue(c.Id, out var actaConsumo);
+                        <tr>
+                            <td>
+                                @if (ocupado)
+                                {
+                                    <input type="checkbox" disabled aria-disabled="true" />
+                                }
+                                else
+                                {
+                                    <input type="checkbox" name="Form.ConsumoIds" value="@c.Id" />
+                                }
+                            </td>
+                            <td>
+                                @c.MaterialName
+                                @if (ocupado)
+                                {
+                                    <span class="badge badge-warning">Ya en acta @actaConsumo</span>
+                                }
+                            </td>
+                            <td>@c.Cantidad.ToString("0.##")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
 
         <div class="card-title"><i class="fas fa-file-signature"></i> Conformidad</div>
         <div class="form-row">
@@ -119,7 +206,10 @@
         </div>
         <div class="signature-pad" data-signature-pad>
             <label class="field-label">Firma de quien entrega</label>
-            <canvas width="320" height="120" aria-label="Firme aquí (quien entrega)"></canvas>
+            <div class="signature-canvas-wrap">
+                <canvas width="320" height="120" aria-label="Firme aquí (quien entrega)"></canvas>
+                <span class="signature-hint" data-signature-hint>Firme aquí</span>
+            </div>
             <input type="hidden" asp-for="Form.EntregaFirmaDataUrl" />
             <span asp-validation-for="Form.EntregaFirmaDataUrl" class="field-error"></span>
             <button type="button" class="ghost small" data-signature-clear>Limpiar firma</button>
@@ -141,7 +231,10 @@
         </div>
         <div class="signature-pad" data-signature-pad>
             <label class="field-label">Firma de quien recibe</label>
-            <canvas width="320" height="120" aria-label="Firme aquí (quien recibe)"></canvas>
+            <div class="signature-canvas-wrap">
+                <canvas width="320" height="120" aria-label="Firme aquí (quien recibe)"></canvas>
+                <span class="signature-hint" data-signature-hint>Firme aquí</span>
+            </div>
             <input type="hidden" asp-for="Form.RecibeFirmaDataUrl" />
             <span asp-validation-for="Form.RecibeFirmaDataUrl" class="field-error"></span>
             <button type="button" class="ghost small" data-signature-clear>Limpiar firma</button>
@@ -157,4 +250,5 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="~/js/signature-pad.js" asp-append-version="true"></script>
+    <script src="~/js/actas-crear.js" asp-append-version="true"></script>
 }

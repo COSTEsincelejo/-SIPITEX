@@ -17,7 +17,8 @@ public class ActaMovimientoRepository : IActaMovimientoRepository
     public Task<ActaMovimiento?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _db.ActasMovimiento
             .Include(a => a.Detalles)
-                .ThenInclude(d => d.Material)
+                .ThenInclude(d => d.Material!)
+                    .ThenInclude(m => m.PlantaInventario)
             .Include(a => a.ProductionOrder)
             .Include(a => a.CreadoPor)
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
@@ -26,7 +27,8 @@ public class ActaMovimientoRepository : IActaMovimientoRepository
         await _db.ActasMovimiento
             .AsNoTracking()
             .Include(a => a.Detalles)
-                .ThenInclude(d => d.Material)
+                .ThenInclude(d => d.Material!)
+                    .ThenInclude(m => m.PlantaInventario)
             .Include(a => a.ProductionOrder)
             .Include(a => a.CreadoPor)
             .OrderByDescending(a => a.FechaUtc)
@@ -39,4 +41,28 @@ public class ActaMovimientoRepository : IActaMovimientoRepository
             .OrderByDescending(a => a.Id)
             .Select(a => a.Numero)
             .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<int, string>> GetNumerosPorStockMovementAsync(CancellationToken cancellationToken = default)
+    {
+        var filas = await _db.ActasMovimientoDetalle.AsNoTracking()
+            .Where(d => d.StockMovementId != null)
+            .Select(d => new { Id = d.StockMovementId!.Value, d.ActaMovimiento.Numero })
+            .ToListAsync(cancellationToken);
+
+        return filas
+            .GroupBy(f => f.Id)
+            .ToDictionary(g => g.Key, g => g.First().Numero);
+    }
+
+    public async Task<IReadOnlyDictionary<int, string>> GetNumerosPorConsumoAsync(CancellationToken cancellationToken = default)
+    {
+        var filas = await _db.ActasMovimientoDetalle.AsNoTracking()
+            .Where(d => d.ConsumoMaterialId != null)
+            .Select(d => new { Id = d.ConsumoMaterialId!.Value, d.ActaMovimiento.Numero })
+            .ToListAsync(cancellationToken);
+
+        return filas
+            .GroupBy(f => f.Id)
+            .ToDictionary(g => g.Key, g => g.First().Numero);
+    }
 }
