@@ -2,6 +2,7 @@ using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
@@ -73,6 +74,10 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
         catch (InvalidOperationException ex)
         {
             return ServiceResult.Fail(ex.Message);
+        }
+        catch (ConflictoConcurrenciaStockException)
+        {
+            return ServiceResult.Fail(ConflictoConcurrenciaStockException.Mensaje);
         }
 
         return ServiceResult.Ok("Ítem aprobado.");
@@ -176,6 +181,10 @@ public class SolicitudMaterialApprovalService : ISolicitudMaterialApprovalServic
         catch (InvalidOperationException ex)
         {
             return ServiceResult.Fail(ex.Message);
+        }
+        catch (ConflictoConcurrenciaStockException)
+        {
+            return ServiceResult.Fail(ConflictoConcurrenciaStockException.Mensaje);
         }
 
         // Notificación fuera de la transacción (tras commit exitoso)

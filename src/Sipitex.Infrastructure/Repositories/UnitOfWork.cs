@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore; // BeginTransactionAsync, SaveChangesAsync
 using Sipitex.Application.Interfaces; // IUnitOfWork
+using Sipitex.Domain; // ConflictoConcurrenciaStockException
+using Sipitex.Domain.Entities; // Material
 using Sipitex.Infrastructure.Persistence; // SipitexDbContext
 
 namespace Sipitex.Infrastructure.Repositories;
@@ -12,8 +14,17 @@ public class UnitOfWork : IUnitOfWork
     public UnitOfWork(SipitexDbContext context) => _context = context;
 
     // Persiste todo lo que los repos fueron agregando/modificando
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
-        _context.SaveChangesAsync(cancellationToken);
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex) when (EsMaterial(ex))
+        {
+            throw new ConflictoConcurrenciaStockException();
+        }
+    }
 
     // Transacción explícita para operaciones atómicas (p. ej. aprobar ítem + descontar stock).
     // Debe ir dentro de CreateExecutionStrategy porque Npgsql RetryOnFailure no admite
@@ -29,7 +40,7 @@ public class UnitOfWork : IUnitOfWork
             try
             {
                 await action(cancellationToken);
-                await _context.SaveChangesAsync(cancellationToken);
+                await SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
             }
             catch
@@ -39,4 +50,7 @@ public class UnitOfWork : IUnitOfWork
             }
         });
     }
+
+    private static bool EsMaterial(DbUpdateConcurrencyException ex) =>
+        ex.Entries.Any(e => e.Entity is Material);
 }

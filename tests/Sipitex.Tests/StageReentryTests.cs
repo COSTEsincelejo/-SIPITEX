@@ -85,6 +85,8 @@ public class StageReentryTests
         _orders.Setup(o => o.GetByIdAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(order);
         _materials.Setup(m => m.GetByIdAsync(4, It.IsAny<CancellationToken>())).ReturnsAsync(material);
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _uow.Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(async (action, ct) => await action(ct));
 
         StockMovement? captured = null;
         _stockMovements
@@ -131,6 +133,8 @@ public class StageReentryTests
         _flow.Setup(f => f.GetFinishedGoodAsync("Camisa", It.IsAny<CancellationToken>()))
             .ReturnsAsync((FinishedGoodStock?)null);
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _uow.Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(async (action, ct) => await action(ct));
 
         var result = await CreateSut().RegisterStageReentryAsync(
             new StageReentryDto(2, 3, 15, MaterialId: null, Observations: "Lote"),

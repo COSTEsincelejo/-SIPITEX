@@ -66,7 +66,7 @@ public class OrderApprovePendingTests
     {
         _boms.Setup(r => r.GetProductByNameAsync("Camisa", It.IsAny<CancellationToken>()))
             .ReturnsAsync(EnabledCamisa());
-        _orders.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(0);
+        _orders.Setup(r => r.NextOrderNumberAsync(It.IsAny<CancellationToken>())).ReturnsAsync("OP-101");
         ProductionOrder? saved = null;
         _orders.Setup(r => r.AddAsync(It.IsAny<ProductionOrder>(), It.IsAny<CancellationToken>()))
             .Callback<ProductionOrder, CancellationToken>((o, _) => { o.Id = 1; saved = o; })

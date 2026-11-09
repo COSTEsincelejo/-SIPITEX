@@ -16,13 +16,18 @@ public class InventoryApproveRejectTests
     private readonly Mock<IStockMovementRepository> _stockMovements = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
-    private InventoryService CreateSut() => new(
+    private InventoryService CreateSut()
+    {
+        _unitOfWork.Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(async (action, ct) => await action(ct));
+        return new(
         _materialRepository.Object,
         _requestRepository.Object,
         _orderRepository.Object,
         _bomRepository.Object,
         _stockMovements.Object,
         _unitOfWork.Object);
+    }
 
     private static MaterialRequest CreatePendingRequest(decimal stock, decimal quantity)
     {

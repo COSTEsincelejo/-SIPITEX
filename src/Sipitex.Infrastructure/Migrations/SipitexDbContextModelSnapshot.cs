@@ -1151,6 +1151,11 @@ namespace Sipitex.Infrastructure.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -1254,6 +1259,20 @@ namespace Sipitex.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("NonFunctionalRequirements");
+                });
+
+            modelBuilder.Entity("Sipitex.Domain.Entities.NumeracionDocumento", b =>
+                {
+                    b.Property<string>("Codigo")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int>("Siguiente")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Codigo");
+
+                    b.ToTable("NumeracionesDocumento");
                 });
 
             modelBuilder.Entity("Sipitex.Domain.Entities.OrderChangeLog", b =>

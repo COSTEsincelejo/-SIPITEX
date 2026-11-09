@@ -3,6 +3,7 @@ using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Domain;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
@@ -318,6 +319,10 @@ public class OrderMaterialService : IOrderMaterialService
         catch (InvalidOperationException ex)
         {
             return ServiceResult.Fail(ex.Message);
+        }
+        catch (ConflictoConcurrenciaStockException)
+        {
+            return ServiceResult.Fail(ConflictoConcurrenciaStockException.Mensaje);
         }
 
         var refreshed = await _requirementRepository.GetByOrderIdAsync(order.Id, cancellationToken);

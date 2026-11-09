@@ -32,6 +32,9 @@ public class ProductionOrderSnapshotTests
             .Returns(Task.CompletedTask);
         _flowService.Setup(s => s.LogProductionRegisteredAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+        _uow.Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(async (action, ct) => await action(ct));
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object,
             _flowRepo.Object, _flowService.Object, _changeLogs.Object, _fichas.Object, _uow.Object,
             new ProductionConsumptionService(_boms.Object, _materials.Object),
@@ -61,7 +64,7 @@ public class ProductionOrderSnapshotTests
     {
         var product = EnabledProduct();
         _boms.Setup(r => r.GetProductByNameAsync("Camisa", It.IsAny<CancellationToken>())).ReturnsAsync(product);
-        _orders.Setup(r => r.CountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(0);
+        _orders.Setup(r => r.NextOrderNumberAsync(It.IsAny<CancellationToken>())).ReturnsAsync("OP-101");
         _orders.Setup(r => r.AddAsync(It.IsAny<ProductionOrder>(), It.IsAny<CancellationToken>()))
             .Callback<ProductionOrder, CancellationToken>((o, _) => o.Id = 77)
             .Returns(Task.CompletedTask);
