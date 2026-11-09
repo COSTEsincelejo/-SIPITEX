@@ -17,14 +17,46 @@
     </div>
 </div>
 
+@if (string.Equals(Context.Request.Query["descargar"], "1", StringComparison.Ordinal))
+{
+    <a id="actaDescargaAuto" href="@Url.Action("Pdf", new { id = Model.Id })" hidden tabindex="-1" aria-hidden="true">Descargar PDF</a>
+    <script>
+        (function () {
+            var link = document.getElementById('actaDescargaAuto');
+            if (!link) return;
+            link.click();
+            var url = new URL(window.location.href);
+            url.searchParams.delete('descargar');
+            history.replaceState(null, '', url.pathname + url.search + url.hash);
+        })();
+    </script>
+}
+
 <div class="card">
     @if (!string.IsNullOrWhiteSpace(Model.OrderNumber))
     {
         <p>Orden: <strong>@Model.OrderNumber</strong></p>
     }
+    @if (!string.IsNullOrWhiteSpace(Model.ProductoOrden))
+    {
+        <p>Producto: <strong>@Model.ProductoOrden</strong></p>
+    }
+    @{
+        var plantas = Model.Detalles
+            .Select(d => d.PlantaInventario)
+            .Where(nombre => !string.IsNullOrWhiteSpace(nombre))
+            .Select(nombre => nombre!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(nombre => nombre, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+    @if (plantas.Count > 0)
+    {
+        <p>Planta de inventario: <strong>@string.Join(", ", plantas)</strong></p>
+    }
     @if (Model.EstadoProductoOrigen is { } from && Model.EstadoProductoDestino is { } to)
     {
-        <p>Estado de producto: @from → @to</p>
+        <p>Estado de producto: @DisplayHelper.StatusText(from) → @DisplayHelper.StatusText(to)</p>
     }
     @if (!string.IsNullOrWhiteSpace(Model.Observaciones))
     {
@@ -36,6 +68,7 @@
             <thead>
                 <tr>
                     <th>Tipo de ítem</th>
+                    <th>Código</th>
                     <th>Descripción</th>
                     <th>Cantidad</th>
                     <th>Unidad</th>
@@ -46,6 +79,7 @@
             {
                 <tr>
                     <td>@DisplayHelper.StatusText(d.ItemTipo)</td>
+                    <td>@(string.IsNullOrWhiteSpace(d.CodigoMaterial) ? "—" : d.CodigoMaterial)</td>
                     <td>@d.Descripcion</td>
                     <td>@d.Cantidad.ToString("0.####")</td>
                     <td>@(d.Unidad ?? "—")</td>

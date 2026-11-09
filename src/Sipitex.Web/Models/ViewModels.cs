@@ -707,6 +707,8 @@ public class ActaCreateViewModel
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
     public IReadOnlyList<StockMovementDto> Movimientos { get; set; } = [];
     public IReadOnlyList<ConsumoMaterialDto> Consumos { get; set; } = [];
+    public IReadOnlyDictionary<int, string> ActasPorStock { get; set; } = new Dictionary<int, string>();
+    public IReadOnlyDictionary<int, string> ActasPorConsumo { get; set; } = new Dictionary<int, string>();
     public CreateActaForm Form { get; set; } = new();
 }
 

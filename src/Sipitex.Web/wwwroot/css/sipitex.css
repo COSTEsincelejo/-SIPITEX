@@ -403,7 +403,16 @@ tr.clickable-row:hover td{background:#F3F8FF;}
 .signature-pad canvas{
   display:block;width:100%;max-width:380px;height:120px;background:#fff;border:1px solid var(--border);border-radius:8px;touch-action:none;cursor:crosshair;
 }
+.signature-canvas-wrap{position:relative;max-width:380px;}
+.signature-hint{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#8A97A8;font-size:14px;pointer-events:none;user-select:none;
+}
+.signature-pad.is-signed .signature-hint{display:none;}
 .signature-pad .field-label{margin-bottom:8px;}
+.acta-filtros{margin-bottom:4px;}
+.acta-resumen{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:4px 0 10px;font-size:13px;color:var(--text-mut);}
+tr.acta-oculta{display:none;}
 .signature-preview{display:block;max-width:220px;height:auto;margin-top:8px;border:1px solid var(--border);border-radius:8px;background:#fff;}
 .trace-code{font-family:var(--font-mono);font-size:22px;font-weight:800;color:#1F3864;letter-spacing:0.4px;margin-bottom:12px;}
 .trace-materials{margin:0;padding-left:18px;color:var(--text);}

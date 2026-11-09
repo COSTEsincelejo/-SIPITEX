@@ -81,6 +81,10 @@ public class ActaMovimientoService : IActaMovimientoService
         if (detalles.Count == 0)
             return ServiceResult<ActaMovimientoDto>.Fail(EmptyItemsMessage(dto.Origen));
 
+        var duplicado = await MensajeDuplicadosAsync(detalles, cancellationToken);
+        if (duplicado is not null)
+            return ServiceResult<ActaMovimientoDto>.Fail(duplicado);
+
         ProductionOrder? order = null;
         if (dto.ProductionOrderId is int oid)
         {
@@ -119,6 +123,12 @@ public class ActaMovimientoService : IActaMovimientoService
         return ServiceResult<ActaMovimientoDto>.Ok(Map(saved), $"Acta {acta.Numero} registrada.");
     }
 
+    public Task<IReadOnlyDictionary<int, string>> GetActasPorMovimientoStockAsync(CancellationToken cancellationToken = default) =>
+        _actas.GetNumerosPorStockMovementAsync(cancellationToken);
+
+    public Task<IReadOnlyDictionary<int, string>> GetActasPorConsumoAsync(CancellationToken cancellationToken = default) =>
+        _actas.GetNumerosPorConsumoAsync(cancellationToken);
+
     public async Task<ServiceResult<ReportFileDto>> ExportPdfAsync(int id, CancellationToken cancellationToken = default)
     {
         var acta = await GetByIdAsync(id, filter: null, cancellationToken);
@@ -139,6 +149,48 @@ public class ActaMovimientoService : IActaMovimientoService
             ActaOrigen.Manual => FromManual(dto),
             _ => []
         };
+    }
+
+    private async Task<string?> MensajeDuplicadosAsync(
+        List<ActaMovimientoDetalle> detalles,
+        CancellationToken cancellationToken)
+    {
+        var stockIds = detalles
+            .Where(d => d.StockMovementId is int)
+            .Select(d => d.StockMovementId!.Value)
+            .Distinct()
+            .ToList();
+        var consumoIds = detalles
+            .Where(d => d.ConsumoMaterialId is int)
+            .Select(d => d.ConsumoMaterialId!.Value)
+            .Distinct()
+            .ToList();
+        if (stockIds.Count == 0 && consumoIds.Count == 0)
+            return null;
+
+        var porStock = stockIds.Count == 0
+            ? new Dictionary<int, string>()
+            : await _actas.GetNumerosPorStockMovementAsync(cancellationToken);
+        var porConsumo = consumoIds.Count == 0
+            ? new Dictionary<int, string>()
+            : await _actas.GetNumerosPorConsumoAsync(cancellationToken);
+
+        var partes = new List<string>();
+        foreach (var id in stockIds)
+        {
+            if (porStock.TryGetValue(id, out var numero) && !string.IsNullOrWhiteSpace(numero))
+                partes.Add($"el movimiento de stock {id} ya está en el acta {numero}");
+        }
+
+        foreach (var id in consumoIds)
+        {
+            if (porConsumo.TryGetValue(id, out var numero) && !string.IsNullOrWhiteSpace(numero))
+                partes.Add($"el consumo {id} ya está en el acta {numero}");
+        }
+
+        return partes.Count == 0
+            ? null
+            : "No se puede crear el acta: " + string.Join("; ", partes) + ".";
     }
 
     private static string EmptyItemsMessage(ActaOrigen origen) => origen switch
@@ -290,7 +342,10 @@ public class ActaMovimientoService : IActaMovimientoService
             d.MaterialId,
             d.ConsumoMaterialId,
             d.StockMovementId,
-            d.ProductionOrderId)).ToList());
+            d.ProductionOrderId,
+            d.Material?.Code,
+            d.Material?.PlantaInventario?.Nombre)).ToList(),
+        a.ProductionOrder?.ProductName);
 
     private static string Trunc(string value, int max) =>
         value.Length <= max ? value : value[..max];

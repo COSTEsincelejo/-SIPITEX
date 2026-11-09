@@ -245,6 +245,12 @@ public static class DisplayHelper
         ActaItemTipo.Material => "Material",
         ActaItemTipo.ProductoEnProceso => "Producto en proceso",
         ActaItemTipo.ProductoTerminado => "Producto terminado",
+        EstadoProducto.MateriaPrima => "Materia prima",
+        EstadoProducto.Corte => "Corte",
+        EstadoProducto.Confeccion => "Confección",
+        EstadoProducto.Calidad => "Calidad",
+        EstadoProducto.ProductoTerminado => "Producto terminado",
+        EstadoProducto.VentaEntrega => "Venta / entrega",
         _ => value.ToString()
     };
 
