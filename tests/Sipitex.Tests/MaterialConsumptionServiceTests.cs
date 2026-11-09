@@ -14,7 +14,7 @@ public class MaterialConsumptionServiceTests
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IMaterialRepository> _materials = new();
     private readonly Mock<IUserRepository> _users = new();
-    private readonly Mock<IStockMovementRepository> _stock = new();
+    private readonly Mock<IOrderMaterialRequirementRepository> _requirements = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private MaterialConsumptionService CreateSut()
@@ -26,36 +26,39 @@ public class MaterialConsumptionServiceTests
             _orders.Object,
             _materials.Object,
             _users.Object,
-            _stock.Object,
+            _requirements.Object,
             new MaterialConsumptionCostService(),
             _uow.Object);
     }
 
     [Fact]
-    public async Task RegisterAsync_StockInsuficiente_Falla()
+    public async Task RegisterAsync_SinEntrega_NoTocaStock()
     {
+        var material = new Material { Id = 2, Name = "Tela", Stock = 20, CostoAdquisicion = 10 };
         _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-1" });
-        _materials.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Material { Id = 2, Name = "Tela", Stock = 1, CostoAdquisicion = 10 });
+        _materials.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(material);
         _users.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new User { Id = 7, Nombre = "Ana" });
+        _requirements.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _consumos.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
         var result = await CreateSut().RegisterAsync(new RegisterConsumoMaterialDto(1, 2, 5, 7));
 
         Assert.False(result.Success);
-        Assert.Contains("Stock insuficiente", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(MaterialConsumptionService.MensajeSinEntrega, result.Message);
+        Assert.Equal(20, material.Stock);
         _uow.Verify(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task RegisterAsync_DescuentaStockYSnapshotDeCosto()
+    public async Task RegisterAsync_ConEntrega_NoDescuentaStockYCongelaCosto()
     {
         var material = new Material
         {
             Id = 2,
             Name = "Tela",
-            Stock = 20,
+            Stock = 16,
             CostoAdquisicion = 12.5m,
             CostoPromedioPonderado = 12.5m,
             Unit = MaterialUnit.Metros
@@ -65,6 +68,18 @@ public class MaterialConsumptionServiceTests
         _materials.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(material);
         _users.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new User { Id = 7, Nombre = "Ana" });
+        _requirements.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ProductionOrderMaterialRequirement
+                {
+                    Id = 4,
+                    ProductionOrderId = 1,
+                    MaterialId = 2,
+                    QuantityDelivered = 4
+                }
+            ]);
+        _consumos.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
         ConsumoMaterial? saved = null;
         _consumos.Setup(r => r.AddAsync(It.IsAny<ConsumoMaterial>(), It.IsAny<CancellationToken>()))
@@ -76,11 +91,9 @@ public class MaterialConsumptionServiceTests
         Assert.True(result.Success, result.Message);
         Assert.Equal(16, material.Stock);
         Assert.NotNull(saved);
-        Assert.Equal(12.5m, saved!.CostoUnitarioAlMomento);
+        Assert.Equal(4, saved!.OrderMaterialRequirementId);
+        Assert.Equal(12.5m, saved.CostoUnitarioAlMomento);
         Assert.Equal(4, saved.Cantidad);
-        _stock.Verify(r => r.AddAsync(It.Is<StockMovement>(m =>
-            m.TipoMovimiento == StockMovementType.Salida && m.Cantidad == 4 && m.CostoUnitario == 12.5m),
-            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -116,6 +129,18 @@ public class MaterialConsumptionServiceTests
         _materials.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(material);
         _users.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new User { Id = 7, Nombre = "Ana" });
+        _requirements.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ProductionOrderMaterialRequirement
+                {
+                    Id = 4,
+                    ProductionOrderId = 1,
+                    MaterialId = 2,
+                    QuantityDelivered = 3
+                }
+            ]);
+        _consumos.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
         ConsumoMaterial? saved = null;
         _consumos.Setup(r => r.AddAsync(It.IsAny<ConsumoMaterial>(), It.IsAny<CancellationToken>()))
@@ -124,6 +149,7 @@ public class MaterialConsumptionServiceTests
 
         var result = await CreateSut().RegisterAsync(new RegisterConsumoMaterialDto(1, 2, 3, 7));
         Assert.True(result.Success, result.Message);
+        Assert.Equal(20, material.Stock);
         Assert.Equal(15m, saved!.CostoUnitarioAlMomento);
 
         material.CostoPromedioPonderado = 40m;

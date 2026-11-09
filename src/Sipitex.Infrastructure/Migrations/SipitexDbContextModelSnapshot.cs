@@ -655,6 +655,9 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Property<int>("MaterialId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("OrderMaterialRequirementId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("ProductionOrderId")
                         .HasColumnType("integer");
 
@@ -668,6 +671,8 @@ namespace Sipitex.Infrastructure.Migrations
                     b.HasIndex("GrupoConfeccionId");
 
                     b.HasIndex("MaterialId");
+
+                    b.HasIndex("OrderMaterialRequirementId");
 
                     b.HasIndex("ProductionOrderId");
 
@@ -2298,6 +2303,12 @@ namespace Sipitex.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Sipitex.Domain.Entities.ProductionOrderMaterialRequirement", "OrderMaterialRequirement")
+                        .WithMany()
+                        .HasForeignKey("OrderMaterialRequirementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_ConsumosMaterial_ReqMaterialOrden");
+
                     b.HasOne("Sipitex.Domain.Entities.ProductionOrder", "ProductionOrder")
                         .WithMany("Consumos")
                         .HasForeignKey("ProductionOrderId")
@@ -2313,6 +2324,8 @@ namespace Sipitex.Infrastructure.Migrations
                     b.Navigation("GrupoConfeccion");
 
                     b.Navigation("Material");
+
+                    b.Navigation("OrderMaterialRequirement");
 
                     b.Navigation("ProductionOrder");
 

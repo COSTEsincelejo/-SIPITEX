@@ -282,6 +282,8 @@ public class OrderMaterialService : IOrderMaterialService
                         throw new InvalidOperationException(
                             $"No se puede entregar {qty:0.##} de «{line.Material?.Name}». Máximo: {maxDeliver:0.##}.");
 
+                    // Única salida de inventario de los materiales de la orden.
+                    // El consumo posterior solo registra el uso y no vuelve a restar stock.
                     line.Material.DescontarUnidadesSinCosto(qty);
                     line.Material.Stock -= qty;
                     if (line.Material.Stock < 0)
@@ -299,7 +301,10 @@ public class OrderMaterialService : IOrderMaterialService
                         TipoMovimiento = StockMovementType.Salida,
                         Cantidad = qty,
                         StockResultante = line.Material.Stock,
-                        Referencia = $"Orden:{order.Id}"
+                        Referencia = $"Orden:{order.Id}",
+                        CostoUnitario = line.Material.CostoPromedioPonderado > 0
+                            ? line.Material.CostoPromedioPonderado
+                            : null
                     });
                 }
 

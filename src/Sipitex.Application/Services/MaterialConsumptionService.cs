@@ -4,17 +4,26 @@ using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
-using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
 public class MaterialConsumptionService : IMaterialConsumptionService
 {
+    // La entrega de la orden (OrderMaterialService, línea ProductionOrderMaterialRequirement)
+    // es la única que resta Material.Stock y escribe la salida. Este servicio anota el uso
+    // y lo enlaza a esa línea. No crea otro StockMovement.
+    // EntregaMaterial pertenece a SolicitudMaterial y no cubre este consumo.
+    public const string MensajeSuperaEntrega =
+        "No se puede consumir más de lo que fue entregado para esta orden.";
+
+    public const string MensajeSinEntrega =
+        "Este material no tiene una entrega registrada para esta orden. Entregue el material en Materiales de órdenes antes de registrar el consumo.";
+
     private readonly IConsumoMaterialRepository _consumos;
     private readonly IProductionOrderRepository _orders;
     private readonly IMaterialRepository _materials;
     private readonly IUserRepository _users;
-    private readonly IStockMovementRepository _stockMovements;
+    private readonly IOrderMaterialRequirementRepository _requirements;
     private readonly IMaterialConsumptionCostService _costService;
     private readonly IUnitOfWork _unitOfWork;
 
@@ -23,7 +32,7 @@ public class MaterialConsumptionService : IMaterialConsumptionService
         IProductionOrderRepository orders,
         IMaterialRepository materials,
         IUserRepository users,
-        IStockMovementRepository stockMovements,
+        IOrderMaterialRequirementRepository requirements,
         IMaterialConsumptionCostService costService,
         IUnitOfWork unitOfWork)
     {
@@ -31,7 +40,7 @@ public class MaterialConsumptionService : IMaterialConsumptionService
         _orders = orders;
         _materials = materials;
         _users = users;
-        _stockMovements = stockMovements;
+        _requirements = requirements;
         _costService = costService;
         _unitOfWork = unitOfWork;
     }
@@ -65,46 +74,65 @@ public class MaterialConsumptionService : IMaterialConsumptionService
         if (responsable is null)
             return ServiceResult.Fail("Responsable no encontrado.");
 
-        if (material.Stock < dto.Cantidad)
+        var lineas = (await _requirements.GetByOrderIdAsync(order.Id, cancellationToken))
+            .Where(l => l.MaterialId == material.Id)
+            .OrderBy(l => l.Id)
+            .ToList();
+        var entregado = lineas.Sum(l => l.QuantityDelivered);
+        if (entregado <= 0)
+            return ServiceResult.Fail(MensajeSinEntrega);
+
+        var previos = await _consumos.GetByOrderIdAsync(order.Id, cancellationToken);
+        var yaConsumido = previos.Where(c => c.MaterialId == material.Id).Sum(c => c.Cantidad);
+        var disponible = entregado - yaConsumido;
+        if (dto.Cantidad > disponible)
             return ServiceResult.Fail(
-                $"Stock insuficiente de «{material.Name}»: hay {material.Stock}, se requieren {dto.Cantidad}.");
+                $"{MensajeSuperaEntrega} Entregado: {entregado:0.##}, ya consumido: {yaConsumido:0.##}.");
 
         var costo = material.CostoPromedioPonderado;
         var fecha = dto.FechaUtc ?? DateTime.UtcNow;
+        var partes = new List<(int LineaId, decimal Cantidad)>();
+        var porColocar = dto.Cantidad;
+        foreach (var linea in lineas)
+        {
+            if (porColocar <= 0)
+                break;
+
+            var usadoEnLinea = previos
+                .Where(c => c.OrderMaterialRequirementId == linea.Id)
+                .Sum(c => c.Cantidad);
+            var restante = linea.QuantityDelivered - usadoEnLinea;
+            if (restante <= 0)
+                continue;
+
+            var toma = Math.Min(restante, porColocar);
+            partes.Add((linea.Id, toma));
+            porColocar -= toma;
+        }
+
+        if (porColocar > 0)
+            return ServiceResult.Fail(MensajeSuperaEntrega);
 
         await _unitOfWork.ExecuteInTransactionAsync(async ct =>
         {
-            material.DescontarUnidadesSinCosto(dto.Cantidad);
-            material.Stock -= dto.Cantidad;
-            _materials.Update(material);
-
-            var consumo = new ConsumoMaterial
+            foreach (var parte in partes)
             {
-                ProductionOrderId = order.Id,
-                GrupoConfeccionId = dto.GrupoConfeccionId,
-                MaterialId = material.Id,
-                Cantidad = dto.Cantidad,
-                FechaUtc = fecha,
-                ResponsableUserId = responsable.Id,
-                CostoUnitarioAlMomento = costo
-            };
-            await _consumos.AddAsync(consumo, ct);
-
-            await _stockMovements.AddAsync(new StockMovement
-            {
-                MaterialId = material.Id,
-                FechaUtc = fecha,
-                UsuarioId = responsable.Id,
-                TipoMovimiento = StockMovementType.Salida,
-                Cantidad = dto.Cantidad,
-                StockResultante = material.Stock,
-                Referencia = $"ConsumoMaterial:{order.OrderNumber}",
-                CostoUnitario = costo
-            }, ct);
+                await _consumos.AddAsync(new ConsumoMaterial
+                {
+                    ProductionOrderId = order.Id,
+                    GrupoConfeccionId = dto.GrupoConfeccionId,
+                    MaterialId = material.Id,
+                    OrderMaterialRequirementId = parte.LineaId,
+                    Cantidad = parte.Cantidad,
+                    FechaUtc = fecha,
+                    ResponsableUserId = responsable.Id,
+                    CostoUnitarioAlMomento = costo
+                }, ct);
+            }
         }, cancellationToken);
 
         return ServiceResult.Ok(
-            $"Consumo de {dto.Cantidad} {UnitHelper.ToDisplay(material.Unit)} de «{material.Name}» registrado en {order.OrderNumber}.");
+            $"Consumo de {dto.Cantidad} {UnitHelper.ToDisplay(material.Unit)} de «{material.Name}» registrado en {order.OrderNumber}. El inventario no se descuenta de nuevo: ya salió en la entrega.");
     }
 
     public async Task<ConsumoCostoResumenDto> GetCostoPromedioByOrderAsync(
