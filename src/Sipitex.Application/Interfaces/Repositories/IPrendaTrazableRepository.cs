@@ -13,5 +13,8 @@ public interface IPrendaTrazableRepository
         int take = 200,
         CancellationToken cancellationToken = default);
     Task<int> CountByOrderAsync(int productionOrderId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PrendaTrazable>> GetByOrderForUpdateAsync(
+        int productionOrderId,
+        CancellationToken cancellationToken = default);
     Task<string?> GetLastCodigoForPrefixAsync(string prefix, CancellationToken cancellationToken = default);
 }

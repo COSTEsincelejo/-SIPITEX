@@ -381,6 +381,7 @@ public class ProductionOrderService : IProductionOrderService
     }
 
     // Gap #2: soft-cancel. No revierte stock ni genera StockMovement.
+    // EstadoProducto no tiene valor Cancelado: el ciclo de la prenda se queda donde iba.
     public async Task<ServiceResult> CancelOrderAsync(
         int orderId,
         int actorUserId,

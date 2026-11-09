@@ -239,6 +239,7 @@ public class OrderApprovePendingTests
         var sut = new ProductionFlowService(
             _orders.Object, flow.Object, materialsReq.Object, _snapshots.Object, _boms.Object, users.Object,
             _materials.Object, _stockMovements.Object, _uow.Object,
+            new Mock<IProductLifecycleService>().Object,
             NullLogger<ProductionFlowService>.Instance);
 
         var result = await sut.SendToNextAsync(

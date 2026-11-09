@@ -2,6 +2,7 @@ using Moq;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
+using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
@@ -19,11 +20,17 @@ public class ProductionFlowServiceTests
     private readonly Mock<IMaterialRepository> _materialRepository = new();
     private readonly Mock<IStockMovementRepository> _stockMovements = new();
     private readonly Mock<IUnitOfWork> _uow = new();
+    private readonly Mock<IProductLifecycleService> _lifecycle = new();
 
-    private ProductionFlowService CreateSut() =>
-        new(_orders.Object, _flow.Object, _materials.Object, _snapshots.Object, _boms.Object, _users.Object,
-            _materialRepository.Object, _stockMovements.Object, _uow.Object,
+    private ProductionFlowService CreateSut()
+    {
+        _lifecycle.Setup(l => l.AlignWithStageAsync(
+                It.IsAny<ProductionOrder>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return new(_orders.Object, _flow.Object, _materials.Object, _snapshots.Object, _boms.Object, _users.Object,
+            _materialRepository.Object, _stockMovements.Object, _uow.Object, _lifecycle.Object,
             NullLogger<ProductionFlowService>.Instance);
+    }
 
     [Fact]
     public async Task EnsureStagesForOrder_CreatesDefaultFlowOnce()

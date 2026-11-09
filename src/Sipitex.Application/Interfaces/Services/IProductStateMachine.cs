@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Interfaces.Services;
@@ -16,5 +17,12 @@ public interface IProductLifecycleService
         EstadoProducto to,
         int actorUserId,
         string? justificacion = null,
+        CancellationToken cancellationToken = default);
+
+    // Alinea el ciclo de la orden y de sus prendas con la etapa en la que está el taller.
+    // No guarda: el llamador persiste en la misma operación del avance.
+    Task AlignWithStageAsync(
+        ProductionOrder order,
+        string? stageName,
         CancellationToken cancellationToken = default);
 }

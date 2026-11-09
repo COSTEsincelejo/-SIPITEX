@@ -4,6 +4,7 @@ using Moq;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
+using Sipitex.Application.Interfaces.Services;
 using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
@@ -36,6 +37,7 @@ public class StageReentryTests
         _materials.Object,
         _stockMovements.Object,
         _uow.Object,
+        new Mock<IProductLifecycleService>().Object,
         NullLogger<ProductionFlowService>.Instance);
 
     private static ProductionOrderStage CreateStage(int id, string name, int orderId, int available = 40) =>
