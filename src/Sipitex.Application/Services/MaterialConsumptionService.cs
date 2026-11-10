@@ -5,6 +5,7 @@ using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
 using System.Globalization;
 using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Services;
 
@@ -19,6 +20,9 @@ public class MaterialConsumptionService : IMaterialConsumptionService
 
     public const string MensajeSinEntrega =
         "Este material no tiene una entrega registrada para esta orden. Entregue el material en Materiales de órdenes antes de registrar el consumo.";
+
+    public const string MensajeOrdenCerrada =
+        "No se puede registrar consumo en una orden finalizada o cancelada.";
 
     private readonly IConsumoMaterialRepository _consumos;
     private readonly IProductionOrderRepository _orders;
@@ -66,6 +70,8 @@ public class MaterialConsumptionService : IMaterialConsumptionService
         var order = await _orders.GetByIdAsync(dto.ProductionOrderId, cancellationToken);
         if (order is null)
             return ServiceResult.Fail("Orden de producción no encontrada.");
+        if (order.Status is OrderStatus.Finalizada or OrderStatus.Cancelada)
+            return ServiceResult.Fail(MensajeOrdenCerrada);
 
         var material = await _materials.GetByIdAsync(dto.MaterialId, cancellationToken);
         if (material is null)

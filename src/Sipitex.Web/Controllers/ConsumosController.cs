@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
+using Sipitex.Domain.Enums;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
@@ -33,9 +34,15 @@ public class ConsumosController : Controller
     {
         var (userId, role, name) = CurrentViewer();
         var orders = await _orders.GetOrdersAsync(userId, role, name, cancellationToken);
+        var abiertas = orders
+            .Where(o => o.Status is not (OrderStatus.Finalizada or OrderStatus.Cancelada))
+            .ToList();
         var selected = orderId is int id && orders.Any(o => o.Id == id)
             ? id
             : orders.FirstOrDefault()?.Id ?? 0;
+        var ordenDelFormulario = abiertas.Any(o => o.Id == selected)
+            ? selected
+            : abiertas.FirstOrDefault()?.Id ?? 0;
 
         var consumos = selected > 0
             ? await _consumos.GetByOrderAsync(selected, cancellationToken)
@@ -50,7 +57,8 @@ public class ConsumosController : Controller
             Materials = await _inventory.GetMaterialsAsync(cancellationToken),
             Consumos = consumos,
             Costo = costo,
-            Form = new RegisterConsumoForm { ProductionOrderId = selected },
+            Form = new RegisterConsumoForm { ProductionOrderId = ordenDelFormulario },
+            OrdenConsultadaId = selected,
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         });
