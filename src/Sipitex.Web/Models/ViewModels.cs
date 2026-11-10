@@ -667,6 +667,7 @@ public class ConsumosIndexViewModel
     public IReadOnlyList<ConsumoMaterialDto> Consumos { get; set; } = [];
     public ConsumoCostoResumenDto? Costo { get; set; }
     public RegisterConsumoForm Form { get; set; } = new();
+    public int OrdenConsultadaId { get; set; }
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }

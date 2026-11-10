@@ -236,4 +236,62 @@ public class MaterialConsumptionServiceTests
         Assert.True(cabe.Success, cabe.Message);
         Assert.Equal(10, material.Stock);
     }
+
+    [Theory]
+    [InlineData(OrderStatus.Finalizada)]
+    [InlineData(OrderStatus.Cancelada)]
+    public async Task RegisterAsync_OrdenCerrada_NoRegistraNiTocaStock(OrderStatus estado)
+    {
+        var material = new Material { Id = 2, Name = "Tela", Stock = 16, CostoPromedioPonderado = 12.5m };
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-9", Status = estado });
+        _materials.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(material);
+        _users.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = 7, Nombre = "Ana" });
+
+        var result = await CreateSut().RegisterAsync(new RegisterConsumoMaterialDto(1, 2, 4, 7));
+
+        Assert.False(result.Success);
+        Assert.Equal(MaterialConsumptionService.MensajeOrdenCerrada, result.Message);
+        Assert.Equal(16, material.Stock);
+        _consumos.Verify(r => r.AddAsync(It.IsAny<ConsumoMaterial>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uow.Verify(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_EnProceso_RegistraSinDescontarStock()
+    {
+        var material = new Material
+        {
+            Id = 2,
+            Name = "Tela",
+            Stock = 16,
+            CostoPromedioPonderado = 9m,
+            Unit = MaterialUnit.Metros
+        };
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-9", Status = OrderStatus.EnProceso });
+        _materials.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(material);
+        _users.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = 7, Nombre = "Ana" });
+        _requirements.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ProductionOrderMaterialRequirement
+                {
+                    Id = 4,
+                    ProductionOrderId = 1,
+                    MaterialId = 2,
+                    QuantityDelivered = 4
+                }
+            ]);
+        _consumos.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _consumos.Setup(r => r.AddAsync(It.IsAny<ConsumoMaterial>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await CreateSut().RegisterAsync(new RegisterConsumoMaterialDto(1, 2, 4, 7));
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(16, material.Stock);
+    }
 }

@@ -23,7 +23,25 @@
         @Html.AntiForgeryToken()
         <div class="field">
             <label class="field-label">Orden</label>
-            <select asp-for="Form.ProductionOrderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber"))"></select>
+            <select asp-for="Form.ProductionOrderId">
+                @foreach (var orden in Model.Orders)
+                {
+                    var cerrada = orden.Status is OrderStatus.Finalizada or OrderStatus.Cancelada;
+                    if (cerrada)
+                    {
+                        <option value="@orden.Id" disabled>@orden.OrderNumber — @DisplayHelper.StatusText(orden.Status). No admite consumo</option>
+                    }
+                    else if (orden.Id == Model.Form.ProductionOrderId)
+                    {
+                        <option value="@orden.Id" selected>@orden.OrderNumber</option>
+                    }
+                    else
+                    {
+                        <option value="@orden.Id">@orden.OrderNumber</option>
+                    }
+                }
+            </select>
+            <p class="hint">Las órdenes finalizadas o canceladas no admiten consumo. Siguen en la consulta de abajo.</p>
         </div>
         <div class="field">
             <label class="field-label">Material</label>
@@ -51,7 +69,7 @@
     <form method="get" class="form-row">
         <div class="field">
             <label class="field-label">Orden</label>
-            <select name="orderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.Form.ProductionOrderId))"></select>
+            <select name="orderId" asp-items="@(new SelectList(Model.Orders, "Id", "OrderNumber", Model.OrdenConsultadaId))"></select>
         </div>
         <div class="field" style="align-self:flex-end;">
             <button type="submit" class="small">Ver</button>
