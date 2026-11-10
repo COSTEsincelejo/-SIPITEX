@@ -8,7 +8,7 @@
 <div class="page-header">
     <div>
         <h2>Reingreso desde etapas</h2>
-        <div class="sub">Registra materiales o producto terminado que regresan desde Trazo, Corte, Confección, Control de Calidad o Terminado</div>
+        <div class="sub">El material que vuelve es sobrante entregado a la orden y no consumido. También se puede devolver en una orden finalizada o cancelada. El producto terminado sigue contando unidades de la etapa.</div>
     </div>
     <a class="ghost" asp-action="Index"><i class="fas fa-arrow-left"></i> Volver</a>
 </div>
@@ -60,9 +60,10 @@
                     <option value="">Seleccione etapa…</option>
                     @foreach (var s in Model.Stages)
                     {
-                        <option value="@s.Id">@s.Name (disp. @s.QuantityAvailable)</option>
+                        <option value="@s.Id">@s.Name</option>
                     }
                 </select>
+                <p class="hint">En producto terminado, lo disponible de la etapa sigue siendo el límite. En material, el límite es lo entregado y no consumido.</p>
             </div>
 
             <div class="field">
@@ -79,20 +80,52 @@
                 </label>
             </div>
 
-            <div class="field" id="materialField" style="min-width:200px;">
-                <label class="field-label">Material</label>
-                <select name="Form.MaterialId">
-                    <option value="0">Seleccione material…</option>
-                    @foreach (var m in Model.Materials)
-                    {
-                        <option value="@m.Id">@DisplayHelper.MaterialOpcion(m.Name, m.CodigoAlmacen, m.Referencia, m.Categoria, m.TipoElemento, stock: m.Stock)</option>
-                    }
-                </select>
+            <div class="field" id="materialField" style="min-width:280px;flex-basis:100%;">
+                <label class="field-label">Material de la orden</label>
+                @if (Model.MaterialesDeLaOrden.Count == 0)
+                {
+                    <p class="hint">Esta orden no tiene materiales para reingresar.</p>
+                }
+                else
+                {
+                    <div class="table-wrap table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Material</th>
+                                    <th>Entregado</th>
+                                    <th>Consumido</th>
+                                    <th>Reingresado</th>
+                                    <th>Disponible para reingresar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var m in Model.MaterialesDeLaOrden)
+                            {
+                                <tr>
+                                    <td>@m.Nombre <span class="hint">@m.Unidad</span></td>
+                                    <td>@m.Entregado.ToString("0.##")</td>
+                                    <td>@m.Consumido.ToString("0.##")</td>
+                                    <td>@m.Reingresado.ToString("0.##")</td>
+                                    <td>@m.Disponible.ToString("0.##")</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                    <select name="Form.MaterialId">
+                        <option value="0">Seleccione material…</option>
+                        @foreach (var m in Model.MaterialesDeLaOrden)
+                        {
+                            <option value="@m.MaterialId">@m.Nombre — disponible @m.Disponible.ToString("0.##") @m.Unidad</option>
+                        }
+                    </select>
+                }
             </div>
 
             <div class="field">
                 <label class="field-label">Cantidad</label>
-                <input type="number" name="Form.Quantity" min="1" value="@Model.Form.Quantity" required />
+                <input type="number" name="Form.Quantity" min="0.01" step="0.01" value="@Model.Form.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
             </div>
 
             <div class="field" style="min-width:220px;">
@@ -105,7 +138,7 @@
             </div>
         </form>
         <p class="hint" style="margin-top:12px;">
-            Etapas admitidas: @string.Join(", ", Model.StageNames). El reingreso de material genera un movimiento de stock (Entrada) con referencia a la orden y etapa.
+            Etapas admitidas: @string.Join(", ", Model.StageNames). El reingreso de material genera una entrada de stock con la orden y la etapa, al costo promedio vigente. No cambia las unidades de prenda de la etapa.
         </p>
     }
 </div>

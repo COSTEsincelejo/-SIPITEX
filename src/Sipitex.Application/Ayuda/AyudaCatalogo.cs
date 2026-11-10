@@ -218,6 +218,7 @@ public static class AyudaCatalogo
             ],
             [
                 "Editar la ficha cambia la receta hacia adelante; no reescribe consumos ya congelados.",
+                "El orden del material en planta es entregar, consumir lo usado y reingresar el sobrante. El consumo no puede pasar de lo entregado menos lo ya consumido y lo reingresado.",
                 "No se puede repetir el mismo material en la receta.",
                 "No se puede eliminar una ficha referenciada por órdenes activas: el mensaje indica cuáles son.",
                 "Quitar un instructor de la ficha técnica usa la × de su etiqueta, en la misma pantalla MRP."
@@ -389,19 +390,21 @@ public static class AyudaCatalogo
         Tema(
             "reingreso", "Reingreso desde etapas", "Reingreso desde etapas", "fa-rotate-left",
             "Devolver material o producto terminado desde una etapa al inventario.",
-            "El reingreso registra lo que vuelve desde Trazo, Corte, Confección, Control de Calidad o Terminado.",
-            "Sirve para que ese material entre otra vez a la planta y quede un movimiento de entrada con la orden y la etapa.",
+            "El material que vuelve es sobrante entregado a la orden y no consumido. El producto terminado vuelve en unidades de la etapa.",
+            "Sirve para recuperar el material que sobró. Ese reingreso también se hace si la orden ya está finalizada o cancelada. El stock entra otra vez al costo promedio vigente y queda el movimiento con la orden y la etapa.",
             [
                 "Abra Reingreso desde etapas (también hay un acceso desde Materiales de órdenes).",
                 "Elija la Orden de producción. Si la orden no tiene etapas, el aviso pide generarlas desde el detalle de la orden.",
-                "Elija la Etapa de origen. El número entre paréntesis es lo disponible en esa etapa.",
-                "En Tipo de reingreso marque Material de planta de inventario o Producto terminado (orden). Si es material, elija cuál.",
-                "Escriba la Cantidad y, si hace falta, Observaciones.",
+                "Elija la Etapa de origen. En material esa etapa solo identifica el origen; el límite es el disponible de la orden.",
+                "En Tipo de reingreso marque Material de planta de inventario o Producto terminado (orden).",
+                "Si es material, la tabla muestra solo los de la orden: entregado, consumido, reingresado y disponible para reingresar. Elija uno de esa lista.",
+                "Escriba la Cantidad (en material puede llevar decimales) y, si hace falta, Observaciones.",
                 "Pulse Registrar reingreso."
             ],
             [
-                "No se puede reingresar más de lo disponible en la etapa.",
-                "El reingreso no edita la orden: suma una entrada de stock o registra el producto terminado, según el tipo elegido.",
+                "No se puede reingresar un material que no está en la orden, ni más de lo entregado menos lo consumido y lo ya reingresado.",
+                "El reingreso de producto terminado sí se limita a las unidades enteras disponibles en la etapa.",
+                "El reingreso de material no cambia las unidades de prenda de la etapa.",
                 "No hay un botón de borrar el reingreso. Un error se corrige con un ajuste documentado en Movimientos de stock."
             ],
             ["El instructor no tiene esta pantalla."],
@@ -611,7 +614,7 @@ public static class AyudaCatalogo
         new("Stock Bajo", "Hay existencias, pero la cantidad es menor que el mínimo."),
         new("Stock Crítico", "El material tiene mínimo definido y la existencia está en cero."),
         new("Sin mínimo definido", "El material no tiene mínimo. No cuenta como falta ni dispara la misma alerta que Bajo o Crítico."),
-        new("Reingreso", "Devolución de material o de producto terminado desde una etapa (Trazo, Corte, Confección, Control de Calidad o Terminado) hacia el inventario."),
+        new("Reingreso", "Devolución a la planta del material entregado a la orden que no se consumió. También se puede hacer con la orden finalizada o cancelada. El producto terminado vuelve en unidades de la etapa."),
         new("Acta de ingreso o egreso", "Documento de entrada o salida con nombre, cargo, hora UTC y firma dibujada. Se crea con Nueva acta."),
         new("Solicitud de materiales", "Pedido de insumos por descripción, o la entrega de materiales ya ligados a una orden.")
     ];

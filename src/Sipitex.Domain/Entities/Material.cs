@@ -77,6 +77,18 @@ public class Material
         StockSinCosto = cantidad >= StockSinCosto ? 0 : StockSinCosto - cantidad;
     }
 
+    // Devolución de sobrante. No recalcula el promedio: si ya hay costo, las unidades
+    // vuelven valoradas a ese promedio; si el promedio es cero, vuelven a StockSinCosto.
+    public void ReingresarUnidades(decimal cantidad)
+    {
+        if (cantidad <= 0)
+            throw new ArgumentOutOfRangeException(nameof(cantidad), "La cantidad a reingresar debe ser mayor que cero.");
+
+        Stock += cantidad;
+        if (CostoPromedioPonderado <= 0)
+            StockSinCosto += cantidad;
+    }
+
     // FK obligatoria a la plantaInventario dueña de este material (default 1 = PlantaInventario 1, alineado al backfill)
     public int PlantaInventarioId { get; set; } = 1;
 

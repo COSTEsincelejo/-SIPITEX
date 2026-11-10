@@ -40,7 +40,8 @@ No es la receta de la prenda (BOM). Esa receta se arma en MRP.
 - **Solicitar insumos** pide una descripción libre y la planta de inventario destino. No exige el código de almacén.
 - En **Solicitudes de materiales**, al resolver un pedido el material se elige por nombre, código de almacén, referencia, categoría y tipo.
 - **Materiales de órdenes** entrega lo pedido por la orden y muestra esos mismos datos bajo el nombre.
-- **Consumo de materiales** registra la cantidad usada. El costo unitario queda congelado con el promedio de ese momento. La lista muestra código de almacén, referencia, categoría y tipo.
+- **Consumo de materiales** registra la cantidad usada, hasta lo entregado menos lo ya consumido y lo reingresado. El costo unitario queda congelado con el promedio de ese momento. La lista muestra código de almacén, referencia, categoría y tipo.
+- **Reingreso desde etapas** devuelve el sobrante de material a la planta. Solo ofrece materiales de la orden y muestra entregado, consumido, reingresado y disponible. También se puede reingresar material de una orden finalizada o cancelada. El producto terminado sigue en unidades enteras de la etapa. El instructor no ve esta pantalla.
 - **Costeo de prendas** suma solo materiales. Si falta un costo, muestra «costo incompleto» en lugar del total. La tarifa de mano de obra es referencia y no entra en ese total.
 
 ## Usuarios y correo

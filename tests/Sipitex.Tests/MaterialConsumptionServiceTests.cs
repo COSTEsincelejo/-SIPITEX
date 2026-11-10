@@ -157,4 +157,83 @@ public class MaterialConsumptionServiceTests
 
         Assert.Equal(15m, saved.CostoUnitarioAlMomento);
     }
+
+    [Fact]
+    public async Task RegisterAsync_DespuesDeReingresar_NoPasaDelDisponible()
+    {
+        var material = new Material { Id = 2, Name = "Tela", Stock = 17, CostoPromedioPonderado = 5 };
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-1", Status = OrderStatus.EnProceso });
+        _materials.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(material);
+        _users.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = 7, Nombre = "Ana" });
+        _requirements.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ProductionOrderMaterialRequirement
+                {
+                    Id = 4,
+                    ProductionOrderId = 1,
+                    MaterialId = 2,
+                    QuantityDelivered = 10,
+                    QuantityReentered = 7
+                }
+            ]);
+        _consumos.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ConsumoMaterial
+                {
+                    MaterialId = 2,
+                    OrderMaterialRequirementId = 4,
+                    Cantidad = 3
+                }
+            ]);
+
+        var result = await CreateSut().RegisterAsync(new RegisterConsumoMaterialDto(1, 2, 1, 7));
+
+        Assert.False(result.Success);
+        Assert.Contains("reingresado: 7", result.Message, StringComparison.Ordinal);
+        Assert.Contains("ya consumido: 3", result.Message, StringComparison.Ordinal);
+        Assert.Equal(17, material.Stock);
+        _consumos.Verify(r => r.AddAsync(It.IsAny<ConsumoMaterial>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ConsumoSinLinea_SigueRestandoDelDisponible()
+    {
+        var material = new Material { Id = 2, Name = "Tela", Stock = 10, CostoPromedioPonderado = 5, Unit = MaterialUnit.Metros };
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder { Id = 1, OrderNumber = "OP-1", Status = OrderStatus.EnProceso });
+        _materials.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(material);
+        _users.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = 7, Nombre = "Ana" });
+        _requirements.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ProductionOrderMaterialRequirement
+                {
+                    Id = 4,
+                    ProductionOrderId = 1,
+                    MaterialId = 2,
+                    QuantityDelivered = 10
+                }
+            ]);
+        _consumos.Setup(r => r.GetByOrderIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new ConsumoMaterial { MaterialId = 2, OrderMaterialRequirementId = null, Cantidad = 4 }
+            ]);
+
+        var deMas = await CreateSut().RegisterAsync(new RegisterConsumoMaterialDto(1, 2, 7, 7));
+        Assert.False(deMas.Success);
+        Assert.Contains("ya consumido: 4", deMas.Message, StringComparison.Ordinal);
+        Assert.Equal(10, material.Stock);
+
+        _consumos.Setup(r => r.AddAsync(It.IsAny<ConsumoMaterial>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var cabe = await CreateSut().RegisterAsync(new RegisterConsumoMaterialDto(1, 2, 6, 7));
+        Assert.True(cabe.Success, cabe.Message);
+        Assert.Equal(10, material.Stock);
+    }
 }

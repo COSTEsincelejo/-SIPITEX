@@ -708,9 +708,18 @@ public record PartialInventoryInDto(int OrderId, int StageId, int Quantity, stri
 public record StageReentryDto(
     int OrderId,
     int StageId,
-    int Quantity,
+    decimal Quantity,
     int? MaterialId,
     string? Observations);
+
+public record MaterialReingresableDto(
+    int MaterialId,
+    string Nombre,
+    string Unidad,
+    decimal Entregado,
+    decimal Consumido,
+    decimal Reingresado,
+    decimal Disponible);
 
 public record PartialWithdrawalDto(
     int StageId,

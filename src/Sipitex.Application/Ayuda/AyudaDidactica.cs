@@ -87,7 +87,7 @@ public static class AyudaDidactica
         ["reingreso"] = new(
             "¿Cómo hago un reingreso desde una etapa?",
             "Paso a paso",
-            "Devuelve material o producto terminado desde Trazo, Corte, Confección, Calidad o Terminado hacia el inventario.",
+            "Devuelve a la planta el material entregado y no consumido, también en una orden cerrada. El producto terminado vuelve en unidades de la etapa.",
             ["reingreso", "reingresar", "devolver material", "reingreso desde etapas"],
             []),
 

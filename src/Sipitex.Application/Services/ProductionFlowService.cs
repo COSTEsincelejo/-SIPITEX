@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
@@ -27,6 +28,7 @@ public class ProductionFlowService : IProductionFlowService
     private readonly IUnitOfWork _uow;
     private readonly IProductLifecycleService _lifecycle;
     private readonly ILogger<ProductionFlowService> _logger;
+    private readonly IConsumoMaterialRepository? _consumos;
 
     public ProductionFlowService(
         IProductionOrderRepository orders,
@@ -39,7 +41,8 @@ public class ProductionFlowService : IProductionFlowService
         IStockMovementRepository stockMovements,
         IUnitOfWork uow,
         IProductLifecycleService lifecycle,
-        ILogger<ProductionFlowService> logger)
+        ILogger<ProductionFlowService> logger,
+        IConsumoMaterialRepository? consumos = null)
     {
         _orders = orders;
         _flow = flow;
@@ -52,6 +55,7 @@ public class ProductionFlowService : IProductionFlowService
         _uow = uow;
         _lifecycle = lifecycle;
         _logger = logger;
+        _consumos = consumos;
     }
 
     public async Task EnsureDefaultTemplatesAsync(CancellationToken cancellationToken = default)
@@ -484,8 +488,6 @@ public class ProductionFlowService : IProductionFlowService
 
         var orderGate = await _orders.GetByIdAsync(dto.OrderId, cancellationToken);
         if (orderGate is null) return ServiceResult.Fail("Orden no encontrada.");
-        var closed = RejectIfOrderClosed(orderGate);
-        if (closed is not null) return closed;
 
         // El reingreso no mueve la etapa actual, así que el ciclo de la prenda tampoco cambia.
         // EncargadoDeBodega/Admin: no exige permiso de instructor por etapa (gap #14)
@@ -516,8 +518,14 @@ public class ProductionFlowService : IProductionFlowService
             return materialResult;
         }
 
+        var closed = RejectIfOrderClosed(orderGate);
+        if (closed is not null) return closed;
+
+        if (dto.Quantity != decimal.Truncate(dto.Quantity) || dto.Quantity > int.MaxValue)
+            return ServiceResult.Fail("El reingreso de producto terminado se registra en unidades enteras.");
+
         var fgResult = await ApplyFinishedGoodInventoryInAsync(
-            dto.OrderId, dto.StageId, dto.Quantity, dto.Observations,
+            dto.OrderId, dto.StageId, (int)dto.Quantity, dto.Observations,
             actorUserId, actorName, cancellationToken);
         if (!fgResult.Success) return fgResult;
         await _uow.SaveChangesAsync(cancellationToken);
@@ -770,30 +778,105 @@ public class ProductionFlowService : IProductionFlowService
         return ServiceResult.Ok($"Ingresadas {quantity} unidades al inventario de producto terminado. Orden sigue abierta si falta meta.");
     }
 
-    // Material que regresa a plantaInventario desde una etapa MES + StockMovement Entrada (gap #14/#15)
+    public async Task<IReadOnlyList<MaterialReingresableDto>> GetMaterialesReingresablesAsync(
+        int orderId,
+        CancellationToken cancellationToken = default)
+    {
+        var lineas = await _materials.GetByOrderIdAsync(orderId, cancellationToken);
+        var consumos = _consumos is null
+            ? []
+            : await _consumos.GetByOrderIdAsync(orderId, cancellationToken);
+
+        return lineas
+            .GroupBy(l => l.MaterialId)
+            .Select(grupo =>
+            {
+                var delMaterial = grupo.ToList();
+                var usados = consumos.Where(c => c.MaterialId == grupo.Key).ToList();
+                var totales = DisponibilidadMaterialOrden.DelMaterial(delMaterial, usados);
+                var primero = delMaterial[0];
+                var unidad = primero.Material is null
+                    ? primero.Unit.ToString()
+                    : UnitHelper.ToDisplay(primero.Material.Unit);
+                return new MaterialReingresableDto(
+                    grupo.Key,
+                    primero.Material?.Name ?? $"Material #{grupo.Key}",
+                    unidad,
+                    totales.Entregado,
+                    totales.Consumido,
+                    totales.Reingresado,
+                    totales.Disponible);
+            })
+            .OrderBy(m => m.Nombre, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    // Sobrante de material entregado a la orden. No mueve unidades de prenda de la etapa.
     private async Task<ServiceResult> ApplyMaterialStageReentryAsync(
         int orderId,
         ProductionOrderStage stage,
         int materialId,
-        int quantity,
+        decimal quantity,
         string? observations,
         int actorUserId,
         string actorName,
         CancellationToken cancellationToken)
     {
-        if (quantity > stage.QuantityAvailable)
-            return ServiceResult.Fail($"Solo hay {stage.QuantityAvailable} unidades disponibles.");
-
         var order = await _orders.GetByIdAsync(orderId, cancellationToken);
         if (order is null) return ServiceResult.Fail("Orden no encontrada.");
 
         var material = await _materialRepository.GetByIdAsync(materialId, cancellationToken);
         if (material is null) return ServiceResult.Fail("Material no encontrado.");
+        if (_consumos is null)
+            return ServiceResult.Fail("No se puede calcular el material disponible para reingresar.");
 
-        stage.QuantityWithdrawn += quantity;
-        _flow.UpdateStage(stage);
+        var lineas = (await _materials.GetByOrderIdAsync(order.Id, cancellationToken))
+            .Where(l => l.MaterialId == material.Id)
+            .OrderBy(l => l.Id)
+            .ToList();
+        if (lineas.Count == 0)
+            return ServiceResult.Fail($"«{material.Name}» no está en la orden {order.OrderNumber}.");
 
-        material.Stock += quantity;
+        var previos = (await _consumos.GetByOrderIdAsync(order.Id, cancellationToken))
+            .Where(c => c.MaterialId == material.Id)
+            .ToList();
+        var totales = DisponibilidadMaterialOrden.DelMaterial(lineas, previos);
+        if (quantity > totales.Disponible)
+        {
+            var disponible = totales.Disponible < 0 ? 0 : totales.Disponible;
+            return ServiceResult.Fail(
+                $"Solo se pueden reingresar {Numero(disponible)} de «{material.Name}»: se entregaron {Numero(totales.Entregado)}, se consumieron {Numero(totales.Consumido)} y ya se reingresaron {Numero(totales.Reingresado)}.");
+        }
+
+        var partes = new List<(ProductionOrderMaterialRequirement Linea, decimal Toma)>();
+        var porColocar = quantity;
+        foreach (var linea in lineas)
+        {
+            if (porColocar <= 0)
+                break;
+
+            var restante = DisponibilidadMaterialOrden.DeLaLinea(
+                linea,
+                DisponibilidadMaterialOrden.ConsumidoEnLinea(previos, linea.Id));
+            if (restante <= 0)
+                continue;
+
+            var toma = Math.Min(restante, porColocar);
+            partes.Add((linea, toma));
+            porColocar -= toma;
+        }
+
+        if (porColocar > 0)
+            return ServiceResult.Fail(
+                $"Solo se pueden reingresar {Numero(Math.Max(0, totales.Disponible))} de «{material.Name}»: se entregaron {Numero(totales.Entregado)}, se consumieron {Numero(totales.Consumido)} y ya se reingresaron {Numero(totales.Reingresado)}.");
+
+        foreach (var parte in partes)
+        {
+            parte.Linea.QuantityReentered += parte.Toma;
+            _materials.Update(parte.Linea);
+        }
+
+        material.ReingresarUnidades(quantity);
         material.LastEntryDate = DateOnly.FromDateTime(DateTime.UtcNow);
         _materialRepository.Update(material);
 
@@ -806,25 +889,31 @@ public class ProductionFlowService : IProductionFlowService
             TipoMovimiento = StockMovementType.Entrada,
             Cantidad = quantity,
             StockResultante = material.Stock,
-            Referencia = referencia
+            Referencia = referencia,
+            CostoUnitario = material.CostoPromedioPonderado > 0 ? material.CostoPromedioPonderado : null
         }, cancellationToken);
 
+        // Quantity del movimiento de etapa es entero y cuenta prendas. El decimal queda en el historial.
         await _flow.AddMovementAsync(new ProductionOrderStageMovement
         {
             ProductionOrderId = order.Id,
             FromStageId = stage.Id,
             MovementType = "InventoryIn",
-            Quantity = quantity,
+            Quantity = 0,
             ActorUserId = actorUserId,
-            Observations = observations
+            Observations = string.IsNullOrWhiteSpace(observations)
+                ? $"Reingreso de material: {Numero(quantity)}"
+                : $"{observations.Trim()} · {Numero(quantity)}"
         }, cancellationToken);
 
         await AddHistory(order.Id, ProductionHistoryEventType.PartialInventoryIn,
-            $"Reingreso a plantaInventario: +{quantity} «{material.Name}» desde «{stage.Name}».",
-            actorUserId, actorName, stage.Id, stage.Name, cancellationToken, quantity);
+            $"Reingreso a plantaInventario: +{Numero(quantity)} «{material.Name}» desde «{stage.Name}».",
+            actorUserId, actorName, stage.Id, stage.Name, cancellationToken, quantity: null);
 
-        return ServiceResult.Ok($"Reingreso registrado: +{quantity} de «{material.Name}» desde «{stage.Name}».");
+        return ServiceResult.Ok($"Reingreso registrado: +{Numero(quantity)} de «{material.Name}» desde «{stage.Name}».");
     }
+
+    private static string Numero(decimal valor) => valor.ToString("0.##", CultureInfo.InvariantCulture);
 
     private async Task AddHistory(
         int orderId,

@@ -19,6 +19,9 @@ public class ProductionOrderMaterialRequirement
     // Acumulado realmente entregado por plantaInventario (nunca > QuantityRequired)
     public decimal QuantityDelivered { get; set; }
 
+    // Sobrante devuelto a la planta. Resta del disponible junto con lo consumido.
+    public decimal QuantityReentered { get; set; }
+
     // Unidad congelada al asociar (reutiliza MaterialUnit del inventario)
     public MaterialUnit Unit { get; set; }
 

@@ -16,18 +16,15 @@ public class PlantasInventarioOrdenesController : Controller
     private readonly IOrderMaterialService _orderMaterialService;
     private readonly IProductionOrderService _orderService;
     private readonly IProductionFlowService _flowService;
-    private readonly IInventoryService _inventoryService;
 
     public PlantasInventarioOrdenesController(
         IOrderMaterialService orderMaterialService,
         IProductionOrderService orderService,
-        IProductionFlowService flowService,
-        IInventoryService inventoryService)
+        IProductionFlowService flowService)
     {
         _orderMaterialService = orderMaterialService;
         _orderService = orderService;
         _flowService = flowService;
-        _inventoryService = inventoryService;
     }
 
     [HttpGet]
@@ -156,8 +153,8 @@ public class PlantasInventarioOrdenesController : Controller
     {
         var (userId, role, name) = CurrentViewer();
         var orders = await _orderService.GetOrdersAsync(userId, role, name, cancellationToken);
-        var materials = await _inventoryService.GetMaterialsAsync(cancellationToken);
         IReadOnlyList<OrderStageDto> stages = [];
+        IReadOnlyList<MaterialReingresableDto> materiales = [];
 
         if (orderId is int oid and > 0)
         {
@@ -169,12 +166,14 @@ public class PlantasInventarioOrdenesController : Controller
                     .Where(s => ProductionFlowService.DefaultStageNames.Contains(s.Name, StringComparer.OrdinalIgnoreCase))
                     .ToList();
             }
+
+            materiales = await _flowService.GetMaterialesReingresablesAsync(oid, cancellationToken);
         }
 
         return new PlantaInventarioReingresoViewModel
         {
             Orders = orders,
-            Materials = materials,
+            MaterialesDeLaOrden = materiales,
             Stages = stages,
             StageNames = ProductionFlowService.DefaultStageNames,
             Form = new PlantaInventarioReingresoForm

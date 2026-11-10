@@ -335,6 +335,7 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
             e.HasKey(r => r.Id);
             e.Property(r => r.QuantityRequired).HasPrecision(18, 2);
             e.Property(r => r.QuantityDelivered).HasPrecision(18, 2);
+            e.Property(r => r.QuantityReentered).HasPrecision(18, 2).HasDefaultValue(0m);
             e.Property(r => r.Observations).HasMaxLength(500);
             e.HasOne(r => r.ProductionOrder)
                 .WithMany(o => o.MaterialRequirements)
