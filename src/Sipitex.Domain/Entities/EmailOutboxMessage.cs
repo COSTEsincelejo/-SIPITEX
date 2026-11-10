@@ -13,5 +13,7 @@ public class EmailOutboxMessage
 
     public string Body { get; set; } = string.Empty;
 
+    public string? AttachmentNames { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }

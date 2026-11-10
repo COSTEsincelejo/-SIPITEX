@@ -167,6 +167,24 @@
     </div>
 }
 
+@if (Model.PuedeEnviarCorreo)
+{
+    <div class="card">
+        <div class="card-title"><i class="fas fa-envelope"></i> Enviar PDF por correo</div>
+        <p class="hint">El correo se usa solo para este envío. No queda guardado en el acta ni en el registro de actividad.</p>
+        <form asp-action="EnviarCorreo" asp-route-id="@acta.Id" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="field">
+                <label class="field-label" asp-for="Enviar.Correo">Correo</label>
+                <input asp-for="Enviar.Correo" type="email" autocomplete="email" required />
+                <span asp-validation-for="Enviar.Correo" class="field-error"></span>
+            </div>
+            <button type="submit" class="primary">Enviar PDF por correo</button>
+        </form>
+    </div>
+}
+
 @if (Model.PuedeAnular)
 {
     <div class="card">

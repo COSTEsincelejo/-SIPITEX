@@ -2,7 +2,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 using Serilog.Formatting.Compact;
 using Sipitex.Application.Seguridad;
@@ -16,6 +18,7 @@ using Sipitex.Infrastructure.Email;
 using Sipitex.Infrastructure.Persistence;
 using Sipitex.Web;
 using Sipitex.Web.Authorization;
+using Sipitex.Web.Controllers;
 using Sipitex.Web.Helpers;
 using Sipitex.Web.Hosting;
 using Sipitex.Web.Logging;
@@ -97,6 +100,27 @@ builder.Services.AddControllersWithViews(mvc =>
     mvc.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
 });
 builder.Services.Configure<SoporteOptions>(builder.Configuration.GetSection(SoporteOptions.Seccion));
+builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await context.HttpContext.Response.WriteAsync(
+            "Demasiadas verificaciones. Espere un minuto e intente de nuevo.",
+            token);
+    };
+    options.AddPolicy(VerificarController.PoliticaLimite, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
 builder.Services.Configure<SeguridadOptions>(builder.Configuration.GetSection(SeguridadOptions.Seccion));
 
 var seguridad = new SeguridadOptions();
@@ -269,6 +293,7 @@ app.UseWhen(
 
 app.UseStaticFiles(); // CSS, JS, imágenes de wwwroot
 app.UseRouting(); // resuelve rutas antes de auth
+app.UseRateLimiter();
 app.UseAuthentication(); // tiene que ir antes de Authorization
 app.UseAuthorization(); // revisa roles y políticas
 app.UseMiddleware<ContextoPeticionMiddleware>();

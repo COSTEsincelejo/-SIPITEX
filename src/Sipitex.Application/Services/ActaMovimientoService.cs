@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Sipitex.Application.DTOs;
@@ -250,12 +252,52 @@ public class ActaMovimientoService : IActaMovimientoService
     public Task<IReadOnlyDictionary<int, string>> GetActasPorConsumoAsync(CancellationToken cancellationToken = default) =>
         _actas.GetNumerosPorConsumoAsync(cancellationToken);
 
-    public async Task<ServiceResult<ReportFileDto>> ExportPdfAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult<ReportFileDto>> ExportPdfAsync(
+        int id,
+        CancellationToken cancellationToken = default,
+        string? urlVerificacion = null)
     {
         var acta = await GetByIdAsync(id, filter: null, cancellationToken);
         if (acta is null)
             return ServiceResult<ReportFileDto>.Fail("Acta no encontrada.");
-        return ServiceResult<ReportFileDto>.Ok(_pdf.Render(acta));
+        return ServiceResult<ReportFileDto>.Ok(_pdf.Render(acta, urlVerificacion));
+    }
+
+    public async Task<VerificacionActaResultado> VerificarPublicoAsync(
+        string? numero,
+        string? codigo,
+        CancellationToken cancellationToken = default)
+    {
+        var informado = (codigo ?? string.Empty).Trim().ToLowerInvariant();
+        ActaMovimiento? acta = null;
+        if (!string.IsNullOrWhiteSpace(numero))
+            acta = await _actas.GetByNumeroAsync(numero.Trim(), cancellationToken);
+
+        var esperado = acta is null ? "000000000000" : _pdf.CodigoVerificacion(Map(acta));
+        var coincide = CompararEnTiempoConstante(esperado, informado);
+        if (acta is null || !coincide)
+            return new VerificacionActaResultado(false, null, null, null, null, 0);
+
+        return new VerificacionActaResultado(
+            true,
+            acta.Numero,
+            acta.Tipo,
+            acta.FechaUtc,
+            acta.Estado,
+            acta.Detalles.Count);
+    }
+
+    private static bool CompararEnTiempoConstante(string esperado, string informado)
+    {
+        var izquierda = Encoding.UTF8.GetBytes(esperado);
+        var derecha = Encoding.UTF8.GetBytes(informado);
+        if (izquierda.Length != derecha.Length)
+        {
+            CryptographicOperations.FixedTimeEquals(izquierda, izquierda);
+            return false;
+        }
+
+        return CryptographicOperations.FixedTimeEquals(izquierda, derecha);
     }
 
     private async Task<List<ActaMovimientoDetalle>> BuildDetallesAsync(

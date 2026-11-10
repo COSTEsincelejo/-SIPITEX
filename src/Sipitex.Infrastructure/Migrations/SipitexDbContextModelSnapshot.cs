@@ -756,6 +756,10 @@ namespace Sipitex.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AttachmentNames")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasColumnType("text");

@@ -759,6 +759,9 @@ public class CreateActaForm
     public string? RecibeFirmaDataUrl { get; set; }
     public int? PlantaOrigenId { get; set; }
     public int? PlantaDestinoId { get; set; }
+    [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Indique un correo válido.")]
+    [System.ComponentModel.DataAnnotations.StringLength(160, ErrorMessage = "El correo no puede superar 160 caracteres.")]
+    public string? EnviarPdfCorreo { get; set; }
 }
 
 public class ActaDetailsViewModel
@@ -766,8 +769,10 @@ public class ActaDetailsViewModel
     public ActaMovimientoDto Acta { get; set; } = null!;
     public bool PuedeFirmar { get; set; }
     public bool PuedeAnular { get; set; }
+    public bool PuedeEnviarCorreo { get; set; }
     public FirmarActaForm Firmar { get; set; } = new();
     public AnularActaForm Anular { get; set; } = new();
+    public EnviarActaPdfForm Enviar { get; set; } = new();
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
 }
@@ -784,6 +789,24 @@ public class AnularActaForm
     [System.ComponentModel.DataAnnotations.MinLength(10, ErrorMessage = "El motivo debe tener al menos 10 caracteres.")]
     [System.ComponentModel.DataAnnotations.StringLength(500, ErrorMessage = "El motivo no puede superar 500 caracteres.")]
     public string Motivo { get; set; } = string.Empty;
+}
+
+public class EnviarActaPdfForm
+{
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Indique el correo de destino.")]
+    [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Indique un correo válido.")]
+    [System.ComponentModel.DataAnnotations.StringLength(160, ErrorMessage = "El correo no puede superar 160 caracteres.")]
+    public string Correo { get; set; } = string.Empty;
+}
+
+public class VerificarActaViewModel
+{
+    public bool Autentica { get; set; }
+    public string? Numero { get; set; }
+    public string? Tipo { get; set; }
+    public string? Fecha { get; set; }
+    public string? Estado { get; set; }
+    public int CantidadItems { get; set; }
 }
 
 public class TrazabilidadIndexViewModel

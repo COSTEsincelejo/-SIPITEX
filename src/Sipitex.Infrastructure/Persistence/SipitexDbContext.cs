@@ -513,6 +513,7 @@ public class SipitexDbContext : DbContext, IDataProtectionKeyContext
             e.Property(m => m.ToName).HasMaxLength(120).IsRequired();
             e.Property(m => m.Subject).HasMaxLength(300).IsRequired();
             e.Property(m => m.Body).IsRequired();
+            e.Property(m => m.AttachmentNames).HasMaxLength(500);
         });
 
         modelBuilder.Entity<DataProtectionKey>(e =>

@@ -269,6 +269,12 @@
             <label class="field-label">Observaciones</label>
             <textarea asp-for="Form.Observaciones" rows="2"></textarea>
         </div>
+        <div class="field">
+            <label class="field-label" asp-for="Form.EnviarPdfCorreo">Enviar PDF por correo</label>
+            <input asp-for="Form.EnviarPdfCorreo" type="email" autocomplete="email" placeholder="opcional" />
+            <span asp-validation-for="Form.EnviarPdfCorreo" class="field-error"></span>
+            <p class="hint">Opcional. Si lo indica, el PDF se envía al registrar el acta. El correo no se guarda.</p>
+        </div>
         <button type="submit" class="primary">Registrar acta</button>
     </form>
 </div>
