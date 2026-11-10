@@ -3,6 +3,7 @@ using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Interfaces.Services;
+using System.Globalization;
 using Sipitex.Domain.Entities;
 
 namespace Sipitex.Application.Services;
@@ -78,16 +79,15 @@ public class MaterialConsumptionService : IMaterialConsumptionService
             .Where(l => l.MaterialId == material.Id)
             .OrderBy(l => l.Id)
             .ToList();
-        var entregado = lineas.Sum(l => l.QuantityDelivered);
-        if (entregado <= 0)
+        var previos = (await _consumos.GetByOrderIdAsync(order.Id, cancellationToken))
+            .Where(c => c.MaterialId == material.Id)
+            .ToList();
+        var totales = DisponibilidadMaterialOrden.DelMaterial(lineas, previos);
+        if (totales.Entregado <= 0)
             return ServiceResult.Fail(MensajeSinEntrega);
-
-        var previos = await _consumos.GetByOrderIdAsync(order.Id, cancellationToken);
-        var yaConsumido = previos.Where(c => c.MaterialId == material.Id).Sum(c => c.Cantidad);
-        var disponible = entregado - yaConsumido;
-        if (dto.Cantidad > disponible)
+        if (dto.Cantidad > totales.Disponible)
             return ServiceResult.Fail(
-                $"{MensajeSuperaEntrega} Entregado: {entregado:0.##}, ya consumido: {yaConsumido:0.##}.");
+                $"{MensajeSuperaEntrega} Entregado: {Numero(totales.Entregado)}, reingresado: {Numero(totales.Reingresado)}, ya consumido: {Numero(totales.Consumido)}.");
 
         var costo = material.CostoPromedioPonderado;
         var fecha = dto.FechaUtc ?? DateTime.UtcNow;
@@ -98,10 +98,8 @@ public class MaterialConsumptionService : IMaterialConsumptionService
             if (porColocar <= 0)
                 break;
 
-            var usadoEnLinea = previos
-                .Where(c => c.OrderMaterialRequirementId == linea.Id)
-                .Sum(c => c.Cantidad);
-            var restante = linea.QuantityDelivered - usadoEnLinea;
+            var usadoEnLinea = DisponibilidadMaterialOrden.ConsumidoEnLinea(previos, linea.Id);
+            var restante = DisponibilidadMaterialOrden.DeLaLinea(linea, usadoEnLinea);
             if (restante <= 0)
                 continue;
 
@@ -146,6 +144,8 @@ public class MaterialConsumptionService : IMaterialConsumptionService
         var totalCosto = lineas.Sum(l => l.Cantidad * l.CostoUnitario);
         return new ConsumoCostoResumenDto(productionOrderId, totalCantidad, promedio, totalCosto);
     }
+
+    private static string Numero(decimal valor) => valor.ToString("0.##", CultureInfo.InvariantCulture);
 
     private static ConsumoMaterialDto Map(ConsumoMaterial c) => new(
         c.Id,

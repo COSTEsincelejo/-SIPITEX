@@ -608,7 +608,7 @@ public class PlantaInventarioOrdenDetailViewModel
 public class PlantaInventarioReingresoViewModel
 {
     public IReadOnlyList<ProductionOrderDto> Orders { get; set; } = [];
-    public IReadOnlyList<MaterialDto> Materials { get; set; } = [];
+    public IReadOnlyList<MaterialReingresableDto> MaterialesDeLaOrden { get; set; } = [];
     public IReadOnlyList<OrderStageDto> Stages { get; set; } = [];
     public IReadOnlyList<string> StageNames { get; set; } = [];
     public PlantaInventarioReingresoForm Form { get; set; } = new();
@@ -620,7 +620,7 @@ public class PlantaInventarioReingresoForm
 {
     public int OrderId { get; set; }
     public int StageId { get; set; }
-    public int Quantity { get; set; } = 1;
+    public decimal Quantity { get; set; } = 1;
     public int MaterialId { get; set; }
     public bool EsProductoTerminado { get; set; }
     public string? Observations { get; set; }

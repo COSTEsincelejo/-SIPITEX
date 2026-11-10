@@ -31,9 +31,9 @@ Es la ficha del insumo, no la receta de la prenda.
 1. **Solicitudes de materiales** es la cola de su planta. Abra el detalle.
 2. En un pedido libre, elija el material del catálogo. La lista muestra nombre, código de almacén, referencia, categoría, tipo y stock. No apruebe más de lo que hay.
 3. **Materiales de órdenes** entrega a producción lo que la orden ya pidió. La fila repite código de almacén, referencia, categoría y tipo. No se entrega a una orden cerrada ni a una que siga pendiente de aprobación.
-4. **Reingreso desde etapas** devuelve material o producto terminado desde Trazo, Corte, Confección, Control de Calidad o Terminado. No puede reingresar más de lo disponible en la etapa.
-5. **Movimientos de stock** consulta entradas y salidas. No edita el historial. Un ajuste se hace en el inventario de la planta y deja otra línea.
-6. **Consumo de materiales** registra lo usado en una orden. El costo unitario queda congelado. La fila muestra código de almacén, referencia, categoría y tipo cuando el material los tiene.
+4. **Consumo de materiales** registra lo usado en una orden, y solo hasta lo entregado que todavía no se consumió ni se reingresó. El costo unitario queda congelado. La fila muestra código de almacén, referencia, categoría y tipo cuando el material los tiene.
+5. **Reingreso desde etapas** devuelve a la planta el sobrante: material entregado a la orden que no se consumió. La pantalla lista solo los materiales de esa orden, con entregado, consumido, reingresado y disponible. No se puede devolver más de ese disponible. El reingreso de material también se hace en una orden finalizada o cancelada. El producto terminado sigue limitado a las unidades enteras disponibles en la etapa (Trazo, Corte, Confección, Control de Calidad o Terminado) y no cambia el stock de insumos. El instructor no ve esta pantalla.
+6. **Movimientos de stock** consulta entradas y salidas. No edita el historial. Un ajuste se hace en el inventario de la planta y deja otra línea.
 
 ## Lo que no hace este rol
 

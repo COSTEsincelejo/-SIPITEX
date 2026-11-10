@@ -81,6 +81,7 @@ public class OrderMaterialServiceTests
         Assert.True(result.Success);
         Assert.Equal(0m, material.Stock);
         Assert.Equal(10m, line.QuantityDelivered);
+        Assert.Equal(0m, line.QuantityReentered);
         Assert.Equal(OrderMaterialsStatus.EntregaParcial, order.MaterialsStatus);
         Assert.Contains("Pendientes", result.Message);
     }
