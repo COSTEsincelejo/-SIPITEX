@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using QRCoder;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -17,7 +18,7 @@ public class ActaPdfService : IActaPdfService
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
-    public ReportFileDto Render(ActaMovimientoDto acta)
+    public ReportFileDto Render(ActaMovimientoDto acta, string? urlVerificacion = null)
     {
         var titulo = acta.Tipo == ActaTipo.Ingreso
             ? "Acta de ingreso"
@@ -107,6 +108,13 @@ public class ActaPdfService : IActaPdfService
 
                 page.Footer().AlignCenter().Column(col =>
                 {
+                    if (!string.IsNullOrWhiteSpace(urlVerificacion))
+                    {
+                        col.Item().AlignCenter().Width(62).Height(62).Image(CodigoQr(urlVerificacion));
+                        col.Item().AlignCenter().Text("Verifique este documento escaneando el código")
+                            .FontSize(8).FontColor(Colors.Grey.Darken1);
+                    }
+
                     col.Item().AlignCenter().Text("CMTC · SENA · ADSO").FontSize(8).FontColor(Colors.Grey.Medium);
                     col.Item().AlignCenter().Text($"Código de verificación: {verificacion}").FontSize(8).FontColor(Colors.Grey.Darken1);
                 });
@@ -114,6 +122,16 @@ public class ActaPdfService : IActaPdfService
         }).GeneratePdf();
 
         return new ReportFileDto(pdf, "application/pdf", $"SIPITEX_{acta.Numero}_{acta.FechaUtc:yyyyMMdd_HHmm}.pdf");
+    }
+
+    string IActaPdfService.CodigoVerificacion(ActaMovimientoDto acta) => CodigoVerificacion(acta);
+
+    private static byte[] CodigoQr(string url)
+    {
+        using var generador = new QRCodeGenerator();
+        using var datos = generador.CreateQrCode(url, QRCodeGenerator.ECCLevel.Q);
+        var png = new PngByteQRCode(datos);
+        return png.GetGraphic(4);
     }
 
     public static string CodigoVerificacion(ActaMovimientoDto acta)

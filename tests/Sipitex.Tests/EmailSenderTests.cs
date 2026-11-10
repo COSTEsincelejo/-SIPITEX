@@ -311,6 +311,89 @@ public class EmailSenderTests
             || line.Contains("654321", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task SendAsync_Resend_AdjuntaElPdfEnBase64()
+    {
+        var handler = new StubHandler { Response = new HttpResponseMessage(HttpStatusCode.OK) };
+        var sender = new EmailSender(
+            Options.Create(new EmailOptions
+            {
+                Enabled = true,
+                Provider = "Resend",
+                ApiKey = "re_super_secret",
+                FromAddress = "avisos@sipitex.test",
+                FromName = "SIPITEX"
+            }),
+            NullLogger<EmailSender>.Instance,
+            httpClientFactory: new StubFactory(handler));
+        var bytes = new byte[] { 1, 2, 3, 4 };
+
+        await sender.SendAsync(
+            "ana@gmail.com",
+            "Ana",
+            "Acta",
+            "cuerpo",
+            [new EmailAttachment("ACT-0001.pdf", "application/pdf", bytes)]);
+
+        using var doc = JsonDocument.Parse(handler.LastBody!);
+        var adjunto = doc.RootElement.GetProperty("attachments")[0];
+        Assert.Equal("ACT-0001.pdf", adjunto.GetProperty("filename").GetString());
+        Assert.Equal(Convert.ToBase64String(bytes), adjunto.GetProperty("content").GetString());
+    }
+
+    [Fact]
+    public async Task SendAsync_Brevo_AdjuntaElPdfEnBase64()
+    {
+        var handler = new StubHandler
+        {
+            Response = new HttpResponseMessage(HttpStatusCode.Created)
+            {
+                Content = new StringContent("{\"messageId\":\"m1\"}")
+            }
+        };
+        var sender = BrevoSender(handler, new ListLogger());
+        var bytes = new byte[] { 9, 8, 7 };
+
+        await sender.SendAsync(
+            "ana@gmail.com",
+            "Ana",
+            "Acta",
+            "cuerpo",
+            [new EmailAttachment("ACT-0002.pdf", "application/pdf", bytes)]);
+
+        using var doc = JsonDocument.Parse(handler.LastBody!);
+        var adjunto = doc.RootElement.GetProperty("attachment")[0];
+        Assert.Equal("ACT-0002.pdf", adjunto.GetProperty("name").GetString());
+        Assert.Equal(Convert.ToBase64String(bytes), adjunto.GetProperty("content").GetString());
+    }
+
+    [Fact]
+    public async Task SendAsync_AdjuntoMayorA5Mb_NoSale()
+    {
+        var handler = new StubHandler();
+        var sender = new EmailSender(
+            Options.Create(new EmailOptions
+            {
+                Enabled = true,
+                Provider = "Resend",
+                ApiKey = "re_super_secret",
+                FromAddress = "avisos@sipitex.test"
+            }),
+            NullLogger<EmailSender>.Instance,
+            httpClientFactory: new StubFactory(handler));
+
+        var ex = await Assert.ThrowsAsync<EmailDeliveryException>(() =>
+            sender.SendAsync(
+                "ana@gmail.com",
+                "Ana",
+                "Acta",
+                "cuerpo",
+                [new EmailAttachment("grande.pdf", "application/pdf", new byte[EmailSender.MaxAttachmentBytes + 1])]));
+
+        Assert.Contains("5 MB", ex.Message, StringComparison.Ordinal);
+        Assert.Null(handler.LastRequest);
+    }
+
     private static EmailSender BrevoSender(StubHandler handler, ListLogger logger) =>
         new(
             Options.Create(new EmailOptions

@@ -27,6 +27,15 @@ public class ActaMovimientoRepository : IActaMovimientoRepository
             .Include(a => a.AnuladaPor)
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
+    public Task<ActaMovimiento?> GetByNumeroAsync(string numero, CancellationToken cancellationToken = default) =>
+        _db.ActasMovimiento
+            .AsNoTracking()
+            .Include(a => a.Detalles)
+                .ThenInclude(d => d.Material!)
+                    .ThenInclude(m => m.PlantaInventario)
+            .Include(a => a.ProductionOrder)
+            .FirstOrDefaultAsync(a => a.Numero == numero, cancellationToken);
+
     public async Task<IReadOnlyList<ActaMovimiento>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await _db.ActasMovimiento
             .AsNoTracking()

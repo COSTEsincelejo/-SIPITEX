@@ -163,6 +163,41 @@ public class ActaPdfServiceTests
         Assert.Contains("Firma de quien recibe pendiente", texto, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Render_ConUrl_DibujaLaInvitacionAVerificarYConservaElCodigo()
+    {
+        var acta = new ActaMovimientoDto(
+            1,
+            "ACT-0004",
+            ActaTipo.Ingreso,
+            ActaOrigen.Manual,
+            new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Laura",
+            "Instructor",
+            new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+            TestPng.Bytes,
+            "Pedro",
+            "Encargado",
+            new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+            TestPng.Bytes,
+            7,
+            "Ana",
+            [new ActaDetalleDto(1, ActaItemTipo.Material, "Tela", 1, "metro", null, null, null, null)]);
+        var codigo = ActaPdfService.CodigoVerificacion(acta);
+        var url = $"https://sipitex.example/Verificar/Acta?numero=ACT-0004&codigo={codigo}";
+
+        var texto = ExtraerTextoPdf(new ActaPdfService().Render(acta, url).Content).Replace("\0", "");
+
+        Assert.Contains("este documento escaneando el código", texto, StringComparison.Ordinal);
+        Assert.Contains(codigo, texto, StringComparison.Ordinal);
+        Assert.Equal(codigo, ActaPdfService.CodigoVerificacion(acta));
+    }
+
     private static string ExtraerTextoPdf(byte[] pdf)
     {
         var latin = Encoding.Latin1.GetString(pdf);

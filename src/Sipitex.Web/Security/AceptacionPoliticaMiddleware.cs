@@ -36,6 +36,7 @@ public sealed class AceptacionPoliticaMiddleware
         || path.StartsWithSegments("/Account/KeepAlive")
         || path.StartsWithSegments("/Account/AccessDenied")
         || path.StartsWithSegments("/Account/Photo")
+        || path.StartsWithSegments("/Verificar")
         || path.StartsWithSegments("/health")
         || path.StartsWithSegments("/healthz")
         || path.StartsWithSegments("/version");

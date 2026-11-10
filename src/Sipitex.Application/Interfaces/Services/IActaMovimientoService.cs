@@ -1,4 +1,5 @@
 using Sipitex.Application.DTOs;
+using Sipitex.Domain.Enums;
 
 namespace Sipitex.Application.Interfaces.Services;
 
@@ -29,7 +30,15 @@ public interface IActaMovimientoService
         string actorRole,
         string motivo,
         CancellationToken cancellationToken = default);
-    Task<ServiceResult<ReportFileDto>> ExportPdfAsync(int id, CancellationToken cancellationToken = default);
+    Task<ServiceResult<ReportFileDto>> ExportPdfAsync(
+        int id,
+        CancellationToken cancellationToken = default,
+        string? urlVerificacion = null);
+
+    Task<VerificacionActaResultado> VerificarPublicoAsync(
+        string? numero,
+        string? codigo,
+        CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<int, string>> GetActasPorMovimientoStockAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<int, string>> GetActasPorConsumoAsync(CancellationToken cancellationToken = default);
@@ -41,7 +50,16 @@ public record ActaViewerFilter(
     IReadOnlyList<int> PlantaInventarioIds,
     IReadOnlyCollection<int> AllowedOrderIds);
 
+public sealed record VerificacionActaResultado(
+    bool Autentica,
+    string? Numero,
+    ActaTipo? Tipo,
+    DateTime? FechaUtc,
+    ActaEstado? Estado,
+    int CantidadItems);
+
 public interface IActaPdfService
 {
-    ReportFileDto Render(ActaMovimientoDto acta);
+    ReportFileDto Render(ActaMovimientoDto acta, string? urlVerificacion = null);
+    string CodigoVerificacion(ActaMovimientoDto acta);
 }

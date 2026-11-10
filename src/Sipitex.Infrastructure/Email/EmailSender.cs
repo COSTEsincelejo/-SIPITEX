@@ -61,8 +61,20 @@ public class EmailSender : IEmailSender
 
     public string DeliveryChannel => EmailConfiguration.DisplayName(EmailConfiguration.ResolveProvider(_options));
 
-    public async Task SendAsync(string toEmail, string toName, string subject, string body, CancellationToken cancellationToken = default)
+    public Task SendAsync(string toEmail, string toName, string subject, string body, CancellationToken cancellationToken = default) =>
+        SendAsync(toEmail, toName, subject, body, attachments: null, cancellationToken);
+
+    public const int MaxAttachmentBytes = 5 * 1024 * 1024;
+
+    public async Task SendAsync(
+        string toEmail,
+        string toName,
+        string subject,
+        string body,
+        IReadOnlyList<EmailAttachment>? attachments,
+        CancellationToken cancellationToken = default)
     {
+        var adjuntos = NormalizarAdjuntos(attachments);
         var provider = EmailConfiguration.ResolveProvider(_options);
         var display = EmailConfiguration.DisplayName(provider);
         int? status = null;
@@ -72,21 +84,21 @@ public class EmailSender : IEmailSender
             switch (provider)
             {
                 case EmailConfiguration.Outbox:
-                    await SendOutboxAsync(toEmail, toName, subject, body, cancellationToken);
+                    await SendOutboxAsync(toEmail, toName, subject, body, adjuntos, cancellationToken);
                     LogAttempt(toEmail, display, "outbox", null, null, null);
                     return;
                 case EmailConfiguration.Resend:
-                    var resend = await SendResendAsync(toEmail, toName, subject, body, cancellationToken);
+                    var resend = await SendResendAsync(toEmail, toName, subject, body, adjuntos, cancellationToken);
                     status = resend.Status;
                     LogAttempt(toEmail, display, "ok", status, null, resend.MessageId);
                     return;
                 case EmailConfiguration.Brevo:
-                    var brevo = await SendBrevoAsync(toEmail, toName, subject, body, cancellationToken);
+                    var brevo = await SendBrevoAsync(toEmail, toName, subject, body, adjuntos, cancellationToken);
                     status = brevo.Status;
                     LogAttempt(toEmail, display, "ok", status, null, brevo.MessageId);
                     return;
                 case EmailConfiguration.Smtp:
-                    await SendSmtpAsync(toEmail, toName, subject, body, cancellationToken);
+                    await SendSmtpAsync(toEmail, toName, subject, body, adjuntos, cancellationToken);
                     break;
                 default:
                     throw new EmailDeliveryException(
@@ -111,11 +123,30 @@ public class EmailSender : IEmailSender
         }
     }
 
+    private static IReadOnlyList<EmailAttachment> NormalizarAdjuntos(IReadOnlyList<EmailAttachment>? attachments)
+    {
+        if (attachments is null || attachments.Count == 0)
+            return [];
+
+        foreach (var adjunto in attachments)
+        {
+            if (string.IsNullOrWhiteSpace(adjunto.FileName) || adjunto.FileName.IndexOfAny(['/', '\\']) >= 0)
+                throw new EmailDeliveryException("El adjunto no tiene un nombre válido.");
+            if (adjunto.Content is not { Length: > 0 })
+                throw new EmailDeliveryException("El adjunto está vacío.");
+            if (adjunto.Content.Length > MaxAttachmentBytes)
+                throw new EmailDeliveryException("Cada adjunto puede pesar hasta 5 MB.");
+        }
+
+        return attachments;
+    }
+
     private async Task<ProviderCall> SendResendAsync(
         string toEmail,
         string toName,
         string subject,
         string body,
+        IReadOnlyList<EmailAttachment> attachments,
         CancellationToken cancellationToken)
     {
         EnsureApiReady(EmailConfiguration.Resend);
@@ -133,6 +164,7 @@ public class EmailSender : IEmailSender
             payload["html"] = body;
         else
             payload["text"] = body;
+        AgregarAdjuntosResend(payload, attachments);
 
         var apiKey = (_options.ApiKey ?? string.Empty).Trim();
         return await PostJsonAsync(
@@ -149,6 +181,7 @@ public class EmailSender : IEmailSender
         string toName,
         string subject,
         string body,
+        IReadOnlyList<EmailAttachment> attachments,
         CancellationToken cancellationToken)
     {
         EnsureApiReady(EmailConfiguration.Brevo);
@@ -176,6 +209,7 @@ public class EmailSender : IEmailSender
             payload["htmlContent"] = body;
         else
             payload["textContent"] = body;
+        AgregarAdjuntosBrevo(payload, attachments);
 
         return await PostJsonAsync(
             "https://api.brevo.com/v3/smtp/email",
@@ -262,11 +296,36 @@ public class EmailSender : IEmailSender
             throw new EmailDeliveryException($"El proveedor activo no es {provider}.");
     }
 
+    private static void AgregarAdjuntosResend(Dictionary<string, object?> payload, IReadOnlyList<EmailAttachment> attachments)
+    {
+        if (attachments.Count == 0)
+            return;
+
+        payload["attachments"] = attachments.Select(adjunto => new Dictionary<string, string>
+        {
+            ["filename"] = adjunto.FileName,
+            ["content"] = Convert.ToBase64String(adjunto.Content)
+        }).ToArray();
+    }
+
+    private static void AgregarAdjuntosBrevo(Dictionary<string, object?> payload, IReadOnlyList<EmailAttachment> attachments)
+    {
+        if (attachments.Count == 0)
+            return;
+
+        payload["attachment"] = attachments.Select(adjunto => new Dictionary<string, string>
+        {
+            ["name"] = adjunto.FileName,
+            ["content"] = Convert.ToBase64String(adjunto.Content)
+        }).ToArray();
+    }
+
     private async Task SendSmtpAsync(
         string toEmail,
         string toName,
         string subject,
         string body,
+        IReadOnlyList<EmailAttachment> attachments,
         CancellationToken cancellationToken)
     {
         var problem = EmailConfiguration.DescribeBlockingProblem(_options);
@@ -278,9 +337,29 @@ public class EmailSender : IEmailSender
         message.From.Add(new MailboxAddress(_options.FromName, fromAddress));
         message.To.Add(new MailboxAddress(toName, toEmail));
         message.Subject = subject;
-        message.Body = IsHtml(body)
-            ? new TextPart("html") { Text = body }
-            : new TextPart("plain") { Text = body };
+        if (attachments.Count == 0)
+        {
+            message.Body = IsHtml(body)
+                ? new TextPart("html") { Text = body }
+                : new TextPart("plain") { Text = body };
+        }
+        else
+        {
+            var builder = new BodyBuilder();
+            if (IsHtml(body))
+                builder.HtmlBody = body;
+            else
+                builder.TextBody = body;
+            foreach (var adjunto in attachments)
+            {
+                var tipo = ContentType.Parse(string.IsNullOrWhiteSpace(adjunto.ContentType)
+                    ? "application/octet-stream"
+                    : adjunto.ContentType);
+                builder.Attachments.Add(adjunto.FileName, adjunto.Content, tipo);
+            }
+
+            message.Body = builder.ToMessageBody();
+        }
 
         try
         {
@@ -312,15 +391,22 @@ public class EmailSender : IEmailSender
         string toName,
         string subject,
         string body,
+        IReadOnlyList<EmailAttachment> attachments,
         CancellationToken cancellationToken)
     {
         if (_db is null)
             throw new EmailDeliveryException("No hay base de datos para guardar el correo en el outbox.");
 
+        string? nombres = attachments.Count == 0
+            ? null
+            : string.Join(", ", attachments.Select(adjunto => adjunto.FileName));
+        if (nombres is { Length: > 500 })
+            nombres = nombres[..500];
+
         await _db.Database.ExecuteSqlInterpolatedAsync(
             $"""
-            INSERT INTO "EmailOutboxMessages" ("ToEmail", "ToName", "Subject", "Body", "CreatedAtUtc")
-            VALUES ({toEmail}, {toName}, {subject}, {body}, {DateTime.UtcNow})
+            INSERT INTO "EmailOutboxMessages" ("ToEmail", "ToName", "Subject", "Body", "CreatedAtUtc", "AttachmentNames")
+            VALUES ({toEmail}, {toName}, {subject}, {body}, {DateTime.UtcNow}, {nombres})
             """,
             cancellationToken);
     }

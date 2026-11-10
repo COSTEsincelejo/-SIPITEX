@@ -1,11 +1,16 @@
+using System.Net.Mail;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
+using Sipitex.Infrastructure.Email;
+using Sipitex.Web;
+using Sipitex.Web.Helpers;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
@@ -19,6 +24,8 @@ public class ActasController : Controller
     private readonly IMaterialConsumptionService _consumos;
     private readonly ICurrentPlantaInventarioAccessor _plantaAccessor;
     private readonly IPlantaInventarioService _plantas;
+    private readonly IEmailSender _correo;
+    private readonly AppOptions _app;
 
     public ActasController(
         IActaMovimientoService actas,
@@ -26,7 +33,9 @@ public class ActasController : Controller
         IStockMovementService stock,
         IMaterialConsumptionService consumos,
         ICurrentPlantaInventarioAccessor plantaAccessor,
-        IPlantaInventarioService plantas)
+        IPlantaInventarioService plantas,
+        IEmailSender correo,
+        IOptions<AppOptions> app)
     {
         _actas = actas;
         _orders = orders;
@@ -34,6 +43,8 @@ public class ActasController : Controller
         _consumos = consumos;
         _plantaAccessor = plantaAccessor;
         _plantas = plantas;
+        _correo = correo;
+        _app = app.Value;
     }
 
     [HttpGet]
@@ -107,8 +118,19 @@ public class ActasController : Controller
 
         if (result is { Success: true, Value: { } acta })
         {
-            TempData["Message"] = result.Message;
-            TempData["IsSuccess"] = true;
+            var mensaje = result.Message ?? $"Acta {acta.Numero} registrada.";
+            var envioOk = true;
+            if (!string.IsNullOrWhiteSpace(form.EnviarPdfCorreo))
+            {
+                var envio = await EnviarPdfAsync(acta, form.EnviarPdfCorreo, cancellationToken);
+                envioOk = envio.Ok;
+                mensaje = envio.Ok
+                    ? $"{mensaje} El PDF se envió por correo."
+                    : $"{mensaje} No se pudo enviar el PDF: {envio.Error}";
+            }
+
+            TempData["Message"] = mensaje;
+            TempData["IsSuccess"] = envioOk;
             return RedirectToAction(nameof(Details), new { id = acta.Id, descargar = 1 });
         }
 
@@ -239,6 +261,7 @@ public class ActasController : Controller
             Acta = acta,
             PuedeFirmar = pendiente && (admin || (userId is int uid && uid == acta.CreadoPorUserId)),
             PuedeAnular = admin && acta.Estado != ActaEstado.Anulada,
+            PuedeEnviarCorreo = admin || (userId is int creador && creador == acta.CreadoPorUserId),
             Message = TempData["Message"] as string,
             IsSuccess = TempData["IsSuccess"] as bool? ?? false
         };
@@ -251,10 +274,91 @@ public class ActasController : Controller
         var visible = await _actas.GetByIdAsync(id, filter, cancellationToken);
         if (visible is null)
             return NotFound();
-        var result = await _actas.ExportPdfAsync(id, cancellationToken);
+        var result = await _actas.ExportPdfAsync(id, cancellationToken, UrlVerificacion(visible));
         if (!result.Success || result.Value is null)
             return NotFound();
         return File(result.Value.Content, result.Value.ContentType, result.Value.FileName);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EnviarCorreo(int id, [Bind(Prefix = "Enviar")] EnviarActaPdfForm form, CancellationToken cancellationToken)
+    {
+        var filter = await BuildFilterAsync(cancellationToken);
+        var acta = await _actas.GetByIdAsync(id, filter, cancellationToken);
+        if (acta is null)
+            return NotFound();
+        if (!PuedeEnviar(acta))
+            return Forbid();
+
+        if (!ModelState.IsValid)
+        {
+            var model = BuildDetailsViewModel(acta);
+            model.Enviar = form;
+            return View(nameof(Details), model);
+        }
+
+        var envio = await EnviarPdfAsync(acta, form.Correo, cancellationToken);
+        TempData["Message"] = envio.Ok ? "El PDF se envió por correo." : envio.Error;
+        TempData["IsSuccess"] = envio.Ok;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private bool PuedeEnviar(ActaMovimientoDto acta)
+    {
+        var (userId, role, _) = CurrentViewer();
+        var admin = string.Equals(role, UserRoles.Administrador, StringComparison.OrdinalIgnoreCase);
+        return admin || (userId is int uid && uid == acta.CreadoPorUserId);
+    }
+
+    private async Task<(bool Ok, string? Error)> EnviarPdfAsync(
+        ActaMovimientoDto acta,
+        string correo,
+        CancellationToken cancellationToken)
+    {
+        var destino = (correo ?? string.Empty).Trim();
+        if (!MailAddress.TryCreate(destino, out _))
+            return (false, "Indique un correo válido.");
+
+        var url = UrlVerificacion(acta);
+        var pdf = await _actas.ExportPdfAsync(acta.Id, cancellationToken, url);
+        if (!pdf.Success || pdf.Value is null)
+            return (false, "No se pudo generar el PDF.");
+
+        var archivo = pdf.Value;
+        var cuerpo =
+            $"Acta {acta.Numero} ({DisplayHelper.StatusText(acta.Tipo)}) del {acta.FechaUtc:yyyy-MM-dd HH:mm} UTC.\n" +
+            $"Verifique el documento: {url}";
+        try
+        {
+            await _correo.SendAsync(
+                destino,
+                acta.RecibeNombre,
+                $"SIPITEX · {acta.Numero}",
+                cuerpo,
+                [new EmailAttachment(archivo.FileName, archivo.ContentType, archivo.Content)],
+                cancellationToken);
+            return (true, null);
+        }
+        catch (EmailDeliveryException ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    private string UrlVerificacion(ActaMovimientoDto acta)
+    {
+        var codigo = CodigoDe(acta);
+        var baseUrl = string.IsNullOrWhiteSpace(_app.BaseUrl)
+            ? $"{Request.Scheme}://{Request.Host.Value}".TrimEnd('/')
+            : _app.BaseUrl.Trim().TrimEnd('/');
+        return $"{baseUrl}/Verificar/Acta?numero={Uri.EscapeDataString(acta.Numero)}&codigo={Uri.EscapeDataString(codigo)}";
+    }
+
+    private string CodigoDe(ActaMovimientoDto acta)
+    {
+        var pdf = HttpContext.RequestServices.GetRequiredService<IActaPdfService>();
+        return pdf.CodigoVerificacion(acta);
     }
 
     private async Task<ActaViewerFilter?> BuildFilterAsync(CancellationToken cancellationToken)
