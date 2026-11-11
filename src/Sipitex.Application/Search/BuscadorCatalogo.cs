@@ -448,7 +448,7 @@ public static class BuscadorCatalogo
             ["calcular materiales", "explosion"],
             Consultar, PermisoSimularMrp),
         A("Plantas de inventario", "Consultar insumos, stock y el resumen de cada planta",
-            "/PlantasInventario", "fa-warehouse", "Operación", TresRoles,
+            "/PlantasInventario", "fa-warehouse", "Operación", AdminEncargado,
             ["inventario por planta", "inventario", "stock", "bodega", "plantas de inventario"],
             ["almacen", "existencias", "ver stock", "inventario bodega", "insumos", "inventario por bodega", "planta", "catalogo de plantas"],
             Consultar, prioridad: 3),

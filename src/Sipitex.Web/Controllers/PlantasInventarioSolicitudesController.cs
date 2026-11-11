@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Sipitex.Application.Authorization;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
@@ -138,7 +139,7 @@ public class PlantasInventarioSolicitudesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.EncargadoDeBodega}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeAprobarSolicitudes)]
     public async Task<IActionResult> Resolve(
         [Bind(Prefix = "Resolve")] ResolveSolicitudForm form,
         CancellationToken cancellationToken)
@@ -192,8 +193,7 @@ public class PlantasInventarioSolicitudesController : Controller
         return RedirectToAction(nameof(Detail), new { id = form.SolicitudId });
     }
 
-    private bool CanResolver() =>
-        User.IsInRole(UserRoles.Administrador) || User.IsInRole(UserRoles.EncargadoDeBodega);
+    private bool CanResolver() => PermissionRules.PuedeAprobarSolicitudes(User);
 
     private bool IsInstructorOnly() =>
         User.IsInRole(UserRoles.Instructor)

@@ -1,6 +1,9 @@
+using System.Reflection;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Sipitex.Application.Authorization;
 using Sipitex.Domain.Entities;
+using Sipitex.Web.Controllers;
 
 namespace Sipitex.Tests;
 
@@ -47,5 +50,33 @@ public class AuthorizationPolicyTests
     {
         var user = CreateInstructor(ExtendedPermissions.SolicitudesAprobar);
         Assert.True(PermissionRules.PuedeAprobarSolicitudes(user));
+    }
+
+    [Fact]
+    public void PlantasInventarioSolicitudes_Resolve_UsaPuedeAprobarSolicitudes()
+    {
+        var attr = typeof(PlantasInventarioSolicitudesController)
+            .GetMethod(nameof(PlantasInventarioSolicitudesController.Resolve))!
+            .GetCustomAttribute<AuthorizeAttribute>();
+        Assert.NotNull(attr);
+        Assert.Equal(AuthorizationPolicyNames.PuedeAprobarSolicitudes, attr!.Policy);
+        Assert.True(string.IsNullOrEmpty(attr.Roles));
+    }
+
+    [Fact]
+    public void PlantasInventario_IndexYConsultar_UsanPuedeConsultarInventario()
+    {
+        foreach (var name in new[]
+                 {
+                     nameof(PlantasInventarioController.Index),
+                     nameof(PlantasInventarioController.Consultar)
+                 })
+        {
+            var attr = typeof(PlantasInventarioController)
+                .GetMethod(name)!
+                .GetCustomAttributes<AuthorizeAttribute>()
+                .First(a => !string.IsNullOrEmpty(a.Policy));
+            Assert.Equal(AuthorizationPolicyNames.PuedeConsultarInventario, attr.Policy);
+        }
     }
 }

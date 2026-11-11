@@ -37,7 +37,7 @@
 </div>
 
 <div class="module-grid">
-    @if (User.IsInRole("Administrador") || User.IsInRole("Encargado de bodega") || User.IsInRole("Instructor"))
+    @if (User.IsInRole("Administrador") || User.IsInRole("Encargado de bodega"))
     {
         <a class="module-link" asp-controller="PlantasInventario" asp-action="Index">
             <i class="fas fa-warehouse"></i>
