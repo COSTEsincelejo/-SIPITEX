@@ -23,13 +23,14 @@ public class QualityInstructorScopeTests
     private readonly Mock<IQualityRepository> _quality = new();
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IProductionOrderService> _orderService = new();
+    private readonly Mock<IProductLifecycleService> _lifecycle = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private QualityService CreateSut() => new(
         _quality.Object,
         _orders.Object,
         _orderService.Object,
-        new Mock<IProductLifecycleService>().Object,
+        _lifecycle.Object,
         _uow.Object);
 
     private static QualityRecord Record(int orderId, string orderNumber, int units = 5) => new()
@@ -164,6 +165,65 @@ public class QualityInstructorScopeTests
         Assert.False(result.Success);
         Assert.Contains("acceso", result.Message, StringComparison.OrdinalIgnoreCase);
         _quality.Verify(r => r.AddAsync(It.IsAny<QualityRecord>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddRecordAsync_BuenoEnCalidad_AvanzaAProductoTerminadoViaLifecycle()
+    {
+        _orderService.Setup(s => s.CanAccessOrderAsync(1, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder
+            {
+                Id = 1,
+                OrderNumber = "OP-101",
+                Status = OrderStatus.EnProceso,
+                EstadoProducto = EstadoProducto.Calidad
+            });
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _lifecycle.Setup(l => l.TransitionAsync(
+                1, EstadoProducto.ProductoTerminado, 10, "Clasificación Bueno", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Ok("ok"));
+
+        var result = await CreateSut().AddRecordAsync(
+            new CreateQualityRecordDto(1, 8, QualityResult.Aprobada, Clasificacion: CalidadClasificacion.Bueno),
+            10, UserRoles.Instructor, "Laura");
+
+        Assert.True(result.Success);
+        _lifecycle.Verify(l => l.TransitionAsync(
+            1, EstadoProducto.ProductoTerminado, 10, "Clasificación Bueno", It.IsAny<CancellationToken>()), Times.Once);
+        _lifecycle.Verify(l => l.TransitionAsync(
+            It.IsAny<int>(), EstadoProducto.Confeccion, It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddRecordAsync_MaloEnCalidad_VuelveAConfeccionViaLifecycle()
+    {
+        _orderService.Setup(s => s.CanAccessOrderAsync(1, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder
+            {
+                Id = 1,
+                OrderNumber = "OP-101",
+                Status = OrderStatus.EnProceso,
+                EstadoProducto = EstadoProducto.Calidad
+            });
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _lifecycle.Setup(l => l.TransitionAsync(
+                1, EstadoProducto.Confeccion, 10, "Clasificación Malo", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Ok("ok"));
+
+        var result = await CreateSut().AddRecordAsync(
+            new CreateQualityRecordDto(1, 8, QualityResult.Reproceso, MotivoReproceso: "Costura", Responsable: "Laura",
+                Clasificacion: CalidadClasificacion.Malo),
+            10, UserRoles.Instructor, "Laura");
+
+        Assert.True(result.Success);
+        _lifecycle.Verify(l => l.TransitionAsync(
+            1, EstadoProducto.Confeccion, 10, "Clasificación Malo", It.IsAny<CancellationToken>()), Times.Once);
+        _lifecycle.Verify(l => l.TransitionAsync(
+            It.IsAny<int>(), EstadoProducto.ProductoTerminado, It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
