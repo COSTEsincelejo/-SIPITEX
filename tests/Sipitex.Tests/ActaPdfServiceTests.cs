@@ -1,7 +1,9 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
 using Sipitex.Application.DTOs;
+using Sipitex.Application.Seguridad;
 using Sipitex.Domain.Enums;
 using Sipitex.Infrastructure.Reporting;
 
@@ -164,6 +166,51 @@ public class ActaPdfServiceTests
     }
 
     [Fact]
+    public void Render_SinPrivacidad_NoInventaNitNiMuestraPendiente()
+    {
+        var acta = ActaMinima("ACT-0005");
+        var texto = ExtraerTextoPdf(new ActaPdfService().Render(acta).Content).Replace("\0", "");
+
+        Assert.Contains("CMTC · SENA · ADSO", texto, StringComparison.Ordinal);
+        Assert.DoesNotContain("NIT", texto, StringComparison.Ordinal);
+        Assert.DoesNotContain("PENDIENTE", texto, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Render_ConPrivacidad_MuestraResponsableNitYCiudad()
+    {
+        var opciones = Options.Create(new PrivacidadOptions
+        {
+            ResponsableNombre = "Centro de ejemplo",
+            NIT = "900000000-1",
+            Ciudad = "Ciudad Ejemplo"
+        });
+        var texto = ExtraerTextoPdf(new ActaPdfService(opciones).Render(ActaMinima("ACT-0006")).Content)
+            .Replace("\0", "");
+
+        Assert.Contains("Centro de ejemplo", texto, StringComparison.Ordinal);
+        Assert.Contains("NIT 900000000-1", texto, StringComparison.Ordinal);
+        Assert.Contains("Ciudad Ejemplo", texto, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Render_ConPrivacidadPendiente_OmiteEsosCampos()
+    {
+        var opciones = Options.Create(new PrivacidadOptions
+        {
+            ResponsableNombre = "PENDIENTE",
+            NIT = "PENDIENTE",
+            Ciudad = "PENDIENTE"
+        });
+        var texto = ExtraerTextoPdf(new ActaPdfService(opciones).Render(ActaMinima("ACT-0007")).Content)
+            .Replace("\0", "");
+
+        Assert.Contains("CMTC · SENA · ADSO", texto, StringComparison.Ordinal);
+        Assert.DoesNotContain("NIT", texto, StringComparison.Ordinal);
+        Assert.DoesNotContain("PENDIENTE", texto, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Render_ConUrl_DibujaLaInvitacionAVerificarYConservaElCodigo()
     {
         var acta = new ActaMovimientoDto(
@@ -197,6 +244,29 @@ public class ActaPdfServiceTests
         Assert.Contains(codigo, texto, StringComparison.Ordinal);
         Assert.Equal(codigo, ActaPdfService.CodigoVerificacion(acta));
     }
+
+    private static ActaMovimientoDto ActaMinima(string numero) => new(
+        1,
+        numero,
+        ActaTipo.Ingreso,
+        ActaOrigen.Manual,
+        new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+        null,
+        null,
+        null,
+        null,
+        null,
+        "Laura",
+        "Instructor",
+        new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+        TestPng.Bytes,
+        "Pedro",
+        "Encargado",
+        new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
+        TestPng.Bytes,
+        7,
+        "Ana",
+        [new ActaDetalleDto(1, ActaItemTipo.Material, "Tela", 1, "metro", null, null, null, null)]);
 
     private static string ExtraerTextoPdf(byte[] pdf)
     {

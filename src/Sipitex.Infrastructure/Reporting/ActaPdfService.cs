@@ -1,21 +1,30 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Options;
 using QRCoder;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Application.Seguridad;
 using Sipitex.Domain.Enums;
 
 namespace Sipitex.Infrastructure.Reporting;
 
 public class ActaPdfService : IActaPdfService
 {
+    private readonly PrivacidadOptions _privacidad;
+
     static ActaPdfService()
     {
         QuestPDF.Settings.License = LicenseType.Community;
+    }
+
+    public ActaPdfService(IOptions<PrivacidadOptions>? privacidad = null)
+    {
+        _privacidad = privacidad?.Value ?? new PrivacidadOptions();
     }
 
     public ReportFileDto Render(ActaMovimientoDto acta, string? urlVerificacion = null)
@@ -31,6 +40,7 @@ public class ActaPdfService : IActaPdfService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(nombre => nombre, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        var pieInstitucional = PieInstitucional();
 
         var pdf = Document.Create(container =>
         {
@@ -115,7 +125,7 @@ public class ActaPdfService : IActaPdfService
                             .FontSize(8).FontColor(Colors.Grey.Darken1);
                     }
 
-                    col.Item().AlignCenter().Text("CMTC · SENA · ADSO").FontSize(8).FontColor(Colors.Grey.Medium);
+                    col.Item().AlignCenter().Text(pieInstitucional).FontSize(8).FontColor(Colors.Grey.Medium);
                     col.Item().AlignCenter().Text($"Código de verificación: {verificacion}").FontSize(8).FontColor(Colors.Grey.Darken1);
                 });
             });
@@ -125,6 +135,23 @@ public class ActaPdfService : IActaPdfService
     }
 
     string IActaPdfService.CodigoVerificacion(ActaMovimientoDto acta) => CodigoVerificacion(acta);
+
+    private string PieInstitucional()
+    {
+        var partes = new List<string>();
+        var responsable = PrivacidadConfiguracion.ValorPublico(_privacidad.ResponsableNombre);
+        var nit = PrivacidadConfiguracion.ValorPublico(_privacidad.NIT);
+        var ciudad = PrivacidadConfiguracion.ValorPublico(_privacidad.Ciudad);
+        if (responsable is not null)
+            partes.Add(responsable);
+        if (nit is not null)
+            partes.Add("NIT " + nit);
+        if (ciudad is not null)
+            partes.Add(ciudad);
+        if (partes.Count == 0)
+            return "CMTC · SENA · ADSO";
+        return string.Join(" · ", partes);
+    }
 
     private static byte[] CodigoQr(string url)
     {
