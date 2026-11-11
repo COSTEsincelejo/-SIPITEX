@@ -16,7 +16,8 @@ public class BuscadorCatalogoTests
     [InlineData("reingreso", UserRoles.EncargadoDeBodega, "/PlantasInventarioOrdenes/Reingreso")]
     [InlineData("reingeso", UserRoles.EncargadoDeBodega, "/PlantasInventarioOrdenes/Reingreso")]
     [InlineData("movimientos", UserRoles.Administrador, "/PlantasInventario/Movimientos")]
-    [InlineData("inventario bodega", UserRoles.Instructor, "/PlantasInventario")]
+    [InlineData("inventario bodega", UserRoles.EncargadoDeBodega, "/PlantasInventario")]
+    [InlineData("inventario bodega", UserRoles.Instructor, "/Ayuda#inventario")]
     [InlineData("crear orden", UserRoles.Administrador, "/Ordenes#CreateOrder_ProductName")]
     public void Buscar_LlevaALaPantallaDelMenu(string consulta, string rol, string url)
     {
@@ -40,8 +41,9 @@ public class BuscadorCatalogoTests
         Assert.DoesNotContain(BuscadorCatalogo.Buscar("movimientos", instructor), a => a.Url.Contains("Movimientos", StringComparison.Ordinal));
         Assert.DoesNotContain(BuscadorCatalogo.Buscar("crear orden", instructor), a => a.Url.Contains("CreateOrder", StringComparison.Ordinal));
         Assert.DoesNotContain(BuscadorCatalogo.JsonVisibles(instructor), "/PlantasInventario#Nombre", StringComparison.Ordinal);
-        Assert.Contains("\"/PlantasInventario\"", BuscadorCatalogo.JsonVisibles(instructor), StringComparison.Ordinal);
+        Assert.DoesNotContain("\"/PlantasInventario\"", BuscadorCatalogo.JsonVisibles(instructor), StringComparison.Ordinal);
         Assert.DoesNotContain("/PlantasInventario/Consultar", BuscadorCatalogo.JsonVisibles(instructor), StringComparison.Ordinal);
+        Assert.Contains("\"/PlantasInventario\"", BuscadorCatalogo.JsonVisibles(encargado), StringComparison.Ordinal);
 
         Assert.True(BuscadorCatalogo.Buscar("material", Principal(UserRoles.Administrador)).Count <= 6);
         Assert.InRange(BuscadorCatalogo.Frecuentes(Principal(UserRoles.Administrador)).Count, 1, 6);
