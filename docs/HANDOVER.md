@@ -11,6 +11,30 @@ Documento de traspaso operativo del centro. Complementa el [README](../README.md
 - Manuales: [MANUAL-ADMINISTRADOR.md](MANUAL-ADMINISTRADOR.md), [MANUAL-BODEGUERO.md](MANUAL-BODEGUERO.md), [MANUAL-INSTRUCTOR.md](MANUAL-INSTRUCTOR.md).
 - Datos institucionales de privacidad: [PRIVACIDAD-DATOS-INSTITUCION.md](PRIVACIDAD-DATOS-INSTITUCION.md) y pendientes en [PENDIENTES-PRIVACIDAD.md](../PENDIENTES-PRIVACIDAD.md).
 - Variables de entorno de ejemplo: [`.env.example`](../.env.example).
+- Inventario inicial: [GUIA-INVENTARIO-INICIAL.md](GUIA-INVENTARIO-INICIAL.md) y plantilla en `docs/plantillas/`.
+
+## Variables de entorno obligatorias (producción)
+
+Definirlas en el panel del hosting (Render) o en el entorno. **No** pegar secretos en git.
+
+| Variable | Obligatoria | Notas |
+|----------|-------------|--------|
+| `ASPNETCORE_ENVIRONMENT` | Sí | `Production` |
+| `DATABASE_URL` **o** `ConnectionStrings__DefaultConnection` | Sí | PostgreSQL remoto. En Production **no** se acepta `localhost` / `127.0.0.1` (protección anti-arranque local accidental). |
+| `Seed__DemoUsers` | Sí (valor fijo) | Debe ser `false`. **No** defina `SEED_DEMO_DATA`. |
+| `ADMIN_SEED_PASSWORD` | Sí en el primer arranque | ≥ 6 caracteres. Crea `admin@sipitex.local` solo si aún no hay Administrador. Rotar después. |
+| `Email__Enabled` | Sí | `true` para enviar; `false` falla con mensaje visible (no simula entrega). |
+| `Email__Provider` | Sí | En producción: `Brevo` (HTTPS). También `Resend`, `Smtp`, `Outbox`. |
+| `Email__ApiKey` | Sí si Brevo/Resend | Secreto del panel. |
+| `Email__FromAddress` | Sí si el correo está activo | Remitente verificado. |
+| `Email__FromName` | Recomendada | p. ej. `SIPITEX`. |
+| `Email__Host` / `User` / `Password` | Solo si Smtp | Dejar vacíos o `configurar` si no usa SMTP. |
+| `Costing__LaborHourRate` | Opcional | Tarifa de referencia; no se suma al costo de la prenda. |
+| `Privacidad__*` | Pendientes institucionales | Ver sección abajo. Vacío o `PENDIENTE` = no se publica. |
+| `App__BaseUrl` | Recomendada | URL pública (enlaces de correo / verificación). |
+| `PORT` | La inyecta Render | No fijar 8080 en el panel de Render. |
+
+Plantilla comentada: [`.env.example`](../.env.example). Detalle de despliegue: [DEPLOY.md](DEPLOY.md).
 
 ## Credenciales a rotar (no dejar las de demo en producción)
 
@@ -19,10 +43,35 @@ Documento de traspaso operativo del centro. Complementa el [README](../README.md
 | Contraseñas demo (`Admin123!`, `Instructor123!`, `Bodega123!`) | Solo Development / seed | No usar en producción. Con `Seed__DemoUsers=false` no se siembran. |
 | `ADMIN_SEED_PASSWORD` | Panel del hosting | Rotar tras el primer arranque si se usó para crear `admin@sipitex.local`. |
 | `Email__ApiKey` (Brevo / Resend) | Panel del hosting | Rotar si se filtró o cambió de proveedor. |
-| Contraseña de PostgreSQL | `ConnectionStrings__DefaultConnection` / Neon / Render | Rotar al cambiar de responsable de operaciones. |
+| Contraseña de PostgreSQL | `DATABASE_URL` / Neon / Render | Rotar al cambiar de responsable de operaciones. |
 | Cookies / Data Protection | Base PostgreSQL | Tras restaurar un backup antiguo, validar que las sesiones siguen cerrándose bien. |
 
-No hay claves reales en el repositorio. Los tests usan marcadores (`re_super_secret`, `xkeysib-secret`) que no son credenciales de producción.
+No hay claves reales en el repositorio. Los tests usan marcadores ficticios de API y correos `@sipitex.test` / fixtures de laboratorio; no son cuentas personales ni de producción.
+
+## Importador de inventario — advertencia
+
+El importador de `/Inventario/Importar` **sobrescribe el stock** de un material existente cuando la fila del Excel trae una cantidad distinta (misma clave `código | nombre | planta`). Ajusta al valor del archivo y registra un movimiento de Entrada o Ajuste.
+
+**Úselo solo en la carga inicial** (o con un respaldo previo: [BACKUP.md](BACKUP.md)). No lo ejecute sobre una planta en operación diaria sin revisar la simulación. Si la cantidad del archivo coincide con la base, la fila se omite (idempotente). Guía: [GUIA-INVENTARIO-INICIAL.md](GUIA-INVENTARIO-INICIAL.md).
+
+## Variables `Privacidad__*` pendientes
+
+Completar con el área jurídica. Vacío o el literal `PENDIENTE` **no se publican** en `/Privacidad` ni en el PDF de actas. Tabla completa: [PRIVACIDAD-DATOS-INSTITUCION.md](PRIVACIDAD-DATOS-INSTITUCION.md). Checklist: [PENDIENTES-PRIVACIDAD.md](../PENDIENTES-PRIVACIDAD.md).
+
+| Variable | Estado típico al entregar |
+|----------|---------------------------|
+| `Privacidad__ResponsableNombre` | Puede venir prellenado (SENA / CMTC); confirmar |
+| `Privacidad__NIT` | Pendiente |
+| `Privacidad__Ciudad` | Confirmar (hoy puede figurar Bogotá D.C.; sede citada: Sincelejo) |
+| `Privacidad__CorreoContacto` | Pendiente |
+| `Privacidad__Direccion` | Pendiente |
+| `Privacidad__Telefono` | Pendiente |
+| `Privacidad__HorarioAtencion` | Pendiente |
+| `Privacidad__AreaSolicitudes` | Pendiente |
+| `Privacidad__PlazoConservacion` | Pendiente |
+| `Privacidad__ProveedorCorreo` / `Privacidad__PaisProveedorCorreo` | Pendiente (p. ej. Brevo) |
+| `Privacidad__ProveedorHosting` / `Privacidad__PaisProveedorHosting` | Pendiente (p. ej. Render) |
+| `Privacidad__UrlPoliticaInstitucional` | Pendiente (http/https) |
 
 ## Deuda conocida y trabajo futuro
 
@@ -42,9 +91,9 @@ No hay claves reales en el repositorio. Los tests usan marcadores (`re_super_sec
 
 ## Arranque rápido post-entrega
 
-1. Copiar `.env.example` → `.env` (o variables del panel) y completar secretos.
+1. Copiar `.env.example` → variables del panel y completar secretos (tabla de obligatorias arriba).
 2. Definir `Privacidad__*` confirmados por el área jurídica.
 3. `Email__Provider=Brevo`, `Email__ApiKey`, `Email__FromAddress`, `Email__FromName`.
 4. `Seed__DemoUsers=false` y `ADMIN_SEED_PASSWORD` solo si aún no hay administrador.
-5. Respaldo antes de importar inventario: [BACKUP.md](BACKUP.md).
+5. Respaldo antes de importar inventario: [BACKUP.md](BACKUP.md). Advertencia de sobrescritura de stock arriba.
 6. `dotnet test` en CI / local con PostgreSQL disponible.

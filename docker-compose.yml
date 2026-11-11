@@ -26,6 +26,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB:-sipitex};Username=${POSTGRES_USER:-sipitex};Password=${POSTGRES_PASSWORD:-sipitex}"
+      # Producción: sin usuarios/demo. No defina SEED_DEMO_DATA=true aquí.
+      Seed__DemoUsers: "false"
+      # Primer arranque sin Administrador: defina ADMIN_SEED_PASSWORD (≥ 6) en .env / el entorno.
+      ADMIN_SEED_PASSWORD: "${ADMIN_SEED_PASSWORD:-}"
       Email__Enabled: "true"
       Email__Provider: "${EMAIL_PROVIDER:-Resend}"
       Email__ApiKey: "${EMAIL_API_KEY:-}"
