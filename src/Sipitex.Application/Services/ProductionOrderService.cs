@@ -448,7 +448,11 @@ public class ProductionOrderService : IProductionOrderService
             c.ValorNuevo)).ToList();
     }
 
-    public async Task<ServiceResult> RegisterProductionAsync(int orderId, int units, CancellationToken cancellationToken = default)
+    public async Task<ServiceResult> RegisterProductionAsync(
+        int orderId,
+        int units,
+        int actorUserId,
+        CancellationToken cancellationToken = default)
     {
         if (units <= 0) return ServiceResult.Fail("Cantidad inválida.");
 
@@ -471,8 +475,13 @@ public class ProductionOrderService : IProductionOrderService
         // Si plantaInventario ya entregó los materiales de la orden, no volver a descontar BOM (evita doble consumo)
         if (!OrderMaterialService.UsesWarehouseIssuedMaterials(order))
         {
+            if (actorUserId <= 0)
+                return ServiceResult.Fail(
+                    "No se puede descontar inventario sin un usuario responsable. Inicie sesión e intente de nuevo.");
+
             var recipe = await ResolveRecipeForOrderAsync(order, cancellationToken);
-            if (!await _consumptionService.ConsumeRecipeAsync(recipe, toAdd, cancellationToken))
+            if (!await _consumptionService.ConsumeRecipeAsync(
+                    recipe, toAdd, order.Id, actorUserId, cancellationToken))
                 return ServiceResult.Fail("Consumo fallido: materiales insuficientes.");
         }
 
@@ -486,11 +495,12 @@ public class ProductionOrderService : IProductionOrderService
         if (!string.Equals(estadoAnterior, order.Status.ToString(), StringComparison.Ordinal))
         {
             _logger.LogInformation(
-                "Orden cambió de estado. OrdenId {OrdenId} Numero {OrderNumber} EstadoAnterior {EstadoAnterior} EstadoNuevo {EstadoNuevo}",
+                "Orden cambió de estado. OrdenId {OrdenId} Numero {OrderNumber} EstadoAnterior {EstadoAnterior} EstadoNuevo {EstadoNuevo} UsuarioId {UsuarioId}",
                 order.Id,
                 order.OrderNumber,
                 estadoAnterior,
-                order.Status);
+                order.Status,
+                actorUserId);
         }
 
         await _flowService.LogProductionRegisteredAsync(orderId, toAdd, null, cancellationToken);

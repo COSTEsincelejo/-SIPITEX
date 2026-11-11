@@ -128,7 +128,11 @@ public class FichaService : IFichaService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var production = await _orderService.RegisterProductionAsync(dto.ProductionOrderId, dto.Units, cancellationToken);
+        var production = await _orderService.RegisterProductionAsync(
+            dto.ProductionOrderId,
+            dto.Units,
+            registeredByUserId ?? 0,
+            cancellationToken);
         return production.Success
             ? ServiceResult.Ok("Sesión diaria registrada.")
             : production;

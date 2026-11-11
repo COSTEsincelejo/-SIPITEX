@@ -34,7 +34,7 @@ public class ProductionOrderServiceTests
             .Returns(Task.CompletedTask);
         return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object,
             _flowRepo.Object, _flowService.Object, _changeLogs.Object, _fichas.Object, _uow.Object,
-            new ProductionConsumptionService(_boms.Object, _materials.Object),
+            new ProductionConsumptionService(_boms.Object, _materials.Object, new Mock<IStockMovementRepository>().Object),
             NullLogger<ProductionOrderService>.Instance);
     }
 

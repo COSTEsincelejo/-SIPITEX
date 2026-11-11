@@ -139,7 +139,7 @@ public class OrdenesInstructorScopeControllerTests
 
         Assert.IsType<ForbidResult>(result);
         _orders.Verify(s => s.RegisterProductionAsync(
-            It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

@@ -21,6 +21,8 @@ public class ProductionOrderSnapshotTests
     private readonly Mock<IFichaRepository> _fichas = new();
     private readonly Mock<IUnitOfWork> _uow = new();
     private readonly Mock<IMaterialRepository> _materials = new();
+    private readonly Mock<IStockMovementRepository> _stock = new();
+    private readonly List<StockMovement> _movements = new();
 
     private ProductionOrderService CreateSut()
     {
@@ -35,9 +37,12 @@ public class ProductionOrderSnapshotTests
         _uow.Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
             .Returns<Func<CancellationToken, Task>, CancellationToken>(async (action, ct) => await action(ct));
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _stock.Setup(s => s.AddRangeAsync(It.IsAny<IEnumerable<StockMovement>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<StockMovement>, CancellationToken>((rows, _) => _movements.AddRange(rows))
+            .Returns(Task.CompletedTask);
         return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object,
             _flowRepo.Object, _flowService.Object, _changeLogs.Object, _fichas.Object, _uow.Object,
-            new ProductionConsumptionService(_boms.Object, _materials.Object),
+            new ProductionConsumptionService(_boms.Object, _materials.Object, _stock.Object),
             NullLogger<ProductionOrderService>.Instance);
     }
 
@@ -133,11 +138,17 @@ public class ProductionOrderSnapshotTests
         var material = new Material { Id = 1, Name = "Tela Jersey", Stock = 50, Unit = MaterialUnit.Metros };
         _materials.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(material);
 
-        var result = await CreateSut().RegisterProductionAsync(5, 10);
+        var result = await CreateSut().RegisterProductionAsync(5, 10, actorUserId: 7);
 
         Assert.True(result.Success);
         Assert.Equal(40m, material.Stock); // 50 - (1.0 * 10)
         Assert.Equal(10, order.ProducedQuantity);
+        var salida = Assert.Single(_movements);
+        Assert.Equal(StockMovementType.Salida, salida.TipoMovimiento);
+        Assert.Equal(10m, salida.Cantidad);
+        Assert.Equal(40m, salida.StockResultante);
+        Assert.Equal("Orden:5", salida.Referencia);
+        Assert.Equal(7, salida.UsuarioId);
         _boms.Verify(r => r.GetByProductAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

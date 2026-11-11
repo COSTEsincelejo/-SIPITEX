@@ -39,7 +39,7 @@ public class ProductionOrderEditCancelTests
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object,
             _flowRepo.Object, _flowService.Object, _changeLogs.Object, _fichas.Object, _uow.Object,
-            new ProductionConsumptionService(_boms.Object, _materials.Object),
+            new ProductionConsumptionService(_boms.Object, _materials.Object, new Mock<IStockMovementRepository>().Object),
             NullLogger<ProductionOrderService>.Instance);
     }
 
@@ -176,7 +176,7 @@ public class ProductionOrderEditCancelTests
         };
         _orders.Setup(o => o.GetByIdAsync(4, It.IsAny<CancellationToken>())).ReturnsAsync(order);
 
-        var result = await CreateSut().RegisterProductionAsync(4, 5);
+        var result = await CreateSut().RegisterProductionAsync(4, 5, actorUserId: 1);
 
         Assert.False(result.Success);
         Assert.Contains("cancelada", result.Message, StringComparison.OrdinalIgnoreCase);
