@@ -32,3 +32,7 @@ docs/diagramas/node_modules/
 # Secretos locales (SMTP, etc.) — nunca subir el .env real
 .env
 .env.local
+
+# Cobertura local (regenerar con coverlet; no versionar XML grande)
+**/coverage.cobertura.xml
+docs/calidad/artifacts/coverage.cobertura.xml
