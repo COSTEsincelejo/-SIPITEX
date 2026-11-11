@@ -83,6 +83,32 @@ public class PoliticaPrivacidadDocumentoTests
         Assert.DoesNotContain(avisos, a => a.Contains("Privacidad:Telefono", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void LiteralPendiente_NoSePublicaNiCuentaComoConfigurado()
+    {
+        var opciones = new PrivacidadOptions
+        {
+            NIT = "PENDIENTE",
+            CorreoContacto = " pendiente ",
+            Ciudad = "PENDIENTE",
+            ResponsableNombre = "PENDIENTE"
+        };
+
+        Assert.Null(PrivacidadConfiguracion.ValorPublico(opciones.NIT));
+        Assert.Null(PrivacidadConfiguracion.ValorPublico(opciones.CorreoContacto));
+        Assert.Null(PrivacidadConfiguracion.ValorPublico(opciones.Ciudad));
+
+        var texto = PoliticaPrivacidadDocumento.Crear(opciones).ATexto();
+        Assert.DoesNotContain("NIT:", texto, StringComparison.Ordinal);
+        Assert.DoesNotContain("Correo de contacto:", texto, StringComparison.Ordinal);
+        Assert.DoesNotContain("Ciudad:", texto, StringComparison.Ordinal);
+        Assert.DoesNotContain("PENDIENTE", texto, StringComparison.Ordinal);
+
+        var avisos = PrivacidadConfiguracion.Advertencias(opciones);
+        Assert.Contains(avisos, a => a.Contains("Privacidad:NIT", StringComparison.Ordinal));
+        Assert.Contains(avisos, a => a.Contains("Privacidad:CorreoContacto", StringComparison.Ordinal));
+    }
+
     private static readonly string[] TitulosVigentes =
     [
         "Introducción y alcance",

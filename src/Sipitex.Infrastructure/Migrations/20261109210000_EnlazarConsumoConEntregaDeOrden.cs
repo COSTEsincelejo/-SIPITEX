@@ -1,14 +1,10 @@
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Sipitex.Infrastructure.Persistence;
 
 #nullable disable
 
 namespace Sipitex.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    [DbContext(typeof(SipitexDbContext))]
-    [Migration("20261109210000_EnlazarConsumoConEntregaDeOrden")]
     public partial class EnlazarConsumoConEntregaDeOrden : Migration
     {
         /// <inheritdoc />

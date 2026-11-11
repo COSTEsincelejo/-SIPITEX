@@ -255,7 +255,7 @@ public class OrdenesController : Controller
                 id, userId > 0 ? userId : null, role, name, cancellationToken))
             return Forbid();
 
-        var result = await _orderService.RegisterProductionAsync(id, units, cancellationToken);
+        var result = await _orderService.RegisterProductionAsync(id, units, userId, cancellationToken);
         TempData["Message"] = result.Message ?? (result.Success ? "Producción registrada." : "Error en producción.");
         TempData["IsSuccess"] = result.Success;
         return RedirectToAction(nameof(Index));

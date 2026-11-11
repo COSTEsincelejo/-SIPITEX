@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Moq;
+using Sipitex.Application.Authorization;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Repositories;
 using Sipitex.Application.Services;
@@ -280,7 +281,7 @@ public class PlantaInventarioServiceTests
     }
 
     [Fact]
-    public void PlantasInventarioController_CrudSoloAdministrador_IndexYConsultarIncluyenLosTresRoles()
+    public void PlantasInventarioController_CrudSoloAdministrador_IndexYConsultarUsanPuedeConsultarInventario()
     {
         var classAttr = typeof(PlantasInventarioController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(classAttr);
@@ -301,26 +302,16 @@ public class PlantaInventarioServiceTests
             Assert.DoesNotContain(UserRoles.Instructor, methodAttr.Roles!, StringComparison.Ordinal);
         }
 
-        var index = typeof(PlantasInventarioController).GetMethod(nameof(PlantasInventarioController.Index));
-        Assert.NotNull(index);
-        var indexRoles = index!.GetCustomAttributes<AuthorizeAttribute>()
-            .Select(a => a.Roles)
-            .FirstOrDefault(r => !string.IsNullOrEmpty(r));
-        Assert.NotNull(indexRoles);
-        Assert.Contains(UserRoles.Administrador, indexRoles, StringComparison.Ordinal);
-        Assert.Contains(UserRoles.EncargadoDeBodega, indexRoles, StringComparison.Ordinal);
-        Assert.Contains(UserRoles.Instructor, indexRoles, StringComparison.Ordinal);
-
-        var consultar = typeof(PlantasInventarioController)
-            .GetMethod(nameof(PlantasInventarioController.Consultar));
-        Assert.NotNull(consultar);
-        var consultarRoles = consultar!.GetCustomAttributes<AuthorizeAttribute>()
-            .Select(a => a.Roles)
-            .FirstOrDefault(r => !string.IsNullOrEmpty(r));
-        Assert.NotNull(consultarRoles);
-        Assert.Contains(UserRoles.Administrador, consultarRoles, StringComparison.Ordinal);
-        Assert.Contains(UserRoles.Instructor, consultarRoles, StringComparison.Ordinal);
-        Assert.Contains(UserRoles.EncargadoDeBodega, consultarRoles, StringComparison.Ordinal);
+        foreach (var name in new[] { nameof(PlantasInventarioController.Index), nameof(PlantasInventarioController.Consultar) })
+        {
+            var method = typeof(PlantasInventarioController).GetMethod(name);
+            Assert.NotNull(method);
+            var attr = method!.GetCustomAttributes<AuthorizeAttribute>()
+                .FirstOrDefault(a => !string.IsNullOrEmpty(a.Policy));
+            Assert.NotNull(attr);
+            Assert.Equal(AuthorizationPolicyNames.PuedeConsultarInventario, attr!.Policy);
+            Assert.True(string.IsNullOrEmpty(attr.Roles));
+        }
     }
 
     [Fact]

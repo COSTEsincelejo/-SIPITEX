@@ -124,7 +124,7 @@ public class InventarioImportTests
     }
 
     [Fact]
-    public async Task Confirmar_OmiteDuplicadoPorCodigoNombreYPlanta()
+    public async Task Confirmar_ActualizaStockExistente_YReimportEsIdempotente()
     {
         await using var db = await CreateDbAsync();
         var user = new User
@@ -154,16 +154,17 @@ public class InventarioImportTests
 
         Assert.True(resultado.ArchivoValido, resultado.ErrorArchivo);
         Assert.True(resultado.Persistido);
-        Assert.Equal(1, resultado.Importados);
-        var omitida = Assert.Single(resultado.Omitidas);
-        Assert.Equal("Tela cruda", omitida.Nombre);
-        Assert.Equal("ALM-9", omitida.CodigoAlmacen);
+        Assert.Equal(2, resultado.Importados);
+        Assert.Empty(resultado.Omitidas);
+        Assert.Contains(resultado.Validas, v => v.Nombre == "Tela cruda" && v.ActualizaExistente);
+        Assert.Contains(InventarioImportTextos.ActualizaStock, resultado.Advertencias.Select(a => a.Mensaje));
         Assert.Contains(InventarioImportTextos.CodigoRepetido, resultado.Advertencias.Select(a => a.Mensaje));
 
         var materiales = await db.Materials.OrderBy(m => m.Id).ToListAsync();
         Assert.Equal(2, materiales.Count);
         var existente = materiales[0];
-        Assert.Equal(3m, existente.Stock);
+        Assert.Equal(99m, existente.Stock);
+        Assert.Equal(5m, existente.MinStock);
         Assert.Equal("mat-existente", existente.Code);
 
         var nuevo = materiales[1];
@@ -190,31 +191,37 @@ public class InventarioImportTests
         Assert.Equal(plantaNueva.Id, nuevo.PlantaInventarioId);
         Assert.Equal(3, await db.PlantasInventario.CountAsync());
 
-        var movimiento = Assert.Single(await db.StockMovements.ToListAsync());
-        Assert.Equal(nuevo.Id, movimiento.MaterialId);
-        Assert.Equal(user.Id, movimiento.UsuarioId);
-        Assert.Equal(StockMovementType.Entrada, movimiento.TipoMovimiento);
-        Assert.Equal(StockEntryOrigin.OtraFuenteAutorizada, movimiento.Origen);
-        Assert.Equal(4m, movimiento.Cantidad);
-        Assert.Equal(4m, movimiento.StockResultante);
-        Assert.Equal(0m, movimiento.CostoUnitario);
-        Assert.True(movimiento.SinCosto);
-        Assert.Equal(InventarioImportTextos.ReferenciaMovimiento, movimiento.Referencia);
+        var movimientos = await db.StockMovements.OrderBy(m => m.Id).ToListAsync();
+        Assert.Equal(2, movimientos.Count);
+        var movNuevo = Assert.Single(movimientos, m => m.MaterialId == nuevo.Id);
+        Assert.Equal(user.Id, movNuevo.UsuarioId);
+        Assert.Equal(StockMovementType.Entrada, movNuevo.TipoMovimiento);
+        Assert.Equal(StockEntryOrigin.OtraFuenteAutorizada, movNuevo.Origen);
+        Assert.Equal(4m, movNuevo.Cantidad);
+        Assert.Equal(4m, movNuevo.StockResultante);
+        Assert.Equal(0m, movNuevo.CostoUnitario);
+        Assert.True(movNuevo.SinCosto);
+        Assert.Equal(InventarioImportTextos.ReferenciaMovimiento, movNuevo.Referencia);
 
-        var log = Assert.Single(await db.ActivityLogs.ToListAsync());
-        Assert.Equal(ActivityLogActions.ImportInventario, log.Action);
-        Assert.Equal(ActivityLogEntities.Material, log.Entity);
-        Assert.Equal(nuevo.Id.ToString(), log.EntityId);
-        Assert.Equal(user.Id, log.UserId);
-        Assert.Contains("Importación inicial", log.Details, StringComparison.Ordinal);
+        var movUpdate = Assert.Single(movimientos, m => m.MaterialId == existente.Id);
+        Assert.Equal(StockMovementType.Entrada, movUpdate.TipoMovimiento);
+        Assert.Equal(96m, movUpdate.Cantidad);
+        Assert.Equal(99m, movUpdate.StockResultante);
+        Assert.Equal(InventarioImportTextos.ReferenciaMovimiento, movUpdate.Referencia);
+
+        var logs = await db.ActivityLogs.ToListAsync();
+        Assert.Equal(2, logs.Count);
+        Assert.Contains(logs, l => l.EntityId == nuevo.Id.ToString() && l.Details!.Contains("Importación inicial", StringComparison.Ordinal));
+        Assert.Contains(logs, l => l.EntityId == existente.Id.ToString() && l.Details!.Contains("Actualización de stock", StringComparison.Ordinal));
 
         await using var segundo = LibroConfirmacion();
         var repetido = await service.ConfirmarAsync(segundo, user.Id);
         Assert.Equal(0, repetido.Importados);
         Assert.Equal(2, repetido.Omitidas.Count);
+        Assert.All(repetido.Omitidas, o => Assert.Equal(InventarioImportTextos.OmitidoStockIgual, o.Mensaje));
         Assert.Equal(2, await db.Materials.CountAsync());
-        Assert.Equal(1, await db.StockMovements.CountAsync());
-        Assert.Equal(3m, (await db.Materials.SingleAsync(m => m.Code == "mat-existente")).Stock);
+        Assert.Equal(2, await db.StockMovements.CountAsync());
+        Assert.Equal(99m, (await db.Materials.SingleAsync(m => m.Code == "mat-existente")).Stock);
     }
 
     [Fact]
@@ -222,10 +229,12 @@ public class InventarioImportTests
     {
         var metodos = typeof(InventarioController)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-            .Where(m => m.Name is nameof(InventarioController.Importar) or nameof(InventarioController.Confirmar))
+            .Where(m => m.Name is nameof(InventarioController.Importar)
+                or nameof(InventarioController.Confirmar)
+                or nameof(InventarioController.DescargarPlantilla))
             .ToList();
 
-        Assert.Equal(3, metodos.Count);
+        Assert.Equal(4, metodos.Count);
         Assert.All(metodos, metodo =>
         {
             var auth = metodo.GetCustomAttribute<AuthorizeAttribute>();
@@ -236,6 +245,21 @@ public class InventarioImportTests
         var posts = metodos.Where(m => m.GetCustomAttribute<HttpPostAttribute>() is not null).ToList();
         Assert.Equal(2, posts.Count);
         Assert.All(posts, metodo => Assert.NotNull(metodo.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>()));
+
+        var descarga = Assert.Single(metodos, m => m.Name == nameof(InventarioController.DescargarPlantilla));
+        Assert.NotNull(descarga.GetCustomAttribute<HttpGetAttribute>());
+    }
+
+    [Fact]
+    public void PlantillaExcel_EncabezadosYFilasCmtc_SonLegibles()
+    {
+        using var stream = new MemoryStream(InventarioPlantillaExcel.Crear());
+        var lectura = InventarioExcelReader.Leer(stream);
+        Assert.Null(lectura.Error);
+        Assert.True(lectura.Filas.Count >= 4);
+        Assert.Contains(lectura.Filas, f => f.Nombre == "Malla 100% poliéster");
+        Assert.Contains(lectura.Filas, f => f.Nombre == "Lona 90% algodón / 10% poliéster");
+        Assert.All(lectura.Filas, f => Assert.Equal(InventarioPlantillaExcel.PlantaEjemplo, f.Ubicacion));
     }
 
     [Fact]

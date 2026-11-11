@@ -193,19 +193,11 @@ public class ModuleAccessTests
 
         var consultar = await client.GetAsync("/PlantasInventario/Consultar");
         Assert.Equal(HttpStatusCode.Redirect, consultar.StatusCode);
+        Assert.Contains("/Account/AccessDenied", consultar.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
 
         var catalogo = await client.GetAsync("/PlantasInventario");
-        Assert.Equal(HttpStatusCode.OK, catalogo.StatusCode);
-        var consultarHtml = await catalogo.Content.ReadAsStringAsync();
-        Assert.Contains("<h2>Plantas de inventario</h2>", consultarHtml, StringComparison.Ordinal);
-        Assert.DoesNotContain("href=\"/Inventario/Importar\"", consultarHtml, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-open-gestion", consultarHtml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Mostrar inactivas", consultarHtml, StringComparison.Ordinal);
-        Assert.DoesNotContain(">Reactivar<", consultarHtml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Nueva planta de inventario", consultarHtml, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(">Editar<", consultarHtml, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(">Eliminar<", consultarHtml, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(">Desactivar<", consultarHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(HttpStatusCode.Redirect, catalogo.StatusCode);
+        Assert.Contains("/Account/AccessDenied", catalogo.Headers.Location?.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

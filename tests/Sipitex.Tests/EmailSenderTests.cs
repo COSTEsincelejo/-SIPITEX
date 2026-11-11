@@ -202,6 +202,57 @@ public class EmailSenderTests
     }
 
     [Fact]
+    public void HostVacioOConfigurar_NoDejaSmtpListo_YArranqueAvisa()
+    {
+        Assert.False(EmailConfiguration.HostSmtpListo(""));
+        Assert.False(EmailConfiguration.HostSmtpListo("configurar"));
+        Assert.False(EmailConfiguration.IsLegacySmtpReady(new EmailOptions
+        {
+            Enabled = true,
+            Provider = "Smtp",
+            Host = "",
+            FromAddress = "avisos@sipitex.test",
+            User = "user"
+        }));
+        Assert.False(EmailConfiguration.IsLegacySmtpReady(new EmailOptions
+        {
+            Enabled = true,
+            Provider = "Smtp",
+            Host = "configurar",
+            FromAddress = "avisos@sipitex.test",
+            User = "user"
+        }));
+
+        var (level, message) = EmailConfiguration.StartupStatus(new EmailOptions
+        {
+            Enabled = true,
+            Provider = "Brevo",
+            ApiKey = "",
+            FromAddress = "",
+            Host = ""
+        });
+        Assert.Equal(LogLevel.Error, level);
+        Assert.Contains("Brevo incompleto", message, StringComparison.OrdinalIgnoreCase);
+
+        var appsettings = File.ReadAllText(FindRepoFile(Path.Combine("src", "Sipitex.Web", "appsettings.json")));
+        Assert.DoesNotContain("smtp.gmail.com", appsettings, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FindRepoFile(string relativePath)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, relativePath);
+            if (File.Exists(candidate))
+                return candidate;
+            dir = dir.Parent;
+        }
+
+        throw new FileNotFoundException(relativePath);
+    }
+
+    [Fact]
     public async Task SendAsync_Brevo201_EnviaSenderRecortado_YRegistraMessageId()
     {
         var handler = new StubHandler

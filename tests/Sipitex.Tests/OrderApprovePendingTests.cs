@@ -40,7 +40,7 @@ public class OrderApprovePendingTests
         _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         return new(_orders.Object, _boms.Object, _snapshots.Object, _requirements.Object,
             _flowRepo.Object, _flowService.Object, _changeLogs.Object, _fichas.Object, _uow.Object,
-            new ProductionConsumptionService(_boms.Object, _materials.Object),
+            new ProductionConsumptionService(_boms.Object, _materials.Object, new Mock<IStockMovementRepository>().Object),
             NullLogger<ProductionOrderService>.Instance);
     }
 
@@ -146,7 +146,7 @@ public class OrderApprovePendingTests
                 MaterialsStatus = OrderMaterialsStatus.NoAplica
             });
 
-        var result = await CreateOrderSut().RegisterProductionAsync(2, 1);
+        var result = await CreateOrderSut().RegisterProductionAsync(2, 1, actorUserId: 1);
 
         Assert.False(result.Success);
         Assert.Contains("pendiente de aprobación", result.Message, StringComparison.OrdinalIgnoreCase);

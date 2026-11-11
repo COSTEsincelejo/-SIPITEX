@@ -89,29 +89,36 @@ public class MrpGestionarFichasPermissionTests
     }
 
     [Fact]
-    public void MrpController_Delete_RequiresGestionarFichasPolicy()
+    public void MrpController_Delete_RequiresSoloAdministrador()
     {
         var method = typeof(MrpController)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
             .Single(m => m.Name == nameof(MrpController.Delete));
         var attr = method.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(attr);
-        Assert.Equal(AuthorizationPolicyNames.PuedeGestionarFichasTecnicas, attr!.Policy);
-        Assert.True(string.IsNullOrEmpty(attr.Roles));
+        Assert.Equal(UserRoles.Administrador, attr!.Roles);
+        Assert.True(string.IsNullOrEmpty(attr.Policy));
     }
 
     [Fact]
-    public void InstructorWithGestionarFichas_MayDeleteByPolicy()
+    public void InstructorWithGestionarFichas_NoPuedeBorrarPorAuthorizeDeDelete()
     {
         Assert.True(PermissionRules.PuedeGestionarFichasTecnicas(
             CreatePrincipal(UserRoles.Instructor, ExtendedPermissions.MrpGestionarFichas)));
+        var deleteAttr = typeof(MrpController)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+            .Single(m => m.Name == nameof(MrpController.Delete))
+            .GetCustomAttribute<AuthorizeAttribute>();
+        Assert.Equal(UserRoles.Administrador, deleteAttr!.Roles);
+        Assert.DoesNotContain(UserRoles.Instructor, deleteAttr.Roles!, StringComparison.Ordinal);
+        Assert.DoesNotContain(UserRoles.EncargadoDeBodega, deleteAttr.Roles!, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task InstructorWithPermission_CanDeleteBomProductNotInUse()
+    public async Task Administrador_CanDeleteBomProductNotInUse()
     {
         Assert.True(PermissionRules.PuedeGestionarFichasTecnicas(
-            CreatePrincipal(UserRoles.Instructor, ExtendedPermissions.MrpGestionarFichas)));
+            CreatePrincipal(UserRoles.Administrador)));
 
         var boms = new Mock<IBomRepository>();
         var materials = new Mock<IMaterialRepository>();
@@ -203,8 +210,8 @@ public class MrpGestionarFichasPermissionTests
     [Fact]
     public void InstructorWithoutPermission_IsForbiddenByPolicyGate()
     {
-        // Equivalente a Forbid de [Authorize(Policy = PuedeGestionarFichasTecnicas)]
-        // en Create/Edit/Delete (misma policy).
+        // Create/Edit: Forbid de [Authorize(Policy = PuedeGestionarFichasTecnicas)].
+        // Delete: Forbid de [Authorize(Roles = Administrador)].
         var user = CreatePrincipal(UserRoles.Instructor);
         Assert.False(PermissionRules.PuedeGestionarFichasTecnicas(user));
         Assert.False(PermissionRules.PuedeGestionarFichasTecnicas(
@@ -214,7 +221,7 @@ public class MrpGestionarFichasPermissionTests
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
             .Single(m => m.Name == nameof(MrpController.Delete))
             .GetCustomAttribute<AuthorizeAttribute>();
-        Assert.Equal(AuthorizationPolicyNames.PuedeGestionarFichasTecnicas, deleteAttr!.Policy);
+        Assert.Equal(UserRoles.Administrador, deleteAttr!.Roles);
     }
 
     [Fact]

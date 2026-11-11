@@ -33,6 +33,11 @@ public interface IProductionOrderService
     Task<ServiceResult> UpdateOrderAsync(UpdateProductionOrderDto dto, int actorUserId, CancellationToken cancellationToken = default);
     Task<ServiceResult> CancelOrderAsync(int orderId, int actorUserId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OrderChangeLogDto>> GetChangeLogAsync(int orderId, CancellationToken cancellationToken = default);
-    // units = unidades producidas en este registro (descuenta BOM)
-    Task<ServiceResult> RegisterProductionAsync(int orderId, int units, CancellationToken cancellationToken = default);
+    // units = unidades producidas en este registro (descuenta BOM en camino NoAplica con StockMovement).
+    // actorUserId es obligatorio cuando MaterialsStatus == NoAplica (ledger de salida).
+    Task<ServiceResult> RegisterProductionAsync(
+        int orderId,
+        int units,
+        int actorUserId,
+        CancellationToken cancellationToken = default);
 }

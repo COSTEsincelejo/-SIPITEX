@@ -56,9 +56,17 @@ public static class EmailConfiguration
 
     public static bool IsLegacySmtpReady(EmailOptions options) =>
         options.Enabled
-        && !string.IsNullOrWhiteSpace(options.Host)
+        && HostSmtpListo(options.Host)
         && !string.IsNullOrWhiteSpace(SmtpFrom(options))
         && !string.IsNullOrWhiteSpace(options.User);
+
+    // Vacío o el marcador "configurar" no cuentan como servidor SMTP real.
+    public static bool HostSmtpListo(string? host)
+    {
+        if (string.IsNullOrWhiteSpace(host))
+            return false;
+        return !host.Trim().Equals("configurar", StringComparison.OrdinalIgnoreCase);
+    }
 
     public static string SmtpFrom(EmailOptions options)
     {

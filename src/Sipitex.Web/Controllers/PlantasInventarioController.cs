@@ -47,7 +47,7 @@ public class PlantasInventarioController : Controller
 
     // Pantalla única. plantaId elige una planta; sin él se ve el consolidado de todas las visibles.
     [HttpGet]
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor},{UserRoles.EncargadoDeBodega}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeConsultarInventario)]
     public async Task<IActionResult> Index(
         CancellationToken cancellationToken,
         int? plantaId = null,
@@ -67,7 +67,7 @@ public class PlantasInventarioController : Controller
 
     // Ruta anterior de la consulta. 302 para que el marcador siga la pantalla actual.
     [HttpGet]
-    [Authorize(Roles = $"{UserRoles.Administrador},{UserRoles.Instructor},{UserRoles.EncargadoDeBodega}")]
+    [Authorize(Policy = AuthorizationPolicyNames.PuedeConsultarInventario)]
     public IActionResult Consultar(
         int? plantaInventarioId,
         string? q = null,

@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Sipitex.Application.DTOs;
 using Sipitex.Application.Interfaces.Services;
 using Sipitex.Domain.Entities;
+using Sipitex.Infrastructure.Import;
 using Sipitex.Web.Models;
 
 namespace Sipitex.Web.Controllers;
@@ -14,15 +16,21 @@ namespace Sipitex.Web.Controllers;
 [Authorize]
 public class InventarioController : Controller
 {
+    private const string ContentTypeXlsx =
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
     private readonly IInventarioImportService? _importacion;
     private readonly IMemoryCache? _cache;
+    private readonly IWebHostEnvironment? _env;
 
     public InventarioController(
         IInventarioImportService? importacion = null,
-        IMemoryCache? cache = null)
+        IMemoryCache? cache = null,
+        IWebHostEnvironment? env = null)
     {
         _importacion = importacion;
         _cache = cache;
+        _env = env;
     }
 
     [Authorize(Roles = UserRoles.Administrador)]
@@ -34,6 +42,31 @@ public class InventarioController : Controller
             Message = TempData["ImportMessage"] as string,
             IsSuccess = TempData["ImportOk"] as string == "1"
         });
+    }
+
+    [Authorize(Roles = UserRoles.Administrador)]
+    [HttpGet]
+    public IActionResult DescargarPlantilla()
+    {
+        foreach (var path in RutasPlantilla())
+        {
+            if (System.IO.File.Exists(path))
+                return PhysicalFile(path, ContentTypeXlsx, InventarioPlantillaExcel.FileName);
+        }
+
+        return File(InventarioPlantillaExcel.Crear(), ContentTypeXlsx, InventarioPlantillaExcel.FileName);
+    }
+
+    private IEnumerable<string> RutasPlantilla()
+    {
+        if (_env is not null)
+        {
+            yield return Path.Combine(_env.WebRootPath, "plantillas", InventarioPlantillaExcel.FileName);
+            yield return Path.Combine(_env.ContentRootPath, "plantillas", InventarioPlantillaExcel.FileName);
+            var repoDocs = Path.GetFullPath(Path.Combine(
+                _env.ContentRootPath, "..", "..", "docs", "plantillas", InventarioPlantillaExcel.FileName));
+            yield return repoDocs;
+        }
     }
 
     [Authorize(Roles = UserRoles.Administrador)]

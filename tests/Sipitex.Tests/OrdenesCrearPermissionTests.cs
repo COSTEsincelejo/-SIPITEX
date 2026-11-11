@@ -134,7 +134,7 @@ public class OrdenesCrearPermissionTests
         var sut = new ProductionOrderService(
             orders.Object, boms.Object, snapshots.Object, requirements.Object,
             flowRepo.Object, flowService.Object, changeLogs.Object, fichas.Object, uow.Object,
-            new ProductionConsumptionService(boms.Object, materials.Object),
+            new ProductionConsumptionService(boms.Object, materials.Object, new Mock<IStockMovementRepository>().Object),
             NullLogger<ProductionOrderService>.Instance);
 
         Assert.True(PermissionRules.PuedeCrearOrdenes(
@@ -194,7 +194,7 @@ public class OrdenesCrearPermissionTests
         var sut = new ProductionOrderService(
             orders.Object, boms.Object, snapshots.Object, requirements.Object,
             flowRepo.Object, flowService.Object, changeLogs.Object, fichas.Object, uow.Object,
-            new ProductionConsumptionService(boms.Object, materials.Object),
+            new ProductionConsumptionService(boms.Object, materials.Object, new Mock<IStockMovementRepository>().Object),
             NullLogger<ProductionOrderService>.Instance);
 
         var result = await sut.CreateOrderAsync(

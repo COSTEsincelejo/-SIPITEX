@@ -107,16 +107,27 @@ public class QualityService : IQualityService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        if (dto.Clasificacion == CalidadClasificacion.Malo
-            && order.EstadoProducto == EstadoProducto.Calidad
-            && viewerUserId is > 0)
+        if (order.EstadoProducto == EstadoProducto.Calidad && viewerUserId is > 0)
         {
-            await _lifecycle.TransitionAsync(
-                order.Id,
-                EstadoProducto.Confeccion,
-                viewerUserId.Value,
-                justificacion: "Clasificación Malo",
-                cancellationToken);
+            if (dto.Clasificacion == CalidadClasificacion.Bueno)
+            {
+                // Avanza a PT vía lifecycle; no inventariar aquí (evita duplicar FinishedGoodStock).
+                await _lifecycle.TransitionAsync(
+                    order.Id,
+                    EstadoProducto.ProductoTerminado,
+                    viewerUserId.Value,
+                    justificacion: "Clasificación Bueno",
+                    cancellationToken);
+            }
+            else if (dto.Clasificacion == CalidadClasificacion.Malo)
+            {
+                await _lifecycle.TransitionAsync(
+                    order.Id,
+                    EstadoProducto.Confeccion,
+                    viewerUserId.Value,
+                    justificacion: "Clasificación Malo",
+                    cancellationToken);
+            }
         }
 
         return ServiceResult.Ok("Inspección registrada.");

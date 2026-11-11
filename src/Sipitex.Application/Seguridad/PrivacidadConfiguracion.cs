@@ -20,7 +20,7 @@ public static class PrivacidadConfiguracion
         Falta(avisos, "ResponsableNombre", "el nombre del responsable", opciones.ResponsableNombre);
         Falta(avisos, "Ciudad", "la ciudad del responsable", opciones.Ciudad);
 
-        if (string.IsNullOrWhiteSpace(opciones.UrlPoliticaInstitucional))
+        if (ValorPublico(opciones.UrlPoliticaInstitucional) is null)
         {
             Falta(avisos, "UrlPoliticaInstitucional", "el enlace a la política institucional del SENA", opciones.UrlPoliticaInstitucional);
         }
@@ -34,11 +34,23 @@ public static class PrivacidadConfiguracion
         return avisos;
     }
 
-    public static string? UrlPublica(string? valor)
+    // Vacío o literal PENDIENTE: no se publica. Nunca se inventa un dato institucional.
+    public static string? ValorPublico(string? valor)
     {
         if (string.IsNullOrWhiteSpace(valor))
             return null;
-        if (!Uri.TryCreate(valor.Trim(), UriKind.Absolute, out var uri))
+        var limpio = valor.Trim();
+        if (limpio.Equals("PENDIENTE", StringComparison.OrdinalIgnoreCase))
+            return null;
+        return limpio;
+    }
+
+    public static string? UrlPublica(string? valor)
+    {
+        var limpio = ValorPublico(valor);
+        if (limpio is null)
+            return null;
+        if (!Uri.TryCreate(limpio, UriKind.Absolute, out var uri))
             return null;
         if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
             return null;
@@ -47,7 +59,7 @@ public static class PrivacidadConfiguracion
 
     private static void Falta(List<string> avisos, string clave, string descripcion, string? valor)
     {
-        if (!string.IsNullOrWhiteSpace(valor))
+        if (ValorPublico(valor) is not null)
             return;
 
         avisos.Add(

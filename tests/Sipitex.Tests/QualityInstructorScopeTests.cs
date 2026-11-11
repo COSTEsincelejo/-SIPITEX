@@ -23,13 +23,14 @@ public class QualityInstructorScopeTests
     private readonly Mock<IQualityRepository> _quality = new();
     private readonly Mock<IProductionOrderRepository> _orders = new();
     private readonly Mock<IProductionOrderService> _orderService = new();
+    private readonly Mock<IProductLifecycleService> _lifecycle = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
     private QualityService CreateSut() => new(
         _quality.Object,
         _orders.Object,
         _orderService.Object,
-        new Mock<IProductLifecycleService>().Object,
+        _lifecycle.Object,
         _uow.Object);
 
     private static QualityRecord Record(int orderId, string orderNumber, int units = 5) => new()
@@ -167,6 +168,65 @@ public class QualityInstructorScopeTests
     }
 
     [Fact]
+    public async Task AddRecordAsync_BuenoEnCalidad_AvanzaAProductoTerminadoViaLifecycle()
+    {
+        _orderService.Setup(s => s.CanAccessOrderAsync(1, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder
+            {
+                Id = 1,
+                OrderNumber = "OP-101",
+                Status = OrderStatus.EnProceso,
+                EstadoProducto = EstadoProducto.Calidad
+            });
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _lifecycle.Setup(l => l.TransitionAsync(
+                1, EstadoProducto.ProductoTerminado, 10, "Clasificación Bueno", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Ok("ok"));
+
+        var result = await CreateSut().AddRecordAsync(
+            new CreateQualityRecordDto(1, 8, QualityResult.Aprobada, Clasificacion: CalidadClasificacion.Bueno),
+            10, UserRoles.Instructor, "Laura");
+
+        Assert.True(result.Success);
+        _lifecycle.Verify(l => l.TransitionAsync(
+            1, EstadoProducto.ProductoTerminado, 10, "Clasificación Bueno", It.IsAny<CancellationToken>()), Times.Once);
+        _lifecycle.Verify(l => l.TransitionAsync(
+            It.IsAny<int>(), EstadoProducto.Confeccion, It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddRecordAsync_MaloEnCalidad_VuelveAConfeccionViaLifecycle()
+    {
+        _orderService.Setup(s => s.CanAccessOrderAsync(1, 10, UserRoles.Instructor, "Laura", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductionOrder
+            {
+                Id = 1,
+                OrderNumber = "OP-101",
+                Status = OrderStatus.EnProceso,
+                EstadoProducto = EstadoProducto.Calidad
+            });
+        _uow.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _lifecycle.Setup(l => l.TransitionAsync(
+                1, EstadoProducto.Confeccion, 10, "Clasificación Malo", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Ok("ok"));
+
+        var result = await CreateSut().AddRecordAsync(
+            new CreateQualityRecordDto(1, 8, QualityResult.Reproceso, MotivoReproceso: "Costura", Responsable: "Laura",
+                Clasificacion: CalidadClasificacion.Malo),
+            10, UserRoles.Instructor, "Laura");
+
+        Assert.True(result.Success);
+        _lifecycle.Verify(l => l.TransitionAsync(
+            1, EstadoProducto.Confeccion, 10, "Clasificación Malo", It.IsAny<CancellationToken>()), Times.Once);
+        _lifecycle.Verify(l => l.TransitionAsync(
+            It.IsAny<int>(), EstadoProducto.ProductoTerminado, It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CanAccessOrderAsync_Instructor_OnlyAssignedViaStage()
     {
         var orders = new Mock<IProductionOrderRepository>();
@@ -194,7 +254,7 @@ public class QualityInstructorScopeTests
         var sut = new ProductionOrderService(
             orders.Object, boms.Object, snapshots.Object, requirements.Object,
             flowRepo.Object, flowService.Object, changeLogs.Object, fichas.Object, uow.Object,
-            new ProductionConsumptionService(boms.Object, materials.Object),
+            new ProductionConsumptionService(boms.Object, materials.Object, new Mock<IStockMovementRepository>().Object),
             NullLogger<ProductionOrderService>.Instance);
 
         Assert.True(await sut.CanAccessOrderAsync(1, 10, UserRoles.Instructor, "Laura"));

@@ -488,6 +488,5 @@ public static class PoliticaPrivacidadDocumento
             parrafos.Add(etiqueta + limpio);
     }
 
-    private static string? Limpio(string? valor) =>
-        string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
+    private static string? Limpio(string? valor) => PrivacidadConfiguracion.ValorPublico(valor);
 }
