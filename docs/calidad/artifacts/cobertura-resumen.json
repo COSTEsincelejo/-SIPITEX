@@ -1,0 +1,16 @@
+{
+  "fechaUtc": "2026-11-11T19:51:00Z",
+  "comando": "dotnet test tests/Sipitex.Tests/Sipitex.Tests.csproj --collect:\"XPlat Code Coverage\"",
+  "lineRate": 0.8706,
+  "branchRate": 0.4805,
+  "linesCovered": 57202,
+  "linesValid": 65702,
+  "paquetes": {
+    "Sipitex.Application": 0.813,
+    "Sipitex.Domain": 0.913,
+    "Sipitex.Infrastructure": 0.972,
+    "Sipitex.Web.Views": 0.209,
+    "Sipitex.Web": 0.461
+  },
+  "nota": "El XML Cobertura completo (~11 MB) no se versiona; regenerar localmente con coverlet.collector."
+}
