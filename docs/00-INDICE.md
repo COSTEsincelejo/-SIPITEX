@@ -9,6 +9,7 @@
 | [05-Despliegue.md](05-Despliegue.md) | Fase 5 — Despliegue |
 | [BACKUP.md](BACKUP.md) | Respaldo, restauración y copia antes de importar inventario |
 | [HANDOVER.md](HANDOVER.md) | Entrega operativa, credenciales a rotar y deuda conocida |
+| [entrega/EXTRACCION-DATOS-REPO.md](entrega/EXTRACCION-DATOS-REPO.md) | Extracción factual: RF/RNF, mapeo código, roles, controllers, NuGet/npm |
 | [PRIVACIDAD-DATOS-INSTITUCION.md](PRIVACIDAD-DATOS-INSTITUCION.md) | Tabla de datos institucionales y variables `Privacidad__*` |
 | [MANUAL-ADMINISTRADOR.md](MANUAL-ADMINISTRADOR.md) | Manual del administrador |
 | [MANUAL-BODEGUERO.md](MANUAL-BODEGUERO.md) | Manual del encargado de bodega |
