@@ -39,10 +39,14 @@ Referencia `main`: `52e4170` (#162), 2026-11-11.
 | [../GUIA-INVENTARIO-INICIAL.md](../GUIA-INVENTARIO-INICIAL.md) | Carga inicial Excel |
 | [../DEPLOY.md](../DEPLOY.md) / [../05-Despliegue.md](../05-Despliegue.md) | Despliegue |
 | [../BACKUP.md](../BACKUP.md) | Respaldos |
+| [../calidad/](../calidad/) | Plan/informe de pruebas, cobertura, GHSA |
+| [../operacion/](../operacion/) | FAQ, parametrización, mantenimiento, datos personales |
+| [../tecnica/](../tecnica/) | Arquitectura y ADRs |
 
 ---
 
 ## Métricas de referencia (2026-11-11)
 
 - Tests: **768 passed**, 0 failed, ~19 s  
-- Cobertura coverlet: line-rate **87,06 %**, branch **48,05 %**
+- Cobertura coverlet: line-rate **87,06 %**, branch **48,05 %**  
+- Detalle: [`../calidad/INFORME-PRUEBAS.md`](../calidad/INFORME-PRUEBAS.md)

@@ -192,6 +192,11 @@ En desarrollo los ejemplos van vacíos en `appsettings.Development.json`, salvo 
 | [`docs/PRIVACIDAD-DATOS-INSTITUCION.md`](docs/PRIVACIDAD-DATOS-INSTITUCION.md) | Variables `Privacidad__*` y dónde se muestran |
 | [`PENDIENTES-PRIVACIDAD.md`](PENDIENTES-PRIVACIDAD.md) | Decisiones jurídicas pendientes |
 | [`.env.example`](.env.example) | Plantilla de variables (sin secretos reales) |
+| [`docs/00-INDICE.md`](docs/00-INDICE.md) | Índice general |
+| [`docs/entrega/`](docs/entrega/) | Paquete de entrega v1.0 |
+| [`docs/tecnica/`](docs/tecnica/) | Arquitectura, ADRs, modelo de datos |
+| [`docs/calidad/`](docs/calidad/) | Informe de pruebas, cobertura, vulnerabilidades |
+| [`docs/operacion/`](docs/operacion/) | FAQ, parametrización, soporte, datos personales, licencias |
 
 ## Metodología cascada
 

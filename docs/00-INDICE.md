@@ -5,11 +5,14 @@
 | [01-Requisitos.md](01-Requisitos.md) | Fase 1 — Análisis (cascada) |
 | [02-Diseno.md](02-Diseno.md) | Fase 2 — Diseño y arquitectura |
 | [03-Implementacion.md](03-Implementacion.md) | Fase 3 — Implementación |
-| [04-Pruebas.md](04-Pruebas.md) | Fase 4 — Pruebas |
+| [04-Pruebas.md](04-Pruebas.md) | Fase 4 — Pruebas (cascada) |
 | [05-Despliegue.md](05-Despliegue.md) | Fase 5 — Despliegue |
 | [BACKUP.md](BACKUP.md) | Respaldo, restauración y copia antes de importar inventario |
 | [HANDOVER.md](HANDOVER.md) | Entrega operativa, credenciales a rotar y deuda conocida |
-| [entrega/EXTRACCION-DATOS-REPO.md](entrega/EXTRACCION-DATOS-REPO.md) | Extracción factual: RF/RNF, mapeo código, roles, controllers, NuGet/npm |
+| [entrega/](entrega/) | Paquete de entrega (p. ej. [EXTRACCION-DATOS-REPO.md](entrega/EXTRACCION-DATOS-REPO.md)) |
+| [tecnica/](tecnica/) | Documentación técnica / ADRs |
+| [calidad/](calidad/) | Plan e informe de pruebas (768 passed), cobertura Coverlet, vulnerabilidades NuGet |
+| [operacion/](operacion/) | FAQ, parametrización, mantenimiento, datos personales, licencias |
 | [PRIVACIDAD-DATOS-INSTITUCION.md](PRIVACIDAD-DATOS-INSTITUCION.md) | Tabla de datos institucionales y variables `Privacidad__*` |
 | [MANUAL-ADMINISTRADOR.md](MANUAL-ADMINISTRADOR.md) | Manual del administrador |
 | [MANUAL-BODEGUERO.md](MANUAL-BODEGUERO.md) | Manual del encargado de bodega |
