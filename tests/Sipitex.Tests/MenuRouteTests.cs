@@ -19,6 +19,25 @@ public class MenuRouteTests
     }
 
     [Fact]
+    public void Home_OcultaTilesFichasYCalidadAlEncargado()
+    {
+        var home = File.ReadAllText(FindRepoFile(Path.Combine("src", "Sipitex.Web", "Views", "Home", "Index.cshtml")));
+        var layout = File.ReadAllText(FindRepoFile(Path.Combine("src", "Sipitex.Web", "Views", "Shared", "_Layout.cshtml")));
+        var inicioFichas = home.IndexOf("Fichas y calidad solo para admin e instructor", StringComparison.Ordinal);
+        Assert.True(inicioFichas >= 0);
+        var bloque = home[inicioFichas..];
+        var finBloque = bloque.IndexOf("Estadisticas", StringComparison.Ordinal);
+        Assert.True(finBloque > 0);
+        bloque = bloque[..finBloque];
+
+        Assert.Contains("User.IsInRole(\"Administrador\") || User.IsInRole(\"Instructor\")", bloque, StringComparison.Ordinal);
+        Assert.Contains("asp-controller=\"Fichas\"", bloque, StringComparison.Ordinal);
+        Assert.Contains("asp-controller=\"Calidad\"", bloque, StringComparison.Ordinal);
+        Assert.DoesNotContain("Encargado de bodega", bloque, StringComparison.Ordinal);
+        Assert.Contains("Fichas y calidad solo para admin e instructor", layout, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Layout_LinksMatchPluralPlantasInventarioControllers()
     {
         var layout = File.ReadAllText(FindRepoFile(Path.Combine("src", "Sipitex.Web", "Views", "Shared", "_Layout.cshtml")));
