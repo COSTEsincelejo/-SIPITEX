@@ -155,7 +155,19 @@ La sección `Privacidad` se lee al arrancar. Si un dato está vacío, la página
 | `AreaSolicitudes` | Área o cargo que atiende las solicitudes. |
 | `UrlPoliticaInstitucional` | Enlace http(s) a la política de datos del SENA. |
 
-En desarrollo los ejemplos van vacíos en `appsettings.Development.json`, salvo el nombre del responsable, la ciudad, la versión y la fecha. En Render se pueden definir como variables `Privacidad__CorreoContacto`, `Privacidad__Direccion`, `Privacidad__Telefono` y el resto de claves con el mismo prefijo.
+En desarrollo los ejemplos van vacíos en `appsettings.Development.json`, salvo el nombre del responsable, la ciudad, la versión y la fecha. En Render se pueden definir como variables `Privacidad__CorreoContacto`, `Privacidad__Direccion`, `Privacidad__Telefono` y el resto de claves con el mismo prefijo. El mapeo dato → variable → pantalla está en [`docs/PRIVACIDAD-DATOS-INSTITUCION.md`](docs/PRIVACIDAD-DATOS-INSTITUCION.md). Un valor vacío o el literal `PENDIENTE` no se publica.
+
+## Manuales y entrega
+
+| Documento | Para quién |
+|-----------|------------|
+| [`docs/MANUAL-ADMINISTRADOR.md`](docs/MANUAL-ADMINISTRADOR.md) | Administrador |
+| [`docs/MANUAL-BODEGUERO.md`](docs/MANUAL-BODEGUERO.md) | Encargado de bodega |
+| [`docs/MANUAL-INSTRUCTOR.md`](docs/MANUAL-INSTRUCTOR.md) | Instructor |
+| [`docs/HANDOVER.md`](docs/HANDOVER.md) | Traspaso: credenciales a rotar y deuda conocida |
+| [`docs/PRIVACIDAD-DATOS-INSTITUCION.md`](docs/PRIVACIDAD-DATOS-INSTITUCION.md) | Variables `Privacidad__*` y dónde se muestran |
+| [`PENDIENTES-PRIVACIDAD.md`](PENDIENTES-PRIVACIDAD.md) | Decisiones jurídicas pendientes |
+| [`.env.example`](.env.example) | Plantilla de variables (sin secretos reales) |
 
 ## Metodología cascada
 

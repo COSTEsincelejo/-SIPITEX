@@ -8,8 +8,11 @@
 | [04-Pruebas.md](04-Pruebas.md) | Fase 4 — Pruebas |
 | [05-Despliegue.md](05-Despliegue.md) | Fase 5 — Despliegue |
 | [BACKUP.md](BACKUP.md) | Respaldo, restauración y copia antes de importar inventario |
+| [HANDOVER.md](HANDOVER.md) | Entrega operativa, credenciales a rotar y deuda conocida |
+| [PRIVACIDAD-DATOS-INSTITUCION.md](PRIVACIDAD-DATOS-INSTITUCION.md) | Tabla de datos institucionales y variables `Privacidad__*` |
 | [MANUAL-ADMINISTRADOR.md](MANUAL-ADMINISTRADOR.md) | Manual del administrador |
 | [MANUAL-BODEGUERO.md](MANUAL-BODEGUERO.md) | Manual del encargado de bodega |
+| [MANUAL-INSTRUCTOR.md](MANUAL-INSTRUCTOR.md) | Manual del instructor |
 | **[08-IEEE830-Especificacion.md](08-IEEE830-Especificacion.md)** | **SRS IEEE 830** (texto claro + diagramas en imagen) |
 
 ## Diagramas (imágenes)
