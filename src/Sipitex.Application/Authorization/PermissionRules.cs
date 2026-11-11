@@ -25,8 +25,8 @@ public static class PermissionRules
         || user.IsInRole(UserRoles.EncargadoDeBodega)
         || (user.IsInRole(UserRoles.Instructor) && HasPermission(user, ExtendedPermissions.MrpSimular));
 
-    // Crear/editar ficha técnica: admin, encargadoDeBodega o instructor con Mrp.GestionarFichas (gap #6)
-    // Delete permanece solo Admin en MrpController.
+    // Crear/editar ficha técnica: admin, encargadoDeBodega o instructor con Mrp.GestionarFichas (gap #6).
+    // Eliminar BOM: solo Administrador ([Authorize(Roles = Administrador)] en MrpController.Delete).
     public static bool PuedeGestionarFichasTecnicas(ClaimsPrincipal user) =>
         user.IsInRole(UserRoles.Administrador)
         || user.IsInRole(UserRoles.EncargadoDeBodega)

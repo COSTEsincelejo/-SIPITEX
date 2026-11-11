@@ -179,8 +179,8 @@ public class MrpController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // Delete: misma policy que Create/Edit (Admin, EncargadoDeBodega o Instructor con Mrp.GestionarFichas)
-    [Authorize(Policy = AuthorizationPolicyNames.PuedeGestionarFichasTecnicas)]
+    // Delete: solo Administrador (Create/Edit siguen con PuedeGestionarFichasTecnicas).
+    [Authorize(Roles = UserRoles.Administrador)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
