@@ -24,17 +24,21 @@ Documento de traspaso operativo del centro. Complementa el [README](../README.md
 
 No hay claves reales en el repositorio. Los tests usan marcadores (`re_super_secret`, `xkeysib-secret`) que no son credenciales de producción.
 
-## Deuda conocida
+## Deuda conocida y trabajo futuro
 
-1. **Privacidad institucional incompleta.** NIT, correo, dirección, teléfono, proveedores, plazo de conservación y URL institucional siguen vacíos o por confirmar. Ver `PENDIENTES-PRIVACIDAD.md`. No inventar datos: vacío o `PENDIENTE` no se publican.
-2. **Ciudad del responsable.** Hoy puede figurar «Bogotá D.C.» en configuración; la sede operativa se ha citado como Sincelejo. Confirmar con el centro qué ciudad debe verse.
-3. **Menores de edad.** El registro no pide fecha de nacimiento ni autorización del representante; la política lo declara.
-4. **RNBD y excepciones legales.** Pendiente de área jurídica (Ley 1581).
-5. **Correo sin credenciales.** Con Brevo/Resend incompleto el sistema arranca y registra error en el log; Alertas muestra aviso. `Email:Host` ya no trae `smtp.gmail.com`.
-6. **Instructor sin consulta de inventario consolidado.** `PuedeConsultarInventario` solo Admin/Encargado. El instructor ve materiales por MRP, solicitudes y materiales de órdenes.
-7. **Eliminación de BOM.** Solo Administrador; Create/Edit siguen con `PuedeGestionarFichasTecnicas`.
-8. **Importación Excel / plantillas.** Trabajo en curso o reciente en otra línea de la misma entrega; no mezclar sin revisar `GUIA-INVENTARIO-INICIAL.md` si existe.
-9. **Seed demo.** No reactivar `SEED_DEMO_DATA` en el entorno real del centro.
+### Operativa / producto
+1. **MRP no se calcula automáticamente** al crear una orden: hay que simular en `/Mrp` e importar requisitos a la OP.
+2. **Producto terminado sin pantalla propia** en el menú: el stock PT vive en el flujo MES / reingreso; falta un módulo de consulta dedicado.
+3. **Cancelar orden o anular acta no revierte stock** ni consumos ya aplicados.
+4. **Nomenclatura no unificada:** «Ficha» (grupo SENA) vs ficha técnica BOM vs ficha del material; «Bodega» (rol) vs «Planta de inventario» (UI); «material» vs «insumo».
+5. **`User.FichaAsignadaId` es solo informativo:** el alcance real del instructor va por `FichaInstructor` / etapas MES.
+6. **Costeo excluye mano de obra del total** hasta que el centro defina y active la tarifa en el cálculo (hoy solo materiales; la tarifa de referencia se guarda pero no se suma).
+
+### Técnica / legado
+7. **Código legacy sin uso de producto:** `MaterialRequest` (solicitudes 1-ítem), RF/RNF + `RequirementService` (sin pantalla / DI incompleto), búsqueda antigua `/api/busqueda` frente a `Buscar/Sugerencias`.
+8. **`BomItem → Material` en Cascade** y blockers de borrado de usuario incompletos (no listan consumos/actas/grupos/prendas) — riesgo si se borra fuera del servicio.
+9. **Privacidad institucional incompleta** (NIT, contacto, proveedores, RNBD, menores). Ver `PENDIENTES-PRIVACIDAD.md`. Vacío o `PENDIENTE` no se publican.
+10. **Seed demo:** no reactivar `SEED_DEMO_DATA` en el entorno real. Inventario inicial: [GUIA-INVENTARIO-INICIAL.md](GUIA-INVENTARIO-INICIAL.md).
 
 ## Arranque rápido post-entrega
 
