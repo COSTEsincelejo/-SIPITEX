@@ -48,7 +48,7 @@ dotnet test Sipitex.slnx \
   --results-directory /tmp/sipitex-coverage
 ```
 
-Artefacto a conservar: `coverage.cobertura.xml` → `docs/calidad/artifacts/coverage.cobertura.xml`.
+Artefacto a conservar: resumen en `docs/calidad/artifacts/cobertura-resumen.json` (el XML Cobertura completo no se versiona por tamaño).
 
 ### 4.3 Vulnerabilidades NuGet
 
@@ -89,7 +89,7 @@ Resultados y GHSA: [`VULNERABILIDADES.md`](VULNERABILIDADES.md). Salidas crudas:
 |-----------|-----------|
 | [`INFORME-PRUEBAS.md`](INFORME-PRUEBAS.md) | Resultados numéricos 2026-11-11 |
 | [`VULNERABILIDADES.md`](VULNERABILIDADES.md) | Tabla GHSA NuGet |
-| [`artifacts/coverage.cobertura.xml`](artifacts/coverage.cobertura.xml) | Cobertura Coverlet |
+| [`artifacts/cobertura-resumen.json`](artifacts/cobertura-resumen.json) | Resumen Coverlet (XML completo regenerable localmente) |
 | [`README.md`](README.md) | Índice |
 
 ## 8. Fuera de alcance (explícito)

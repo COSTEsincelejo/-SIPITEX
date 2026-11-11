@@ -3,7 +3,7 @@
 **Fecha de ejecución:** 2026-11-11 (UTC)  
 **Comando principal:** `dotnet test Sipitex.slnx`  
 **Cobertura:** Coverlet collector XPlat (`--collect:"XPlat Code Coverage"`)  
-**Artefacto:** [`artifacts/cobertura-resumen.json (XML completo no versionado; regenerar con coverlet)`](artifacts/cobertura-resumen.json (XML completo no versionado; regenerar con coverlet))
+**Artefacto:** [`artifacts/cobertura-resumen.json`](artifacts/cobertura-resumen.json) (XML Cobertura completo ~11 MB no versionado; regenerar con coverlet)
 
 > Cifras de este informe: **medidas en la fecha indicada**. No se inventan totales ni tasas distintas.
 
@@ -94,6 +94,6 @@ El plan funcional manual de cascada permanece en [`docs/04-Pruebas.md`](../04-Pr
 
 | Archivo | Descripción |
 |---------|-------------|
-| `artifacts/cobertura-resumen.json (XML completo no versionado; regenerar con coverlet)` | Cobertura Coverlet (misma corrida documentada) |
+| `artifacts/cobertura-resumen.json` | Resumen Coverlet (misma corrida; XML completo no versionado) |
 | `artifacts/sipitex-vuln-web.txt` | Salida vulnerable — proyecto Web |
 | `artifacts/sipitex-vuln-infra.txt` | Salida vulnerable — proyecto Infrastructure |
