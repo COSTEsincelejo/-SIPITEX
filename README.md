@@ -31,14 +31,38 @@ Web → Infrastructure → Application → Domain
 
 ## Ejecución local
 
-```powershell
+1. PostgreSQL 16 en marcha (`docker compose up db` o instancia local; usuario/clave/base `sipitex`).
+2. Arrancar la web:
+
+```bash
 cd src/Sipitex.Web
 dotnet run
 ```
 
-Abrir `https://localhost:5xxx` (el puerto se muestra en consola). La raíz abre el panel de inicio (requiere autenticación). El stock se consulta en **Plantas de inventario**.
+Abrir la URL que muestre la consola (p. ej. `https://localhost:5xxx` o `http://localhost:5240`). La raíz abre el panel de inicio (requiere autenticación). El stock se consulta en **Plantas de inventario**.
 
-Motor de datos: **PostgreSQL 16** (`ConnectionStrings:DefaultConnection`), creado al iniciar con migraciones EF Core (`MigrateAsync`). Para desarrollo local: `docker compose up db` o un Postgres en `localhost:5432` (usuario/clave/base `sipitex`).
+Motor de datos: **PostgreSQL 16** (`ConnectionStrings:DefaultConnection`). Al iniciar aplica migraciones EF Core (`MigrateAsync`) y el seed según `SEED_DEMO_DATA` / `Seed:DemoUsers`.
+
+### Correr pruebas
+
+```bash
+dotnet test Sipitex.slnx
+```
+
+Si cambió el modelo EF:
+
+```bash
+dotnet ef migrations add NombreCambio --project src/Sipitex.Infrastructure --startup-project src/Sipitex.Web
+dotnet ef migrations has-pending-model-changes --project src/Sipitex.Infrastructure --startup-project src/Sipitex.Web
+```
+
+El CI ejecuta `has-pending-model-changes` y falla si el modelo no coincide con las migraciones.
+
+### Desplegar
+
+- **Render:** blueprint [`render.yaml`](render.yaml). Variables y secretos: sección *Producción (Render)* abajo y [`docs/DEPLOY.md`](docs/DEPLOY.md). `Seed__DemoUsers=false`; no defina `SEED_DEMO_DATA`.
+- **Docker Compose (imagen completa):** `docker compose up --build` → `http://localhost:8080` (también fija `Seed__DemoUsers=false`). Detalle: [`docs/05-Despliegue.md`](docs/05-Despliegue.md).
+- **Traspaso:** [`docs/HANDOVER.md`](docs/HANDOVER.md) (variables obligatorias, rotación, privacidad, advertencia del importador).
 
 ### Usuarios demo (solo Development)
 
@@ -181,16 +205,7 @@ Ver carpeta [`docs/`](docs/) para el ciclo completo:
 
 ## Contribución
 
-Antes de abrir un PR:
-
-1. `dotnet test Sipitex.slnx`
-2. Si cambió el modelo EF (entidades, `DbContext`), genere la migración:
-
-```bash
-dotnet ef migrations add NombreCambio --project src/Sipitex.Infrastructure --startup-project src/Sipitex.Web
-```
-
-El CI ejecuta `dotnet ef migrations has-pending-model-changes` y **falla** si el modelo no coincide con las migraciones.
+Antes de abrir un PR: correr pruebas (sección *Correr pruebas* arriba) y, si cambió el modelo EF, generar la migración. El CI falla si hay cambios de modelo sin migración.
 
 ## Tecnologías
 

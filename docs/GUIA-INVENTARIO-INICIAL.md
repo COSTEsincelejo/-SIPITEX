@@ -2,6 +2,8 @@
 
 Pasos cortos para cargar stock real sobre materiales CMTC (u otros) desde Excel.
 
+**Advertencia:** el importador **sobrescribe el stock** de materiales existentes cuando la cantidad del Excel difiere. Úselo en la **carga inicial** (o tras un respaldo). No lo use como operación diaria sin revisar la simulación.
+
 ## 1. Preparar el archivo
 
 1. En **Importar inventario** (solo Administrador), descargue la plantilla Excel.
