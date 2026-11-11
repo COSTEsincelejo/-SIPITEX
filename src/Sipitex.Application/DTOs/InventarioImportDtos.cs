@@ -12,6 +12,10 @@ public static class InventarioImportTextos
     public const string SinUnidad = "Sin unidad";
     public const string Omitido =
         "Ya existe un material con el mismo código, nombre y planta. Se omite.";
+    public const string OmitidoStockIgual =
+        "Ya existe un material con el mismo código, nombre, planta y stock. Se omite.";
+    public const string ActualizaStock =
+        "Se actualizará el stock del material existente.";
     public const string PorFlujoOrdenes =
         "Se registran por el flujo de órdenes y trazabilidad.";
 
@@ -64,6 +68,7 @@ public sealed class InventarioImportFilaValida
     public bool PlantaNueva { get; init; }
     public TipoElemento TipoElemento { get; init; }
     public decimal? CostoUnitario { get; init; }
+    public bool ActualizaExistente { get; init; }
     public IReadOnlyList<string> Advertencias { get; init; } = [];
 }
 

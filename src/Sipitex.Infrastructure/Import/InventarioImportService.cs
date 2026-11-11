@@ -6,6 +6,7 @@ using Sipitex.Application.DTOs;
 using Sipitex.Application.Helpers;
 using Sipitex.Application.Interfaces;
 using Sipitex.Application.Interfaces.Services;
+using Sipitex.Application.Services;
 using Sipitex.Domain.Entities;
 using Sipitex.Domain.Enums;
 using Sipitex.Infrastructure.Persistence;
@@ -116,7 +117,7 @@ public sealed class InventarioImportService : IInventarioImportService
     {
         var plan = await ArmarPlanAsync(lectura.Filas, cancellationToken);
         if (plan.Validas.Count == 0)
-            return await PersistirFichasAsync(lectura, plan, user, creados: 0, cancellationToken);
+            return await PersistirFichasAsync(lectura, plan, user, importados: 0, cancellationToken);
 
         var plantas = await _db.PlantasInventario.ToListAsync(cancellationToken);
         var porNombre = new Dictionary<string, PlantaInventario>(StringComparer.Ordinal);
@@ -133,14 +134,17 @@ public sealed class InventarioImportService : IInventarioImportService
             .ToHashSet(StringComparer.Ordinal);
         var tick = DateTime.UtcNow.Ticks;
 
-        var plantasDeFila = plan.Validas.Select(c => ResolverPlanta(porNombre, c.Planta)).ToList();
+        var paraCrear = plan.Validas.Where(c => c.MaterialIdExistente is null).ToList();
+        var paraActualizar = plan.Validas.Where(c => c.MaterialIdExistente is int).ToList();
+
+        var plantasDeFila = paraCrear.Select(c => ResolverPlanta(porNombre, c.Planta)).ToList();
         if (plantasDeFila.Any(p => _db.Entry(p).State == EntityState.Added))
             await _uow.SaveChangesAsync(cancellationToken);
 
         var creados = new List<(Material Material, string Planta, decimal? CostoUnitario)>();
-        for (var i = 0; i < plan.Validas.Count; i++)
+        for (var i = 0; i < paraCrear.Count; i++)
         {
-            var candidato = plan.Validas[i];
+            var candidato = paraCrear[i];
             var planta = plantasDeFila[i];
             var code = SiguienteCodigo(usados, ref tick);
             var material = new Material
@@ -166,6 +170,47 @@ public sealed class InventarioImportService : IInventarioImportService
             };
             _db.Materials.Add(material);
             creados.Add((material, planta.Nombre, candidato.CostoUnitario));
+        }
+
+        var idsActualizar = paraActualizar.Select(c => c.MaterialIdExistente!.Value).ToList();
+        var existentes = idsActualizar.Count == 0
+            ? []
+            : await _db.Materials.IgnoreQueryFilters()
+                .Where(m => idsActualizar.Contains(m.Id))
+                .ToListAsync(cancellationToken);
+        var porId = existentes.ToDictionary(m => m.Id);
+        var actualizados = new List<(Material Material, string Planta, decimal Delta, decimal? CostoUnitario)>();
+        var costoSvc = new InsumoCostoService();
+
+        foreach (var candidato in paraActualizar)
+        {
+            if (!porId.TryGetValue(candidato.MaterialIdExistente!.Value, out var material))
+                continue;
+
+            var anterior = material.Stock;
+            var objetivo = candidato.Stock;
+            var delta = objetivo - anterior;
+            if (delta == 0)
+                continue;
+
+            material.MinStock = candidato.MinStock;
+            material.LastEntryDate = candidato.FechaIngreso;
+
+            if (delta > 0)
+            {
+                if (candidato.CostoUnitario is > 0)
+                    costoSvc.RegistrarCompra(material, delta, candidato.CostoUnitario.Value);
+                else
+                    material.StockSinCosto += delta;
+                material.Stock = objetivo;
+            }
+            else
+            {
+                material.DescontarUnidadesSinCosto(-delta);
+                material.Stock = objetivo;
+            }
+
+            actualizados.Add((material, candidato.Planta, delta, candidato.CostoUnitario));
         }
 
         await _uow.SaveChangesAsync(cancellationToken);
@@ -207,14 +252,51 @@ public sealed class InventarioImportService : IInventarioImportService
             });
         }
 
-        return await PersistirFichasAsync(lectura, plan, user, creados.Count, cancellationToken);
+        foreach (var (material, planta, delta, costo) in actualizados)
+        {
+            var aumento = delta > 0;
+            var conCosto = aumento && costo is > 0;
+            _db.StockMovements.Add(new StockMovement
+            {
+                MaterialId = material.Id,
+                FechaUtc = ahora,
+                UsuarioId = user.Id,
+                TipoMovimiento = aumento ? StockMovementType.Entrada : StockMovementType.Ajuste,
+                Origen = aumento
+                    ? (conCosto ? StockEntryOrigin.Compra : StockEntryOrigin.OtraFuenteAutorizada)
+                    : null,
+                Cantidad = Math.Abs(delta),
+                StockResultante = material.Stock,
+                Referencia = InventarioImportTextos.ReferenciaMovimiento,
+                CostoUnitario = conCosto ? costo : (aumento ? 0 : null),
+                SinCosto = aumento && !conCosto
+            });
+
+            var details =
+                $"Actualización de stock por importación: {material.Name} ({material.Code}), planta {planta}, delta {delta.ToString(CultureInfo.InvariantCulture)}.";
+            if (details.Length > 2000)
+                details = details[..2000];
+            _db.ActivityLogs.Add(new ActivityLog
+            {
+                UserId = user.Id,
+                UserName = userName,
+                Action = ActivityLogActions.ImportInventario,
+                Entity = ActivityLogEntities.Material,
+                EntityId = material.Id.ToString(CultureInfo.InvariantCulture),
+                Timestamp = ahora,
+                Details = details
+            });
+        }
+
+        var importados = creados.Count + actualizados.Count;
+        return await PersistirFichasAsync(lectura, plan, user, importados, cancellationToken);
     }
 
     private async Task<InventarioImportResult> PersistirFichasAsync(
         InventarioExcelLectura lectura,
         Plan plan,
         User user,
-        int creados,
+        int importados,
         CancellationToken cancellationToken)
     {
         var fichas = await FichaTecnicaImportador.ClasificarAsync(
@@ -224,7 +306,7 @@ public sealed class InventarioImportService : IInventarioImportService
             lectura.AvisoFichas,
             cancellationToken);
         var vinculadas = await FichaTecnicaImportador.GuardarAsync(_db, fichas, user, cancellationToken);
-        return plan.ToResult(persistido: creados > 0 || vinculadas > 0, importados: creados, fichas);
+        return plan.ToResult(persistido: importados > 0 || vinculadas > 0, importados: importados, fichas);
     }
 
     private PlantaInventario ResolverPlanta(
@@ -268,17 +350,21 @@ public sealed class InventarioImportService : IInventarioImportService
         }
 
         var materiales = await _db.Materials.IgnoreQueryFilters().AsNoTracking()
-            .Select(m => new { m.CodigoAlmacen, m.Name, m.PlantaInventarioId })
+            .Select(m => new { m.Id, m.CodigoAlmacen, m.Name, m.PlantaInventarioId, m.Stock })
             .ToListAsync(cancellationToken);
 
-        var clavesBd = new HashSet<string>(StringComparer.Ordinal);
+        var porClaveBd = new Dictionary<string, (int Id, decimal Stock)>(StringComparer.Ordinal);
         var codigosBd = new HashSet<string>(StringComparer.Ordinal);
         foreach (var material in materiales)
         {
             var codigo = (material.CodigoAlmacen ?? string.Empty).Trim().ToLowerInvariant();
             if (codigo.Length > 0)
                 codigosBd.Add(codigo);
-            clavesBd.Add(ClaveMaterial(codigo, material.Name, material.PlantaInventarioId.ToString(CultureInfo.InvariantCulture)));
+            var clave = ClaveMaterial(
+                codigo,
+                material.Name,
+                material.PlantaInventarioId.ToString(CultureInfo.InvariantCulture));
+            porClaveBd.TryAdd(clave, (material.Id, material.Stock));
         }
 
         var conteoCodigos = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -390,14 +476,10 @@ public sealed class InventarioImportService : IInventarioImportService
                 avisos.Add(InventarioImportTextos.CodigoRepetido);
 
             var claveLote = ClaveMaterial(codigoClave, nombre, clavePlanta);
-            var enBd = plantaId is int id
-                && clavesBd.Contains(ClaveMaterial(codigoClave, nombre, id.ToString(CultureInfo.InvariantCulture)));
             var enLote = primeraFila.TryGetValue(claveLote, out var filaPrimera);
-            if (enBd || enLote)
+            if (enLote)
             {
-                var mensaje = enLote
-                    ? InventarioImportTextos.DuplicadoEnArchivo(fila.Fila, filaPrimera)
-                    : InventarioImportTextos.Omitido;
+                var mensaje = InventarioImportTextos.DuplicadoEnArchivo(fila.Fila, filaPrimera);
                 plan.Omitidas.Add(new InventarioImportOmitida
                 {
                     Fila = fila.Fila,
@@ -408,6 +490,31 @@ public sealed class InventarioImportService : IInventarioImportService
                 });
                 plan.Advertencias.Add(Aviso(fila.Fila, mensaje, nombre));
                 continue;
+            }
+
+            int? materialIdExistente = null;
+            if (plantaId is int idPlanta
+                && porClaveBd.TryGetValue(
+                    ClaveMaterial(codigoClave, nombre, idPlanta.ToString(CultureInfo.InvariantCulture)),
+                    out var existente))
+            {
+                if (existente.Stock == cantidad)
+                {
+                    var mensaje = InventarioImportTextos.OmitidoStockIgual;
+                    plan.Omitidas.Add(new InventarioImportOmitida
+                    {
+                        Fila = fila.Fila,
+                        CodigoAlmacen = codigo,
+                        Nombre = nombre,
+                        Planta = nombrePlanta,
+                        Mensaje = mensaje
+                    });
+                    plan.Advertencias.Add(Aviso(fila.Fila, mensaje, nombre));
+                    continue;
+                }
+
+                materialIdExistente = existente.Id;
+                avisos.Add(InventarioImportTextos.ActualizaStock);
             }
 
             primeraFila[claveLote] = fila.Fila;
@@ -429,7 +536,8 @@ public sealed class InventarioImportService : IInventarioImportService
                 plantaNueva,
                 tipoElemento,
                 costo,
-                avisos));
+                avisos,
+                materialIdExistente));
             foreach (var aviso in avisos)
                 plan.Advertencias.Add(Aviso(fila.Fila, aviso, nombre));
         }
@@ -659,7 +767,8 @@ public sealed class InventarioImportService : IInventarioImportService
         bool PlantaNueva,
         TipoElemento TipoElemento,
         decimal? CostoUnitario,
-        IReadOnlyList<string> Advertencias);
+        IReadOnlyList<string> Advertencias,
+        int? MaterialIdExistente);
 
     private sealed class Plan
     {
@@ -688,6 +797,7 @@ public sealed class InventarioImportService : IInventarioImportService
                 PlantaNueva = c.PlantaNueva,
                 TipoElemento = c.TipoElemento,
                 CostoUnitario = c.CostoUnitario,
+                ActualizaExistente = c.MaterialIdExistente is int,
                 Advertencias = c.Advertencias
             }).ToList(),
             Errores = Errores,

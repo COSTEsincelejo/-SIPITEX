@@ -32,12 +32,16 @@
 
 <div class="card">
     <div class="card-title"><i class="fas fa-file-import"></i> Archivo Excel</div>
+    <p class="hint" style="margin-bottom:12px;">
+        <a asp-action="DescargarPlantilla"><i class="fas fa-download"></i> Descargar plantilla Excel</a>
+        — hoja Inventario_Materiales con ejemplos CMTC (Cofia/Tula). Simule y luego confirme.
+    </p>
     <form asp-action="Importar" method="post" enctype="multipart/form-data" class="form-row">
         @Html.AntiForgeryToken()
         <div class="field" style="flex:2;min-width:240px;">
             <label class="field-label" for="archivo">Archivo .xlsx</label>
             <input id="archivo" name="archivo" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
-            <p class="hint">Máximo 5 MB. Se lee la hoja Inventario_Materiales por el nombre de cada columna. La columna de stock calculado se ignora. La hoja Fichas_Tecnicas, si viene, se vincula al material por código de almacén.</p>
+            <p class="hint">Máximo 5 MB. Se lee la hoja Inventario_Materiales por el nombre de cada columna. La columna de stock calculado se ignora. Materiales ya existentes (mismo código, nombre y planta) actualizan stock si la cantidad difiere; si coincide, se omiten. Filas con error se reportan y no detienen el resto. La hoja Fichas_Tecnicas, si viene, se vincula al material por código de almacén.</p>
         </div>
         <div class="field" style="align-self:flex-end;">
             <button type="submit" class="primary"><i class="fas fa-magnifying-glass"></i> Simular</button>
@@ -87,6 +91,7 @@
                         <th>Fecha</th>
                         <th>Planta</th>
                         <th>Tipo</th>
+                        <th>Acción</th>
                         <th>Avisos</th>
                     </tr>
                 </thead>
@@ -106,6 +111,7 @@
                             <td>@fila.FechaIngreso.ToString("dd/MM/yyyy")</td>
                             <td>@fila.Planta</td>
                             <td>@fila.TipoElemento</td>
+                            <td>@(fila.ActualizaExistente ? "Actualiza stock" : "Alta")</td>
                             <td>@(fila.Advertencias.Count == 0 ? "—" : string.Join(", ", fila.Advertencias))</td>
                         </tr>
                     }
