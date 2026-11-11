@@ -46,7 +46,7 @@ Plantilla comentada: [`.env.example`](../.env.example). Detalle de despliegue: [
 | Contraseña de PostgreSQL | `DATABASE_URL` / Neon / Render | Rotar al cambiar de responsable de operaciones. |
 | Cookies / Data Protection | Base PostgreSQL | Tras restaurar un backup antiguo, validar que las sesiones siguen cerrándose bien. |
 
-No hay claves reales en el repositorio. Los tests usan marcadores (`re_super_secret`, `xkeysib-secret`, `ana@gmail.com` como fixture) que no son credenciales ni cuentas personales de producción.
+No hay claves reales en el repositorio. Los tests usan marcadores ficticios de API y correos `@sipitex.test` / fixtures de laboratorio; no son cuentas personales ni de producción.
 
 ## Importador de inventario — advertencia
 
